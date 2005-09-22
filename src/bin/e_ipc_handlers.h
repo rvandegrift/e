@@ -253,7 +253,7 @@ break;
 case HDL: { void *data; int bytes; \
 
 #define REQ_3INT_4STRING_END(__val1, __val2, __val3, __str1, __str2, __str3, __str4, HDL) \
-   data = e_ipc_codec_3int_4str_enc(__val1, __val2, __val3, __str1, __str1, __str3, __str4, &bytes); \
+   data = e_ipc_codec_3int_4str_enc(__val1, __val2, __val3, __str1, __str2, __str3, __str4, &bytes); \
    if (data) { \
       ecore_ipc_server_send(e->server, E_IPC_DOMAIN_REQUEST, HDL, 0, 0, 0, data, bytes); \
       free(data); \
@@ -5435,7 +5435,7 @@ break;
                   else if (!strncmp(pp, "WIN|", 4)) eb.modifiers |= E_BINDING_MODIFIER_WIN;
                   else if (strlen(pp) > 0)
                     {
-                       printf("OPT3 moidifier unknown. Must be or mask of:\n"
+                       printf("OPT4 moidifier unknown. Must be or mask of:\n"
                               "  SHIFT CTRL ALT WIN (eg SHIFT|CTRL or ALT|SHIFT|CTRL or ALT or just NONE)\n");
                        exit(-1);
                     }
@@ -5450,7 +5450,7 @@ break;
                   else if (!strcmp(pp, "NONE")) eb.modifiers = E_BINDING_MODIFIER_NONE;
                   else if (strlen(pp) > 0)
                     {
-                       printf("OPT3 moidifier unknown. Must be or mask of:\n"
+                       printf("OPT4 moidifier unknown. Must be or mask of:\n"
                               "  SHIFT CTRL ALT WIN (eg SHIFT|CTRL or ALT|SHIFT|CTRL or ALT or just NONE)\n");
                        exit(-1);
                     }
@@ -5761,7 +5761,7 @@ break;
                   else if (!strncmp(pp, "WIN|", 4)) eb.modifiers |= E_BINDING_MODIFIER_WIN;
                   else if (strlen(pp) > 0)
                     {
-                       printf("OPT3 moidifier unknown. Must be or mask of:\n"
+                       printf("OPT4 moidifier unknown. Must be or mask of:\n"
                               "  SHIFT CTRL ALT WIN (eg SHIFT|CTRL or ALT|SHIFT|CTRL or ALT or just NONE)\n");
                        exit(-1);
                     }
@@ -5776,7 +5776,7 @@ break;
                   else if (!strcmp(pp, "NONE")) eb.modifiers = E_BINDING_MODIFIER_NONE;
                   else if (strlen(pp) > 0)
                     {
-                       printf("OPT3 moidifier unknown. Must be or mask of:\n"
+                       printf("OPT4 moidifier unknown. Must be or mask of:\n"
                               "  SHIFT CTRL ALT WIN (eg SHIFT|CTRL or ALT|SHIFT|CTRL or ALT or just NONE)\n");
                        exit(-1);
                     }
