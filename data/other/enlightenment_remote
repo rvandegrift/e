@@ -1,4 +1,4 @@
-# $Id: enlightenment_remote,v 1.6 2005/09/27 22:31:29 sebastid Exp $
+# $Id: enlightenment_remote,v 1.7 2005/09/27 22:53:03 sebastid Exp $
 # bash-completion script for enlightenment_remote
 # By Justin Rocha (Xenith)
 # Additions by Sebastian Dransfeld
@@ -33,6 +33,7 @@ _enlightenment_remote() {
 		COMPREPLY=($(compgen -W "${opts/-h -help --help}" -- "${cur}"))
 		return 0
 		;;
+	-always-click-to-focus-set| \
 	-always-click-to-raise-set| \
 	-border-shade-animate-set| \
 	-edge-flip-set| \
