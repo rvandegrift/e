@@ -1,4 +1,4 @@
-# $Id: enlightenment_remote,v 1.11 2005/10/09 20:19:28 sebastid Exp $
+# $Id: enlightenment_remote,v 1.12 2005/10/09 20:30:21 sebastid Exp $
 # bash-completion script for enlightenment_remote
 # By Justin Rocha (Xenith)
 # Additions by Sebastian Dransfeld
@@ -19,7 +19,7 @@ _enlightenment_remote() {
 	action=${COMP_WORDS[1]}
 	opts=`enlightenment_remote -h | awk '{print $1}' | grep -v "OPTIONS:" | xargs`
 	BINDING_CONTEXT="NONE BORDER ZONE CONTAINER MANAGER MENU WINLIST POPUP ANY"
-	ENGINE_CONTEXT="CONTAINER INIT MENU BORDER ERROR POPUP DRAG WIN ZONE"
+	ENGINE_CONTEXT="INIT CONTAINER ZONE BORDER MENU ERROR WIN POPUP DRAG"
 	MODIFIERS="NONE SHIFT| SHIFT CONTROL| CONTROL ALT| ALT WIN| WIN"
 	DIRS="data images fonts themes init icons modules backgrounds"
 
