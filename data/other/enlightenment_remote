@@ -1,4 +1,4 @@
-# $Id: enlightenment_remote,v 1.12 2005/10/09 20:30:21 sebastid Exp $
+# $Id: enlightenment_remote,v 1.13 2005/10/09 21:42:37 sebastid Exp $
 # bash-completion script for enlightenment_remote
 # By Justin Rocha (Xenith)
 # Additions by Sebastian Dransfeld
@@ -166,7 +166,7 @@ _enlightenment_remote() {
 			COMPREPLY=($(compgen -W "${ENGINE_CONTEXT}" -- "${cur}"))
 		elif [[ ${COMP_CWORD} -eq 3 ]]; then
 			engines=$(enlightenment_remote -engine-list|grep REPLY:|awk '{print $2}')
-			COMPREPLY=($(compgen -W "${engines}" -- "${cur}"))
+			COMPREPLY=($(compgen -W "DEFAULT ${engines}" -- "${cur}"))
 		fi
 		return 0
 		;;
