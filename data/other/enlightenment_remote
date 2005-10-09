@@ -1,4 +1,4 @@
-# $Id: enlightenment_remote,v 1.9 2005/09/28 22:47:17 sebastid Exp $
+# $Id: enlightenment_remote,v 1.10 2005/10/09 19:11:52 sebastid Exp $
 # bash-completion script for enlightenment_remote
 # By Justin Rocha (Xenith)
 # Additions by Sebastian Dransfeld
@@ -224,6 +224,11 @@ _enlightenment_remote() {
 	-module-unload)
 		modules=$(enlightenment_remote -module-list|grep REPLY:|awk '{print $2}')
 		COMPREPLY=($(compgen -W "${modules}" -- "${cur}"))
+		return 0
+		;;
+	-profile-del)
+		profiles=$(enlightenment_remote -profile-list|grep REPLY:|awk '{print $2}')
+		COMPREPLY=($(compgen -W "${profiles}" -- "${cur}"))
 		return 0
 		;;
 	-theme-get|-theme-remove)
