@@ -1,4 +1,4 @@
-# $Id: enlightenment_remote,v 1.13 2005/10/09 21:42:37 sebastid Exp $
+# $Id: enlightenment_remote,v 1.14 2005/11/04 23:30:18 sebastid Exp $
 # bash-completion script for enlightenment_remote
 # By Justin Rocha (Xenith)
 # Additions by Sebastian Dransfeld
@@ -207,6 +207,10 @@ _enlightenment_remote() {
 	-font-fallback-remove)
 		fonts=$(enlightenment_remote -font-fallback-list|grep REPLY:|awk '{print $2}')
 		COMPREPLY=($(compgen -W "${fonts}" -- "${cur}"))
+		return 0
+		;;
+	-fullscreen-policy-set)
+		COMPREPLY=($(compgen -W "RESIZE ZOOM" -- "${cur}"))
 		return 0
 		;;
 	-lang-set)
