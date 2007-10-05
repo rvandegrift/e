@@ -241,7 +241,8 @@ _e_pointer_canvas_add(E_Pointer *p)
    p->pointer_object = o;
    /* Create the hotspot object */
    o = evas_object_rectangle_add(p->evas);
-   p->hot_object = o;
+   evas_object_color_set(o, 0, 0, 0, 0);
+   p->hot_object = o;   
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOVE,
 				  _e_pointer_cb_move, p);
    /* init edje */
