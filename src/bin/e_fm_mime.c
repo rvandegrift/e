@@ -120,35 +120,45 @@ static Evas_Hash *_glob_handlers = NULL;
 
 /* create (allocate), set properties, and return a new mime handler */
 EAPI E_Fm_Mime_Handler *
-e_fm_mime_handler_new(const char *label, const char *icon_group, void (*action_func) (Evas_Object *obj, const char *path, void *data), int (test_func) (Evas_Object *obj, const char *path, void *data))
+e_fm_mime_handler_new(const char *label, const char *icon_group, 
+                      void (*action_func) (Evas_Object *obj, const char *path, void *data),
+		      void *action_data,
+		      int (test_func) (Evas_Object *obj, const char *path, void *data),
+		      void *test_data)
 {
    E_Fm_Mime_Handler *handler;
 
-   if (!label || !action_func)
-     return NULL;
+   if ((!label) || (!action_func)) return NULL;
 
-   handler = E_NEW( E_Fm_Mime_Handler, 1);
-   if (!handler)
-     return NULL;
+   handler = E_NEW(E_Fm_Mime_Handler, 1);
+   if (!handler) return NULL;
 
-   handler->label = strdup(label);
-   handler->icon_group = icon_group ? strdup(icon_group) : NULL;
+   handler->label = evas_stringshare_add(label);
+   handler->icon_group = icon_group ? evas_stringshare_add(icon_group) : NULL;
    handler->action_func = action_func;
+   handler->action_data = action_data;
    handler->test_func = test_func;
-
-   /* TODO: add data for both action_cb and test_cb */
-
+   handler->test_data = test_data;
+   
    return handler;
 }
 
+EAPI void
+e_fm_mime_handler_free(E_Fm_Mime_Handler *handler) 
+{
+   if (!handler) return;
+   evas_stringshare_del(handler->label);
+   if (handler->icon_group) evas_stringshare_del(handler->icon_group);
+   E_FREE(handler);
+}
+
 /* associate a certain mime type with a handler */
-EAPI int
+EAPI Evas_Bool
 e_fm_mime_handler_mime_add(E_Fm_Mime_Handler *handler, const char *mime)
 {
-   Evas_List *handlers;
+   Evas_List *handlers = NULL;
 
-   if (!handler || !mime)
-     return 0;
+   if ((!handler) || (!mime)) return 0;
 
    /* if there's an entry for this mime already, then append to its list */
    if ((handlers = evas_hash_find(_mime_handlers, mime)))
@@ -159,7 +169,6 @@ e_fm_mime_handler_mime_add(E_Fm_Mime_Handler *handler, const char *mime)
    else
      {
 	/* no previous entry for this mime, lets add one */
-	handlers = NULL;
 	handlers = evas_list_append(handlers, handler);
 	_mime_handlers = evas_hash_add(_mime_handlers, mime, handlers);
      }
@@ -168,13 +177,12 @@ e_fm_mime_handler_mime_add(E_Fm_Mime_Handler *handler, const char *mime)
 }
 
 /* associate a certain glob with a handler */
-EAPI int
+EAPI Evas_Bool
 e_fm_mime_handler_glob_add(E_Fm_Mime_Handler *handler, const char *glob)
 {
-   Evas_List *handlers;
+   Evas_List *handlers = NULL;
 
-   if (!handler || !glob)
-     return 0;
+   if ((!handler) || (!glob)) return 0;
 
    /* if there's an entry for this glob already, then append to its list */
    if ((handlers = evas_hash_find(_glob_handlers, glob)))
@@ -185,14 +193,35 @@ e_fm_mime_handler_glob_add(E_Fm_Mime_Handler *handler, const char *glob)
    else
      {
 	/* no previous entry for this mime, lets add one */
-	handlers = NULL;
 	handlers = evas_list_append(handlers, handler);
 	_glob_handlers = evas_hash_add(_mime_handlers, glob, handlers);
      }
 
    return 1;
 }
-     
+
+/* call a certain handler */
+EAPI Evas_Bool
+e_fm_mime_handler_call(E_Fm_Mime_Handler *handler, Evas_Object *obj, const char *path)
+{
+   if (!handler || !obj || !path || !handler->action_func)
+     return 0;
+
+   if (handler->test_func)
+     {
+	if (handler->test_func(obj, path, handler->test_data))
+	  {
+	     handler->action_func(obj, path, handler->action_data);
+	     return 1;
+	  }
+	else
+	  return 0;
+     }
+
+   handler->action_func(obj, path, handler->action_data);
+   return 1;
+}
+
 /* local subsystem functions */
 static Evas_Bool
 _e_fm_mime_icon_foreach(Evas_Hash *hash, const char *key, void *data, void *fdata)
