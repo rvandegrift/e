@@ -1,7 +1,6 @@
 /*
     * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
 */
-
 #include "e.h"
 
 typedef struct _CFModule 
@@ -284,9 +283,18 @@ _fill_avail_list(E_Config_Dialog_Data *cfdata)
 	if (!name) continue;
 	module = evas_hash_find(modules, name);
 	if ((!module) || (module->enabled) || (!module->icon)) continue;
+	/*
 	icon = efreet_icon_path_find(e_config->icon_theme, 
 				     module->icon, "24x24");
 	if ((!icon) && (module->orig_path))
+	  {
+	     path = ecore_file_dir_get(module->orig_path);
+	     snprintf(buf, sizeof(buf), "%s/%s.edj", path, module->icon);
+	     icon = strdup(buf);
+	     free(path);
+	  }
+	 */ 
+	if (module->orig_path) 
 	  {
 	     path = ecore_file_dir_get(module->orig_path);
 	     snprintf(buf, sizeof(buf), "%s/%s.edj", path, module->icon);
@@ -339,9 +347,18 @@ _fill_loaded_list(E_Config_Dialog_Data *cfdata)
 	if (!name) continue;
 	module = evas_hash_find(modules, name);
 	if ((!module) || (!module->enabled) || (!module->icon)) continue;
+	/*
 	icon = efreet_icon_path_find(e_config->icon_theme, 
 				     module->icon, "24x24");
 	if ((!icon) && (module->orig_path))
+	  {
+	     path = ecore_file_dir_get(module->orig_path);
+	     snprintf(buf, sizeof(buf), "%s/%s.edj", path, module->icon);
+	     icon = strdup(buf);
+	     free(path);
+	  }
+	 */
+	if (module->orig_path) 
 	  {
 	     path = ecore_file_dir_get(module->orig_path);
 	     snprintf(buf, sizeof(buf), "%s/%s.edj", path, module->icon);
@@ -547,8 +564,8 @@ static Evas_Bool
 _modules_hash_cb_free(Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
 		      void *data, void *fdata __UNUSED__) 
 {
-   CFModule *module;
-   
+   CFModule *module = NULL;
+
    module = data;
    if (!module) return 1;
    if (module->short_name) evas_stringshare_del(module->short_name);
@@ -564,8 +581,8 @@ static Evas_Bool
 _modules_hash_cb_unsel(Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
 		       void *data, void *fdata __UNUSED__) 
 {
-   CFModule *module;
-   
+   CFModule *module = NULL;
+
    module = data;
    if (!module) return 1;
    module->selected = 0;
@@ -576,9 +593,9 @@ static Evas_Bool
 _modules_hash_cb_load(Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
 		      void *data, void *fdata __UNUSED__) 
 {
-   CFModule *module;
-   E_Module *mod;
-   
+   CFModule *module = NULL;
+   E_Module *mod = NULL;
+
    module = data;
    if ((!module) || (!module->selected)) return 1;
    mod = e_module_find(module->short_name);
@@ -592,9 +609,9 @@ static Evas_Bool
 _modules_hash_cb_unload(Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
 			void *data, void *fdata __UNUSED__) 
 {
-   CFModule *module;
-   E_Module *mod;
-   
+   CFModule *module = NULL;
+   E_Module *mod = NULL;
+
    module = data;
    if ((!module) || (!module->selected)) return 1;
    mod = e_module_find(module->short_name);
