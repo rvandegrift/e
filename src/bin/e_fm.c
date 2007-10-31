@@ -450,7 +450,6 @@ EAPI void
 e_fm2_path_set(Evas_Object *obj, const char *dev, const char *path)
 {
    E_Fm2_Smart_Data *sd;
-   Evas_List *l;
    const char *realpath, *extended_path;
 
    sd = evas_object_smart_data_get(obj);
@@ -2273,8 +2272,7 @@ _e_fm2_dev_path_map(const char *dev, const char *path)
    else if (CMP("removable:*")) 
      {
 	E_Volume *v;
-	char *mountpoint;
- 	
+
 	v = e_fm2_hal_volume_find(dev + strlen("removable:"));
 	if (v) 
 	  {
