@@ -1,0 +1,8 @@
+debian/tmp/usr/bin/enlightenment
+debian/tmp/usr/bin/enlightenment_*
+debian/tmp/etc/enlightenment/sysactions.conf
+debian/tmp/usr/lib/enlightenment/preload/*.so
+debian/tmp/usr/lib/enlightenment/modules/*/linux-gnu-*/*.so
+debian/tmp/usr/lib/enlightenment/modules/*/*.desktop
+debian/tmp/usr/lib/enlightenment/modules/*/*.edj
+debian/tmp/usr/lib/enlightenment/modules/cpufreq/linux-gnu-*/freqset

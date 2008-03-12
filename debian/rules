@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/class/autotools.mk
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/rules/simple-patchsys.mk
+
+install/enlightenment-data::
+	gzip -9 debian/tmp/usr/share/enlightenment/doc/*.txt
+	rm debian/tmp/usr/share/enlightenment/COPYING
+
+install/enlightenment::
+	rm -R debian/tmp/usr/lib/enlightenment/modules/layout
+	rm -R debian/tmp/usr/lib/enlightenment/modules/wizard
+
+DEB_DH_STRIP_ARGS := --dbg-package=enlightenment-dbg
+DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath

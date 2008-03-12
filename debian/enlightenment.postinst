@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+wm=enlightenment_start
+
+update-alternatives  --install /usr/bin/x-window-manager x-window-manager \
+    /usr/bin/$wm 90
+
+chmod u+s /usr/bin/enlightenment_sys
+chmod u+s /usr/lib/enlightenment/modules/cpufreq/linux-gnu-*/freqset
+#DEBHELPER#
