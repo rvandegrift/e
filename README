@@ -1,0 +1,36 @@
+Enlightenment 0.17.0 - IN DEVELOPMENT... not a RELEASE.
+
+NOTE: Users of DR16 will need to rename the $prefix/bin/enlightenment
+file prior to installing DR17 or it will be overwritten.
+
+You can also use the configure --prefix option to put e17 in a separate tree
+of its own (recommended) like:
+
+  ./configure --prefix=/usr/local/e17
+
+You will, as usual need to add the subsequent bin dir to your $PATH etc.
+
+PREREQUISITES:
+
+The following Enlightenment Foundation Libraries are required by e17:
+  * eet
+  * evas
+  * ecore
+  * embryo
+  * edje
+  * efreet
+
+
+NOTES:
+
+* do NOT use -mfpmath=sse in CFLAGS - we are not sure, but it may have bugds
+and screws up things in edje, evas and e17. if your gcc uses this by default
+(which apparently gcc4.x does on amd64), turn it off with a -fpmath=387 in
+your CFLAGS.
+
+* your freetype2 version must be > 2.1.7
+
+* i remember hearing of bugs with later versions of freetype on some
+distributions (2.1.9 and 2.1.10) with certain patches or missing certain
+patches. be aware of this as a possible font problem.
+
