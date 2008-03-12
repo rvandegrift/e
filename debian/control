@@ -11,9 +11,7 @@ Standards-Version: 3.7.3
 
 Package: enlightenment
 Architecture: any
-Recommends: libevas-loaders-all
-Suggests: emodules-all
-Depends: ${shlibs:Depends}, enlightenment-data (= ${source:Version}), libevas-loader-eet, libevas-loader-jpeg, libevas-loader-png, libevas-saver-eet, libevas-saver-jpeg, libevas-saver-png, libevas-engine-buffer, libevas-engine-software-x11
+Depends: ${shlibs:Depends}, enlightenment-data (= ${source:Version}), libevas-engines
 Provides: x-window-manager
 Description: The Enlightenment DR17 Window Manager
  Enlightenment is an advanced window manager for X11. Unique
@@ -51,7 +49,7 @@ Description: Enlightenment headers, static libraries and documentation
 Package: efl-dev
 Architecture: any
 Section: devel
-Depends: libeet-dev, libevas-dev, libecore-dev, libedje-dev, libefreet-dev, libefreet-mime-dev, libecore-con-dev, libecore-evas-dev, libecore-file-dev, libecore-ipc-dev, libecore-job-dev, libecore-txt-dev, libecore-x-dev, libedbus-dev
+Depends: libeet-dev, libevas-dev, libecore-dev, libedje-dev, libefreet-dev, libefreet-dev, libedbus-dev
 Description: EFL headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows

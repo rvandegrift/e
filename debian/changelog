@@ -1,6 +1,6 @@
-e17 (0.16.999.042-1) experimental; urgency=low
+e17 (0.16.999.042+dfsg-1) experimental; urgency=low
 
-  * Initial Release
+  * Initial Release (Closes: #405860)
 
- -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 05 Aug 2007 11:19:41 +0200
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Wed, 12 Mar 2008 18:20:31 +0100
 

@@ -11,22 +11,4 @@ About the menu files
   Please see http://wiki.enlightenment.org/index.php/E17_and_Efreet for further
   information.
 
--------------------
-About the system-wide configuration
-
-  This version is patched to change the way E looks for profiles and
-  configurations.
-  Usually, it just looks in ~/.e/e/config/profile.cfg, extracts the profiles
-  from it (it is a single name, such as 'defaut', 'Home', 'Work' or whatever),
-  and loads it from  ~/.e/e/config/<profile>/<whatever>.cfg
-
-  In this version, it also tries to look in
-    /usr/share/enlightenment/config/profile.cfg
-    /usr/share/enlightenment/config/<profile>/<whatever>.cfg
-  to allow system-wide configurations.
-  Please note that this package does not ship any modified config.
-  If you want to provide your own custom config, you HAVE TO use the
-  alternatives system to point to /usr/share/enlightenment/config/profile.cfg,
-  so that anyone can benefit from this.
-
   -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 21 Oct 2007 23:30:27 +0200
