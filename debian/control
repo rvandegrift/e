@@ -2,8 +2,12 @@ Source: e17
 Section: x11
 Priority: optional
 Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
-Build-Depends: debhelper (>= 5), cdbs, libeet-dev, libembryo-dev, libedje-dev, libedje-bin, libpam0g-dev, libefreet-dev, libefreet-mime-dev, libecore-evas-dev, libecore-imf-evas-dev, libecore-job-dev, libecore-txt-dev, libecore-ipc-dev, libecore-con-dev, libedbus-dev, libxext-dev
-Standards-Version: 3.7.2
+Uploaders: Albin Tonnerre <albin.tonnerre@gmail.com>,
+ Xavier Oswald <x.oswald@free.fr>, Jan Lübbe <jluebbe@debian.org>
+Build-Depends: debhelper (>= 6), cdbs, libeet-dev, libembryo-dev,
+ libedje-dev, libedje-bin, libpam0g-dev, libefreet-dev,
+ libecore-dev, libedbus-dev, libxext-dev
+Standards-Version: 3.7.3
 
 Package: enlightenment
 Architecture: any
