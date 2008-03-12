@@ -3,6 +3,9 @@
  */
 #include "e.h"
 
+#include <Ecore_IMF.h>
+#include <Ecore_IMF_Evas.h>
+
 typedef struct _E_Entry_Smart_Data E_Entry_Smart_Data;
 
 struct _E_Entry_Smart_Data
@@ -11,6 +14,9 @@ struct _E_Entry_Smart_Data
    Evas_Object *editable_object;
    E_Menu *popup;
    Ecore_Event_Handler *selection_handler;
+   Ecore_IMF_Context *imf_context;
+   Ecore_Event_Handler *imf_ee_commit_handler;
+   Ecore_Event_Handler *imf_ee_delete_handler;
    
    int enabled;
    int focused;
@@ -23,6 +29,7 @@ struct _E_Entry_Smart_Data
 
 /* local subsystem functions */
 static void _e_entry_key_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
+static void _e_entry_key_up_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _e_entry_mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _e_entry_mouse_up_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _e_entry_mouse_move_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
@@ -47,6 +54,9 @@ static void _e_entry_cb_copy(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_entry_cb_paste(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_entry_cb_select_all(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_entry_cb_delete(void *data, E_Menu *m, E_Menu_Item *mi);
+static int _e_entry_cb_imf_retrieve_surrounding(void *data, Ecore_IMF_Context *ctx, char **text, int *cursor_pos);
+static int _e_entry_cb_imf_event_commit(void *data, int type, void *event);
+static int _e_entry_cb_imf_event_delete_surrounding(void *data, int type, void *event);
 
 /* local subsystem globals */
 static Evas_Smart *_e_entry_smart = NULL;
@@ -171,6 +181,10 @@ e_entry_password_set(Evas_Object *entry, int password_mode)
    if ((!entry) || (!(sd = evas_object_smart_data_get(entry))))
      return;
    e_editable_password_set(sd->editable_object, password_mode);
+   if (sd->imf_context)
+     ecore_imf_context_input_mode_set(sd->imf_context,
+                                      password_mode ? ECORE_IMF_INPUT_MODE_FULL & ECORE_IMF_INPUT_MODE_INVISIBLE :
+                                                      ECORE_IMF_INPUT_MODE_FULL);
 }
 
 /**
@@ -214,11 +228,22 @@ e_entry_focus(Evas_Object *entry)
    if (!sd->selection_dragging)
      {
         e_editable_cursor_move_to_end(sd->editable_object);
+        if (sd->imf_context)
+          {
+             ecore_imf_context_reset(sd->imf_context);
+             ecore_imf_context_cursor_position_set(sd->imf_context,
+                                                   e_editable_cursor_pos_get(sd->editable_object));
+          }
         e_editable_selection_move_to_end(sd->editable_object);
      }
    if (sd->enabled)
       e_editable_cursor_show(sd->editable_object);
    e_editable_selection_show(sd->editable_object);
+   if (sd->imf_context)
+     {
+        ecore_imf_context_reset(sd->imf_context);
+        ecore_imf_context_focus_in(sd->imf_context);
+     }
    sd->focused = 1;
 }
 
@@ -243,6 +268,11 @@ e_entry_unfocus(Evas_Object *entry)
    edje_object_signal_emit(sd->entry_object, "e,state,unfocused", "e");
    e_editable_cursor_hide(sd->editable_object);
    e_editable_selection_hide(sd->editable_object);
+   if (sd->imf_context)
+     {
+        ecore_imf_context_reset(sd->imf_context);
+        ecore_imf_context_focus_out(sd->imf_context);
+     }
    sd->focused = 0;
 }
 
@@ -261,7 +291,8 @@ e_entry_enable(Evas_Object *entry)
    if (sd->enabled)
      return;
    
-   edje_object_signal_emit(entry, "e,state,enabled", "e");
+   edje_object_signal_emit(sd->entry_object, "e,state,enabled", "e");
+   e_editable_enable(sd->editable_object);
    if (sd->focused)
      e_editable_cursor_show(sd->editable_object);
    sd->enabled = 1;
@@ -283,7 +314,8 @@ e_entry_disable(Evas_Object *entry)
    if (!sd->enabled)
      return;
    
-   edje_object_signal_emit(entry, "e,state,disabled", "e");
+   edje_object_signal_emit(sd->entry_object, "e,state,disabled", "e");
+   e_editable_disable(sd->editable_object);
    e_editable_cursor_hide(sd->editable_object);
    sd->enabled = 0;
 }
@@ -295,10 +327,47 @@ e_entry_disable(Evas_Object *entry)
 static void
 _e_entry_key_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
+   E_Entry_Smart_Data *sd;
+
+   if ((!obj) || (!(sd = evas_object_smart_data_get(obj))))
+     return;
+
+   if (sd->imf_context)
+     {
+	Ecore_IMF_Event_Key_Down ev;
+
+	ecore_imf_evas_event_key_down_wrap(event_info, &ev);
+	if (ecore_imf_context_filter_event(sd->imf_context,
+					   ECORE_IMF_EVENT_KEY_DOWN,
+					   (Ecore_IMF_Event *) &ev))
+	  return;
+     }
+
    if (_e_entry_emacs_keybindings)
      _e_entry_key_down_emacs(obj, event_info);
    else
      _e_entry_key_down_windows(obj, event_info);
+}
+
+/* Called when a key has been released by the user */
+static void
+_e_entry_key_up_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+   E_Entry_Smart_Data *sd;
+
+   if ((!obj) || (!(sd = evas_object_smart_data_get(obj))))
+     return;
+
+   if (sd->imf_context)
+     {
+	Ecore_IMF_Event_Key_Up ev;
+
+	ecore_imf_evas_event_key_up_wrap(event_info, &ev);
+	if (ecore_imf_context_filter_event(sd->imf_context,
+					   ECORE_IMF_EVENT_KEY_UP,
+					   (Ecore_IMF_Event *) &ev))
+	  return;
+     }
 }
 
 /* Called when the entry object is pressed by the mouse */
@@ -314,7 +383,18 @@ _e_entry_mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
      return;
    if (!(event = event_info))
      return;
-   
+
+   if (sd->imf_context)
+     {
+	Ecore_IMF_Event_Mouse_Down ev;
+
+	ecore_imf_evas_event_mouse_down_wrap(event_info, &ev);
+	if (ecore_imf_context_filter_event(sd->imf_context,
+					   ECORE_IMF_EVENT_MOUSE_DOWN,
+					   (Ecore_IMF_Event *) &ev))
+	  return;
+     }
+
    evas_object_geometry_get(sd->editable_object, &ox, &oy, NULL, NULL);
    pos = e_editable_pos_get_from_coords(sd->editable_object,
                                         event->canvas.x - ox,
@@ -446,6 +526,13 @@ _e_entry_mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
 			      E_MENU_POP_DIRECTION_DOWN, event->timestamp);
 	e_util_evas_fake_mouse_up_later(e, event->button);
      }
+
+   if (sd->imf_context)
+     {
+        ecore_imf_context_reset(sd->imf_context);
+        ecore_imf_context_cursor_position_set(sd->imf_context,
+                                              e_editable_cursor_pos_get(sd->editable_object));
+     }
 }
 
 /* Called when the entry object is released by the mouse */
@@ -457,6 +544,17 @@ _e_entry_mouse_up_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
    if ((!obj) || (!(sd = evas_object_smart_data_get(obj))))
      return;
    
+   if (sd->imf_context)
+     {
+	Ecore_IMF_Event_Mouse_Up ev;
+
+	ecore_imf_evas_event_mouse_up_wrap(event_info, &ev);
+	if (ecore_imf_context_filter_event(sd->imf_context,
+					   ECORE_IMF_EVENT_MOUSE_UP,
+					   (Ecore_IMF_Event *) &ev))
+	  return;
+     }
+
    if (sd->selection_dragging)
      {
         sd->selection_dragging = 0;
@@ -477,7 +575,18 @@ _e_entry_mouse_move_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
      return;
    if (!(event = event_info))
      return;
-   
+
+   if (sd->imf_context)
+     {
+	Ecore_IMF_Event_Mouse_Move ev;
+
+	ecore_imf_evas_event_mouse_move_wrap(event_info, &ev);
+	if (ecore_imf_context_filter_event(sd->imf_context,
+					   ECORE_IMF_EVENT_MOUSE_MOVE,
+					   (Ecore_IMF_Event *) &ev))
+	  return;
+     }
+
    if (sd->selection_dragging)
      {
         evas_object_geometry_get(sd->editable_object, &ox, &oy, NULL, NULL);
@@ -485,6 +594,12 @@ _e_entry_mouse_move_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
                                              event->cur.canvas.x - ox,
                                              event->cur.canvas.y - oy);
         e_editable_cursor_pos_set(sd->editable_object, pos);
+        if (sd->imf_context)
+          {
+             ecore_imf_context_reset(sd->imf_context);
+             ecore_imf_context_cursor_position_set(sd->imf_context,
+                                                   pos);
+          }
      }
 }
 
@@ -563,7 +678,6 @@ _e_entry_x_selection_update(Evas_Object *entry)
    if ((!selecting) ||
        (!(text = e_editable_text_range_get(editable, start_pos, end_pos))))
      return;
-  
 
    ecore_x_selection_primary_set(win->evas_win, text, strlen(text) + 1);
    free(text);
@@ -716,7 +830,14 @@ _e_entry_key_down_windows(Evas_Object *entry, Evas_Event_Key_Down *event)
           changed |= e_editable_delete(editable, start_pos, end_pos);
         changed |= e_editable_insert(editable, start_pos, event->string);
      }
-   
+
+   if (sd->imf_context)
+     {
+        ecore_imf_context_reset(sd->imf_context);
+        ecore_imf_context_cursor_position_set(sd->imf_context,
+                                              e_editable_cursor_pos_get(editable));
+     }
+
    if (changed)
      evas_object_smart_callback_call(entry, "changed", NULL);
    if (selection_changed)
@@ -860,8 +981,14 @@ _e_entry_key_down_emacs(Evas_Object *entry, Evas_Event_Key_Down *event)
 	    ((strlen(event->string) != 1) ||
 	     (event->string[0] >= 0x20 && event->string[0] != 0x7f)))
      changed = e_editable_insert(editable, cursor_pos, event->string);
-   
-   
+
+   if (sd->imf_context)
+     {
+        ecore_imf_context_reset(sd->imf_context);
+        ecore_imf_context_cursor_position_set(sd->imf_context,
+                                              e_editable_cursor_pos_get(editable));
+     }
+
    if (changed)
      evas_object_smart_callback_call(entry, "changed", NULL);
    if (selection_changed)
@@ -877,6 +1004,8 @@ _e_entry_smart_add(Evas_Object *object)
    E_Entry_Smart_Data *sd;
    Evas_Object *o;
    int cw, ch;
+   const char *ctx_id;
+   const Ecore_IMF_Context_Info *ctx_info;
    
    if ((!object) || !(evas = evas_object_evas_get(object)))
      return;
@@ -885,7 +1014,42 @@ _e_entry_smart_add(Evas_Object *object)
    if (!sd) return;
    
    evas_object_smart_data_set(object, sd);
-   
+
+   ctx_id = ecore_imf_context_default_id_get();
+   if (ctx_id)
+     {
+	ctx_info = ecore_imf_context_info_by_id_get(ctx_id);
+	if (!ctx_info->canvas_type ||
+	    strcmp(ctx_info->canvas_type, "evas") == 0)
+	  sd->imf_context = ecore_imf_context_add(ctx_id);
+	else
+	  {
+	     ctx_id = ecore_imf_context_default_id_by_canvas_type_get("evas");
+	     if (ctx_id)
+	       sd->imf_context = ecore_imf_context_add(ctx_id);
+	     else
+	       sd->imf_context = NULL;
+	  }
+     }
+   else
+     sd->imf_context = NULL;
+
+   if (sd->imf_context)
+     {
+        ecore_imf_context_client_window_set(sd->imf_context,
+					    ecore_evas_window_get(ecore_evas_ecore_evas_get(evas)));
+        ecore_imf_context_client_canvas_set(sd->imf_context, evas);
+        ecore_imf_context_retrieve_surrounding_callback_set(sd->imf_context,
+                                                            _e_entry_cb_imf_retrieve_surrounding,
+                                                            sd);
+        sd->imf_ee_commit_handler = ecore_event_handler_add(ECORE_IMF_EVENT_COMMIT,
+                                                            _e_entry_cb_imf_event_commit,
+                                                            object);
+        sd->imf_ee_delete_handler = ecore_event_handler_add(ECORE_IMF_EVENT_DELETE_SURROUNDING,
+                                                            _e_entry_cb_imf_event_delete_surrounding,
+                                                            sd);
+     }
+
    sd->enabled = 1;
    sd->focused = 0;
    sd->selection_dragging = 0;
@@ -909,6 +1073,8 @@ _e_entry_smart_add(Evas_Object *object)
    
    evas_object_event_callback_add(object, EVAS_CALLBACK_KEY_DOWN,
                                   _e_entry_key_down_cb, NULL);
+   evas_object_event_callback_add(object, EVAS_CALLBACK_KEY_UP,
+                                  _e_entry_key_up_cb, NULL);
    evas_object_event_callback_add(object, EVAS_CALLBACK_MOUSE_DOWN,
                                   _e_entry_mouse_down_cb, NULL);
    evas_object_event_callback_add(object, EVAS_CALLBACK_MOUSE_UP,
@@ -929,8 +1095,17 @@ _e_entry_smart_del(Evas_Object *object)
    if ((!object) || !(sd = evas_object_smart_data_get(object)))
      return;
 
+   if (sd->imf_context)
+     {
+	ecore_event_handler_del(sd->imf_ee_commit_handler);
+	ecore_event_handler_del(sd->imf_ee_delete_handler);
+	ecore_imf_context_del(sd->imf_context);
+     }
+
    evas_object_event_callback_del(object, EVAS_CALLBACK_KEY_DOWN,
                                   _e_entry_key_down_cb);
+   evas_object_event_callback_del(object, EVAS_CALLBACK_KEY_DOWN,
+                                  _e_entry_key_up_cb);
    evas_object_event_callback_del(object, EVAS_CALLBACK_MOUSE_DOWN,
                                   _e_entry_mouse_down_cb);
    evas_object_event_callback_del(object, EVAS_CALLBACK_MOUSE_UP,
@@ -1153,4 +1328,64 @@ _e_entry_cb_delete(void *data, E_Menu *m, E_Menu_Item *mi)
 	evas_object_smart_callback_call(sd->entry_object, "changed", NULL);
 	free(range);
      }
+}
+
+static int
+ _e_entry_cb_imf_retrieve_surrounding(void *data, Ecore_IMF_Context *ctx, char **text, int *cursor_pos)
+{
+   E_Entry_Smart_Data *sd;
+
+   sd = data;
+
+   if (text)
+     {
+        const char *str;
+
+        str = e_editable_text_get(sd->editable_object);
+        *text = str ? strdup(str) : strdup("");
+     }
+
+   if (cursor_pos)
+     *cursor_pos = e_editable_cursor_pos_get(sd->editable_object);
+
+   return 1;
+}
+
+static int
+_e_entry_cb_imf_event_commit(void *data, int type, void *event)
+{
+   Evas_Object *entry;
+   E_Entry_Smart_Data *sd;
+   Ecore_IMF_Event_Commit *ev = event;
+
+   if ((!(entry = data)) || (!(sd = evas_object_smart_data_get(entry))))
+     return 1;
+
+   if (sd->imf_context != ev->ctx)
+      return 1;
+
+   e_entry_text_set(entry, ev->str);
+   return 0;
+}
+
+static int
+_e_entry_cb_imf_event_delete_surrounding(void *data, int type, void *event)
+{
+   E_Entry_Smart_Data *sd;
+   Ecore_IMF_Event_Delete_Surrounding *ev = event;
+   Evas_Object *editable;
+   int cursor_pos;
+
+   sd = data;
+
+   if (sd->imf_context != ev->ctx)
+      return 1;
+
+   editable = sd->editable_object;
+   cursor_pos = e_editable_cursor_pos_get(editable);
+   e_editable_delete(editable,
+                     cursor_pos + ev->offset,
+                     cursor_pos + ev->offset + ev->n_chars);
+
+   return 0;
 }

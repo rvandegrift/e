@@ -3,26 +3,6 @@
  */
 #ifdef E_TYPEDEFS
 
-#define E_CONFIG_DD_NEW(str, typ) \
-   e_config_descriptor_new(str, sizeof(typ))
-#define E_CONFIG_DD_FREE(eed) if (eed) { eet_data_descriptor_free((eed)); (eed) = NULL; }
-#define E_CONFIG_VAL(edd, type, member, dtype) EET_DATA_DESCRIPTOR_ADD_BASIC(edd, type, #member, member, dtype)
-#define E_CONFIG_SUB(edd, type, member, eddtype) EET_DATA_DESCRIPTOR_ADD_SUB(edd, type, #member, member, eddtype)
-#define E_CONFIG_LIST(edd, type, member, eddtype) EET_DATA_DESCRIPTOR_ADD_LIST(edd, type, #member, member, eddtype)
-#define E_CONFIG_HASH(edd, type, member, eddtype) EET_DATA_DESCRIPTOR_ADD_HASH(edd, type, #member, member, eddtype)
-
-#define CHAR   EET_T_CHAR
-#define SHORT  EET_T_SHORT
-#define INT    EET_T_INT
-#define LL     EET_T_LONG_LONG
-#define FLOAT  EET_T_FLOAT
-#define DOUBLE EET_T_DOUBLE
-#define UCHAR  EET_T_UCHAR
-#define USHORT EET_T_USHORT
-#define UINT   EET_T_UINT
-#define ULL    EET_T_ULONG_LONG
-#define STR    EET_T_STRING
-
 #define E_CONFIG_LIMIT(v, min, max) {if (v > max) v = max; else if (v < min) v = min;}
 
 typedef struct _E_Config                    E_Config;
@@ -37,11 +17,10 @@ typedef struct _E_Config_Desktop_Name       E_Config_Desktop_Name;
 typedef struct _E_Config_Gadcon             E_Config_Gadcon;
 typedef struct _E_Config_Gadcon_Client      E_Config_Gadcon_Client;
 typedef struct _E_Config_Shelf              E_Config_Shelf;
+typedef struct _E_Config_Shelf_Desk         E_Config_Shelf_Desk;
 typedef struct _E_Config_Mime_Icon          E_Config_Mime_Icon;
 
 typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
-
-typedef Eet_Data_Descriptor                 E_Config_DD;
 
 #else
 #ifndef E_CONFIG_H
@@ -54,7 +33,7 @@ typedef Eet_Data_Descriptor                 E_Config_DD;
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 0x0120
+#define E_CONFIG_FILE_GENERATION 0x0124
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH << 16) | E_CONFIG_FILE_GENERATION)
 
 #define E_EVAS_ENGINE_DEFAULT      0
@@ -95,7 +74,6 @@ struct _E_Config
    int         font_cache; // GUI
    int         edje_cache; // GUI
    int         edje_collection_cache; // GUI
-   double      cache_flush_interval; // GUI
    int         zone_desks_x_count; // GUI
    int         zone_desks_y_count; // GUI
    int         use_virtual_roots; // NO GUI - maybe remove?
@@ -175,7 +153,6 @@ struct _E_Config
    int         kill_process;
    double      kill_timer_wait;
    int         ping_clients;
-   double      ping_clients_wait;
    const char *transition_start; // GUI
    const char *transition_desk; // GUI
    const char *transition_change; // GUI
@@ -187,6 +164,7 @@ struct _E_Config
    int         resize_info_visible; // GUI
    int         focus_last_focused_per_desktop; // GUI
    int         focus_revert_on_hide_or_close; // GUI
+   int         pointer_slide; // GUI
    int         use_e_cursor; // GUI
    int         cursor_size; // GUI
    int         menu_autoscroll_margin; // GUI
@@ -299,6 +277,14 @@ struct _E_Config
    int desk_auto_switch; // GUI;
 
    int thumb_nice;
+   
+   int ping_clients_interval;
+   int cache_flush_poll_interval; // GUI
+   
+   int thumbscroll_enable;
+   int thumbscroll_threshhold;
+   double thumbscroll_momentum_threshhold;
+   double thumbscroll_friction;
 };
 
 struct _E_Config_Module
@@ -377,7 +363,7 @@ struct _E_Config_Desktop_Name
 struct _E_Config_Gadcon
 {
    const char *name;
-   const char *id;
+   int         id;
    Evas_List  *clients;
 };
 
@@ -399,6 +385,7 @@ struct _E_Config_Gadcon_Client
 struct _E_Config_Shelf
 {
    const char   *name;
+   int           id;
    int           container, zone;
    int           layer;
    unsigned char popup;
@@ -412,6 +399,13 @@ struct _E_Config_Shelf
    int           autohide_show_action;
    float	 hide_timeout;
    float	 hide_duration;
+   int		 desk_show_mode;
+   Evas_List    *desk_list;
+};
+
+struct _E_Config_Shelf_Desk
+{
+   int x, y;
 };
 
 struct _E_Config_Mime_Icon
@@ -427,8 +421,6 @@ struct _E_Event_Config_Icon_Theme
 
 EAPI int        e_config_init(void);
 EAPI int        e_config_shutdown(void);
-
-EAPI E_Config_DD *e_config_descriptor_new(const char *name, int size);
 
 EAPI int        e_config_save(void);
 EAPI void       e_config_save_flush(void);

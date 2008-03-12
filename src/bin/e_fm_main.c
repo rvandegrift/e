@@ -31,6 +31,7 @@
 #include <Ecore_Ipc.h>
 #include <Ecore_File.h>
 #include <Evas.h>
+#include <Efreet.h>
 #include <Eet.h>
 #include "config.h"
 
@@ -142,8 +143,10 @@ static void _e_dbus_cb_vol_is(void *user_data, void *reply_data, DBusError *erro
 static void _e_dbus_cb_dev_add(void *data, DBusMessage *msg);
 static void _e_dbus_cb_dev_del(void *data, DBusMessage *msg);
 static void _e_dbus_cb_cap_add(void *data, DBusMessage *msg);
+static void _e_dbus_cb_prop_modified(void *data, DBusMessage *msg);
 static void _e_dbus_cb_store_prop(void *data, void *reply_data, DBusError *error);
 static void _e_dbus_cb_vol_prop(void *data, void *reply_data, DBusError *error);
+static void _e_dbus_cb_vol_prop_mount_modified(void *data, void *reply_data, DBusError *error);
 static void _e_dbus_cb_vol_mounted(void *user_data, void *method_return, DBusError *error);
 static void _e_dbus_cb_vol_unmounted(void *user_data, void *method_return, DBusError *error);
 
@@ -246,7 +249,7 @@ main(int argc, char **argv)
      }
 
 #ifdef HAVE_EDBUS
-   e_dbus_connection_unref(_e_dbus_conn);
+   if (_e_dbus_conn) e_dbus_connection_close(_e_dbus_conn);
    e_dbus_shutdown();
    _e_storage_volume_edd_shutdown();
 #endif
@@ -277,7 +280,7 @@ _e_dbus_cb_dev_all(void *user_data, void *reply_data, DBusError *error)
    ecore_list_first_goto(ret->strings);
    while ((device = ecore_list_next(ret->strings)))
      {
-//	printf("DB INIT DEV+: %s\n", device);
+	printf("DB INIT DEV+: %s\n", device);
 	char *udi;
 
 	udi = device;
@@ -305,7 +308,7 @@ _e_dbus_cb_dev_store(void *user_data, void *reply_data, DBusError *error)
    ecore_list_first_goto(ret->strings);
    while ((device = ecore_list_next(ret->strings)))
      {
-//	printf("DB STORE+: %s\n", device);
+	printf("DB STORE+: %s\n", device);
 	e_storage_add(device);
      }
 }
@@ -327,7 +330,7 @@ _e_dbus_cb_dev_vol(void *user_data, void *reply_data, DBusError *error)
    ecore_list_first_goto(ret->strings);
    while ((device = ecore_list_next(ret->strings)))
      {
-//	printf("DB VOL+: %s\n", device);
+	printf("DB VOL+: %s\n", device);
 	e_volume_add(device);
      }
 }
@@ -346,7 +349,7 @@ _e_dbus_cb_store_is(void *user_data, void *reply_data, DBusError *error)
    
    if (ret && ret->boolean)
      {
-//	printf("DB STORE IS+: %s\n", udi);
+	printf("DB STORE IS+: %s\n", udi);
 	e_storage_add(udi);
      }
    
@@ -359,7 +362,7 @@ _e_dbus_cb_vol_is(void *user_data, void *reply_data, DBusError *error)
 {
    char *udi = user_data;
    E_Hal_Device_Query_Capability_Return *ret = reply_data;
-   
+
    if (dbus_error_is_set(error))
      {
 	dbus_error_free(error);
@@ -368,7 +371,7 @@ _e_dbus_cb_vol_is(void *user_data, void *reply_data, DBusError *error)
    
    if (ret && ret->boolean)
      {
-//	printf("DB VOL IS+: %s\n", udi);
+	printf("DB VOL IS+: %s\n", udi);
 	e_volume_add(udi);
      }
    
@@ -386,7 +389,7 @@ _e_dbus_cb_dev_add(void *data, DBusMessage *msg)
    dbus_error_init(&err);
    dbus_message_get_args(msg, &err, DBUS_TYPE_STRING, &udi, DBUS_TYPE_INVALID);
    udi = strdup(udi);
-//   printf("DB DEV+: %s\n", udi);
+   printf("DB DEV+: %s\n", udi);
    ret = e_hal_device_query_capability(_e_dbus_conn, udi, "storage", 
 				       _e_dbus_cb_store_is, strdup(udi));
    e_hal_device_query_capability(_e_dbus_conn, udi, "volume",
@@ -404,7 +407,7 @@ _e_dbus_cb_dev_del(void *data, DBusMessage *msg)
    dbus_message_get_args(msg, 
 			 &err, DBUS_TYPE_STRING, 
 			 &udi, DBUS_TYPE_INVALID);
-//   printf("DB DEV-: %s\n", udi);
+   printf("DB DEV-: %s\n", udi);
    e_storage_del(udi);
    e_volume_del(udi);
 }
@@ -423,8 +426,56 @@ _e_dbus_cb_cap_add(void *data, DBusMessage *msg)
 			 &capability, DBUS_TYPE_INVALID);
    if (!strcmp(capability, "storage"))
      {
-//        printf("DB STORE CAP+: %s\n", udi);
+        printf("DB STORE CAP+: %s\n", udi);
 	e_storage_add(udi);
+     }
+}
+
+static void
+_e_dbus_cb_prop_modified(void *data, DBusMessage *msg)
+{
+   E_Volume *v;
+   DBusMessageIter iter, sub, subsub;
+   struct {
+	const char *name;
+	int added;
+	int removed;
+   } prop;
+   int num_changes = 0, i;
+   
+   if (!(v = data)) return;
+   
+   if (dbus_message_get_error_name(msg)) 
+     {
+	printf("DBUS ERROR: %s\n", dbus_message_get_error_name(msg)); 
+	return; 
+     }
+   if (!dbus_message_iter_init(msg, &iter)) return;
+
+   if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_INT32) return;
+   dbus_message_iter_get_basic(&iter, &num_changes);
+   if (num_changes == 0) return;
+
+   dbus_message_iter_next(&iter);
+   if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) return;
+   dbus_message_iter_recurse(&iter, &sub);
+
+   for (i = 0; i < num_changes; i++, dbus_message_iter_next(&sub))
+     {
+	dbus_message_iter_recurse(&sub, &subsub);
+
+	if (dbus_message_iter_get_arg_type(&subsub) != DBUS_TYPE_STRING) break;
+	dbus_message_iter_get_basic(&subsub, &(prop.name));
+	if (!strcmp(prop.name, "volume.mount_point"))
+	  {
+	     e_hal_device_get_all_properties(_e_dbus_conn, v->udi,
+					     _e_dbus_cb_vol_prop_mount_modified,
+					     v);
+	     return;
+	  }
+
+	dbus_message_iter_next(&subsub);
+	dbus_message_iter_next(&subsub);
      }
 }
 
@@ -436,12 +487,13 @@ _e_dbus_cb_store_prop(void *data, void *reply_data, DBusError *error)
    int err = 0;
 
    if (!ret) goto error;
+
    if (dbus_error_is_set(error))
      {
 	dbus_error_free(error);
 	goto error;
      }
-   
+
    s->bus = e_hal_property_string_get(ret, "storage.bus", &err);
    if (err) goto error;
    s->drive_type = e_hal_property_string_get(ret, "storage.drive_type", &err);
@@ -451,9 +503,11 @@ _e_dbus_cb_store_prop(void *data, void *reply_data, DBusError *error)
    s->vendor = e_hal_property_string_get(ret, "storage.vendor", &err);
    if (err) goto error;
    s->serial = e_hal_property_string_get(ret, "storage.serial", &err);
-   
+//   if (err) goto error;
+   if (err) printf("Error getting serial for %s\n", s->udi);
+   printf("S6\n");
+
    s->removable = e_hal_property_bool_get(ret, "storage.removable", &err);
-   if (err) goto error;
    
    if (s->removable)
      {
@@ -578,20 +632,22 @@ _e_dbus_cb_vol_prop(void *data, void *reply_data, DBusError *error)
    
    v->fstype = e_hal_property_string_get(ret, "volume.fstype", &err);
 //   if (err) goto error;
+
+   v->size = e_hal_property_uint64_get(ret, "volume.size", &err);
    
    v->mounted = e_hal_property_bool_get(ret, "volume.is_mounted", &err);
    if (err) goto error;
    
    v->partition = e_hal_property_bool_get(ret, "volume.is_partition", &err);
    if (err) goto error;
-   
+
    v->mount_point = e_hal_property_string_get(ret, "volume.mount_point", &err);
    if (err) goto error;
    
    if (v->partition)
      {
-	v->partition_label = e_hal_property_string_get(ret, "volume.partition.label", &err);
-//	if (err) goto error;
+	v->partition_number = e_hal_property_int_get(ret, "volume.partition.number", NULL);
+	v->partition_label = e_hal_property_string_get(ret, "volume.partition.label", NULL);
      }
    
    v->parent = e_hal_property_string_get(ret, "info.parent", &err);
@@ -605,7 +661,7 @@ _e_dbus_cb_vol_prop(void *data, void *reply_data, DBusError *error)
 	  }
      }
    
-   printf("++VOL:\n  udi: %s\n  uuid: %s\n  fstype: %s\n  label: %s\n  partition: %d\n  partition_label: %s\n  mounted: %d\n  mount_point: %s\n", v->udi, v->uuid, v->fstype,  v->label, v->partition, v->partition ? v->partition_label : "(not a partition)", v->mounted, v->mount_point);
+   printf("++VOL:\n  udi: %s\n  uuid: %s\n  fstype: %s\n  size: %llu\n label: %s\n  partition: %d\n  partition_number: %d\n partition_label: %s\n  mounted: %d\n  mount_point: %s\n", v->udi, v->uuid, v->fstype, v->size, v->label, v->partition, v->partition_number, v->partition ? v->partition_label : "(not a partition)", v->mounted, v->mount_point);
    if (s) printf("  for storage: %s\n", s->udi);
    else printf("  storage unknown\n");
    v->validated = 1;
@@ -630,6 +686,50 @@ _e_dbus_cb_vol_prop(void *data, void *reply_data, DBusError *error)
    return;
 }
 
+static void
+_e_dbus_cb_vol_prop_mount_modified(void *data, void *reply_data, DBusError *error)
+{
+   E_Volume *v = data;
+   E_Hal_Device_Get_All_Properties_Return *ret = reply_data;
+   int err = 0;
+
+   if (!ret) return;
+   if (dbus_error_is_set(error))
+     {
+	dbus_error_free(error);
+	return;
+     }
+   
+   v->mounted = e_hal_property_bool_get(ret, "volume.is_mounted", &err);
+   if (err) printf("HAL Error : can't get volume.is_mounted property");
+   
+   if (v->mount_point) free(v->mount_point);
+   v->mount_point = e_hal_property_string_get(ret, "volume.mount_point", &err);
+   if (err) printf("HAL Error : can't get volume.is_mount_point property");
+   
+   printf("**VOL udi: %s mount_point: %s mounted: %d\n", v->udi, v->mount_point, v->mounted);
+     {
+	char *buf;
+	int size;
+	
+	size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
+	buf = alloca(size);
+	strcpy(buf, v->udi);
+	strcpy(buf + strlen(buf) + 1, v->mount_point);
+	if (v->mounted)
+	ecore_ipc_server_send(_e_ipc_server,
+			      6/*E_IPC_DOMAIN_FM*/,
+			      12/*mount done*/,
+			      0, 0, 0, buf, size);
+	else
+	ecore_ipc_server_send(_e_ipc_server,
+			      6/*E_IPC_DOMAIN_FM*/,
+			      13/*unmount done*/,
+			      0, 0, 0, buf, size);
+     }
+   return;
+}
+
 static Evas_List *_e_vols = NULL;
 
 EAPI E_Volume *
@@ -641,11 +741,16 @@ e_volume_add(const char *udi)
    if (e_volume_find(udi)) return NULL;
    v = calloc(1, sizeof(E_Volume));
    if (!v) return NULL;
-//   printf("VOL+ %s\n", udi);
+   printf("VOL+ %s\n", udi);
    v->udi = strdup(udi);
    _e_vols = evas_list_append(_e_vols, v);
    e_hal_device_get_all_properties(_e_dbus_conn, v->udi,
 				   _e_dbus_cb_vol_prop, v);
+   v->prop_handler = e_dbus_signal_handler_add(_e_dbus_conn, "org.freedesktop.Hal",
+					       udi,
+					       "org.freedesktop.Hal.Device",
+					       "PropertyModified", _e_dbus_cb_prop_modified, v);
+
    return v;
 }
 
@@ -656,6 +761,7 @@ e_volume_del(const char *udi)
    
    v = e_volume_find(udi);
    if (!v) return;
+   if (v->prop_handler) e_dbus_signal_handler_del(_e_dbus_conn, v->prop_handler);
    if (v->validated)
      {
 	printf("--VOL %s\n", v->udi);
@@ -691,6 +797,11 @@ _e_dbus_cb_vol_mounted(void *user_data, void *method_return, DBusError *error)
    char *buf;
    int size;
    
+   if (dbus_error_is_set(error))
+     {
+	dbus_error_free(error);
+	return;
+     }
    v->mounted = 1;
    printf("MOUNT: %s from %s\n", v->udi, v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
@@ -706,38 +817,27 @@ _e_dbus_cb_vol_mounted(void *user_data, void *method_return, DBusError *error)
 EAPI void
 e_volume_mount(E_Volume *v)
 {
-   static int mount_id = 1;
-   char buf[4096];
+   char buf[256];
    char *mount_point;
    Ecore_List *opt = NULL;
-   
-   if (v->mount_point && v->mount_point[0])
-     mount_point = v->mount_point;
-   else if (v->label && v->label[0])
-     mount_point = v->label;
-   else if (v->uuid && v->uuid[0])
-     mount_point = v->uuid;
-   else
+
+   if (!v || !v->mount_point || strncmp(v->mount_point, "/media/", 7))
+     return;
+
+   mount_point = v->mount_point + 7;
+   printf("mount %s %s [fs type = %s]\n", v->udi, v->mount_point, v->fstype);
+
+   if ((!strcmp(v->fstype, "vfat")) || (!strcmp(v->fstype, "ntfs"))
+//       || (!strcmp(v->fstype, "iso9660")) || (!strcmp(v->fstype, "udf"))
+       )
      {
-	snprintf(buf, sizeof(buf), "unknown-%i\n", mount_id++);
-	mount_point = buf;
+	opt = ecore_list_new();
+	snprintf(buf, sizeof(buf), "uid=%i", (int)getuid());
+	ecore_list_append(opt, buf);
      }
-   if (v->mount_point != mount_point)
-     {
-	if (v->mount_point) free(v->mount_point);
-	v->mount_point = strdup(mount_point);
-     }
-   printf("mount %s %s\n", v->udi, v->mount_point);
-// FIXME; need to mount AS the USER - not root!!! seems it mounts as root
-//   opt = ecore_list_new();
-//   snprintf(buf, sizeof(buf), "uid=%i", (int)getuid());
-//// hmmm - so how do these work?
-//   ecore_list_append(opt, buf);
-////   ecore_list_append(opt, "user");
-////   ecore_list_append(opt, "utf8");
-   e_hal_device_volume_mount(_e_dbus_conn, v->udi, v->mount_point,
-			     v->fstype, opt, _e_dbus_cb_vol_mounted, v);
-//   ecore_list_destroy(opt);
+   e_hal_device_volume_mount(_e_dbus_conn, v->udi, mount_point,
+			     v->fstype, opt, NULL, v);
+   if (opt) ecore_list_destroy(opt);
 }
 
 static void
@@ -747,6 +847,11 @@ _e_dbus_cb_vol_unmounted(void *user_data, void *method_return, DBusError *error)
    char *buf;
    int size;
 
+   if (dbus_error_is_set(error))
+     {
+	dbus_error_free(error);
+	return;
+     }
    v->mounted = 0;
    printf("UNMOUNT: %s from %s\n", v->udi, v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
@@ -894,7 +999,11 @@ _e_ipc_cb_server_data(void *data, int type, void *event)
 		    {
 		       if ((!strcmp(dp->d_name, ".")) || (!strcmp(dp->d_name, "..")))
 			 continue;
-		       if (!strcmp(dp->d_name, ".order")) dot_order = 1;
+		       if (!strcmp(dp->d_name, ".order")) 
+			 {
+			    dot_order = 1;
+			    continue;
+			 }
 		       files = evas_list_append(files, strdup(dp->d_name));
 		    }
 		  closedir(dir);
@@ -1376,6 +1485,7 @@ _e_file_add_mod(E_Dir *ed, const char *path, int op, int listing)
      }
 //   printf("MOD %s %3.3f\n", path, ecore_time_get());
    lnk = ecore_file_readlink(path);
+   memset(&st, 0, sizeof(struct stat));
    if (stat(path, &st) == -1)
      {
 	if ((path[0] == 0) || (lnk)) broken_lnk = 1;
@@ -1611,8 +1721,84 @@ _e_cb_fop_rm_idler(void *data)
 static int
 _e_cb_fop_trash_idler(void *data)
 {
-   /* FIXME: for now trash == rm - later move to trash */
-   return _e_cb_fop_rm_idler(data);
+   E_Fop *fop = NULL;
+   FILE *info = NULL;
+   const char *trash_dir = NULL;
+   const char *filename = NULL;
+   const char *escname = NULL;
+   const char *dest = NULL;
+   char buf[4096];
+   unsigned int i = 0;
+   struct tm *lt;
+   time_t t;
+
+   /* FIXME: For now, this will only implement 'home trash' 
+    * Later, implement mount/remote/removable device trash, if wanted. */
+
+   fop = (E_Fop *)data;
+   if (!fop) return 0;
+
+   /* Check that 'home trash' and subsequesnt dirs exists, create if not */
+   snprintf(buf, sizeof(buf), "%s/Trash", efreet_data_home_get());
+   trash_dir = evas_stringshare_add(buf);
+   snprintf(buf, sizeof(buf), "%s/files", trash_dir);
+   if (!ecore_file_mkpath(buf)) return 0;
+   snprintf(buf, sizeof(buf), "%s/info", trash_dir);
+   if (!ecore_file_mkpath(buf)) return 0;
+
+   filename = evas_stringshare_add(strrchr(fop->src, '/'));
+   escname = ecore_file_escape_name(filename);
+   evas_stringshare_del(filename);
+
+   /* Find path for info file. Pointer address is part of the filename to
+    * alleviate some of the looping in case of multiple filenames with the
+    * same name. Also use the name of the file to help */
+   do 
+     {
+	snprintf(buf, sizeof(buf), "%s/file%s.%p.%u", trash_dir, escname, 
+		 fop, i++);
+     }
+   while (ecore_file_exists(buf));
+   dest = evas_stringshare_add(buf);
+   
+   /* Try to move the file */
+   if (rename(fop->src, dest)) 
+     {
+	if (errno == EXDEV) 
+	  {
+	     /* Move failed. Spec says delete files that can't be trashed */
+	     ecore_file_unlink(fop->src);
+	     return 0;
+	  }
+     }
+
+   /* Move worked. Create info file */
+   snprintf(buf, sizeof(buf), "%s/info%s.%p.%u.trashinfo", trash_dir, 
+	    escname, fop, --i);
+   info = fopen(buf, "w");
+   if (info) 
+     {
+	t = time(NULL);
+	lt = localtime(&t);
+
+	/* Insert info for trashed file */
+	fprintf(info, 
+		"[Trash Info]\nPath=%s\nDeletionDate=%04u%02u%02uT%02u:%02u:%02u",
+		fop->src, lt->tm_year+1900, lt->tm_mon+1, lt->tm_mday,
+		lt->tm_hour, lt->tm_min, lt->tm_sec);
+	fclose(info);
+     }
+   else
+     /* Could not create info file. Spec says to put orig file back */
+     rename(dest, fop->src);
+
+   if (dest) evas_stringshare_del(dest);
+   if (trash_dir) evas_stringshare_del(trash_dir);
+   evas_stringshare_del(fop->src);
+   evas_stringshare_del(fop->dst);
+   free(fop);
+   _e_fops = evas_list_remove(_e_fops, fop);
+   return 0;
 }
 
 static int
@@ -1663,6 +1849,7 @@ _e_cb_fop_cp_idler(void *data)
    char buf[PATH_MAX], buf2[PATH_MAX], *lnk;
    
    fop = (E_Fop *)data;
+   memset(&st, 0, sizeof(struct stat));
    if (!fop->data)
      {
 	fd = calloc(1, sizeof(struct Fop_Data));

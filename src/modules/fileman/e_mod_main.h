@@ -7,7 +7,7 @@
 /* Increment for Major Changes */
 #define MOD_CONFIG_FILE_EPOCH 0x0001
 /* Increment for Minor Changes (ie: user doesn't need a new config) */
-#define MOD_CONFIG_FILE_GENERATION 0x0100
+#define MOD_CONFIG_FILE_GENERATION 0x0101
 #define MOD_CONFIG_FILE_VERSION ((MOD_CONFIG_FILE_EPOCH << 16) | MOD_CONFIG_FILE_GENERATION)
 
 typedef struct _Config Config;
@@ -34,6 +34,7 @@ struct _Config
       unsigned char   fit_custom_pos;
       unsigned char   show_full_path;
       unsigned char   show_desktop_icons;
+      unsigned char   show_toolbar;
    } view;
    /* display of icons */
    struct {
@@ -82,8 +83,6 @@ EAPI extern E_Module_Api e_modapi;
 EAPI void *e_modapi_init     (E_Module *m);
 EAPI int   e_modapi_shutdown (E_Module *m);
 EAPI int   e_modapi_save     (E_Module *m);
-EAPI int   e_modapi_about    (E_Module *m);
-EAPI int   e_modapi_config   (E_Module *m);
 
 extern Config *fileman_config;
 

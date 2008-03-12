@@ -35,6 +35,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@HAVE_TEMPERATURE_TRUE@am__append_1 = temperature
 subdir = src/modules
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -59,7 +60,18 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	uninstall-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
+	layout exebuf winlist fileman wizard conf conf_wallpaper \
+	conf_theme conf_colors conf_fonts conf_borders conf_icon_theme \
+	conf_mouse_cursor conf_transitions conf_startup conf_intl \
+	conf_imc msgbus_lang conf_profiles conf_engine \
+	conf_applications conf_desks conf_desk conf_display \
+	conf_desklock conf_screensaver conf_dpms conf_shelves \
+	conf_keybindings conf_mousebindings conf_mouse \
+	conf_window_display conf_window_focus conf_window_manipulation \
+	conf_menus conf_clientlist conf_dialogs conf_performance \
+	conf_winlist conf_exebuf conf_paths conf_mime conf_interaction \
+	temperature
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
@@ -103,6 +115,10 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
+HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
+HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
+HAVE_TEMPERATURE_TRUE = @HAVE_TEMPERATURE_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -139,9 +155,12 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 POSUB = @POSUB@
 RANLIB = @RANLIB@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
+TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
 USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
@@ -209,58 +228,18 @@ target_alias = @target_alias@
 x_cflags = @x_cflags@
 x_libs = @x_libs@
 MAINTAINERCLEANFILES = Makefile.in
-SUBDIRS = \
-ibar \
-dropshadow \
-clock \
-pager \
-battery \
-temperature \
-cpufreq \
-ibox \
-start \
-layout \
-exebuf \
-winlist \
-fileman \
-wizard \
-conf \
-conf_wallpaper \
-conf_theme \
-conf_colors \
-conf_fonts \
-conf_borders \
-conf_icon_theme \
-conf_mouse_cursor \
-conf_transitions \
-conf_startup \
-conf_intl \
-conf_imc \
-conf_profiles \
-conf_engine \
-conf_applications \
-conf_desks \
-conf_desk \
-conf_display \
-conf_desklock \
-conf_screensaver \
-conf_dpms \
-conf_shelves \
-conf_keybindings \
-conf_mousebindings \
-conf_mouse \
-conf_window_display \
-conf_window_focus \
-conf_window_manipulation \
-conf_menus \
-conf_clientlist \
-conf_dialogs \
-conf_performance \
-conf_winlist \
-conf_exebuf \
-conf_paths \
-conf_mime
-
+SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
+	layout exebuf winlist fileman wizard conf conf_wallpaper \
+	conf_theme conf_colors conf_fonts conf_borders conf_icon_theme \
+	conf_mouse_cursor conf_transitions conf_startup conf_intl \
+	conf_imc msgbus_lang conf_profiles conf_engine \
+	conf_applications conf_desks conf_desk conf_display \
+	conf_desklock conf_screensaver conf_dpms conf_shelves \
+	conf_keybindings conf_mousebindings conf_mouse \
+	conf_window_display conf_window_focus conf_window_manipulation \
+	conf_menus conf_clientlist conf_dialogs conf_performance \
+	conf_winlist conf_exebuf conf_paths conf_mime conf_interaction \
+	$(am__append_1)
 all: all-recursive
 
 .SUFFIXES:

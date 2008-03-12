@@ -4,7 +4,7 @@
 struct _E_Config_Dialog_Data
 {
    int show_alert;   
-   double poll_time;   
+   int poll_interval;
    int alarm_time;
    int alarm_percent;
 };
@@ -17,8 +17,8 @@ static int           _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Dat
 static Evas_Object   *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static int           _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 
-void
-_config_battery_module(void) 
+EAPI E_Config_Dialog *
+e_int_config_battery_module(E_Container *con, const char *params __UNUSED__) 
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -34,11 +34,12 @@ _config_battery_module(void)
    v->advanced.create_widgets = _advanced_create_widgets;
 
    snprintf(buf, sizeof(buf), "%s/e-module-battery.edj", e_module_dir_get(battery_config->module));
-   cfd = e_config_dialog_new(e_container_current_get(e_manager_current_get()),
+   cfd = e_config_dialog_new(con,
 			     _("Battery Monitor Configuration"), 
 			     "E", "_e_mod_battery_config_dialog",
 			     buf, 0, v, NULL);
    battery_config->config_dialog = cfd;
+   return cfd;
 }
 
 static void
@@ -47,7 +48,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    if (!battery_config) return;
    cfdata->alarm_time = battery_config->alarm;
    cfdata->alarm_percent = battery_config->alarm_p;
-   cfdata->poll_time = battery_config->poll_time;
+   cfdata->poll_interval = battery_config->poll_interval;
    if (cfdata->alarm_time > 0 || cfdata->alarm_percent > 0) 
      cfdata->show_alert = 1;
    else 
@@ -116,7 +117,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    ob = e_widget_label_add(evas, _("Check battery every:"));
    e_widget_frametable_object_append(of, ob, 0, 0, 1, 1, 1, 0, 1, 0);
    
-   ob = e_widget_slider_add(evas, 1, 0, _("%1.1f seconds"), 0.5, 900.0, 0.5, 0, &(cfdata->poll_time), NULL, 200);
+   ob = e_widget_slider_add(evas, 1, 0, _("%1.0f ticks"), 1, 1024, 4, 0, NULL, &(cfdata->poll_interval), 200);
    e_widget_frametable_object_append(of, ob, 0, 1, 1, 1, 1, 0, 1, 0);
    
    ob = e_widget_check_add(evas, _("Show alert when battery is low"), &(cfdata->show_alert));
@@ -139,7 +140,7 @@ static int
 _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
 {
    if (!battery_config) return 0;
-   battery_config->poll_time = cfdata->poll_time;
+   battery_config->poll_interval = cfdata->poll_interval;
    if (cfdata->show_alert)
    { 
      battery_config->alarm = cfdata->alarm_time;

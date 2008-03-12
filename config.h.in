@@ -15,6 +15,9 @@
    language is requested. */
 #undef ENABLE_NLS
 
+/* "This define can be used to wrap internal E stuff */
+#undef E_INTERNAL
+
 /* Define to 1 if you have `alloca', as a function or macro. */
 #undef HAVE_ALLOCA
 
@@ -91,6 +94,9 @@
 
 /* "Module architecture" */
 #undef MODULE_ARCH
+
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+#undef NO_MINUS_C_MINUS_O
 
 /* Name of package */
 #undef PACKAGE

@@ -347,18 +347,16 @@ _bd_go(void *data, void *data2)
    E_Dialog *dia;
    Evas_Object *c, *o, *ob;
    Evas_Coord w, h;
-   int type;
    
    dia = data;
    if (!dia) return;
-   type = (int)data2;
 
    if (dia->content_object)
      evas_object_del(dia->content_object);
    
    c = e_widget_list_add(e_win_evas_get(dia->win), 0, 0);
    
-   if (type == 0) 
+   if (!data2) 
      {
 	o = _bd_icccm_create(dia, NULL);
 	e_widget_list_object_append(c, o, 1, 1, 0.0);
@@ -386,7 +384,7 @@ _bd_go(void *data, void *data2)
       ob = e_widget_label_add(evas, label); \
       if (!cfdata->val) e_widget_disabled_set(ob, 1); \
       e_widget_frametable_object_append(of, ob, x, y, 1, 1,    1, 1, 1, 1); \
-      ob = e_widget_entry_add(evas, &(cfdata->val)); \
+      ob = e_widget_entry_add(evas, &(cfdata->val), NULL, NULL, NULL); \
       if (!cfdata->val) e_widget_disabled_set(ob, 1); \
       e_widget_entry_readonly_set(ob, 1); \
       e_widget_min_size_get(ob, &mw, &mh); \

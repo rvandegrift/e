@@ -21,8 +21,6 @@ static char *_e_intl_orig_gtk_im_module = NULL;
 static const char *_e_intl_imc_personal_path = NULL;
 static const char *_e_intl_imc_system_path = NULL;
 
-static Eet_Data_Descriptor *_e_intl_input_method_config_edd = NULL;
-
 #define E_EXE_STOP(EXE) if (EXE != NULL) { ecore_exe_terminate(EXE); ecore_exe_free(EXE); EXE = NULL; }
 #define E_EXE_IS_VALID(EXE) (!((EXE == NULL) || (EXE[0] == 0)))
 
@@ -60,14 +58,7 @@ e_intl_init(void)
 {
    char *s;
 
-   _e_intl_input_method_config_edd = E_CONFIG_DD_NEW("input_method_config", E_Input_Method_Config);
-   E_CONFIG_VAL(_e_intl_input_method_config_edd, E_Input_Method_Config, version, INT);
-   E_CONFIG_VAL(_e_intl_input_method_config_edd, E_Input_Method_Config, e_im_name, STR);
-   E_CONFIG_VAL(_e_intl_input_method_config_edd, E_Input_Method_Config, gtk_im_module, STR);
-   E_CONFIG_VAL(_e_intl_input_method_config_edd, E_Input_Method_Config, qt_im_module, STR);
-   E_CONFIG_VAL(_e_intl_input_method_config_edd, E_Input_Method_Config, xmodifiers, STR);
-   E_CONFIG_VAL(_e_intl_input_method_config_edd, E_Input_Method_Config, e_im_exec, STR);
-   E_CONFIG_VAL(_e_intl_input_method_config_edd, E_Input_Method_Config, e_im_setup_exec, STR);
+   e_intl_data_init();
 
    if ((s = getenv("LC_MESSAGES"))) _e_intl_orig_lc_messages = strdup(s);
    if ((s = getenv("LANGUAGE"))) _e_intl_orig_language = strdup(s);
@@ -99,7 +90,7 @@ e_intl_shutdown(void)
    if (_e_intl_imc_system_path)
      evas_stringshare_del(_e_intl_imc_system_path);
 
-   E_CONFIG_DD_FREE(_e_intl_input_method_config_edd);
+   e_intl_data_shutdown();
 
    return 1;
 }
@@ -116,7 +107,8 @@ e_intl_post_init(void)
    if ((e_config->input_method) && (e_config->input_method[0] != 0))
      e_intl_input_method_set(e_config->input_method);
 
-   _e_intl_exit_handler = ecore_event_handler_add(ECORE_EXE_EVENT_DEL, _e_intl_cb_exit, NULL);
+   _e_intl_exit_handler = ecore_event_handler_add(ECORE_EXE_EVENT_DEL, 
+						  _e_intl_cb_exit, NULL);
    return 1;
 }
 
@@ -180,7 +172,8 @@ e_intl_language_set(const char *lang)
    else
      _e_intl_language = NULL;
 
-   if (!_e_intl_locale_validate(_e_intl_language_alias))
+   if ((!_e_intl_locale_validate(_e_intl_language_alias)) &&
+	 (strcmp(_e_intl_language_alias, "C")))
      {
 	fprintf(stderr, "The locale '%s' cannot be found on your "
 	       "system. Please install this locale or try "
@@ -210,7 +203,8 @@ e_intl_language_set(const char *lang)
 		  locale_parts = e_intl_locale_parts_get(_e_intl_language_alias);
 
 		  /* If locale is C or some form of en don't report an error */
-		  if ( locale_parts == NULL && strcmp (_e_intl_language_alias, "C") )
+		  if ((locale_parts == NULL) && 
+		      (strcmp(_e_intl_language_alias, "C")))
 		    {
 		       fprintf(stderr,
 			     "An error occurred setting your locale. \n\n"
@@ -224,7 +218,8 @@ e_intl_language_set(const char *lang)
 			     "Enlightenment will not be translated.\n",
 			     _e_intl_language_alias);
 		    }
-		  else if ( locale_parts && locale_parts->lang && strcmp(locale_parts->lang, "en") )
+		  else if ((locale_parts) && (locale_parts->lang) && 
+			   (strcmp(locale_parts->lang, "en")))
 		    {
 		       fprintf(stderr,
 			     "An error occurred setting your locale. \n\n"
@@ -284,15 +279,13 @@ e_intl_language_list(void)
 	     language = dir_languages->data;
 	     dir_languages = evas_list_remove_list(dir_languages, dir_languages);
 
-	     if (  _e_intl_language_list_find(all_languages, language) || (strlen(language) > 2 &&
-		      !_e_intl_locale_validate(language)))
+	     if ((_e_intl_language_list_find(all_languages, language)) || 
+		 ((strlen(language) > 2) && (!_e_intl_locale_validate(language))))
 	       {
 		  free(language);
 	       }
 	     else
-	       {
-		  all_languages = evas_list_append(all_languages, language);
-	       }
+	       all_languages = evas_list_append(all_languages, language);
 	  }
      }
 
@@ -392,9 +385,7 @@ e_intl_input_method_list(void)
      }
 
    while (input_methods)
-     {
-	input_methods = evas_list_remove_list(input_methods, input_methods);
-     }
+     input_methods = evas_list_remove_list(input_methods, input_methods);
 
    /* System Path */
    input_methods = _e_intl_imc_dir_scan(e_intl_imc_system_path_get());
@@ -405,9 +396,7 @@ e_intl_input_method_list(void)
      }
 
    while (input_methods)
-     {
-	input_methods = evas_list_remove_list(input_methods, input_methods);
-     }
+     input_methods = evas_list_remove_list(input_methods, input_methods);
 
    return im_list;
 }
@@ -436,49 +425,6 @@ e_intl_imc_system_path_get(void)
 	_e_intl_imc_system_path = evas_stringshare_add(buf);
      }
    return _e_intl_imc_system_path;
-
-}
-
-/* Get the input method configuration from the file */
-EAPI E_Input_Method_Config *
-e_intl_input_method_config_read(Eet_File *imc_file)
-{
-   E_Input_Method_Config *imc;
-
-   imc = NULL;
-   if (imc_file)
-     {
-	imc = (E_Input_Method_Config *) eet_data_read(imc_file, _e_intl_input_method_config_edd, "imc");
-     }
-   return imc;
-}
-
-/* Write the input method configuration to the file */
-EAPI int
-e_intl_input_method_config_write(Eet_File *imc_file, E_Input_Method_Config *imc)
-{
-   int ok = 0;
-
-   if (imc_file)
-     {
-	ok = eet_data_write(imc_file, _e_intl_input_method_config_edd, "imc", imc, 0);
-     }
-   return ok;
-}
-
-EAPI void
-e_intl_input_method_config_free(E_Input_Method_Config *imc)
-{
-   if (imc != NULL)
-     {
-	if (imc->e_im_name) evas_stringshare_del(imc->e_im_name);
-	if (imc->gtk_im_module) evas_stringshare_del(imc->gtk_im_module);
-	if (imc->qt_im_module) evas_stringshare_del(imc->qt_im_module);
-	if (imc->xmodifiers) evas_stringshare_del(imc->xmodifiers);
-	if (imc->e_im_exec) evas_stringshare_del(imc->e_im_exec);
-	if (imc->e_im_setup_exec) evas_stringshare_del(imc->e_im_setup_exec);
-	E_FREE(imc);
-     }
 }
 
 static int
@@ -541,13 +487,13 @@ _e_intl_language_path_find(char *language)
    dir_list = e_path_dir_list_get(path_messages);
 
    /* For each directory in the path */
-   for (next_dir = dir_list ; next_dir && !found ; next_dir = next_dir->next)
+   for (next_dir = dir_list; next_dir && !found; next_dir = next_dir->next)
      {
 	E_Path_Dir *epd;
 	epd = next_dir->data;
 
 	/* Match canonicalized locale against each possible search */
-	for (next_search = search_list ; next_search && !found ; next_search = next_search->next)
+	for (next_search = search_list; next_search && !found; next_search = next_search->next)
 	  {
 	     char *search_locale;
 	     char message_path[PATH_MAX];
@@ -555,7 +501,7 @@ _e_intl_language_path_find(char *language)
 	     search_locale = next_search->data;
 	     snprintf(message_path, sizeof(message_path), "%s/%s/LC_MESSAGES/%s.mo", epd->dir, search_locale, PACKAGE);
 
-	     if (ecore_file_exists(message_path) && !ecore_file_is_dir(message_path))
+	     if ((ecore_file_exists(message_path)) && (!ecore_file_is_dir(message_path)))
 	       {
 		  directory = strdup(epd->dir);
 		  found = 1;
@@ -599,7 +545,6 @@ _e_intl_language_dir_scan(const char *dir)
 		   dir, file, PACKAGE);
 	     if (ecore_file_exists(file_path) && !ecore_file_is_dir(file_path))
 	       languages = evas_list_append(languages, strdup(file));
-
 	  }
 	ecore_list_destroy(files);
      }
@@ -617,37 +562,28 @@ _e_intl_locale_alias_get(const char *language)
 {
    Evas_Hash *alias_hash;
    char *alias;
+   char *lower_language;
+   int i;
 
-   if (language == NULL || !strncmp(language, "POSIX", strlen("POSIX")))
+   if ((language == NULL) || (!strncmp(language, "POSIX", strlen("POSIX"))))
      return strdup("C");
 
    alias_hash = _e_intl_locale_alias_hash_get();
    if (alias_hash == NULL) /* No alias file available */
-     {
-	return strdup(language);
-     }
+     return strdup(language);
 
-     {
-	char *lower_language;
-	int i;
+   lower_language = malloc(strlen(language) + 1);
+   for (i = 0; i < strlen(language); i++)
+     lower_language[i] = tolower(language[i]);
+   lower_language[i] = 0;
 
-	lower_language = malloc(strlen(language) + 1);
-	for (i = 0; i < strlen(language); i++)
-	     lower_language[i] = tolower(language[i]);
-	lower_language[i] = 0;
-
-	alias = evas_hash_find(alias_hash, lower_language);
-	free(lower_language);
-     }
+   alias = evas_hash_find(alias_hash, lower_language);
+   free(lower_language);
 
    if (alias)
-     {
-	alias = strdup(alias);
-     }
+     alias = strdup(alias);
    else
-     {
-	alias = strdup(language);
-     }
+     alias = strdup(language);
 
    _e_intl_locale_hash_free(alias_hash);
 
@@ -664,7 +600,7 @@ _e_intl_locale_alias_hash_get(void)
    dir_list = e_path_dir_list_get(path_messages);
    alias_hash = NULL;
 
-   for (next = dir_list ; next ; next = next->next)
+   for (next = dir_list; next; next = next->next)
      {
 	char buf[4096];
 	E_Path_Dir *epd;
@@ -724,7 +660,7 @@ e_intl_locale_parts_get(const char *locale)
    int   tmp_idx = 0;
 
    /* Parse Loop - Seperators are _ . @ */
-   for ( locale_idx = 0; locale_idx < strlen(locale); locale_idx++ )
+   for (locale_idx = 0; locale_idx < strlen(locale); locale_idx++)
      {
 	char locale_char;
 	locale_char = locale[locale_idx];
@@ -737,86 +673,76 @@ e_intl_locale_parts_get(const char *locale)
 	switch (state)
 	  {
 	   case 0: /* Gathering Language */
-	      if (tmp_idx == 2 && locale_char == '_')
-		{
-		   state++;
-		   language[tmp_idx] = 0;
-		   tmp_idx = 0;
-		}
-	      else if (tmp_idx < 2 && islower(locale_char))
-		{
-		   language[tmp_idx++] = locale_char;
-		}
-	      else
-		{
-		   return NULL;
-		}
-	      break;
+	     if (tmp_idx == 2 && locale_char == '_')
+	       {
+		  state++;
+		  language[tmp_idx] = 0;
+		  tmp_idx = 0;
+	       }
+	     else if ((tmp_idx < 2) && (islower(locale_char)))
+	       language[tmp_idx++] = locale_char;
+	     else
+	       return NULL;
+	     break;
 	   case 1: /* Gathering Territory */
-	      if (tmp_idx == 2 && locale_char == '.')
-		{
-		   state++;
-		   territory[tmp_idx] = 0;
-		   tmp_idx = 0;
-		}
-	      else if ((tmp_idx == 2) && (locale_char == '@'))
-		{
-		   state += 2;
-		   territory[tmp_idx] = 0;
-		   codeset[0] = 0;
-		   tmp_idx = 0;
-		}
-	      else if ((tmp_idx < 2) && isupper(locale_char))
-		{
-		   territory[tmp_idx++] = locale_char;
-		}
-	      else
-		{
-		   return NULL;
-		}
-	      break;
+	     if (tmp_idx == 2 && locale_char == '.')
+	       {
+		  state++;
+		  territory[tmp_idx] = 0;
+		  tmp_idx = 0;
+	       }
+	     else if ((tmp_idx == 2) && (locale_char == '@'))
+	       {
+		  state += 2;
+		  territory[tmp_idx] = 0;
+		  codeset[0] = 0;
+		  tmp_idx = 0;
+	       }
+	     else if ((tmp_idx < 2) && isupper(locale_char))
+	       territory[tmp_idx++] = locale_char;
+	     else
+	       return NULL;
+	     break;
 	   case 2: /* Gathering Codeset */
-	      if (locale_char == '@')
-		{
-		   state++;
-		   codeset[tmp_idx] = 0;
-		   tmp_idx = 0;
-		}
-	      else if (tmp_idx < 32)
-		{
-		   codeset[tmp_idx++] = locale_char;
-		}
-	      else
-		{
-		   return NULL;
-		}
-	      break;
+	     if (locale_char == '@')
+	       {
+		  state++;
+		  codeset[tmp_idx] = 0;
+		  tmp_idx = 0;
+	       }
+	     else if (tmp_idx < 32)
+	       codeset[tmp_idx++] = locale_char;
+	     else
+	       return NULL;
+	     break;
 	   case 3: /* Gathering modifier */
-	      if (tmp_idx < 32)
-		{
-		   modifier[tmp_idx++] = locale_char;
-		}
-	      else
-		{
-		   return NULL;
-		}
+	     if (tmp_idx < 32)
+	       modifier[tmp_idx++] = locale_char;
+	     else
+	       return NULL;
+	     break;
+	   default:
+	     break;
 	  }
      }
 
    /* set end-of-string \0 */
+   /* There are no breaks here on purpose */
    switch (state)
      {
       case 0:
-	 language[tmp_idx] = 0;
-	 tmp_idx = 0;
+	language[tmp_idx] = 0;
+	tmp_idx = 0;
       case 1:
-	 territory[tmp_idx] = 0;
-	 tmp_idx = 0;
+	territory[tmp_idx] = 0;
+	tmp_idx = 0;
       case 2:
-	 codeset[tmp_idx] = 0;
-	 tmp_idx = 0;
+	codeset[tmp_idx] = 0;
+	tmp_idx = 0;
       case 3:
-	 modifier[tmp_idx] = 0;
+	modifier[tmp_idx] = 0;
+      default:
+	break;
      }
 
    locale_parts = E_NEW(E_Locale_Parts, 1);
@@ -890,9 +816,7 @@ e_intl_locale_parts_combine(E_Locale_Parts *locale_parts, int mask)
    locale[0] = 0;
 
    if (mask & E_INTL_LOC_LANG)
-     {
-	strcat(locale, locale_parts->lang);
-     }
+     strcat(locale, locale_parts->lang);
 
    if (mask & E_INTL_LOC_REGION)
      {
@@ -927,16 +851,12 @@ e_intl_locale_charset_canonic_get(const char *charset)
    while ((c = charset[i++]) != 0)
      {
 	if (isalnum(c))
-	  {
-	     charset_canonic[i_tmp++] = tolower(c);
-	  }
+	  charset_canonic[i_tmp++] = tolower(c);
      }
    charset_canonic[i_tmp] = 0;
 
    if (!strcmp(charset, charset_canonic))
-     {
-	return NULL;
-     }
+     return NULL;
 
    return strdup(charset_canonic);
 }
@@ -949,13 +869,11 @@ _e_intl_locale_system_locales_get(void)
 
    locales = NULL;
    output = popen("locale -a", "r");
-   if ( output )
+   if (output)
      {
 	char line[32];
-	while ( fscanf(output, "%[^\n]\n", line) == 1)
-	  {
-	     locales = evas_list_append(locales, strdup(line));
-	  }
+	while (fscanf(output, "%[^\n]\n", line) == 1)
+	  locales = evas_list_append(locales, strdup(line));
 
 	pclose(output);
      }
@@ -979,9 +897,11 @@ _e_intl_locale_validate(const char *locale)
    locale_parts = e_intl_locale_parts_get(locale);
 
    /* Gather the search information */
-   locale_lr = e_intl_locale_parts_combine(locale_parts, E_INTL_LOC_LANG | E_INTL_LOC_REGION);
+   locale_lr = 
+     e_intl_locale_parts_combine(locale_parts, 
+				 E_INTL_LOC_LANG | E_INTL_LOC_REGION);
 
-   if ( locale_lr == NULL )
+   if (locale_lr == NULL)
      {
 	/* Not valid locale, maybe its an alias */
 	locale_lr = strdup(locale);
@@ -989,7 +909,7 @@ _e_intl_locale_validate(const char *locale)
      }
    else
      {
-	if ( locale_parts && locale_parts->codeset )
+	if (locale_parts && locale_parts->codeset)
 	  locale_cs_canonic = e_intl_locale_charset_canonic_get(locale_parts->codeset);
 	else
 	  locale_cs_canonic = NULL;
@@ -1013,7 +933,8 @@ _e_intl_locale_validate(const char *locale)
 	     locale_lr_next = e_intl_locale_parts_combine(locale_parts_next,
 		   E_INTL_LOC_LANG | E_INTL_LOC_REGION);
 
-	     if (locale_parts && locale_lr_next && !strcmp(locale_lr, locale_lr_next))
+	     if ((locale_parts) && (locale_lr_next) && 
+		 (!strcmp(locale_lr, locale_lr_next)))
 	       {
 		  /* Matched lang/region part, now if CS matches */
 		  if ((locale_parts->codeset == NULL) && (locale_parts_next->codeset == NULL))
@@ -1101,7 +1022,7 @@ _e_intl_locale_search_order_get(const char *locale)
    if (locale_parts == NULL) return NULL;
 
    search_list = NULL;
-   for ( mask = E_INTL_LOC_ALL; mask >= E_INTL_LOC_LANG; mask-- )
+   for (mask = E_INTL_LOC_ALL; mask >= E_INTL_LOC_LANG; mask--)
      {
 	if ((mask & locale_parts->mask) == mask)
 	  {
@@ -1143,4 +1064,3 @@ _e_intl_imc_dir_scan(const char *dir)
      }
    return imcs;
 }
-

@@ -86,24 +86,24 @@ typedef enum _E_Border_Hook_Point
 typedef struct _E_Border                     E_Border;
 typedef struct _E_Border_Pending_Move_Resize E_Border_Pending_Move_Resize;
 typedef struct _E_Border_Hook                E_Border_Hook;
-typedef struct _E_Event_Border_Resize        E_Event_Border_Resize;
-typedef struct _E_Event_Border_Move          E_Event_Border_Move;
-typedef struct _E_Event_Border_Add           E_Event_Border_Add;
-typedef struct _E_Event_Border_Remove        E_Event_Border_Remove;
-typedef struct _E_Event_Border_Show          E_Event_Border_Show;
-typedef struct _E_Event_Border_Hide          E_Event_Border_Hide;
-typedef struct _E_Event_Border_Iconify       E_Event_Border_Iconify;
-typedef struct _E_Event_Border_Uniconify     E_Event_Border_Uniconify;
-typedef struct _E_Event_Border_Stick         E_Event_Border_Stick;
-typedef struct _E_Event_Border_Unstick       E_Event_Border_Unstick;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Resize;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Move;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Add;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Remove;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Show;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Hide;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Iconify;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Uniconify;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Stick;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Unstick;
 typedef struct _E_Event_Border_Zone_Set      E_Event_Border_Zone_Set;
 typedef struct _E_Event_Border_Desk_Set      E_Event_Border_Desk_Set;
 typedef struct _E_Event_Border_Stack         E_Event_Border_Stack;
-typedef struct _E_Event_Border_Icon_Change   E_Event_Border_Icon_Change;
-typedef struct _E_Event_Border_Urgent_Change E_Event_Border_Urgent_Change;
-typedef struct _E_Event_Border_Focus_In	     E_Event_Border_Focus_In;
-typedef struct _E_Event_Border_Focus_Out     E_Event_Border_Focus_Out;
-typedef struct _E_Event_Border_Property      E_Event_Border_Property;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Icon_Change;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Urgent_Change;
+typedef struct _E_Event_Border_Simple	     E_Event_Border_Focus_In;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Focus_Out;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Property;
 
 #else
 #ifndef E_BORDER_H
@@ -352,7 +352,6 @@ struct _E_Border
    unsigned int    need_shape_export : 1;
    unsigned int    fullscreen : 1;
    unsigned int    need_fullscreen : 1;
-   unsigned int    want_fullscreen : 1;
    unsigned int    already_unparented : 1;
    unsigned int    need_reparent : 1;
    unsigned int    button_grabbed : 1;
@@ -461,7 +460,7 @@ struct _E_Border
    unsigned int layer;
    E_Action *cur_mouse_action;
    Ecore_Timer *raise_timer;
-   Ecore_Timer *ping_timer;
+   Ecore_Timer *ping_poller;
    Ecore_Timer *kill_timer;
    int shape_rects_num;
    Ecore_X_Rectangle *shape_rects;
@@ -477,6 +476,11 @@ struct _E_Border
 
    Efreet_Desktop *desktop;
    E_Pointer *pointer;
+   
+   unsigned char post_move   : 1;
+   unsigned char post_resize : 1;
+   unsigned char post_show : 1;
+   Ecore_Idle_Enterer *post_job;
 };
 
 struct _E_Border_Pending_Move_Resize 
@@ -494,52 +498,7 @@ struct _E_Border_Hook
    unsigned char         delete_me : 1;
 };
 
-struct _E_Event_Border_Resize
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Move
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Add
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Remove
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Show
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Hide
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Iconify
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Uniconify
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Stick
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Unstick
+struct _E_Event_Border_Simple
 {
    E_Border *border;
 };
@@ -561,32 +520,6 @@ struct _E_Event_Border_Stack
    E_Border *border, *stack;
    E_Stacking type;
 };
-
-struct _E_Event_Border_Icon_Change
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Focus_In
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Focus_Out
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Urgent_Change
-{
-   E_Border *border;
-};
-
-struct _E_Event_Border_Property
-{
-   E_Border *border;
-};
-
 
 EAPI int       e_border_init(void);
 EAPI int       e_border_shutdown(void);
@@ -612,6 +545,8 @@ EAPI void      e_border_lower(E_Border *bd);
 EAPI void      e_border_stack_above(E_Border *bd, E_Border *above);
 EAPI void      e_border_stack_below(E_Border *bd, E_Border *below);
 EAPI void      e_border_focus_latest_set(E_Border *bd);
+EAPI void      e_border_raise_latest_set(E_Border *bd);
+EAPI void      e_border_focus_set_with_pointer(E_Border *bd);
 EAPI void      e_border_focus_set(E_Border *bd, int focus, int set);
 EAPI void      e_border_shade(E_Border *bd, E_Direction dir);
 EAPI void      e_border_unshade(E_Border *bd, E_Direction dir);
@@ -670,6 +605,9 @@ EAPI E_Border_Hook *e_border_hook_add(E_Border_Hook_Point hookpoint, void (*func
 EAPI void e_border_hook_del(E_Border_Hook *bh);
 EAPI void e_border_focus_track_freeze(void);
 EAPI void e_border_focus_track_thaw(void);
+
+EAPI E_Border *e_border_under_pointer_get(E_Desk *desk, E_Border *exclude);
+EAPI int e_border_pointer_warp_to_center(E_Border *bd);
 
 extern EAPI int E_EVENT_BORDER_RESIZE;
 extern EAPI int E_EVENT_BORDER_MOVE;

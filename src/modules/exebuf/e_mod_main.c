@@ -80,20 +80,11 @@ e_modapi_save(E_Module *m)
    return 1;
 }
 
-EAPI int
-e_modapi_about(E_Module *m)
-{
-   e_module_dialog_show(m,
-			_("Enlightenment Exebuf Module"),
-			_("A module for executing apps just by typing names."));
-   return 1;
-}
-
 /* action callback */
 static void
 _e_mod_action_exebuf_cb(E_Object *obj, const char *params)
 {
-   E_Zone *zone;
+   E_Zone *zone = NULL;
    
    if (obj)
      {

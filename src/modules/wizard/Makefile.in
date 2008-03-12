@@ -63,6 +63,12 @@ pkgLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(pkg_LTLIBRARIES)
 am_module_la_OBJECTS = e_mod_main.lo e_wizard.lo
 module_la_OBJECTS = $(am_module_la_OBJECTS)
+am_page_000_la_OBJECTS = page_000.lo
+page_000_la_OBJECTS = $(am_page_000_la_OBJECTS)
+am_page_010_la_OBJECTS = page_010.lo
+page_010_la_OBJECTS = $(am_page_010_la_OBJECTS)
+am_page_020_la_OBJECTS = page_020.lo
+page_020_la_OBJECTS = $(am_page_020_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -74,8 +80,10 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(module_la_SOURCES)
-DIST_SOURCES = $(module_la_SOURCES)
+SOURCES = $(module_la_SOURCES) $(page_000_la_SOURCES) \
+	$(page_010_la_SOURCES) $(page_020_la_SOURCES)
+DIST_SOURCES = $(module_la_SOURCES) $(page_000_la_SOURCES) \
+	$(page_010_la_SOURCES) $(page_020_la_SOURCES)
 filesDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(files_DATA)
 ETAGS = etags
@@ -123,6 +131,10 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
+HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
+HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
+HAVE_TEMPERATURE_TRUE = @HAVE_TEMPERATURE_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -159,9 +171,12 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 POSUB = @POSUB@
 RANLIB = @RANLIB@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
+TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
 USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
@@ -248,7 +263,11 @@ INCLUDES = -I. \
                          @e_cflags@
 
 pkgdir = $(libdir)/enlightenment/modules/$(MODULE)/$(MODULE_ARCH)
-pkg_LTLIBRARIES = module.la
+pkg_LTLIBRARIES = module.la \
+                         page_000.la \
+                         page_010.la \
+                         page_020.la
+
 module_la_SOURCES = e_mod_main.c \
                          e_mod_main.h \
 			 e_wizard.c \
@@ -257,6 +276,18 @@ module_la_SOURCES = e_mod_main.c \
 module_la_LIBADD = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS = -module -avoid-version
 module_la_DEPENDENCIES = $(top_builddir)/config.h
+page_000_la_SOURCES = page_000.c
+page_000_la_LIBADD = @e_libs@ @dlopen_libs@
+page_000_la_LDFLAGS = -module -avoid-version
+page_000_la_DEPENDENCIES = $(top_builddir)/config.h
+page_010_la_SOURCES = page_010.c
+page_010_la_LIBADD = @e_libs@ @dlopen_libs@
+page_010_la_LDFLAGS = -module -avoid-version
+page_010_la_DEPENDENCIES = $(top_builddir)/config.h
+page_020_la_SOURCES = page_020.c
+page_020_la_LIBADD = @e_libs@ @dlopen_libs@
+page_020_la_LDFLAGS = -module -avoid-version
+page_020_la_DEPENDENCIES = $(top_builddir)/config.h
 all: all-am
 
 .SUFFIXES:
@@ -321,6 +352,12 @@ clean-pkgLTLIBRARIES:
 	done
 module.la: $(module_la_OBJECTS) $(module_la_DEPENDENCIES) 
 	$(LINK) -rpath $(pkgdir) $(module_la_LDFLAGS) $(module_la_OBJECTS) $(module_la_LIBADD) $(LIBS)
+page_000.la: $(page_000_la_OBJECTS) $(page_000_la_DEPENDENCIES) 
+	$(LINK) -rpath $(pkgdir) $(page_000_la_LDFLAGS) $(page_000_la_OBJECTS) $(page_000_la_LIBADD) $(LIBS)
+page_010.la: $(page_010_la_OBJECTS) $(page_010_la_DEPENDENCIES) 
+	$(LINK) -rpath $(pkgdir) $(page_010_la_LDFLAGS) $(page_010_la_OBJECTS) $(page_010_la_LIBADD) $(LIBS)
+page_020.la: $(page_020_la_OBJECTS) $(page_020_la_DEPENDENCIES) 
+	$(LINK) -rpath $(pkgdir) $(page_020_la_LDFLAGS) $(page_020_la_OBJECTS) $(page_020_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -330,6 +367,9 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_mod_main.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_wizard.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_000.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_010.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_020.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

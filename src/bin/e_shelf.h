@@ -21,16 +21,13 @@ struct _E_Shelf
    E_Zone              *zone; 
    Evas_Object         *o_base;
    Evas_Object         *o_event;
-   Evas_Object         *o_hide;
    Ecore_Evas          *ee;
    Evas                *evas;
+   Ecore_X_Window       win;
    E_Gadcon            *gadcon;
    const char          *name;
    const char          *style;
    E_Config_Shelf      *cfg;
-   unsigned char        fit_along : 1;
-   unsigned char        fit_size  : 1;
-   unsigned char        hidden    : 1;
    int                  size;
    E_Config_Dialog     *config_dialog;
    E_Menu              *menu;
@@ -42,6 +39,13 @@ struct _E_Shelf
    int                  interrupted;
    float                instant_delay;
    Ecore_Timer         *instant_timer;
+   Evas_List           *handlers;
+   unsigned char        fit_along : 1;
+   unsigned char        fit_size  : 1;
+   unsigned char        hidden    : 1;
+   unsigned char        locked    : 1;
+   unsigned char        toggle    : 1;
+   unsigned char        edge      : 1;
 };
 
 EAPI int              e_shelf_init(void);
@@ -53,6 +57,7 @@ EAPI void             e_shelf_zone_move_resize_handle(E_Zone *zone);
 EAPI void             e_shelf_populate(E_Shelf *es);
 EAPI void             e_shelf_show(E_Shelf *es);
 EAPI void             e_shelf_hide(E_Shelf *es);
+EAPI void             e_shelf_locked_set(E_Shelf *es, int lock);
 EAPI void             e_shelf_toggle(E_Shelf *es, int show);
 EAPI void             e_shelf_move(E_Shelf *es, int x, int y);
 EAPI void             e_shelf_resize(E_Shelf *es, int w, int h);
@@ -64,6 +69,7 @@ EAPI void             e_shelf_orient(E_Shelf *es, E_Gadcon_Orient orient);
 EAPI void             e_shelf_position_calc(E_Shelf *es);
 EAPI void             e_shelf_style_set(E_Shelf *es, const char *style);
 EAPI void             e_shelf_popup_set(E_Shelf *es, int popup);
+EAPI E_Shelf         *e_shelf_config_new(E_Zone *zone, E_Config_Shelf *cf_es);
 
 #endif
 #endif

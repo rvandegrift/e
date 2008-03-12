@@ -62,7 +62,7 @@ e_modapi_shutdown(E_Module *m)
      {
 	e_action_predef_name_del(_("Window : List"), _("Previous Window"));
 	e_action_predef_name_del(_("Window : List"), _("Next Window"));
-	e_action_del("exebuf");
+	e_action_del("winlist");
 	act = NULL;
      }
    e_winlist_shutdown();
@@ -76,20 +76,11 @@ e_modapi_save(E_Module *m)
    return 1;
 }
 
-EAPI int
-e_modapi_about(E_Module *m)
-{
-   e_module_dialog_show(m,
-			_("Enlightenment Winlist Module"),
-			_("A module for displaying a list of windows to switch between."));
-   return 1;
-}
-
 /* action callback */
 static void
 _e_mod_action_winlist_cb(E_Object *obj, const char *params)
 {
-   E_Zone *zone;
+   E_Zone *zone = NULL;
    
    if (obj)
      {
@@ -129,7 +120,7 @@ _e_mod_action_winlist_cb(E_Object *obj, const char *params)
 static void
 _e_mod_action_winlist_mouse_cb(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Button_Down *ev)
 {
-   E_Zone *zone;
+   E_Zone *zone = NULL;
    
    if (obj)
      {
@@ -175,7 +166,7 @@ _e_mod_action_winlist_mouse_cb(E_Object *obj, const char *params, Ecore_X_Event_
 static void
 _e_mod_action_winlist_key_cb(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev)
 {
-   E_Zone *zone;
+   E_Zone *zone = NULL;
    
    if (obj)
      {

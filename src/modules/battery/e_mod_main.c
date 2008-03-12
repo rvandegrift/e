@@ -31,13 +31,14 @@ static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc);
 static char *_gc_label(void);
 static Evas_Object *_gc_icon(Evas *evas);
+static const char *_gc_id_new(void);
 /* and actually define the gadcon class that this module provides (just 1) */
 static const E_Gadcon_Client_Class _gadcon_class =
 {
    GADCON_CLIENT_CLASS_VERSION,
      "battery",
      {
-        _gc_init, _gc_shutdown, _gc_orient, _gc_label, _gc_icon
+        _gc_init, _gc_shutdown, _gc_orient, _gc_label, _gc_icon, _gc_id_new, NULL
      },
    E_GADCON_CLIENT_STYLE_PLAIN
 };
@@ -148,6 +149,13 @@ _gc_icon(Evas *evas)
    edje_object_file_set(o, buf, "icon");
    return o;
 }
+
+static const char *
+_gc_id_new(void)
+{
+   return _gadcon_class.name;
+}
+
 /**/
 /***************************************************************************/
 
@@ -304,8 +312,8 @@ _battery_cb_check(void *data)
 				 e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
 				 e_win_centered_set(dia->win, 1);
 				 e_dialog_show(dia);
+				 edje_object_signal_emit(inst->o_battery, "e,action,pulse,start", "e");
 			      }
-			    edje_object_signal_emit(inst->o_battery, "e,action,pulse,start", "e");
 			 }
 		       edje_object_part_text_set(inst->o_battery, "e.text.reading", ret->reading);
 		       edje_object_part_text_set(inst->o_battery, "e.text.time", ret->time);
@@ -344,7 +352,7 @@ _battery_cb_check(void *data)
 	     /* Error reading status */
 	     if (battery_config->battery_prev_battery != -2)
 	       edje_object_signal_emit(inst->o_battery, "e,state,unknown", "e");
-	     edje_object_part_text_set(inst->o_battery, "e.text.reading", _("NO INFO"));
+	     edje_object_part_text_set(inst->o_battery, "e.text.reading", _("ERROR"));
 	     edje_object_part_text_set(inst->o_battery, "e.text.time", "--:--");
 	     _battery_face_level_set(inst, (double)(rand() & 0xff) / 255.0);
 	     battery_config->battery_prev_battery = -2;
@@ -380,10 +388,16 @@ _battery_linux_acpi_check(void)
    int level_unknown = 0;
    int hours, minutes;
    Status *stat;
+   static double last_poll_time = 0.0;
+   double poll_time, t;
 
    stat = E_NEW(Status, 1);
    if (!stat) return NULL;
 
+   t = ecore_time_get();
+   poll_time = t - last_poll_time;
+   last_poll_time = t;
+   
    /* Read some information on first run. */
    bats = ecore_file_ls("/proc/acpi/battery");
    if (bats)
@@ -497,11 +511,11 @@ _battery_linux_acpi_check(void)
      }
    
    if ((rate_unknown) && (bat_level != battery_config->battery_prev_level) &&
-       (battery_config->battery_prev_level >= 0))
+       (battery_config->battery_prev_level >= 0) && (poll_time > 0.0))
      {
 	bat_drain = 
 	  ((bat_level - battery_config->battery_prev_level) * 60 * 60) /
-	  battery_config->poll_time;
+	  poll_time;
 	if (bat_drain < 0) bat_drain = -bat_drain;
 	if (bat_drain == 0) bat_drain = 1;
 	rate_unknown = 0;
@@ -539,7 +553,7 @@ _battery_linux_acpi_check(void)
      {
 	stat->has_battery = 0;
 	stat->state = BATTERY_STATE_NONE;
-	stat->reading = strdup(_("NO BAT"));
+	stat->reading = strdup(_("N/A"));
 	stat->time = strdup("--:--");
 	stat->level = 1.0;
      }
@@ -629,7 +643,7 @@ _battery_linux_apm_check(void)
      {
 	stat->has_battery = 0;
 	stat->state = BATTERY_STATE_NONE;
-	stat->reading = strdup("NO BAT");
+	stat->reading = strdup("N/A");
 	stat->time = strdup("--:--");
 	stat->level = 1.0;
 	return stat;
@@ -856,7 +870,7 @@ _battery_linux_powerbook_check(void)
      {
 	stat->has_battery = 0;
 	stat->state = BATTERY_STATE_NONE;
-	stat->reading = strdup(_("NO BAT"));
+	stat->reading = strdup(_("N/A"));
 	stat->time = strdup("--:--");
 	stat->level = 1.0;
      }
@@ -1012,7 +1026,7 @@ _battery_bsd_acpi_check(void)
      {
 	stat->has_battery = 0;
 	stat->state = BATTERY_STATE_NONE;
-	stat->reading = strdup(_("NO BAT"));
+	stat->reading = strdup(_("N/A"));
 	stat->time = strdup("--:--");
 	stat->level = 1.0;
      }
@@ -1105,7 +1119,7 @@ _battery_bsd_apm_check(void)
      {
 	stat->has_battery = 0;
 	stat->state = BATTERY_STATE_NONE;
-	stat->reading = strdup("NO BAT");
+	stat->reading = strdup("N/A");
 	stat->time = strdup("--:--");
 	stat->level = 1.0;
 	return stat;
@@ -1243,7 +1257,7 @@ _battery_darwin_check(void)
 	CFRelease(sources);
 	CFRelease(blob);
 	stat->state = BATTERY_STATE_NONE;
-	stat->reading = strdup("NO BAT");
+	stat->reading = strdup("N/A");
 	stat->time = strdup("--:--");
 	stat->level = 1.0;
 	return stat;
@@ -1377,16 +1391,17 @@ _battery_face_cb_menu_configure(void *data, E_Menu *m, E_Menu_Item *mi)
 {
    if (!battery_config) return;
    if (battery_config->config_dialog) return;
-   _config_battery_module();
+   e_int_config_battery_module(m->zone->container, NULL);
 }
 
 void
 _battery_config_updated(void)
 {
    if (!battery_config) return;
-   ecore_timer_del(battery_config->battery_check_timer);
-   battery_config->battery_check_timer = ecore_timer_add(battery_config->poll_time,
-						 _battery_cb_check, NULL);
+   ecore_poller_del(battery_config->battery_check_poller);
+   battery_config->battery_check_poller = 
+     ecore_poller_add(ECORE_POLLER_CORE, battery_config->poll_interval,
+		      _battery_cb_check, NULL);
    _battery_cb_check(NULL);
 }
 
@@ -1402,12 +1417,14 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
+   char buf[4096];
+
    conf_edd = E_CONFIG_DD_NEW("Battery_Config", Config);
 #undef T
 #undef D
 #define T Config
 #define D conf_edd
-   E_CONFIG_VAL(D, T, poll_time, DOUBLE);
+   E_CONFIG_VAL(D, T, poll_interval, INT);
    E_CONFIG_VAL(D, T, alarm, INT);
    E_CONFIG_VAL(D, T, alarm_p, INT);
 
@@ -1415,11 +1432,11 @@ e_modapi_init(E_Module *m)
    if (!battery_config)
      {
        battery_config = E_NEW(Config, 1);
-       battery_config->poll_time = 30.0;
+       battery_config->poll_interval = 256;
        battery_config->alarm = 30;
        battery_config->alarm_p = 10;
      }
-   E_CONFIG_LIMIT(battery_config->poll_time, 0.5, 1000.0);
+   E_CONFIG_LIMIT(battery_config->poll_interval, 1, 1024);
    E_CONFIG_LIMIT(battery_config->alarm, 0, 60);
    E_CONFIG_LIMIT(battery_config->alarm_p, 0, 100);
    
@@ -1427,23 +1444,32 @@ e_modapi_init(E_Module *m)
    battery_config->battery_prev_drain = 1;
    battery_config->battery_prev_ac = -1;
    battery_config->battery_prev_battery = -1;
-   battery_config->battery_check_timer = ecore_timer_add(battery_config->poll_time,
-						 _battery_cb_check, NULL);
+   battery_config->battery_check_poller = 
+     ecore_poller_add(ECORE_POLLER_CORE, battery_config->poll_interval,
+		      _battery_cb_check, NULL);
    battery_config->module = m;
    
    e_gadcon_provider_register(&_gadcon_class);
+   
+   snprintf(buf, sizeof(buf), "%s/e-module-battery.edj", e_module_dir_get(m));
+   e_configure_registry_category_add("advanced", 80, _("Advanced"), NULL, "enlightenment/advanced");
+   e_configure_registry_item_add("advanced/battery", 100, _("Battery Meter"), NULL, buf, e_int_config_battery_module);
+   
    return m;
 }
 
 EAPI int
 e_modapi_shutdown(E_Module *m)
 {
+   e_configure_registry_item_del("advanced/battery");
+   e_configure_registry_category_del("advanced");
+   
    e_gadcon_provider_unregister(&_gadcon_class);
    
    if (battery_config->config_dialog)
      e_object_del(E_OBJECT(battery_config->config_dialog));
-   if (battery_config->battery_check_timer)
-     ecore_timer_del(battery_config->battery_check_timer);
+   if (battery_config->battery_check_poller)
+     ecore_poller_del(battery_config->battery_check_poller);
    if (battery_config->menu)
      {
         e_menu_post_deactivate_callback_set(battery_config->menu, NULL, NULL);
@@ -1460,27 +1486,6 @@ EAPI int
 e_modapi_save(E_Module *m)
 {
    e_config_domain_save("module.battery", conf_edd, battery_config);
-   return 1;
-}
-
-EAPI int
-e_modapi_about(E_Module *m)
-{
-   e_module_dialog_show(m, _("Enlightenment Battery Module"),
-		       _("A basic battery meter that uses either"
-		 	 "<hilight>ACPI</hilight> or <hilight>APM</hilight><br>"
-			 "on Linux to monitor your battery and AC power adaptor<br>"
-			 "status. This will work under Linux and FreeBSD and is only<br>"
-			 "as accurate as your BIOS or kernel drivers."));
-   return 1;
-}
-
-EAPI int
-e_modapi_config(E_Module *m)
-{
-   if (!battery_config) return 0;
-   if (battery_config->config_dialog) return 0;
-   _config_battery_module();
    return 1;
 }
 /**/

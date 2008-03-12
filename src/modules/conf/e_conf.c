@@ -22,6 +22,7 @@ struct _E_Configure
    Evas_Object *close;
    
    Evas_List *cats;
+   Ecore_Event_Handler *mod_hdl;
 };
 
 struct _E_Configure_CB
@@ -57,6 +58,7 @@ static void _e_configure_item_cb(void *data);
 static void _e_configure_focus_cb(void *data, Evas_Object *obj);
 static void _e_configure_keydown_cb(void *data, Evas *e, Evas_Object *obj, void *event);
 static void _e_configure_fill_cat_list(void *data);
+static int  _e_configure_module_update_cb(void *data, int type, void *event);
 
 static E_Configure *_e_configure = NULL;
 
@@ -112,7 +114,11 @@ e_configure_show(E_Container *con)
    eco->win->data = eco;
    eco->con = con;
    eco->evas = e_win_evas_get(eco->win);
-   
+
+   /* Event Handler for Module Updates */
+   eco->mod_hdl = ecore_event_handler_add(E_EVENT_MODULE_UPDATE, 
+					  _e_configure_module_update_cb, eco);
+
    e_win_title_set(eco->win, _("Enlightenment Configuration"));
    e_win_name_class_set(eco->win, "E", "_configure");
    e_win_dialog_set(eco->win, 1);
@@ -121,7 +127,8 @@ e_configure_show(E_Container *con)
    e_win_centered_set(eco->win, 1);
 
    eco->edje = edje_object_add(eco->evas);
-   e_theme_edje_object_set(eco->edje, "base/theme/configure", "e/widgets/configure/main");
+   e_theme_edje_object_set(eco->edje, "base/theme/configure", 
+			   "e/widgets/configure/main");
 
    eco->o_list = e_widget_list_add(eco->evas, 1, 1);
    edje_object_part_swallow(eco->edje, "e.swallow.content", eco->o_list);
@@ -141,6 +148,7 @@ e_configure_show(E_Container *con)
    /* Category List */
    of = e_widget_framelist_add(eco->evas, _("Categories"), 1);
    eco->cat_list = e_widget_ilist_add(eco->evas, 32, 32, NULL);
+   e_widget_ilist_selector_set(eco->cat_list, 1);
    /***--- fill ---***/
    _e_configure_fill_cat_list(eco);
    e_widget_on_focus_hook_set(eco->cat_list, _e_configure_focus_cb, eco->win);
@@ -175,6 +183,14 @@ e_configure_show(E_Container *con)
    /* Preselect "Appearance" */
    e_widget_focus_set(eco->cat_list, 1);
    e_widget_ilist_selected_set(eco->cat_list, 0);
+
+   if (eco->cats)
+     {
+	E_Configure_Category *cat;
+	
+	cat = eco->cats->data;
+	_e_configure_category_cb(cat);
+     }
    
    _e_configure = eco;
 }
@@ -184,6 +200,9 @@ e_configure_del(void)
 {
    if (_e_configure) 
      {
+	if (_e_configure->mod_hdl) 
+	  ecore_event_handler_del(_e_configure->mod_hdl);
+	_e_configure->mod_hdl = NULL;
 	e_object_del(E_OBJECT(_e_configure));
 	_e_configure = NULL;
      }
@@ -192,6 +211,9 @@ e_configure_del(void)
 static void 
 _e_configure_free(E_Configure *eco) 
 {
+   if (_e_configure->mod_hdl)
+     ecore_event_handler_del(_e_configure->mod_hdl);
+   _e_configure->mod_hdl = NULL;
    _e_configure = NULL;
    while (eco->cats) 
      {
@@ -230,7 +252,7 @@ _e_configure_free(E_Configure *eco)
    evas_object_del(eco->o_list);
    evas_object_del(eco->edje);
    e_object_del(E_OBJECT(eco->win));
-   free(eco);
+   E_FREE(eco);
 }
 
 static void 
@@ -279,8 +301,13 @@ _e_configure_category_add(E_Configure *eco, const char *label, const char *icon)
    cat->label = evas_stringshare_add(label);
    if (icon) 
      {
-	o = edje_object_add(eco->evas);
-	e_util_edje_icon_set(o, icon);
+	if (e_util_edje_icon_check(icon)) 
+	  {
+	     o = edje_object_add(eco->evas);
+	     e_util_edje_icon_set(o, icon);
+	  }
+	else
+	  o = e_util_icon_add(icon, eco->evas);
      }
    eco->cats = evas_list_append(eco->cats, cat);
 
@@ -314,8 +341,13 @@ _e_configure_category_cb(void *data)
 	if (!ci) continue;
 	if (ci->icon) 
 	  {
-	     o = edje_object_add(eco->evas);
-	     e_util_edje_icon_set(o, ci->icon);
+	     if (e_util_edje_icon_check(ci->icon)) 
+	       {
+		  o = edje_object_add(eco->evas);
+		  e_util_edje_icon_set(o, ci->icon);
+	       }
+	     else
+	       o = e_util_icon_add(ci->icon, eco->evas);
 	  }
 	e_widget_ilist_append(eco->item_list, o, ci->label, _e_configure_item_cb, ci, NULL);
      }
@@ -451,6 +483,7 @@ _e_configure_fill_cat_list(void *data)
    evas_event_freeze(evas_object_evas_get(eco->cat_list));
    edje_freeze();
    e_widget_ilist_freeze(eco->cat_list);
+   e_widget_ilist_clear(eco->cat_list);
 
    for (l = e_configure_registry; l; l = l->next)
      {
@@ -482,4 +515,18 @@ _e_configure_fill_cat_list(void *data)
    e_widget_ilist_thaw(eco->cat_list);
    edje_thaw();
    evas_event_thaw(evas_object_evas_get(eco->cat_list));
+}
+
+static int 
+_e_configure_module_update_cb(void *data, int type, void *event) 
+{
+   E_Configure *eco;
+   int sel = 0;
+
+   if (!(eco = data)) return 1;
+   if (!eco->cat_list) return 1;
+   sel = e_widget_ilist_selected_get(eco->cat_list);
+   _e_configure_fill_cat_list(eco);
+   e_widget_ilist_selected_set(eco->cat_list, sel);
+   return 1;
 }

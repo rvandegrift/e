@@ -200,6 +200,7 @@ e_desk_show(E_Desk *desk)
    E_Border_List     *bl;
    E_Border          *bd;
    E_Event_Desk_Show *ev;
+   Evas_List *l;
    int                was_zone = 0;
    int                x, y, dx = 0, dy = 0;
 
@@ -207,6 +208,7 @@ e_desk_show(E_Desk *desk)
    E_OBJECT_TYPE_CHECK(desk, E_DESK_TYPE);
    if (desk->visible) return;
 
+   ecore_x_window_shadow_tree_flush();
    for (x = 0; x < desk->zone->desk_x_count; x++)
      {
 	for (y = 0; y < desk->zone->desk_y_count; y++)
@@ -242,17 +244,11 @@ e_desk_show(E_Desk *desk)
 		  if ((bd->desk == desk) || (bd->sticky))
 		    {
 		       e_border_show(bd);
-		       if (bd->want_fullscreen)
-			 {
-			    e_border_fullscreen(bd, e_config->fullscreen_policy);
-			    bd->want_fullscreen = 0;
-			 }
 		    }
 		  else if (bd->moving)
 		    e_border_desk_set(bd, desk);
 		  else
 		    {
-		       if (bd->fullscreen) bd->want_fullscreen = 1;
 		       e_border_hide(bd, 2);
 		    }
 	       }
@@ -275,6 +271,41 @@ e_desk_show(E_Desk *desk)
    ev->desk = desk;
    e_object_ref(E_OBJECT(desk));
    ecore_event_add(E_EVENT_DESK_SHOW, ev, _e_border_event_desk_show_free, NULL);
+
+   for (l = e_shelf_list(); l; l = l->next)
+     {
+	Evas_List *ll;
+	E_Shelf *es;
+	E_Config_Shelf *cf_es;
+	E_Zone *zone;
+	int show_shelf=0;
+
+	es = l->data;
+	if (!es) continue;
+	if (!es->cfg->desk_show_mode) continue;
+	cf_es = es->cfg;
+	if (!cf_es) continue;
+
+	zone = e_zone_current_get(e_container_current_get(e_manager_current_get()));
+	if (cf_es->zone != zone->num) continue;
+
+	for (ll = es->cfg->desk_list; ll; ll = ll->next)
+	  {
+	     E_Config_Shelf_Desk *sd;
+
+	     sd = ll->data;
+	     if (!sd) continue;
+	     if ((desk->x == sd->x) && (desk->y == sd->y))
+	       {
+		  show_shelf=1;
+		  break;
+	       }
+	  }
+	if (show_shelf)
+	  e_shelf_show(es);
+	else
+	  e_shelf_hide(es);
+     }
 }
 
 EAPI void
@@ -290,6 +321,7 @@ e_desk_deskshow(E_Zone *zone)
 
    desk = e_desk_current_get(zone);
    bl = e_container_border_list_first(zone->container);
+   ecore_x_window_shadow_tree_flush();
    while ((bd = e_container_border_list_next(bl))) 
      {
 	if (bd->desk == desk)
@@ -561,11 +593,6 @@ _e_desk_show_begin(E_Desk *desk, int mode, int dx, int dy)
 		    bd->fx.start.y += bd->zone->container->h - (bd->zone->y + bd->zone->h);
 		  e_border_fx_offset(bd, bd->fx.start.x, bd->fx.start.y);
 		  e_border_show(bd);
-		  if (bd->want_fullscreen)
-		    {
-		       e_border_fullscreen(bd, e_config->fullscreen_policy);
-		       bd->want_fullscreen = 0;
-		    }
 	       }
 	  }
      }
@@ -592,6 +619,7 @@ _e_desk_show_end(E_Desk *desk)
 	  }
      }
    e_container_border_list_free(bl);
+   ecore_x_window_shadow_tree_flush();
 }
 
 static int
@@ -698,11 +726,6 @@ _e_desk_hide_begin(E_Desk *desk, int mode, int dx, int dy)
 		  else
 		    bd->fx.start.y += bd->zone->container->h - (bd->zone->y + bd->zone->h);
 		  e_border_fx_offset(bd, 0, 0);
-		  if (bd->want_fullscreen)
-		    {
-		       e_border_fullscreen(bd, e_config->fullscreen_policy);
-		       bd->want_fullscreen = 0;
-		    }
 	       }
 	  }
      }
@@ -727,12 +750,12 @@ _e_desk_hide_end(E_Desk *desk)
 	     else if ((bd->desk == desk) && (!bd->sticky))
 	       {
 		  e_border_fx_offset(bd, 0, 0);
-		  if (bd->fullscreen) bd->want_fullscreen = 1;
 		  e_border_hide(bd, 2);
 	       }
 	  }
      }
    e_container_border_list_free(bl);
+   ecore_x_window_shadow_tree_flush();
 }
 
 static int

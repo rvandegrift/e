@@ -1,4 +1,24 @@
 [Desktop Entry]
 Type=Link
 Name=Configuration - Window Manipulation
+Name[de]=
+Name[es]=Configuración - Manipulación de ventanas
+Name[fr]=
+Name[it]=Configurazione - Manipolazione finestre
+Name[ja]=
+Name[pt]=
+Name[pt_BR]=
+Name[zh_CN]=
+Name[zh_TW]=
 Icon=e-module-conf_winmanip
+Comment=<hilight>E17 Configuration Applet</hilight><br><br>Configures window raise, resistance, and maximize policies.
+Comment[de]=
+Comment[es]=<hilight>Applet de configuración de E17</hilight><br><br>Configura las reglas para la subida, resistencia y maximización de las ventanas.
+Comment[fr]=
+Comment[it]=<hilight>Applet configurazione di E17</hilight><br><br>Configura le regole per l'elevazione, la resistenza e la massimizzazione delle finestre.
+Comment[ja]=
+Comment[pt]=
+Comment[pt_BR]=
+Comment[zh_CN]=
+Comment[zh_TW]=
+X-Enlightenment-ModuleType=config

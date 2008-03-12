@@ -22,9 +22,9 @@ static void _e_drag_coords_update(E_Drop_Handler *h, int *dx, int *dy, int *dw, 
 static int  _e_drag_win_matches(E_Drop_Handler *h, Ecore_X_Window win);
 static void _e_drag_win_show(E_Drop_Handler *h);
 static void _e_drag_win_hide(E_Drop_Handler *h);
-static void _e_drag_update(int x, int y);
-static void _e_drag_end(int x, int y);
-static void _e_drag_xdnd_end(int x, int y);
+static void _e_drag_update(Ecore_X_Window root, int x, int y);
+static void _e_drag_end(Ecore_X_Window root, int x, int y);
+static void _e_drag_xdnd_end(Ecore_X_Window root, int x, int y);
 static void _e_drag_free(E_Drag *drag);
 
 static int  _e_dnd_cb_window_shape(void *data, int type, void *event);
@@ -55,6 +55,7 @@ static Evas_List *_drop_handlers = NULL;
 static Evas_Hash *_drop_win_hash = NULL;
 
 static Ecore_X_Window _drag_win = 0;
+static Ecore_X_Window _drag_win_root = 0;
 
 static Evas_List *_drag_list = NULL;
 static E_Drag    *_drag_current = NULL;
@@ -193,6 +194,10 @@ e_drag_new(E_Container *container, int x, int y,
 
    _drag_list = evas_list_append(_drag_list, drag);
 
+   ecore_x_window_shadow_tree_flush();
+   
+   _drag_win_root = drag->container->manager->root;
+   
    return drag;
 }
 
@@ -216,8 +221,8 @@ e_drag_move(E_Drag *drag, int x, int y)
    if ((drag->x == x) && (drag->y == y)) return;
    drag->x = x;
    drag->y = y;
-   ecore_evas_move(drag->ecore_evas, drag->x, drag->y);
-   e_container_shape_move(drag->shape, drag->x, drag->y);
+   drag->xy_update = 1;
+//   printf("DND MOVE %i %i\n", x, y);
 }
 
 EAPI void
@@ -246,6 +251,7 @@ e_drag_start(E_Drag *drag, int x, int y)
    _drag_win = ecore_x_window_input_new(drag->container->win, 
 					drag->container->x, drag->container->y,
 					drag->container->w, drag->container->h);
+   _drag_win_root= drag->container->manager->root;
    ecore_x_window_show(_drag_win);
    if (!e_grabinput_get(_drag_win, 1, _drag_win))
      {
@@ -475,6 +481,13 @@ e_drag_idler_before(void)
 	     if (drag->visible)
 	       e_container_shape_show(drag->shape);
 	  }
+        if (drag->xy_update)
+	  {
+//	     printf("DND REAL MOVE\n");
+	     ecore_evas_move(drag->ecore_evas, drag->x, drag->y);
+	     e_container_shape_move(drag->shape, drag->x, drag->y);
+	     drag->xy_update = 0;
+	  }
      }
 }
 
@@ -512,12 +525,8 @@ _e_drag_move(E_Drag *drag, int x, int y)
    
    drag->x = x - drag->dx;
    drag->y = y - drag->dy;
-   ecore_evas_move(drag->ecore_evas,
-		   drag->x, 
-		   drag->y);
-   e_container_shape_move(drag->shape,
-			  drag->x, 
-			  drag->y);
+   drag->xy_update = 1;
+//   printf("DND MOVE 2 %i %i\n", x, y);
 }
 
 static void
@@ -642,7 +651,7 @@ _e_drag_win_hide(E_Drop_Handler *h)
 }
 
 static void
-_e_drag_update(int x, int y)
+_e_drag_update(Ecore_X_Window root, int x, int y)
 {
    Evas_List *l;
    E_Event_Dnd_Enter enter_ev;
@@ -651,15 +660,23 @@ _e_drag_update(int x, int y)
    int dx, dy, dw, dh;
    Ecore_X_Window win, ignore_win[2];
 
+//   double t1 = ecore_time_get(); ////
    if (_drag_current)
      {
 	ignore_win[0] = _drag_current->evas_win;
 	ignore_win[1] = _drag_win;
-	/* this is nasty - but necessary to get the window stacking */
-	win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
+	/* FIXME: this is nasty. every x mouse event we go back to x and do
+	 * a whole bunch of round-trips narrowing down the toplevel window
+	 * which contains the mouse */
+	win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, ignore_win, 2);
+//	win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
      }
    else
-     win = ecore_x_window_at_xy_with_skip_get(x, y, NULL, 0);
+     /* FIXME: this is nasty. every x mouse event we go back to x and do
+      * a whole bunch of round-trips narrowing down the toplevel window
+      * which contains the mouse */
+     win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, NULL, 0);
+//     win = ecore_x_window_at_xy_with_skip_get(x, y, NULL, 0);
    
    if (_drag_current)
      {
@@ -683,7 +700,7 @@ _e_drag_update(int x, int y)
 	     move_ev.y = y - dy;
 	     leave_ev.x = x - dx;
 	     leave_ev.y = y - dy;
-	     if (E_INSIDE(x, y, dx, dy, dw, dh))
+	     if (E_INSIDE(x, y, dx, dy, dw, dh) && _e_drag_win_matches(h, win))
 	       {
 		  if (!h->entered)
 		    {
@@ -731,7 +748,7 @@ _e_drag_update(int x, int y)
 	     move_ev.y = y - dy;
 	     leave_ev.x = x - dx;
 	     leave_ev.y = y - dy;
-	     if (E_INSIDE(x, y, dx, dy, dw, dh))
+	     if (E_INSIDE(x, y, dx, dy, dw, dh) && _e_drag_win_matches(h, win))
 	       {
 		  if (!h->entered)
 		    {
@@ -753,10 +770,12 @@ _e_drag_update(int x, int y)
 	       }
 	  }
      }
+//   double t2 = ecore_time_get() - t1; ////
+//   printf("DND UPDATE %3.7f\n", t2); ////
 }
 
 static void
-_e_drag_end(int x, int y)
+_e_drag_end(Ecore_X_Window root, int x, int y)
 {
    E_Zone *zone;
    Evas_List *l;
@@ -768,7 +787,8 @@ _e_drag_end(int x, int y)
    ignore_win[0] = _drag_current->evas_win;
    ignore_win[1] = _drag_win;
    /* this is nasty - but necessary to get the window stacking */
-   win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
+   win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, ignore_win, 2);
+//   win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
    zone = e_container_zone_at_point_get(_drag_current->container, x, y);
    /* Pass -1, -1, so that it is possible to drop at the edge. */
    if (zone) e_zone_flip_coords_handle(zone, -1, -1);
@@ -785,7 +805,6 @@ _e_drag_end(int x, int y)
 	     ecore_x_window_del(_drag_win);
 	     _drag_win = 0;
 	  }
-
 	if (_drag_current->cb.finished)
 	  _drag_current->cb.finished(_drag_current, dropped);
 
@@ -863,7 +882,7 @@ _e_drag_end(int x, int y)
 }
 
 static void
-_e_drag_xdnd_end(int x, int y)
+_e_drag_xdnd_end(Ecore_X_Window root, int x, int y)
 {
    Evas_List *l;
    E_Event_Dnd_Drop ev;
@@ -875,11 +894,12 @@ _e_drag_xdnd_end(int x, int y)
      {
 	ignore_win[0] = _drag_current->evas_win;
 	ignore_win[1] = _drag_win;
-	/* this is nasty - but necessary to get the window stacking */
-	win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
+	win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, ignore_win, 2);
+//	win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
      }
    else
-     win = ecore_x_window_at_xy_with_skip_get(x, y, NULL, 0);
+     win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, NULL, 0);
+//     win = ecore_x_window_at_xy_with_skip_get(x, y, NULL, 0);
 
    ev.data = _xdnd->data;
 
@@ -951,6 +971,7 @@ _e_drag_free(E_Drag *drag)
    for (i = 0; i < drag->num_types; i++) free(drag->types[i]);
    free(drag->types);
    free(drag);
+   ecore_x_window_shadow_tree_flush();
 }
 
 
@@ -980,7 +1001,7 @@ _e_dnd_cb_mouse_up(void *data, int type, void *event)
    ev = event;
    if (ev->win != _drag_win) return 1;
 
-   _e_drag_end(ev->x, ev->y);
+   _e_drag_end(_drag_win_root, ev->x, ev->y);
 
    return 1;
 }
@@ -993,7 +1014,8 @@ _e_dnd_cb_mouse_move(void *data, int type, void *event)
    ev = event;
    if (ev->win != _drag_win) return 1;
 
-   _e_drag_update(ev->x, ev->y);
+   _e_drag_update(_drag_win_root, ev->x, ev->y);
+   
    return 1;
 }
 
@@ -1125,8 +1147,14 @@ _e_dnd_cb_event_dnd_position(void *data, int type, void *event)
    int active;
 
    ev = event;
+//   double t1 = ecore_time_get(); ////
    id = e_util_winid_str_get(ev->win);
-   if (!evas_hash_find(_drop_win_hash, id)) return 1;
+   if (!evas_hash_find(_drop_win_hash, id))
+     {
+//	double t2 = ecore_time_get() - t1; ////
+//	printf("DND POS EV 1 %3.7f\n", t2); ////
+	return 1;
+     }
 
    rect.x = 0;
    rect.y = 0;
@@ -1148,9 +1176,11 @@ _e_dnd_cb_event_dnd_position(void *data, int type, void *event)
      }
    else
      {
-	_e_drag_update(ev->position.x, ev->position.y);
+	_e_drag_update(_drag_win_root, ev->position.x, ev->position.y);
 	ecore_x_dnd_send_status(1, 0, rect, ECORE_X_DND_ACTION_PRIVATE);
      }
+//   double t2 = ecore_time_get() - t1; ////
+//   printf("DND POS EV 2 %3.7f\n", t2); ////
    return 1;
 }
 
@@ -1198,7 +1228,7 @@ _e_dnd_cb_event_dnd_drop(void *data, int type, void *event)
    ev = event;
    id = e_util_winid_str_get(ev->win);
    if (!evas_hash_find(_drop_win_hash, id)) return 1;
-   printf("Xdnd drop\n");
+   printf("Xdnd drop %x %s\n", ev->win, _xdnd->type);
 
    ecore_x_selection_xdnd_request(ev->win, _xdnd->type);
 
@@ -1230,7 +1260,8 @@ _e_dnd_cb_event_dnd_selection(void *data, int type, void *event)
 	for (i = 0; i < files->num_files; i++)
 	  l = evas_list_append(l, files->files[i]), printf("file: %s\n", files->files[i]);
 	_xdnd->data = l;
-	_e_drag_xdnd_end(_xdnd->x, _xdnd->y);
+	printf("_drag_win_root = %x\n", _drag_win_root);
+	_e_drag_xdnd_end(_drag_win_root, _xdnd->x, _xdnd->y);
 	evas_list_free(l);
      }
    else if (!strcmp("text/x-moz-url", _xdnd->type))
@@ -1269,12 +1300,12 @@ _e_dnd_cb_event_dnd_selection(void *data, int type, void *event)
 	l = evas_list_append(l, file);
 
 	_xdnd->data = l;
-	_e_drag_xdnd_end(_xdnd->x, _xdnd->y);
+	_e_drag_xdnd_end(_drag_win_root, _xdnd->x, _xdnd->y);
 	evas_list_free(l);
      }
    else
      {
-	_e_drag_xdnd_end(_xdnd->x, _xdnd->y);
+	_e_drag_xdnd_end(_drag_win_root, _xdnd->x, _xdnd->y);
      }
    /* FIXME: When to execute this? It could be executed in ecore_x after getting
     * the drop property... */

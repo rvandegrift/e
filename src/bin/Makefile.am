@@ -20,7 +20,8 @@ enlightenment_imc \
 enlightenment_start \
 enlightenment_thumb \
 enlightenment_sys \
-enlightenment_fm
+enlightenment_fm \
+enlightenment_init
 
 ENLIGHTENMENTHEADERS = \
 e.h \
@@ -33,6 +34,7 @@ e_manager.h \
 e_path.h \
 e_init.h \
 e_ipc.h \
+e_msgbus.h \
 e_error.h \
 e_container.h \
 e_zone.h \
@@ -129,6 +131,7 @@ e_confirm_dialog.h \
 e_int_border_prop.h \
 e_entry_dialog.h \
 e_fm.h \
+e_fm_hal.h \
 e_widget_scrollframe.h \
 e_sha1.h \
 e_widget_fsel.h \
@@ -151,14 +154,20 @@ e_order.h \
 e_exec.h \
 e_widget_font_preview.h \
 e_fm_custom.h \
-e_fm_shared.h
- 
+e_fm_shared.h \
+e_config_data.h \
+e_intl_data.h \
+e_toolbar.h \
+e_int_toolbar_config.h \
+e_powersave.h
+
 enlightenment_src = \
 e_user.c \
 e_manager.c \
 e_path.c \
 e_init.c \
 e_ipc.c \
+e_msgbus.c \
 e_error.c \
 e_container.c \
 e_zone.c \
@@ -166,6 +175,7 @@ e_desk.c \
 e_border.c \
 e_pointer.c \
 e_config.c \
+e_config_data.c \
 e_menu.c \
 e_object.c \
 e_icon.c \
@@ -188,6 +198,7 @@ e_layout.c \
 e_test.c \
 e_font.c \
 e_intl.c \
+e_intl_data.c \
 e_theme.c \
 e_dnd.c \
 e_bindings.c \
@@ -255,6 +266,7 @@ e_confirm_dialog.c \
 e_int_border_prop.c \
 e_entry_dialog.c \
 e_fm.c \
+e_fm_hal.c \
 e_widget_scrollframe.c \
 e_sha1.c \
 e_widget_fsel.c \
@@ -277,25 +289,30 @@ e_order.c \
 e_exec.c \
 e_widget_font_preview.c \
 e_fm_custom.c \
+e_toolbar.c \
+e_int_toolbar_config.c \
+e_powersave.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \
 e_main.c \
 $(enlightenment_src)
 
-enlightenment_LDFLAGS = -export-dynamic @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@
+enlightenment_LDFLAGS = -export-dynamic @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ @E_DBUS_LIBS@
 
 enlightenment_remote_SOURCES = \
 e.h \
 e_ipc_codec.c \
 e_remote_main.c
 
-enlightenment_remote_LDFLAGS = @e_libs@ @dlopen_libs@
+enlightenment_remote_LDFLAGS = @e_libs@
 
 enlightenment_imc_SOURCES = \
 e.h \
-e_imc_main.c \
-$(enlightenment_src)
+e_intl_data.c \
+e_config_data.c \
+e_imc_main.c
+# $(enlightenment_src)
 
 enlightenment_imc_LDFLAGS = @e_libs@ @dlopen_libs@
 
@@ -309,7 +326,7 @@ e_thumb_main.c \
 e_user.c \
 e_sha1.c
 
-enlightenment_thumb_LDFLAGS = @e_libs@ @dlopen_libs@
+enlightenment_thumb_LDFLAGS = @e_libs@
 
 enlightenment_fm_SOURCES = \
 e_fm_main.c \
@@ -317,12 +334,18 @@ e_user.c \
 e_sha1.c
 
 enlightenment_fm_LDFLAGS = @e_libs@ @dlopen_libs@ @E_DBUS_LIBS@ @E_HAL_LIBS@
-enlightenment_fm_CFLAGS = $(INCLUDES) @E_DBUS_CFLAGS@ @E_HAL_CFLAGS@
+enlightenment_fm_CFLAGS = $(INCLUDES) @E_HAL_CFLAGS@
 
 enlightenment_sys_SOURCES = \
 e_sys_main.c
 
-enlightenment_sys_LDFLAGS = @e_libs@ @dlopen_libs@
+enlightenment_sys_LDFLAGS = @e_libs@
+
+enlightenment_init_SOURCES = \
+e_init_main.c \
+e_xinerama.c
+
+enlightenment_init_LDFLAGS = @e_libs@
 
 setuid_root_mode = a=rx,u+xs
 install-exec-hook:

@@ -29,8 +29,10 @@ e_startup(E_Startup_Mode mode)
    else if (mode == E_STARTUP_RESTART)
      snprintf(buf, sizeof(buf), "%s/.e/e/applications/restart/.order", homedir);
    startup_apps = e_order_new(buf);
+   printf("startup_apps = %p\n", startup_apps);
    if (!startup_apps) return;
    start_app_pos = 0;
+   e_init_undone();
    _e_startup();
 }
 
@@ -57,9 +59,8 @@ _e_startup(void)
 	return;
      }
    e_exec(NULL, desktop, NULL, NULL, NULL);
-   snprintf(buf, sizeof(buf), _("Starting %s"), desktop->name);
+   snprintf(buf, sizeof(buf), "%s %s", _("Starting"), desktop->name);
    e_init_status_set(buf);   
-   e_init_icons_desktop_add(desktop);
    ecore_job_add(_e_startup_next_cb, NULL);
 }
 

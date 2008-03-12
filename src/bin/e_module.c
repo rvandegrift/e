@@ -65,6 +65,7 @@ e_module_all_load(void)
 	E_Module *m;
 	
 	em = l->data;
+	if (!em) continue;
 	if ((em->delayed) && (em->enabled))
 	  {
 	     if (!_e_module_idler)
@@ -129,20 +130,11 @@ e_module_new(const char *name)
    m->func.init = dlsym(m->handle, "e_modapi_init");
    m->func.shutdown = dlsym(m->handle, "e_modapi_shutdown");
    m->func.save = dlsym(m->handle, "e_modapi_save");
-   m->func.about = dlsym(m->handle, "e_modapi_about");
-   m->func.config = dlsym(m->handle, "e_modapi_config");
 
    if ((!m->func.init) ||
        (!m->func.shutdown) ||
        (!m->func.save) ||
-       (!m->func.about) ||
-       (!m->api) ||
-       
-       /*
-	* this is to more forcibly catch old/bad modules. will go - eventually,
-	* but for now is a good check to have
-	*/
-       (dlsym(m->handle, "e_modapi_info"))
+       (!m->api)
        )
      {
 	snprintf(body, sizeof(body), _("There was an error loading module named: %s<br>"
@@ -156,8 +148,6 @@ e_module_new(const char *name)
 	m->func.init = NULL;
 	m->func.shutdown = NULL;
 	m->func.save = NULL;
-	m->func.about = NULL;
-	m->func.config = NULL;
 
 	dlclose(m->handle);
 	m->handle = NULL;
@@ -178,8 +168,6 @@ e_module_new(const char *name)
 	m->func.init = NULL;
 	m->func.shutdown = NULL;
 	m->func.save = NULL;
-	m->func.about = NULL;
-	m->func.config = NULL;
 	dlclose(m->handle);
 	m->handle = NULL;
 	m->error = 1;
@@ -211,7 +199,8 @@ init_done:
 	E_Config_Module *em;
 	
 	em = l->data;
-	if (!strcmp(em->name, m->name))
+	if (!em) continue;
+	if (!e_util_strcmp(em->name, m->name))
 	  {
 	     in_list = 1;
 	     break;
@@ -266,6 +255,7 @@ e_module_enable(E_Module *m)
 	     E_Config_Module *em;
 	     
 	     em = l->data;
+	     if (!em) continue;
 	     if (!e_util_strcmp(em->name, m->name))
 	       {
 		  em->enabled = 1;
@@ -302,6 +292,7 @@ e_module_disable(E_Module *m)
 	E_Config_Module *em;
 	
 	em = l->data;
+	if (!em) continue;
 	if (!e_util_strcmp(em->name, m->name))
 	  {
 	     em->enabled = 0;
@@ -358,7 +349,7 @@ e_module_find(const char *name)
 	E_Module *m;
 	
 	m = l->data;
-	if (!strcmp(name, m->name)) return m;
+	if (!e_util_strcmp(name, m->name)) return m;
      }
    return NULL;
 }
@@ -429,7 +420,8 @@ e_module_delayed_set(E_Module *m, int delayed)
         E_Config_Module *em;
 	
 	em = l->data;
-	if ((em->name) && (!strcmp(m->name, em->name)))
+	if (!em) continue;
+	if (!e_util_strcmp(m->name, em->name))
 	  {
 	     if (em->delayed != delayed)
 	       {
@@ -453,7 +445,8 @@ _e_module_free(E_Module *m)
 	E_Config_Module *em;
 	
 	em = l->data;
-	if (!strcmp(em->name, m->name))
+	if (!em) continue;
+	if (!e_util_strcmp(em->name, m->name))
 	  {
 	     e_config->modules = evas_list_remove(e_config->modules, em);
 	     if (em->name) evas_stringshare_del(em->name);

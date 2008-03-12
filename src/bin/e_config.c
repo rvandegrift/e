@@ -12,14 +12,14 @@
 EAPI E_Config *e_config = NULL;
 
 /* local subsystem functions */
-static int  _e_config_save_cb(void *data);
+static void _e_config_save_cb(void *data);
 static void _e_config_free(void);
 static int  _e_config_cb_timer(void *data);
 static int  _e_config_eet_close_handle(Eet_File *ef, char *file);
 
 /* local subsystem globals */
 static int _e_config_save_block = 0;
-static Ecore_Timer *_e_config_save_timer = NULL;
+static E_Powersave_Deferred_Action *_e_config_save_defer = NULL;
 static char *_e_config_profile = NULL;
 
 static E_Config_DD *_e_config_edd = NULL;
@@ -39,6 +39,7 @@ static E_Config_DD *_e_config_color_class_edd = NULL;
 static E_Config_DD *_e_config_gadcon_edd = NULL;
 static E_Config_DD *_e_config_gadcon_client_edd = NULL;
 static E_Config_DD *_e_config_shelf_edd = NULL;
+static E_Config_DD *_e_config_shelf_desk_edd = NULL;
 static E_Config_DD *_e_config_mime_icon_edd = NULL;
 
 EAPI int E_EVENT_CONFIG_ICON_THEME = 0;
@@ -80,6 +81,7 @@ e_config_init(void)
 	  }
 	else
 	  _e_config_profile = strdup("default");
+	e_util_env_set("E_CONF_PROFILE", _e_config_profile);
      }
    else 
      _e_config_profile = strdup(_e_config_profile);
@@ -106,8 +108,16 @@ e_config_init(void)
 #define T E_Config_Gadcon
 #define D _e_config_gadcon_edd
    E_CONFIG_VAL(D, T, name, STR);
-   E_CONFIG_VAL(D, T, id, STR);
+   E_CONFIG_VAL(D, T, id, INT);
    E_CONFIG_LIST(D, T, clients, _e_config_gadcon_client_edd);
+
+   _e_config_shelf_desk_edd = E_CONFIG_DD_NEW("E_Config_Shelf_Desk", E_Config_Shelf_Desk);
+#undef T
+#undef D
+#define T E_Config_Shelf_Desk
+#define D _e_config_shelf_desk_edd
+   E_CONFIG_VAL(D, T, x, INT);
+   E_CONFIG_VAL(D, T, y, INT);
    
    _e_config_shelf_edd = E_CONFIG_DD_NEW("E_Config_Shelf", E_Config_Shelf);
 #undef T
@@ -115,6 +125,7 @@ e_config_init(void)
 #define T E_Config_Shelf
 #define D _e_config_shelf_edd
    E_CONFIG_VAL(D, T, name, STR);
+   E_CONFIG_VAL(D, T, id, INT);
    E_CONFIG_VAL(D, T, container, INT);
    E_CONFIG_VAL(D, T, zone, INT);
    E_CONFIG_VAL(D, T, layer, INT);
@@ -129,7 +140,9 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, autohide_show_action, INT);
    E_CONFIG_VAL(D, T, hide_timeout, FLOAT);
    E_CONFIG_VAL(D, T, hide_duration, FLOAT);
-   
+   E_CONFIG_VAL(D, T, desk_show_mode, INT);
+   E_CONFIG_LIST(D, T, desk_list, _e_config_shelf_desk_edd);
+
    _e_config_desktop_bg_edd = E_CONFIG_DD_NEW("E_Config_Desktop_Background", E_Config_Desktop_Background);
 #undef T
 #undef D
@@ -358,7 +371,6 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, font_cache, INT); /**/
    E_CONFIG_VAL(D, T, edje_cache, INT); /**/
    E_CONFIG_VAL(D, T, edje_collection_cache, INT); /**/
-   E_CONFIG_VAL(D, T, cache_flush_interval, DOUBLE); /**/
    E_CONFIG_VAL(D, T, zone_desks_x_count, INT); /**/
    E_CONFIG_VAL(D, T, zone_desks_y_count, INT); /**/
    E_CONFIG_VAL(D, T, use_virtual_roots, INT); /* should not make this a config option (for now) */
@@ -437,7 +449,6 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, kill_process, INT); /**/
    E_CONFIG_VAL(D, T, kill_timer_wait, DOUBLE); /**/
    E_CONFIG_VAL(D, T, ping_clients, INT); /**/
-   E_CONFIG_VAL(D, T, ping_clients_wait, DOUBLE); /**/
    E_CONFIG_VAL(D, T, transition_start, STR); /**/
    E_CONFIG_VAL(D, T, transition_desk, STR); /**/
    E_CONFIG_VAL(D, T, transition_change, STR); /**/
@@ -449,6 +460,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, resize_info_visible, INT); /**/
    E_CONFIG_VAL(D, T, focus_last_focused_per_desktop, INT); /**/
    E_CONFIG_VAL(D, T, focus_revert_on_hide_or_close, INT); /**/
+   E_CONFIG_VAL(D, T, pointer_slide, INT); /**/
    E_CONFIG_VAL(D, T, use_e_cursor, INT); /**/
    E_CONFIG_VAL(D, T, cursor_size, INT); /**/
    E_CONFIG_VAL(D, T, menu_autoscroll_margin, INT); /**/
@@ -562,6 +574,14 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, menu_favorites_show, INT);
    E_CONFIG_VAL(D, T, menu_apps_show, INT);
    
+   E_CONFIG_VAL(D, T, ping_clients_interval, INT);
+   E_CONFIG_VAL(D, T, cache_flush_poll_interval, INT);
+
+   E_CONFIG_VAL(D, T, thumbscroll_enable, INT);
+   E_CONFIG_VAL(D, T, thumbscroll_threshhold, INT);
+   E_CONFIG_VAL(D, T, thumbscroll_momentum_threshhold, DOUBLE);
+   E_CONFIG_VAL(D, T, thumbscroll_friction, DOUBLE);
+   
    e_config = e_config_domain_load("e", _e_config_edd);
    if (e_config)
      {
@@ -618,7 +638,6 @@ e_config_init(void)
    e_config->font_cache = 512;
    e_config->edje_cache = 32;
    e_config->edje_collection_cache = 64;
-   e_config->cache_flush_interval = 60.0;
    e_config->zone_desks_x_count = 4;
    e_config->zone_desks_y_count = 1;
    e_config->use_virtual_roots = 0;
@@ -676,7 +695,6 @@ e_config_init(void)
    e_config->kill_process = 1;
    e_config->kill_timer_wait = 10.0;
    e_config->ping_clients = 1;
-   e_config->ping_clients_wait = 10.0;
    e_config->transition_start = NULL;
    e_config->transition_desk = evas_stringshare_add("vswipe");
    e_config->transition_change = evas_stringshare_add("crossfade");
@@ -686,6 +704,7 @@ e_config_init(void)
    e_config->resize_info_visible = 1;
    e_config->focus_last_focused_per_desktop = 1;
    e_config->focus_revert_on_hide_or_close = 1;
+   e_config->pointer_slide = 1;
    e_config->use_e_cursor = 1;
    e_config->cursor_size = 32;
    e_config->menu_autoscroll_margin = 0;
@@ -795,7 +814,9 @@ e_config_init(void)
 	CFG_MODULE("conf_window_focus", 1, 1);
 	CFG_MODULE("conf_window_manipulation", 1, 1);
 	CFG_MODULE("conf_winlist", 1, 1);
+	CFG_MODULE("conf_engine", 1, 1);
 	CFG_MODULE("fileman", 1, 1);
+	CFG_MODULE("conf_interaction", 1, 1);
      }
 #if 0
      {
@@ -822,7 +843,6 @@ e_config_init(void)
    e_config->font_defaults = evas_list_append(e_config->font_defaults, efd)
 	
 	CFG_FONTDEFAULT("default", "Vera", 10);
-	CFG_FONTDEFAULT("title_bar", "Vera", 10);
      }
      {
 	E_Config_Theme *et;
@@ -1219,10 +1239,12 @@ e_config_init(void)
    e_config->gadcons = NULL;
      {
 	E_Config_Shelf *cf_es;
+	int             id = 0;
 	
-#define CFG_SHELF(_name, _con, _zone, _pop, _lay, _orient, _fita, _fits, _style, _size, _overlap, _autohide, _autohide_show_action, _hide_timeout, _hide_duration) \
+#define CFG_SHELF(_name, _con, _zone, _pop, _lay, _orient, _fita, _fits, _style, _size, _overlap, _autohide, _autohide_show_action, _hide_timeout, _hide_duration, _desk_show_mode, _desk_list) \
    cf_es = E_NEW(E_Config_Shelf, 1); \
    cf_es->name = evas_stringshare_add(_name); \
+   cf_es->id = ++id; \
    cf_es->container = _con; \
    cf_es->zone = _zone; \
    cf_es->popup = _pop; \
@@ -1237,30 +1259,21 @@ e_config_init(void)
    cf_es->autohide_show_action = _autohide_show_action; \
    cf_es->hide_timeout = _hide_timeout; \
    cf_es->hide_duration = _hide_duration; \
+   cf_es->desk_show_mode = _desk_show_mode; \
+   cf_es->desk_list = evas_list_append(cf_es->desk_list, cf_es); \
    e_config->shelves = evas_list_append(e_config->shelves, cf_es)
-	/* shelves for 4 zones on head 0 by default */
 	CFG_SHELF("shelf", 0, 0,
 		  1, 200, E_GADCON_ORIENT_BOTTOM,
-		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0);
-	CFG_SHELF("shelf", 0, 1,
-		  1, 200, E_GADCON_ORIENT_BOTTOM,
-		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0);
-	CFG_SHELF("shelf", 0, 2,
-		  1, 200, E_GADCON_ORIENT_BOTTOM,
-		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0);
-	CFG_SHELF("shelf", 0, 3,
-		  1, 200, E_GADCON_ORIENT_BOTTOM,
-		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0);
-	/* shelves for heada 1, 2, and 3 by default */
+		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0, 0, NULL);
 	CFG_SHELF("shelf", 1, 0,
 		  1, 200, E_GADCON_ORIENT_BOTTOM,
-		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0);
+		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0, 0, NULL);
 	CFG_SHELF("shelf", 2, 0,
 		  1, 200, E_GADCON_ORIENT_BOTTOM,
-		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0);
+		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0, 0, NULL);
 	CFG_SHELF("shelf", 3, 0,
 		  1, 200, E_GADCON_ORIENT_BOTTOM,
-		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0);
+		  1, 0, "default", 40, 0, 0, 0, 1.0, 1.0, 0, NULL);
      }
    IFCFGEND;
    
@@ -1332,21 +1345,22 @@ e_config_init(void)
    e_config->desklock_custom_desklock_cmd = NULL;     
    IFCFGEND;
 
-   IFCFG(0x0107); /* the version # where this value(s) was introduced */
+   IFCFG(0x0121);
      {
-	E_Config_Gadcon *cf_gc;
+	E_Config_Gadcon        *cf_gc;
 	E_Config_Gadcon_Client *cf_gcc;
+	int                     id = 0;
 
 	e_config->gadcons = NULL;
-#define CFG_GADCON(_name, _id) \
+#define CFG_GADCON(_name) \
    cf_gc = E_NEW(E_Config_Gadcon, 1);\
    cf_gc->name = evas_stringshare_add(_name); \
-   cf_gc->id = evas_stringshare_add(_id); \
+   cf_gc->id = ++id; \
    e_config->gadcons = evas_list_append(e_config->gadcons, cf_gc)
-#define CFG_GADCON_CLIENT(_name, _id, _res, _size, _pos, _style, _autoscr, _resizable) \
+#define CFG_GADCON_CLIENT(_name, _res, _size, _pos, _style, _autoscr, _resizable) \
    cf_gcc = E_NEW(E_Config_Gadcon_Client, 1); \
    cf_gcc->name = evas_stringshare_add(_name); \
-   cf_gcc->id = evas_stringshare_add(_id); \
+   cf_gcc->id = NULL; \
    cf_gcc->geom.res = _res; \
    cf_gcc->geom.size = _size; \
    cf_gcc->geom.pos = _pos; \
@@ -1359,40 +1373,40 @@ e_config_init(void)
    cf_gc->clients = evas_list_append(cf_gc->clients, cf_gcc)
 
 	/* the default shelf on the default head/zone */
-	CFG_GADCON("shelf", "0");
-	CFG_GADCON_CLIENT("start", "0.start.0", 800, 32,
+	CFG_GADCON("shelf");
+	CFG_GADCON_CLIENT("start", 800, 32,
 			  0, NULL, 0, 0);
-	CFG_GADCON_CLIENT("pager", "0.pager.0", 800, 120,
+	CFG_GADCON_CLIENT("pager", 800, 120,
 			  32, NULL, 0, 0);
-	CFG_GADCON_CLIENT("ibox", "0.ibox.0", 800, 32,
+	CFG_GADCON_CLIENT("ibox", 800, 32,
 			  32 + 120, NULL, 0, 0);
-	CFG_GADCON_CLIENT("ibar", "0.ibar.0", 800, 200,
+	CFG_GADCON_CLIENT("ibar", 800, 200,
 			  (800 / 2) - (100 / 2), NULL, 0, 0);
-	CFG_GADCON_CLIENT("temperature", "0.temperature.0", 800, 32,
+	CFG_GADCON_CLIENT("temperature", 800, 32,
 			  800 - 128, NULL, 0, 0);
-	CFG_GADCON_CLIENT("cpufreq", "0.cpufreq.0", 800, 32,
+	CFG_GADCON_CLIENT("cpufreq", 800, 32,
 			  800 - 96, NULL, 0, 0);
-	CFG_GADCON_CLIENT("battery", "0.battery.0", 800, 32,
+	CFG_GADCON_CLIENT("battery", 800, 32,
 			  800 - 64, NULL, 0, 0);
-	CFG_GADCON_CLIENT("clock", "0.clock.0", 800, 32,
+	CFG_GADCON_CLIENT("clock", 800, 32,
 			  800 - 32, NULL, 0, 0);
 	/* additional shelves for up to 3 more heads by default */
-	CFG_GADCON("shelf", "1");
-	CFG_GADCON_CLIENT("pager", "1.pager.0", 800, 120,
+	CFG_GADCON("shelf");
+	CFG_GADCON_CLIENT("pager", 800, 120,
 			  0, NULL, 0, 0);
-	CFG_GADCON_CLIENT("ibox", "1.ibox.0", 800, 32,
+	CFG_GADCON_CLIENT("ibox", 800, 32,
 			  800 - 32, NULL, 0, 0);
 	
-	CFG_GADCON("shelf", "2");
-	CFG_GADCON_CLIENT("pager", "2.pager.0", 800, 120,
+	CFG_GADCON("shelf");
+	CFG_GADCON_CLIENT("pager", 800, 120,
 			  0, NULL, 0, 0);
-	CFG_GADCON_CLIENT("ibox", "2.ibox.0", 800, 32,
+	CFG_GADCON_CLIENT("ibox", 800, 32,
 			  800 - 32, NULL, 0, 0);
 	
-	CFG_GADCON("shelf", "3");
-	CFG_GADCON_CLIENT("pager", "3.pager.0", 800, 120,
+	CFG_GADCON("shelf");
+	CFG_GADCON_CLIENT("pager", 800, 120,
 			  0, NULL, 0, 0);
-	CFG_GADCON_CLIENT("ibox", "3.ibox.0", 800, 32,
+	CFG_GADCON_CLIENT("ibox", 800, 32,
 			  800 - 32, NULL, 0, 0);
      }
    IFCFGEND;
@@ -1469,6 +1483,18 @@ e_config_init(void)
    e_config->show_desktop_icons = 1;
    IFCFGEND;
 
+   IFCFG(0x0123);
+   e_config->ping_clients_interval = 128;
+   e_config->cache_flush_poll_interval = 512;
+   IFCFGEND;
+   
+   IFCFG(0x0124);
+   e_config->thumbscroll_enable = 0;
+   e_config->thumbscroll_threshhold = 8;
+   e_config->thumbscroll_momentum_threshhold = 100.0;
+   e_config->thumbscroll_friction = 1.0;
+   IFCFGEND;
+   
    e_config->config_version = E_CONFIG_FILE_VERSION;   
      
 #if 0 /* example of new config */
@@ -1489,7 +1515,7 @@ e_config_init(void)
    E_CONFIG_LIMIT(e_config->font_cache, 0, 32 * 1024);
    E_CONFIG_LIMIT(e_config->edje_cache, 0, 256);
    E_CONFIG_LIMIT(e_config->edje_collection_cache, 0, 512);
-   E_CONFIG_LIMIT(e_config->cache_flush_interval, 0.0, 600.0);
+   E_CONFIG_LIMIT(e_config->cache_flush_poll_interval, 8, 32768);
    E_CONFIG_LIMIT(e_config->zone_desks_x_count, 1, 64);
    E_CONFIG_LIMIT(e_config->zone_desks_y_count, 1, 64);
    E_CONFIG_LIMIT(e_config->show_desktop_icons, 0, 1);
@@ -1537,13 +1563,13 @@ e_config_init(void)
    E_CONFIG_LIMIT(e_config->kill_process, 0, 1);
    E_CONFIG_LIMIT(e_config->kill_timer_wait, 0.0, 120.0);
    E_CONFIG_LIMIT(e_config->ping_clients, 0, 1);
-   E_CONFIG_LIMIT(e_config->ping_clients_wait, 0.0, 120.0);
    E_CONFIG_LIMIT(e_config->move_info_follows, 0, 1);
    E_CONFIG_LIMIT(e_config->resize_info_follows, 0, 1);
    E_CONFIG_LIMIT(e_config->move_info_visible, 0, 1);
    E_CONFIG_LIMIT(e_config->resize_info_visible, 0, 1);
    E_CONFIG_LIMIT(e_config->focus_last_focused_per_desktop, 0, 1);
    E_CONFIG_LIMIT(e_config->focus_revert_on_hide_or_close, 0, 1);
+   E_CONFIG_LIMIT(e_config->pointer_slide, 0, 1);
    E_CONFIG_LIMIT(e_config->use_e_cursor, 0, 1);
    E_CONFIG_LIMIT(e_config->cursor_size, 0, 1024);
    E_CONFIG_LIMIT(e_config->menu_autoscroll_margin, 0, 50);
@@ -1600,6 +1626,8 @@ e_config_init(void)
 
    E_CONFIG_LIMIT(e_config->menu_favorites_show, 0, 1);
    E_CONFIG_LIMIT(e_config->menu_apps_show, 0, 1);
+
+   E_CONFIG_LIMIT(e_config->ping_clients_interval, 16, 1024);
    
    /* FIXME: disabled auto apply because it causes problems */
    e_config->cfgdlg_auto_apply = 0;
@@ -1633,40 +1661,17 @@ e_config_shutdown(void)
    E_CONFIG_DD_FREE(_e_config_gadcon_edd);
    E_CONFIG_DD_FREE(_e_config_gadcon_client_edd);
    E_CONFIG_DD_FREE(_e_config_shelf_edd);
+   E_CONFIG_DD_FREE(_e_config_shelf_desk_edd);
    return 1;
-}
-
-EAPI E_Config_DD *
-e_config_descriptor_new(const char *name, int size)
-{
-   Eet_Data_Descriptor_Class eddc;
-   
-   eddc.version = EET_DATA_DESCRIPTOR_CLASS_VERSION;
-   eddc.func.mem_alloc = NULL;
-   eddc.func.mem_free = NULL;
-   eddc.func.str_alloc = (char *(*)(const char *)) evas_stringshare_add;
-   eddc.func.str_free = (void (*)(const char *)) evas_stringshare_del;
-   eddc.func.list_next = (void *(*)(void *)) evas_list_next;
-   eddc.func.list_append = (void *(*)(void *l, void *d)) evas_list_append;
-   eddc.func.list_data = (void *(*)(void *)) evas_list_data;
-   eddc.func.list_free = (void *(*)(void *)) evas_list_free;
-   eddc.func.hash_foreach = 
-      (void  (*) (void *, int (*) (void *, const char *, void *, void *), void *)) 
-      evas_hash_foreach;
-   eddc.func.hash_add = (void *(*) (void *, const char *, void *)) evas_hash_add;
-   eddc.func.hash_free = (void  (*) (void *)) evas_hash_free;
-   eddc.name = name;
-   eddc.size = size;
-   return (E_Config_DD *)eet_data_descriptor2_new(&eddc);
 }
 
 EAPI int
 e_config_save(void)
 {
-   if (_e_config_save_timer)
+   if (_e_config_save_defer)
      {
-	ecore_timer_del(_e_config_save_timer);
-	_e_config_save_timer = NULL;
+	e_powersave_deferred_action_del(_e_config_save_defer);
+	_e_config_save_defer = NULL;
      }
    _e_config_save_cb(NULL);
    return e_config_domain_save("e", _e_config_edd, e_config);
@@ -1675,10 +1680,10 @@ e_config_save(void)
 EAPI void
 e_config_save_flush(void)
 {
-   if (_e_config_save_timer)
+   if (_e_config_save_defer)
      {
-	ecore_timer_del(_e_config_save_timer);
-	_e_config_save_timer = NULL;
+	e_powersave_deferred_action_del(_e_config_save_defer);
+	_e_config_save_defer = NULL;
 	_e_config_save_cb(NULL);
      }
 }
@@ -1686,8 +1691,10 @@ e_config_save_flush(void)
 EAPI void
 e_config_save_queue(void)
 {
-   if (_e_config_save_timer) ecore_timer_del(_e_config_save_timer);
-   _e_config_save_timer = ecore_timer_add(0.25, _e_config_save_cb, NULL);
+   if (_e_config_save_defer)
+     e_powersave_deferred_action_del(_e_config_save_defer);
+   _e_config_save_defer = e_powersave_deferred_action_add(_e_config_save_cb,
+							  NULL);
 }
 
 EAPI char *
@@ -1701,6 +1708,7 @@ e_config_profile_set(char *prof)
 {
    E_FREE(_e_config_profile);
    _e_config_profile = strdup(prof);
+   e_util_env_set("E_CONF_PROFILE", _e_config_profile);
 }
 
 EAPI Evas_List *
@@ -1861,7 +1869,7 @@ e_config_domain_save(char *domain, E_Config_DD *edd, void *data)
    Eet_File *ef;
    char buf[4096], buf2[4096];
    const char *homedir;
-   int ok = 0;
+   int ok = 0, ret;
 
    if (_e_config_save_block) return 0;
    /* FIXME: check for other sessions fo E running */
@@ -1878,8 +1886,8 @@ e_config_domain_save(char *domain, E_Config_DD *edd, void *data)
 	ok = eet_data_write(ef, edd, "config", data, 1);
 	if (_e_config_eet_close_handle(ef, buf2))
 	  {
-	     rename(buf2, buf);
-	     /* FIXME: get rename err */
+	     ret = rename(buf2, buf);
+	     if (ret < 0) perror("rename");
 	  }
 	ecore_file_unlink(buf2);
      }
@@ -1984,14 +1992,13 @@ e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in)
 }
 
 /* local subsystem functions */
-static int
+static void
 _e_config_save_cb(void *data)
 {
    e_config_profile_save();
    e_module_save_all();
    e_config_domain_save("e", _e_config_edd, e_config);
-   _e_config_save_timer = NULL;
-   return 0;
+   _e_config_save_defer = NULL;
 }
 
 static void
@@ -2203,6 +2210,17 @@ _e_config_cb_timer(void *data)
    return 0;
 }
 
+static E_Dialog *_e_config_error_dialog = NULL;
+
+static void
+_e_config_error_dialog_cb_delete(void *dia)
+{
+   if (dia == _e_config_error_dialog)
+     {
+	_e_config_error_dialog = NULL;
+     }
+}
+
 static int
 _e_config_eet_close_handle(Eet_File *ef, char *file)
 {
@@ -2276,8 +2294,27 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
      {
 	/* delete any partially-written file */
 	ecore_file_unlink(file);
-	e_util_dialog_show(_("Enlightenment Configration Write Problems"),
-			   erstr, file);
+	if (!_e_config_error_dialog)
+	  {
+             E_Dialog *dia;
+	     
+	     dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_sys_error_logout_slow");
+	     if (dia)
+	       {
+		  char buf[8192];
+		  
+		  e_dialog_title_set(dia, _("Enlightenment Configuration Write Problems"));
+		  e_dialog_icon_set(dia, "enlightenment/error", 64);
+		  snprintf(buf, sizeof(buf), erstr, file);
+		  e_dialog_text_set(dia, buf);
+		  e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
+		  e_dialog_button_focus_num(dia, 0);
+		  e_win_centered_set(dia->win, 1);
+		  e_object_del_attach_func_set(E_OBJECT(dia), _e_config_error_dialog_cb_delete);
+		  e_dialog_show(dia);
+		  _e_config_error_dialog = dia;
+	       }
+	  }
 	return 0;
      }
    return 1;

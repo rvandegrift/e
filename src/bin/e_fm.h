@@ -26,12 +26,20 @@ typedef enum _E_Fm2_Menu_Flags
    E_FM2_MENU_NO_REMEMBER_ORDERING = (1 << 2),
    E_FM2_MENU_NO_NEW_DIRECTORY     = (1 << 3),
    E_FM2_MENU_NO_DELETE            = (1 << 4),
-   E_FM2_MENU_NO_RENAME            = (1 << 5)
+   E_FM2_MENU_NO_RENAME            = (1 << 5),
+   E_FM2_MENU_NO_CUT               = (1 << 6),
+   E_FM2_MENU_NO_COPY              = (1 << 7),
+   E_FM2_MENU_NO_PASTE             = (1 << 8),
+   E_FM2_MENU_NO_VIEW_MENU         = (1 << 9)
 } E_Fm2_Menu_Flags;
 
 typedef struct _E_Fm2_Config      E_Fm2_Config;
 typedef struct _E_Fm2_Icon        E_Fm2_Icon;
 typedef struct _E_Fm2_Icon_Info   E_Fm2_Icon_Info;
+
+#define E_FM_SHARED_DATATYPES
+#include "e_fm_shared.h"
+#undef E_FM_SHARED_DATATYPES
 
 #else
 #ifndef E_FM_H
@@ -54,19 +62,15 @@ struct _E_Fm2_Config
    /* display of icons */
    struct {
       struct {
-	 int           w, h;
-      } icon;
+	 int w, h;
+      } icon, list;
       struct {
-	 int           w, h;
-      } list;
-      struct {
-	 unsigned char w;
-	 unsigned char h;
+	 unsigned char w, h;
       } fixed;
       struct {
 	 unsigned char show;
       } extension;
-      const char      *key_hint;
+      const char *key_hint;
    } icon;
    /* how to sort files */
    struct {
@@ -80,15 +84,12 @@ struct _E_Fm2_Config
    } list;
    /* control how you can select files */
    struct {
-      unsigned char    single;
-      unsigned char    windows_modifiers;
+      unsigned char    single, windows_modifiers;
    } selection;
    /* the background - if any, and how to handle it */
    /* FIXME: not implemented yet */
    struct {
-      const char      *background;
-      const char      *frame;
-      const char      *icons;
+      const char      *background, *frame, *icons;
       unsigned char    fixed;
    } theme;
 };
@@ -154,9 +155,14 @@ EAPI Evas_Object *
 		 void (*gen_func) (void *data, Evas_Object *obj, void *event_info),
 		 void *data, int force_gen, const char **type_ret);
 EAPI E_Fm2_Icon_Info *e_fm2_icon_file_info_get(E_Fm2_Icon *ic);
-    
+EAPI void        e_fm2_icon_geometry_get(E_Fm2_Icon *ic, int *x, int *y, int *w, int *h);
+
 EAPI void        e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e);
 EAPI void        e_fm2_client_del(Ecore_Ipc_Event_Client_Del *e);
+
+EAPI void        _e_fm2_client_mount(const char *udi, const char *mountpoint);
+EAPI void        _e_fm2_client_unmount(const char *udi);
+EAPI void        _e_fm2_file_force_update(const char *path);
     
 #endif
 #endif

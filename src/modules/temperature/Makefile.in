@@ -15,6 +15,7 @@
 @SET_MAKE@
 
 
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -37,6 +38,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+noinst_PROGRAMS = tempget$(EXEEXT)
 subdir = src/modules/temperature
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/module.desktop.in
@@ -58,11 +60,16 @@ am__vpath_adj = case $$p in \
     *) f=$$p;; \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-am__installdirs = "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(filesdir)"
+am__installdirs = "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(filesdir)" \
+	"$(DESTDIR)$(tempgetdir)"
 pkgLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(pkg_LTLIBRARIES)
 am_module_la_OBJECTS = e_mod_main.lo e_mod_config.lo
 module_la_OBJECTS = $(am_module_la_OBJECTS)
+PROGRAMS = $(noinst_PROGRAMS)
+am_tempget_OBJECTS = tempget.$(OBJEXT)
+tempget_OBJECTS = $(am_tempget_OBJECTS)
+tempget_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -74,10 +81,11 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(module_la_SOURCES)
-DIST_SOURCES = $(module_la_SOURCES)
+SOURCES = $(module_la_SOURCES) $(tempget_SOURCES)
+DIST_SOURCES = $(module_la_SOURCES) $(tempget_SOURCES)
 filesDATA_INSTALL = $(INSTALL_DATA)
-DATA = $(files_DATA)
+tempgetDATA_INSTALL = $(INSTALL_DATA)
+DATA = $(files_DATA) $(tempget_DATA)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -123,6 +131,10 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
+HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
+HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
+HAVE_TEMPERATURE_TRUE = @HAVE_TEMPERATURE_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -159,9 +171,12 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 POSUB = @POSUB@
 RANLIB = @RANLIB@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
+TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
 USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
@@ -256,6 +271,13 @@ module_la_SOURCES = e_mod_main.c \
 module_la_LIBADD = @e_libs@ @dlopen_libs@ @ECORE_TXT_LIBS@
 module_la_LDFLAGS = -module -avoid-version
 module_la_DEPENDENCIES = $(top_builddir)/config.h
+tempgetdir = $(pkgdir)
+tempget_DATA = \
+tempget$(EXEEXT)
+
+x_mode = a=rx,u+x
+tempget_SOURCES = tempget.c
+tempget_LDFLAGS = @TEMPERATURE_LIBS@
 all: all-am
 
 .SUFFIXES:
@@ -321,6 +343,16 @@ clean-pkgLTLIBRARIES:
 module.la: $(module_la_OBJECTS) $(module_la_DEPENDENCIES) 
 	$(LINK) -rpath $(pkgdir) $(module_la_LDFLAGS) $(module_la_OBJECTS) $(module_la_LIBADD) $(LIBS)
 
+clean-noinstPROGRAMS:
+	@list='$(noinst_PROGRAMS)'; for p in $$list; do \
+	  f=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
+	  echo " rm -f $$p $$f"; \
+	  rm -f $$p $$f ; \
+	done
+tempget$(EXEEXT): $(tempget_OBJECTS) $(tempget_DEPENDENCIES) 
+	@rm -f tempget$(EXEEXT)
+	$(LINK) $(tempget_LDFLAGS) $(tempget_OBJECTS) $(tempget_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -329,6 +361,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_mod_config.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_mod_main.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tempget.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -376,6 +409,23 @@ uninstall-filesDATA:
 	  f=$(am__strip_dir) \
 	  echo " rm -f '$(DESTDIR)$(filesdir)/$$f'"; \
 	  rm -f "$(DESTDIR)$(filesdir)/$$f"; \
+	done
+install-tempgetDATA: $(tempget_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(tempgetdir)" || $(mkdir_p) "$(DESTDIR)$(tempgetdir)"
+	@list='$(tempget_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(tempgetDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(tempgetdir)/$$f'"; \
+	  $(tempgetDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(tempgetdir)/$$f"; \
+	done
+
+uninstall-tempgetDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(tempget_DATA)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(tempgetdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(tempgetdir)/$$f"; \
 	done
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
@@ -455,9 +505,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(DATA)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(filesdir)"; do \
+	for dir in "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(filesdir)" "$(DESTDIR)$(tempgetdir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -486,8 +536,8 @@ maintainer-clean-generic:
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-pkgLTLIBRARIES \
-	mostlyclean-am
+clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
+	clean-pkgLTLIBRARIES mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -505,7 +555,10 @@ info: info-am
 
 info-am:
 
-install-data-am: install-filesDATA install-pkgLTLIBRARIES
+install-data-am: install-filesDATA install-pkgLTLIBRARIES \
+	install-tempgetDATA
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 
 install-exec-am:
 
@@ -534,21 +587,25 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-filesDATA uninstall-info-am \
-	uninstall-pkgLTLIBRARIES
+	uninstall-pkgLTLIBRARIES uninstall-tempgetDATA
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-pkgLTLIBRARIES ctags distclean \
-	distclean-compile distclean-generic distclean-libtool \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-exec \
-	install-exec-am install-filesDATA install-info install-info-am \
-	install-man install-pkgLTLIBRARIES install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	clean-libtool clean-noinstPROGRAMS clean-pkgLTLIBRARIES ctags \
+	distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-data \
+	install-data-am install-data-hook install-exec install-exec-am \
+	install-filesDATA install-info install-info-am install-man \
+	install-pkgLTLIBRARIES install-strip install-tempgetDATA \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am uninstall-filesDATA \
-	uninstall-info-am uninstall-pkgLTLIBRARIES
+	uninstall-info-am uninstall-pkgLTLIBRARIES \
+	uninstall-tempgetDATA
 
+install-data-hook:
+	@chmod $(x_mode) $(DESTDIR)$(tempgetdir)/tempget$(EXEEXT) || true
 
 uninstall:
 	rm -rf $(DESTDIR)$(libdir)/enlightenment/modules/$(MODULE)

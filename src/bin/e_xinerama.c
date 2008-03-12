@@ -5,6 +5,7 @@
 
 static void _e_xinerama_clean(void);
 static void _e_xinerama_update(void);
+static int _e_xinerama_cb_screen_sort(void *data1, void *data2);
 
 static Evas_List *all_screens = NULL;
 static Evas_List *chosen_screens = NULL;
@@ -52,6 +53,7 @@ e_xinerama_fake_screen_add(int x, int y, int w, int h)
 
    scr = calloc(1, sizeof(E_Screen));
    scr->screen = evas_list_count(fake_screens);
+   scr->escreen = scr->screen;
    scr->x = x;
    scr->y = y;
    scr->w = w;
@@ -85,14 +87,14 @@ _e_xinerama_update(void)
    int n;
    Ecore_X_Window *roots;
    Evas_List *l;
-   
+
    roots = ecore_x_window_root_list(&n);
    if (roots)
      {
 	int i;
 	int rw, rh;
 	Ecore_X_Window root;
-	
+
 	/* more than 1 root window - xinerama wont be active */
 	if (n > 1)
 	  {
@@ -109,7 +111,7 @@ _e_xinerama_update(void)
 	if (n < 1)
 	  {
 	     E_Screen *scr;
-	     
+
 	     scr = calloc(1, sizeof(E_Screen));
 	     scr->screen = 0;
 	     scr->x = 0;
@@ -123,12 +125,12 @@ _e_xinerama_update(void)
 	     for (i = 0; i < n; i++)
 	       {
 		  int x, y, w, h;
-		  
+
 		  /* get each xinerama screen geometry */
 		  if (ecore_x_xinerama_screen_geometry_get(i, &x, &y, &w, &h))
 		    {
 		       E_Screen *scr;
-		       
+
 		       printf("E17 INIT: XINERAMA SCREEN: [%i], %ix%i+%i+%i\n",
 			      i, w, h, x, y);
 		       /* add it to our list */
@@ -150,7 +152,7 @@ _e_xinerama_update(void)
 	E_Screen *scr;
 	int add = 0;
 	Evas_List *removes;
-	
+
 	scr = l->data;
 	add = 1;
 	removes = NULL;
@@ -158,23 +160,23 @@ _e_xinerama_update(void)
 	for (ll = chosen_screens; ll; ll = ll->next)
 	  {
 	     E_Screen *scr2;
-	     
+
 	     scr2 = ll->data;
 	     /* if they intersect */
 	     if (E_INTERSECTS(scr->x, scr->y, scr->w, scr->h,
 			      scr2->x, scr2->y, scr2->w, scr2->h))
 	       {
 		  int sz, sz2;
-		  
+
 		  /* calculate pixel area */
 		  sz = scr->w * scr->h;
 		  sz2 = scr2->w * scr2->h;
 		  /* if the one we already have is bigger, DONT add the new */
-		  if (sz2 >= sz)
-		    add = 0;
+		  if (sz > sz2)
+		    removes = evas_list_append(removes, scr2);
 		  /* add the old to a list to remove */
 		  else
-		    removes = evas_list_append(removes, scr);
+		    add = 0;
 	       }
 	  }
 	/* if there are screens to remove - remove them */
@@ -185,10 +187,31 @@ _e_xinerama_update(void)
 	  }
 	/* if this screen is to be added, add it */
 	if (add)
-	  {
-	     printf("E17 INIT: XINERAMA CHOSEN: [%i], %ix%i+%i+%i\n",
-		    scr->screen, scr->w, scr->h, scr->x, scr->y); 
-	     chosen_screens = evas_list_append(chosen_screens, scr);
-	  }
+	  chosen_screens = evas_list_append(chosen_screens, scr);
      }
+   chosen_screens = evas_list_sort(chosen_screens,
+				   evas_list_count(chosen_screens),
+				   _e_xinerama_cb_screen_sort);
+   for (n = 0, l = chosen_screens; l; l = l->next, n++)
+     {
+        E_Screen *scr;
+
+	scr = l->data;
+	printf("E17 INIT: XINERAMA CHOSEN: [%i], %ix%i+%i+%i\n",
+	       scr->screen, scr->w, scr->h, scr->x, scr->y);
+	scr->escreen = n;
+     }
+}
+
+static int
+_e_xinerama_cb_screen_sort(void *data1, void *data2)
+{
+   E_Screen *scr, *scr2;
+   int dif;
+
+   scr = data1;
+   scr2 = data2;
+   dif = (scr2->w * scr2->h) - (scr->w * scr->h);
+   if (dif == 0) return scr->screen - scr2->screen;
+   return dif;
 }

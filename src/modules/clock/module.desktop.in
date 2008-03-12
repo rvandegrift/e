@@ -1,5 +1,23 @@
 [Desktop Entry]
 Type=Link
 Name=Clock
+Name[de]=
+Name[es]=Reloj
+Name[fr]=
+Name[it]=
+Name[ja]=
+Name[pt]=
+Name[pt_BR]=
+Name[zh_CN]=
+Name[zh_TW]=
 Icon=e-module-clock
-Comment=<hilight>Clock Gadget</hilight><br>Nice clock gadget to show current<br>time.
+Comment=<hilight>Clock Gadget</hilight><br><br>Nice clock gadget to show current time.
+Comment[de]=
+Comment[es]=<hilight>Dispositivo Reloj</hilight><br><br>Un lindo reloj para mostrar la hora actual.
+Comment[fr]=
+Comment[it]=<hilight>Modulo Clock</hilight><br><br>Un simpatico orologio per mostrare l'ora attuale.
+Comment[ja]=
+Comment[pt]=
+Comment[pt_BR]=
+Comment[zh_CN]=
+Comment[zh_TW]=

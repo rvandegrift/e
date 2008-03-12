@@ -29,7 +29,7 @@ e_place_zone_region_smart_cleanup(E_Zone *zone)
 	       {
 		  int testarea;
 		  E_Border *bd;
-		  
+
 		  bd = ll->data;
 		  testarea = bd->w * bd->h;
 		  /* Insert the border if larger than the current border */
@@ -74,7 +74,7 @@ _e_place_coverage_border_add(E_Zone *zone, Evas_List *skiplist, int ar, int x, i
    int ok;
    int iw, ih;
    int x0, x00, y0, y00;
-   
+
    bl = e_container_border_list_first(zone->container);
    while ((bd = e_container_border_list_next(bl)))
      {
@@ -113,35 +113,15 @@ _e_place_coverage_shelf_add(E_Zone *zone, int ar, int x, int y, int w, int h)
    Evas_List *l;
    E_Shelf *es;
    int x2, y2, w2, h2;
-   int iw, ih;
-   int x0, x00, y0, y00;
-   int tmp;
-   
+
    for (l = e_shelf_list(); l; l = l->next)
      {
-	
+
 	es = l->data;
 	if (es->zone != zone) continue;
 	x2 = es->x; y2 = es->y; w2 = es->w; h2 = es->h;
 	if (E_INTERSECTS(x, y, w, h, x2, y2, w2, h2))
-	  {
-	     x0 = x;
-	     if (x < x2) x0 = x2;
-	     x00 = (x + w);
-	     if ((x2 + w2) < (x + w)) x00 = (x2 + w2);
-	     y0 = y;
-	     if (y < y2) y0 = y2;
-	     y00 = (y + h);
-	     if ((y2 + h2) < (y + h)) y00 = (y2 + h2);
-	     iw = x00 - x0;
-	     ih = y00 - y0;
-	     tmp = (iw * ih);
-	     /* 100 times the weight for avoidance */
-	     if (tmp > (0x7ffffff / 100)) tmp = 0x7fffffff;
-	     else tmp *= 100;
-	     if ((0x7fffffff - ar) <= tmp) ar = 0x7fffffff;
-	     else ar += tmp;
-	  }
+	  return 0x7fffffff;
      }
    return ar;
 }
@@ -157,21 +137,19 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
    E_Border_List      *bl;
    E_Border           *bd;
 
-#if 0
-   /* DISABLE placement entirely for speed testing */
    *rx = x;
    *ry = y;
+#if 0
+   /* DISABLE placement entirely for speed testing */
    return 1;
 #endif
 
    if ((w <= 0) || (h <= 0))
      {
 	printf("EEEK! trying to place 0x0 window!!!!\n");
-	*rx = x;
-	*ry = y;
 	return 1;
      }
-   
+
    /* FIXME: this NEEDS optimizing */
    a_w = 2;
    a_h = 2;
@@ -184,7 +162,7 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
    y -= zone->y;
    zw = zone->w;
    zh = zone->h;
-      
+
    u_x = calloc(zw + 1, sizeof(char));
    u_y = calloc(zh + 1, sizeof(char));
 
@@ -192,24 +170,24 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
    a_x[1] = zw;
    a_y[0] = 0;
    a_y[1] = zh;
-   
+
    u_x[0] = 1;
    u_x[zw] = 1;
    u_y[0] = 1;
    u_y[zh] = 1;
-   
+
    if (e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART)
      {
 	Evas_List *l;
-	
+
 	for (l = e_shelf_list(); l; l = l->next)
 	  {
 	     E_Shelf *es;
 	     int bx, by, bw, bh;
-	     
+
 	     es = l->data;
 	     if (es->zone != zone) continue;
-		  
+
 	     bx = es->x;
 	     by = es->y;
 	     bw = es->w;
@@ -276,13 +254,13 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
 	       }
 	  }
      }
-   
+
    bl = e_container_border_list_first(zone->container);
    while ((bd = e_container_border_list_next(bl)))
      {
 	int ok;
 	int bx, by, bw, bh;
-	
+
 	ok = 1;
 	for (ll = skiplist; ll; ll = ll->next)
 	  {
@@ -293,12 +271,12 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
 	       }
 	  }
 	if ((!ok) || (!bd->visible)) continue;
-	
+
 	bx = bd->x - zone->x;
 	by = bd->y - zone->y;
 	bw = bd->w;
 	bh = bd->h;
-	
+
 	if (E_INTERSECTS(bx, by, bw, bh, 0, 0, zw, zh))
 	  {
 	     if (bx < 0)
@@ -375,8 +353,8 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
 	{
 	   for (i = 0; i < a_w - 1; i++)
 	     {
-		if ((a_x[i] < (zw - w)) &&
-		    (a_y[j] < (zh - h)))
+		if ((a_x[i] <= (zw - w)) &&
+		    (a_y[j] <= (zh - h)))
 		  {
 		     int ar = 0;
 
@@ -395,7 +373,7 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
 			  if (ar == 0) goto done;
 		       }
 		  }
-		if ((a_x[i + 1] - w > 0) && (a_y[j] < (zh - h)))
+		if ((a_x[i + 1] - w > 0) && (a_y[j] <= (zh - h)))
 		  {
 		     int ar = 0;
 
@@ -433,7 +411,7 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
 			  if (ar == 0) goto done;
 		       }
 		  }
-		if ((a_x[i] < (zw - w)) && (a_y[j + 1] - h > 0))
+		if ((a_x[i] <= (zw - w)) && (a_y[j + 1] - h > 0))
 		  {
 		     int ar = 0;
 
@@ -458,12 +436,14 @@ e_place_zone_region_smart(E_Zone *zone, Evas_List *skiplist, int x, int y, int w
  done:
    E_FREE(a_x);
    E_FREE(a_y);
-   
+
    if ((*rx + w) > zone->w) *rx = zone->w - w;
    if (*rx < 0) *rx = 0;
    if ((*ry + h) > zone->h) *ry = zone->h - h;
    if (*ry < 0) *ry = 0;
-   
+
+//   printf("0 - PLACE %i %i | %ix%i\n", *rx, *ry, w, h);
+
    *rx += zone->x;
    *ry += zone->y;
    return 1;
@@ -481,19 +461,19 @@ e_place_zone_cursor(E_Zone *zone, int x, int y, int w, int h, int it, int *rx, i
    *rx = cursor_x - (w >> 1);
    *ry = cursor_y - (it >> 1);
 
-   if (*rx < zone->x) 
+   if (*rx < zone->x)
      *rx = zone->x;
 
-   if (*ry < zone->y) 
+   if (*ry < zone->y)
      *ry = zone->y;
 
    zone_right = zone->x + zone->w;
    zone_bottom = zone->y + zone->h;
 
-   if ((*rx + w) > zone_right) 
+   if ((*rx + w) > zone_right)
      *rx = zone_right - w;
 
-   if ((*ry + h) > zone_bottom) 
+   if ((*ry + h) > zone_bottom)
      *ry = zone_bottom - h;
 
    return 1;

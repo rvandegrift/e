@@ -4153,7 +4153,7 @@ group {
 	    color3: 0 0 0 24;
 	    text {
 	       text: "";
-	       font: "Edje-Vera-Bold";
+               font: "Sans:style=Bold,Edje-Vera-Bold";
 	       size: 10;
 	       min:  0 0;
 	       align: 0.5 0.5;
@@ -4216,7 +4216,7 @@ group {
 	    color3: 0 0 0 24;
 	    text {
 	       text: "";
-	       font: "Edje-Vera-Bold";
+               font: "Sans:style=Bold,Edje-Vera-Bold";
 	       size: 10;
 	       min:  1 1;
 	       align: 1.0 0.5;
@@ -6945,7 +6945,7 @@ group {
 	    text {
 	       text:     "No Title";
 	       size:     10;
-	       font:     "Edje-Vera-Bold";
+               font: "Sans:style=Bold,Edje-Vera-Bold";
 	       min:      0 1;
 	       align:    0.5 1.0;
 	       elipsis:  0.0;
@@ -7266,7 +7266,7 @@ group {
 	    text {
 	       text:     "No Title";
 	       size:     10;
-	       font:     "Edje-Vera-Bold";
+               font: "Sans:style=Bold,Edje-Vera-Bold";
 	       min:      0 1;
 	       align:    0.5 1.0;
 	       elipsis:  0.0;
@@ -9000,6 +9000,50 @@ group {
    }
 }
 
+images 
+{
+   image: "e17_fileman_rubberband.png" COMP;
+}
+
+group 
+{
+   name: "e/fileman/default/rubberband";
+   parts 
+     {
+	part 
+	  {
+	     name: "base";
+	     mouse_events: 0;
+	     type: IMAGE;
+	     description 
+	       {
+		  state: "default" 0.0;
+		  image 
+		    {
+		       normal: "e17_fileman_rubberband.png";
+		       border: 4 4 4 4;
+		       middle: 0;
+		    }
+	       }
+	  }
+	part 
+	  {
+	     name: "grad";
+	     mouse_events: 0;
+	     type: GRADIENT;
+	     description 
+	       {
+		  state: "default" 0.0;
+		  rel1.offset: 2 2;
+		  rel2.offset: -3 -3;
+		  gradient.spectrum: "rubberband";
+		  gradient.rel1.relative: 0.0 0.5;
+		  gradient.rel2.relative: 1.0 0.5;
+		  gradient.rel2.offset: -1 0;
+	       }
+	  }
+     }
+}
 
 
 
@@ -9233,6 +9277,7 @@ images
    image: "e17_icon_fileman_zip.png" COMP;
    image: "e17_icon_fileman_gz.png" COMP;
    image: "e17_icon_fileman_tar.png" COMP;
+   image: "e17_icon_fileman_rar.png" COMP;
    image: "e17_icon_fileman_mpg.png" COMP;
    
    image: "e17_button_detail_open.png" COMP;   
@@ -9334,6 +9379,7 @@ FILEMAN_MIME("application/x-bzip-compressed-tar","tar");
 FILEMAN_MIME("application/x-bzip2-compressed-tar","tar");
 FILEMAN_MIME("application/x-compressed-tar","tar");
 FILEMAN_MIME("application/x-tar","tar");
+FILEMAN_MIME("application/x-rar","rar");
 FILEMAN_MIME("video/mpeg","mpg");
 
 FILEMAN_MIME("video","mpg");
@@ -9358,4 +9404,3 @@ FULL_SIZE_FILEMAN_BUTTON("view_details");
 FULL_SIZE_FILEMAN_BUTTON("view_name");
 FULL_SIZE_FILEMAN_BUTTON("view");
 FULL_SIZE_FILEMAN_BUTTON("select");
-

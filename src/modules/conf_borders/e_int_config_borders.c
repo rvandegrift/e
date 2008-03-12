@@ -1,6 +1,6 @@
 #include "e.h"
 
-static E_Config_Dialog_View *_config_view_new();
+static E_Config_Dialog_View *_config_view_new(void);
 
 static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
@@ -54,7 +54,7 @@ e_int_config_borders_border(E_Container *con, const char *params)
 }
 
 static E_Config_Dialog_View *
-_config_view_new() 
+_config_view_new(void) 
 {
    E_Config_Dialog_View *v;
    
@@ -228,7 +228,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    if (cfdata->border) 
      {
 	ob = e_widget_check_add(evas, _("Remember this Border for this window next time it appears"), &(cfdata->remember_border));
-	e_widget_list_object_append(o, ob, 1, 1, 1.0);
+	e_widget_list_object_append(o, ob, 1, 0, 0.0);
      }
    
    E_FREE(tmp);

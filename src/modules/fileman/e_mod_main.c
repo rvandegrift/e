@@ -12,10 +12,12 @@ static void  _e_mod_menu_add(void *data, E_Menu *m);
 static void  _e_mod_fileman_config_load(void);
 static void  _e_mod_fileman_config_free(void);
 static int   _e_mod_cb_config_timer(void *data);
+static int   _e_mod_zone_add(void *data, int type, void *event);
 
 static E_Module *conf_module = NULL;
 static E_Action *act = NULL;
 static E_Int_Menu_Augmentation *maug = NULL;
+static Ecore_Event_Handler *zone_add_handler = NULL;
 
 static E_Config_DD *conf_edd = NULL;
 Config *fileman_config = NULL;
@@ -69,6 +71,7 @@ e_modapi_init(E_Module *m)
 	     for (lll = con->zones; lll; lll = lll->next)
 	       {
 		  zone = lll->data;
+                  if (e_fwin_zone_find(zone)) continue;
 		  if ((zone->container->num == 0) && (zone->num == 0) && 
 		      (fileman_config->view.show_desktop_icons))
 		    e_fwin_zone_new(zone, "desktop", "/");
@@ -82,11 +85,14 @@ e_modapi_init(E_Module *m)
 				(zone->container->num + zone->num));
 			    e_fwin_zone_new(zone, "desktop", buf);
 			 }
-		       
 		    }
 	       }
 	  }
      }
+   zone_add_handler = ecore_event_handler_add(E_EVENT_ZONE_ADD,
+					      _e_mod_zone_add, NULL);
+   
+   /* FIXME: add system event for new zone creation, and on creation, add an fwin to the zone */
    
    return m;
 }
@@ -99,6 +105,9 @@ e_modapi_shutdown(E_Module *m)
    E_Container *con;
    E_Zone *zone;
 
+   ecore_event_handler_del(zone_add_handler);
+   zone_add_handler = NULL;
+   
    /* Unhook zone fm */
    for (l = e_manager_list(); l; l = l->next)
      {
@@ -145,30 +154,11 @@ e_modapi_save(E_Module *m)
    return 1;
 }
 
-EAPI int
-e_modapi_about(E_Module *m)
-{
-   e_module_dialog_show(m,
-			_("Enlightenment File Manager"),
-			_("A module for providing a file manager."));
-   return 1;
-}
-
-EAPI int
-e_modapi_config(E_Module *m) 
-{
-   E_Container *con;
-   
-   con = e_container_current_get(e_manager_current_get());
-   e_int_config_fileman(con, NULL);
-   return 1;
-}
-
 /* action callback */
 static void
 _e_mod_action_fileman_cb(E_Object *obj, const char *params)
 {
-   E_Zone *zone;
+   E_Zone *zone = NULL;
    
    if (obj)
      {
@@ -182,7 +172,13 @@ _e_mod_action_fileman_cb(E_Object *obj, const char *params)
 	  zone = e_util_zone_current_get(e_manager_current_get());
      }
    if (!zone) zone = e_util_zone_current_get(e_manager_current_get());
-   if (zone) e_fwin_new(zone->container, "favorites", "/");
+   if (zone)
+     {
+	if (params)
+	  e_fwin_new(zone->container, NULL, params);
+	else
+	  e_fwin_new(zone->container, "favorites", "/");
+     }
 }
 
 /* menu item callback(s) */
@@ -237,6 +233,7 @@ _e_mod_fileman_config_load(void)
    E_CONFIG_VAL(D, T, view.fit_custom_pos, UCHAR);
    E_CONFIG_VAL(D, T, view.show_full_path, UCHAR);
    E_CONFIG_VAL(D, T, view.show_desktop_icons, UCHAR);
+   E_CONFIG_VAL(D, T, view.show_toolbar, UCHAR);
    E_CONFIG_VAL(D, T, icon.icon.w, INT);
    E_CONFIG_VAL(D, T, icon.icon.h, INT);
    E_CONFIG_VAL(D, T, icon.list.w, INT);
@@ -311,7 +308,11 @@ _e_mod_fileman_config_load(void)
    fileman_config->selection.single = 0;
    fileman_config->selection.windows_modifiers = 0;
    IFMODCFGEND;
-   
+
+   IFMODCFG(0x0101);
+   fileman_config->view.show_toolbar = 0;
+   IFMODCFGEND;
+
    fileman_config->config_version = MOD_CONFIG_FILE_VERSION;
    
    /* UCHAR's give nasty compile warnings about comparisons so not gonna limit those */
@@ -341,4 +342,31 @@ _e_mod_cb_config_timer(void *data)
 {
    e_util_dialog_show(_("Fileman Configuration Updated"), data);
    return 0;
+}
+
+static int
+_e_mod_zone_add(void *data, int type, void *event)
+{
+   E_Event_Zone_Add *ev;
+   E_Zone *zone;
+   
+   if (type != E_EVENT_ZONE_ADD) return 1;
+   ev = event;
+   zone = ev->zone;
+   if (e_fwin_zone_find(zone)) return 1;
+   if ((zone->container->num == 0) && (zone->num == 0) && 
+       (fileman_config->view.show_desktop_icons))
+     e_fwin_zone_new(zone, "desktop", "/");
+   else 
+     {
+	char buf[256];
+	
+	if (fileman_config->view.show_desktop_icons) 
+	  {
+	     snprintf(buf, sizeof(buf), "%i", 
+		      (zone->container->num + zone->num));
+	     e_fwin_zone_new(zone, "desktop", buf);
+	  }
+     }
+   return 1;
 }

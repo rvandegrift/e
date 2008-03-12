@@ -22,8 +22,8 @@ typedef struct _E_Util_Fake_Mouse_Up_Info E_Util_Fake_Mouse_Up_Info;
 
 struct _E_Util_Fake_Mouse_Up_Info
 {
-   Evas        *evas;
-   int          button;
+   Evas *evas;
+   int   button;
 };
 
 /* local subsystem functions */
@@ -183,6 +183,16 @@ e_util_container_zone_number_get(int con_num, int zone_num)
    con = e_util_container_number_get(con_num);
    if (!con) return NULL;
    return e_container_zone_number_get(con, zone_num);
+}
+
+EAPI E_Zone *
+e_util_container_zone_id_get(int con_num, int id)
+{
+   E_Container *con;
+
+   con = e_util_container_number_get(con_num);
+   if (!con) return NULL;
+   return e_container_zone_id_get(con, id);
 }
 
 EAPI int
@@ -660,7 +670,18 @@ e_util_shell_env_path_eval(char *path)
 		       s = alloca(v2 - v1);
 		       strncpy(s, v1 + 1, v2 - v1 - 1);
 		       s[v2 - v1 - 1] = 0;
-		       v = getenv(s);
+		       if (strncmp(s, "XDG", 3)) 
+			 v = getenv(s);
+		       else 
+			 {
+			    if (!strcmp(s, "XDG_CONFIG_HOME")) 
+			      v = (char *)efreet_config_home_get();
+			    else if (!strcmp(s, "XDG_CACHE_HOME")) 
+			      v = (char *)efreet_cache_home_get();
+			    else if (!strcmp(s, "XDG_DATA_HOME")) 
+			      v = (char *)efreet_data_home_get();
+			 }
+		       
 		       if (v)
 			 {
 			    vp = v;
@@ -926,7 +947,7 @@ e_util_defer_object_del(E_Object *obj)
    if (stopping)
      e_object_del(obj);
    else
-     ecore_idle_enterer_add(_e_util_cb_delayed_del, obj);
+     ecore_idle_enterer_before_add(_e_util_cb_delayed_del, obj);
 }
 
 EAPI const char *

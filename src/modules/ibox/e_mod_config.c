@@ -102,6 +102,8 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_radio_add(evas, _("Display Icon Name"), 3, rg);
    e_widget_framelist_object_append(of, ob);
+   ob = e_widget_radio_add(evas, _("Display Border Caption"), 4, rg);
+   e_widget_framelist_object_append(of, ob);
    
    e_widget_list_object_append(o, of, 1, 1, 0.5);
 
@@ -165,7 +167,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    ci->show_zone = cfdata->zone_policy;
    ci->show_desk = cfdata->desk_policy;
 
-   _ibox_config_update();
+   _ibox_config_update(ci);
    e_config_save_queue();
    return 1;
 }

@@ -80,8 +80,12 @@ e_int_config_wallpaper_import(E_Config_Dialog *parent)
    
    import = E_NEW(Import, 1);
    if (!import) return NULL;
-   
-   win = e_win_new(parent->con);
+
+   if (parent)
+     win = e_win_new(parent->con);
+   else
+     win = e_win_new(e_container_current_get(e_manager_current_get()));
+
    if (!win) 
      { 
 	free(import);
@@ -96,8 +100,9 @@ e_int_config_wallpaper_import(E_Config_Dialog *parent)
    import->win = win;
    
    evas = e_win_evas_get(win);
-   
-   import->parent = parent;
+
+   if (parent)
+     import->parent = parent;
 
    e_win_title_set(win, _("Select a Picture..."));
    e_win_delete_callback_set(win, _import_cb_delete);
@@ -141,8 +146,7 @@ e_int_config_wallpaper_import(E_Config_Dialog *parent)
      }
    ofm = e_widget_fsel_add(evas, fdev, fpath, NULL, NULL,
 			   _import_cb_sel_selected, import,
-			   _import_cb_sel_change, import, 1 
-			   );
+			   _import_cb_sel_change, import, 1);
    e_widget_fsel_window_object_set(ofm, E_OBJECT(win));
    import->fsel_obj = ofm;
    e_widget_list_object_append(o, ofm, 1, 1, 0.5);
@@ -152,19 +156,29 @@ e_int_config_wallpaper_import(E_Config_Dialog *parent)
    of = e_widget_frametable_add(evas, _("Fill and Stretch Options"), 1);
    import->frame_fill_obj = of;
    rg = e_widget_radio_group_new(&cfdata->method);
-   ord = e_widget_radio_icon_add(evas, _("Stretch"), "enlightenment/wallpaper_stretch", 24, 24, IMPORT_STRETCH, rg);
+   ord = e_widget_radio_icon_add(evas, _("Stretch"), 
+				 "enlightenment/wallpaper_stretch", 
+				 24, 24, IMPORT_STRETCH, rg);
    import->fill_stretch_obj = ord;
    e_widget_frametable_object_append(of, ord, 0, 0, 1, 1, 1, 0, 1, 0);
-   ord = e_widget_radio_icon_add(evas, _("Center"), "enlightenment/wallpaper_center", 24, 24, IMPORT_CENTER, rg);
+   ord = e_widget_radio_icon_add(evas, _("Center"), 
+				 "enlightenment/wallpaper_center", 
+				 24, 24, IMPORT_CENTER, rg);
    import->fill_center_obj = ord;
    e_widget_frametable_object_append(of, ord, 1, 0, 1, 1, 1, 0, 1, 0);
-   ord = e_widget_radio_icon_add(evas, _("Tile"), "enlightenment/wallpaper_tile", 24, 24, IMPORT_TILE, rg);
+   ord = e_widget_radio_icon_add(evas, _("Tile"), 
+				 "enlightenment/wallpaper_tile", 
+				 24, 24, IMPORT_TILE, rg);
    import->fill_tile_obj = ord;
    e_widget_frametable_object_append(of, ord, 2, 0, 1, 1, 1, 0, 1, 0);
-   ord = e_widget_radio_icon_add(evas, _("Within"), "enlightenment/wallpaper_scale_aspect_in", 24, 24, IMPORT_SCALE_ASPECT_IN, rg);
+   ord = e_widget_radio_icon_add(evas, _("Within"), 
+				 "enlightenment/wallpaper_scale_aspect_in", 
+				 24, 24, IMPORT_SCALE_ASPECT_IN, rg);
    import->fill_within_obj = ord;
    e_widget_frametable_object_append(of, ord, 3, 0, 1, 1, 1, 0, 1, 0);
-   ord = e_widget_radio_icon_add(evas, _("Fill"), "enlightenment/wallpaper_scale_aspect_out", 24, 24, IMPORT_SCALE_ASPECT_OUT, rg);
+   ord = e_widget_radio_icon_add(evas, _("Fill"), 
+				 "enlightenment/wallpaper_scale_aspect_out", 
+				 24, 24, IMPORT_SCALE_ASPECT_OUT, rg);
    import->fill_fill_obj = ord;
    e_widget_frametable_object_append(of, ord, 4, 0, 1, 1, 1, 0, 1, 0);
    e_widget_table_object_append(ot, of, 0, 0, 1, 1, 1, 1, 1, 0);
@@ -174,7 +188,8 @@ e_int_config_wallpaper_import(E_Config_Dialog *parent)
    ord = e_widget_check_add(evas, _("Use original file"), &(cfdata->external));
    import->external_obj = ord;
    e_widget_frametable_object_append(of, ord, 0, 0, 1, 1, 1, 0, 1, 0);
-   ord = e_widget_slider_add(evas, 1, 0, _("%3.0f%%"), 0.0, 100.0, 1.0, 0, NULL, &(cfdata->quality), 150);
+   ord = e_widget_slider_add(evas, 1, 0, _("%3.0f%%"), 0.0, 100.0, 1.0, 0, 
+			     NULL, &(cfdata->quality), 150);
    import->quality_obj = ord;
    e_widget_frametable_object_append(of, ord, 0, 1, 1, 1, 1, 0, 1, 0);
    e_widget_table_object_append(ot, of, 0, 1, 1, 1, 1, 1, 1, 0);
@@ -186,10 +201,12 @@ e_int_config_wallpaper_import(E_Config_Dialog *parent)
    edje_object_part_swallow(import->bg_obj, "e.swallow.content", o);
    evas_object_show(o);
    
-   import->ok_obj = e_widget_button_add(evas, _("OK"), NULL, _import_cb_ok, win, cfdata);
+   import->ok_obj = e_widget_button_add(evas, _("OK"), NULL, 
+					_import_cb_ok, win, cfdata);
    e_widget_list_object_append(import->box_obj, import->ok_obj, 1, 0, 0.5);
 
-   import->close_obj = e_widget_button_add(evas, _("Cancel"), NULL, _import_cb_close, win, NULL);
+   import->close_obj = e_widget_button_add(evas, _("Cancel"), NULL, 
+					   _import_cb_close, win, NULL);
    e_widget_list_object_append(import->box_obj, import->close_obj, 1, 0, 0.5);
    
    e_win_centered_set(win, 1);
@@ -230,7 +247,8 @@ e_int_config_wallpaper_del(E_Win *win)
    E_FREE(import->fdest);
    import->exe = NULL;
    e_object_del(E_OBJECT(import->win));
-   e_int_config_wallpaper_import_done(import->parent);
+   if (import->parent)
+     e_int_config_wallpaper_import_done(import->parent);
    E_FREE(import->cfdata->file);
    E_FREE(import->cfdata);
    if (import) free(import);
@@ -284,11 +302,15 @@ _import_path_save(Import *import)
    e_widget_fsel_path_get(import->fsel_obj, &fdev, &fpath);
    if ((fdev) || (fpath))
      {
-	if (e_config->wallpaper_import_last_dev) evas_stringshare_del(e_config->wallpaper_import_last_dev);
-	if (fdev) e_config->wallpaper_import_last_dev = evas_stringshare_add(fdev);
+	if (e_config->wallpaper_import_last_dev) 
+	  evas_stringshare_del(e_config->wallpaper_import_last_dev);
+	if (fdev) 
+	  e_config->wallpaper_import_last_dev = evas_stringshare_add(fdev);
 	else e_config->wallpaper_import_last_dev = NULL;
-	if (e_config->wallpaper_import_last_path) evas_stringshare_del(e_config->wallpaper_import_last_path);
-	if (fpath) e_config->wallpaper_import_last_path = evas_stringshare_add(fpath);
+	if (e_config->wallpaper_import_last_path) 
+	  evas_stringshare_del(e_config->wallpaper_import_last_path);
+	if (fpath) 
+	  e_config->wallpaper_import_last_path = evas_stringshare_add(fpath);
 	else e_config->wallpaper_import_last_path = NULL;
 	e_config_save_queue();
      }
@@ -315,7 +337,8 @@ _import_edj_gen(Import *import)
    snprintf(buf, sizeof(buf), "%s/.e/e/backgrounds/%s.edj", homedir, fstrip);
    while (ecore_file_exists(buf))
      {
-	snprintf(buf, sizeof(buf), "%s/.e/e/backgrounds/%s-%i.edj", homedir, fstrip, num);
+	snprintf(buf, sizeof(buf), "%s/.e/e/backgrounds/%s-%i.edj", 
+		 homedir, fstrip, num);
 	num++;
      }
    free(fstrip);
@@ -368,6 +391,7 @@ _import_edj_gen(Import *import)
 		"images { image: \"%s\" %s; }\n"
 		"collections {\n"
 		"group { name: \"e/desktop/background\";\n"
+		"data { item: \"style\" \"0\"; }\n"
 		"max: %i %i;\n"
 		"parts {\n"
 		"part { name: \"bg\"; mouse_events: 0;\n"
@@ -381,6 +405,7 @@ _import_edj_gen(Import *import)
 		"images { image: \"%s\" %s; }\n"
 		"collections {\n"
 		"group { name: \"e/desktop/background\";\n"
+		"data { item: \"style\" \"1\"; }\n"
 		"max: %i %i;\n"
 		"parts {\n"
 		"part { name: \"bg\"; mouse_events: 0;\n"
@@ -397,6 +422,7 @@ _import_edj_gen(Import *import)
 		"images { image: \"%s\" %s; }\n"
 		"collections {\n"
 		"group { name: \"e/desktop/background\";\n"
+		"data { item: \"style\" \"2\"; }\n"
 		"max: %i %i;\n"
 		"parts {\n"
 		"part { name: \"col\"; type: RECT; mouse_events: 0;\n"
@@ -415,6 +441,7 @@ _import_edj_gen(Import *import)
 		"images { image: \"%s\" %s; }\n"
 		"collections {\n"
 		"group { name: \"e/desktop/background\";\n"
+		"data { item: \"style\" \"3\"; }\n"
 		"max: %i %i;\n"
 		"parts {\n"
 		"part { name: \"col\"; type: RECT; mouse_events: 0;\n"
@@ -433,6 +460,7 @@ _import_edj_gen(Import *import)
 		"images { image: \"%s\" %s; }\n"
 		"collections {\n"
 		"group { name: \"e/desktop/background\";\n"
+		"data { item: \"style\" \"4\"; }\n"
 		"max: %i %i;\n"
 		"parts {\n"
 		"part { name: \"bg\"; mouse_events: 0;\n"
@@ -455,7 +483,9 @@ _import_edj_gen(Import *import)
 
    import->tmpf = strdup(tmpn);
    import->fdest = strdup(buf);
-   import->exe_handler = ecore_event_handler_add(ECORE_EXE_EVENT_DEL, _import_cb_edje_cc_exit, import);
+   import->exe_handler = 
+     ecore_event_handler_add(ECORE_EXE_EVENT_DEL, 
+			     _import_cb_edje_cc_exit, import);
    import->exe = ecore_exe_run(cmd, NULL);   
 }
 
@@ -475,8 +505,9 @@ _import_cb_edje_cc_exit(void *data, int type, void *event)
 			   _("Enlightenment was unable to import the picture<br>"
 			     "due to conversion errors."));
      }
-   
-   e_int_config_wallpaper_update(import->parent, import->fdest);
+
+   if (import->parent)
+     e_int_config_wallpaper_update(import->parent, import->fdest);
 
    e_int_config_wallpaper_del(import->win);
    return 0;
@@ -554,7 +585,8 @@ _import_cb_ok(void *data, void *data2)
 		    }
 		  else 
 		    {
-		       e_int_config_wallpaper_update(import->parent, buf);
+		       if (import->parent)
+			 e_int_config_wallpaper_update(import->parent, buf);
 		       e_int_config_wallpaper_del(win);
 		       return;
 		    }
@@ -569,7 +601,6 @@ _import_cb_ok(void *data, void *data2)
 				       "wallpaper?"));
 		  return;		  
 	       }
-	     
 	  }
 	
 	e_win_hide(win);
