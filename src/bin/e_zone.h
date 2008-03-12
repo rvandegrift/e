@@ -6,6 +6,7 @@
 typedef struct _E_Zone     E_Zone;
 
 typedef struct _E_Event_Zone_Desk_Count_Set     E_Event_Zone_Desk_Count_Set;
+typedef struct _E_Event_Zone_Move_Resize        E_Event_Zone_Move_Resize;
 /* TODO: Move this to a general place? */
 typedef struct _E_Event_Pointer_Warp            E_Event_Pointer_Warp;
 
@@ -33,8 +34,6 @@ struct _E_Zone
    Evas_Object         *prev_bg_object;
    Evas_Object         *transition_object;
    
-   E_Fwin              *bg_fwin;
-   
    int                  desk_x_count, desk_y_count;
    int                  desk_x_current, desk_y_current;
    E_Desk             **desks;
@@ -53,10 +52,14 @@ struct _E_Zone
    Ecore_Evas          *black_ecore_evas;
    Evas                *black_evas;
    Ecore_X_Window       black_win;
-   Ecore_Timer         *deferred_fm_timer;
 };
 
 struct _E_Event_Zone_Desk_Count_Set
+{
+   E_Zone *zone;
+};
+
+struct _E_Event_Zone_Move_Resize 
 {
    E_Zone *zone;
 };
@@ -94,6 +97,7 @@ EAPI void       e_zone_flip_win_disable(void);
 EAPI void       e_zone_flip_win_restore(void);
 
 extern EAPI int E_EVENT_ZONE_DESK_COUNT_SET;
+extern EAPI int E_EVENT_ZONE_MOVE_RESIZE;
 extern EAPI int E_EVENT_POINTER_WARP;
 
 #endif

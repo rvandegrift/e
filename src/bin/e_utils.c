@@ -743,6 +743,7 @@ e_util_file_time_get(time_t ftime)
 
    ltime = time(NULL);
    diff = ltime - ftime;
+   buf[0] = 0;
    if (ftime > ltime)
      {
 	snprintf(buf, sizeof(buf), _("In the Future"));
@@ -765,7 +766,7 @@ e_util_file_time_get(time_t ftime)
 	  snprintf(buf, sizeof(buf), _("%li Minutes ago"), (diff / 60));
      }
 
-   if (buf)
+   if (buf[0])
      s = strdup(buf);
    else
      s = strdup(_("Unknown"));
@@ -851,9 +852,16 @@ e_util_icon_theme_icon_add(const char *icon_name, const char *size, Evas *evas)
    if (icon_name[0] == '/') return e_util_icon_add(icon_name, evas);
    else
      {
-	const char *path;
+	Evas_Object *obj;
+	char *path;
+
 	path = efreet_icon_path_find(e_config->icon_theme, icon_name, size);
-	if (path) return e_util_icon_add(path, evas);
+	if (path)
+	  {
+	     obj = e_util_icon_add(path, evas);
+	     free(path);
+	     return obj;
+	  }
      }
    return NULL;
 }
@@ -861,11 +869,11 @@ e_util_icon_theme_icon_add(const char *icon_name, const char *size, Evas *evas)
 EAPI void
 e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, const char *size, E_Menu_Item *mi)
 {
-   const char *path = NULL;
+   char *path = NULL;
 
    if ((!desktop) || (!desktop->icon)) return;
 
-   if (desktop->icon[0] == '/') path = desktop->icon;
+   if (desktop->icon[0] == '/') path = strdup(desktop->icon);
    else path = efreet_icon_path_find(e_config->icon_theme, desktop->icon, size);
 
    if (path)
@@ -882,6 +890,7 @@ e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, const char *size, E_M
 	  }
 	else
 	  e_menu_item_icon_file_set(mi, path);
+	free(path);
      }
 }
 

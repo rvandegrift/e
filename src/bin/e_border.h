@@ -3,6 +3,13 @@
  */
 #ifdef E_TYPEDEFS
 
+typedef enum _E_Icon_Preference
+{
+   E_ICON_PREF_E_DEFAULT,
+   E_ICON_PREF_NETWM,
+   E_ICON_PREF_USER
+} E_Icon_Preference;
+
 typedef enum _E_Direction
 {
    E_DIRECTION_UP,
@@ -390,7 +397,8 @@ struct _E_Border
    double          ping;
  
    unsigned char   changed : 1;
-   
+  
+   unsigned char   icon_preference; 
    unsigned char   ignore_first_unmap;
    unsigned char   resize_mode;
    
@@ -660,6 +668,8 @@ EAPI void e_border_resize_limit(E_Border *bd, int *w, int *h);
 
 EAPI E_Border_Hook *e_border_hook_add(E_Border_Hook_Point hookpoint, void (*func) (void *data, E_Border *bd), void *data);
 EAPI void e_border_hook_del(E_Border_Hook *bh);
+EAPI void e_border_focus_track_freeze(void);
+EAPI void e_border_focus_track_thaw(void);
 
 extern EAPI int E_EVENT_BORDER_RESIZE;
 extern EAPI int E_EVENT_BORDER_MOVE;

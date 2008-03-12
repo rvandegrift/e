@@ -3455,7 +3455,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=enlightenment
- VERSION=0.16.999.040
+ VERSION=0.16.999.041
 
 
 cat >>confdefs.h <<_ACEOF
@@ -25820,24 +25820,32 @@ if test -n "$PKG_CONFIG"; then
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 \"") >&5
   ($PKG_CONFIG --exists --print-errors "
   evas
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 ") 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
@@ -25847,12 +25855,16 @@ if test -n "$PKG_CONFIG"; then
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 " 2>/dev/null`
 else
   pkg_failed=yes
@@ -25871,24 +25883,32 @@ if test -n "$PKG_CONFIG"; then
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 \"") >&5
   ($PKG_CONFIG --exists --print-errors "
   evas
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 ") 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
@@ -25898,12 +25918,16 @@ if test -n "$PKG_CONFIG"; then
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 " 2>/dev/null`
 else
   pkg_failed=yes
@@ -25928,12 +25952,16 @@ fi
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 "`
         else
 	        E_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "
@@ -25941,12 +25969,16 @@ fi
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 "`
         fi
 	# Put the nasty error message in config.log where it belongs
@@ -25957,12 +25989,16 @@ fi
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 ) were not met:
 
 $E_PKG_ERRORS
@@ -25979,12 +26015,16 @@ echo "$as_me: error: Package requirements (
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 ) were not met:
 
 $E_PKG_ERRORS
@@ -26336,7 +26376,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile enlightenment.spec src/Makefile src/bin/Makefile src/modules/Makefile src/modules/ibar/Makefile src/modules/ibar/module.desktop src/modules/dropshadow/Makefile src/modules/dropshadow/module.desktop src/modules/clock/Makefile src/modules/clock/module.desktop src/modules/pager/Makefile src/modules/pager/module.desktop src/modules/battery/Makefile src/modules/battery/module.desktop src/modules/temperature/Makefile src/modules/temperature/module.desktop src/modules/cpufreq/Makefile src/modules/cpufreq/module.desktop src/modules/ibox/Makefile src/modules/ibox/module.desktop src/modules/start/Makefile src/modules/start/module.desktop src/modules/layout/Makefile src/modules/layout/module.desktop src/modules/conf_wallpaper/Makefile src/modules/conf_wallpaper/module.desktop src/modules/conf_theme/Makefile src/modules/conf_theme/module.desktop src/modules/conf_colors/Makefile src/modules/conf_colors/module.desktop src/modules/conf_fonts/Makefile src/modules/conf_fonts/module.desktop src/modules/conf_borders/Makefile src/modules/conf_borders/module.desktop src/modules/conf_icon_theme/Makefile src/modules/conf_icon_theme/module.desktop src/modules/conf_mouse_cursor/Makefile src/modules/conf_mouse_cursor/module.desktop src/modules/conf_transitions/Makefile src/modules/conf_transitions/module.desktop src/modules/conf_startup/Makefile src/modules/conf_startup/module.desktop src/preload/Makefile data/Makefile data/fonts/Makefile data/images/Makefile data/init/Makefile data/init/images/Makefile data/input_methods/Makefile data/themes/Makefile data/themes/images/Makefile data/other/Makefile data/xsession/Makefile data/xsession/enlightenment.desktop data/backgrounds/Makefile data/etc/Makefile data/icons/Makefile doc/Makefile po/Makefile.in enlightenment-config debian/changelog"
+ac_config_files="$ac_config_files Makefile enlightenment.spec src/Makefile src/bin/Makefile src/modules/Makefile src/modules/ibar/Makefile src/modules/ibar/module.desktop src/modules/dropshadow/Makefile src/modules/dropshadow/module.desktop src/modules/clock/Makefile src/modules/clock/module.desktop src/modules/pager/Makefile src/modules/pager/module.desktop src/modules/battery/Makefile src/modules/battery/module.desktop src/modules/temperature/Makefile src/modules/temperature/module.desktop src/modules/cpufreq/Makefile src/modules/cpufreq/module.desktop src/modules/ibox/Makefile src/modules/ibox/module.desktop src/modules/start/Makefile src/modules/start/module.desktop src/modules/layout/Makefile src/modules/layout/module.desktop src/modules/exebuf/Makefile src/modules/exebuf/module.desktop src/modules/winlist/Makefile src/modules/winlist/module.desktop src/modules/fileman/Makefile src/modules/fileman/module.desktop src/modules/wizard/Makefile src/modules/wizard/module.desktop src/modules/conf/Makefile src/modules/conf/module.desktop src/modules/conf_wallpaper/Makefile src/modules/conf_wallpaper/module.desktop src/modules/conf_theme/Makefile src/modules/conf_theme/module.desktop src/modules/conf_colors/Makefile src/modules/conf_colors/module.desktop src/modules/conf_fonts/Makefile src/modules/conf_fonts/module.desktop src/modules/conf_borders/Makefile src/modules/conf_borders/module.desktop src/modules/conf_icon_theme/Makefile src/modules/conf_icon_theme/module.desktop src/modules/conf_mouse_cursor/Makefile src/modules/conf_mouse_cursor/module.desktop src/modules/conf_transitions/Makefile src/modules/conf_transitions/module.desktop src/modules/conf_startup/Makefile src/modules/conf_startup/module.desktop src/modules/conf_intl/Makefile src/modules/conf_intl/module.desktop src/modules/conf_imc/Makefile src/modules/conf_imc/module.desktop src/modules/conf_profiles/Makefile src/modules/conf_profiles/module.desktop src/modules/conf_engine/Makefile src/modules/conf_engine/module.desktop src/modules/conf_applications/Makefile src/modules/conf_applications/module.desktop src/modules/conf_desks/Makefile src/modules/conf_desks/module.desktop src/modules/conf_desk/Makefile src/modules/conf_desk/module.desktop src/modules/conf_display/Makefile src/modules/conf_display/module.desktop src/modules/conf_desklock/Makefile src/modules/conf_desklock/module.desktop src/modules/conf_screensaver/Makefile src/modules/conf_screensaver/module.desktop src/modules/conf_dpms/Makefile src/modules/conf_dpms/module.desktop src/modules/conf_shelves/Makefile src/modules/conf_shelves/module.desktop src/modules/conf_keybindings/Makefile src/modules/conf_keybindings/module.desktop src/modules/conf_mousebindings/Makefile src/modules/conf_mousebindings/module.desktop src/modules/conf_mouse/Makefile src/modules/conf_mouse/module.desktop src/modules/conf_window_display/Makefile src/modules/conf_window_display/module.desktop src/modules/conf_window_focus/Makefile src/modules/conf_window_focus/module.desktop src/modules/conf_window_manipulation/Makefile src/modules/conf_window_manipulation/module.desktop src/modules/conf_menus/Makefile src/modules/conf_menus/module.desktop src/modules/conf_clientlist/Makefile src/modules/conf_clientlist/module.desktop src/modules/conf_dialogs/Makefile src/modules/conf_dialogs/module.desktop src/modules/conf_performance/Makefile src/modules/conf_performance/module.desktop src/modules/conf_winlist/Makefile src/modules/conf_winlist/module.desktop src/modules/conf_exebuf/Makefile src/modules/conf_exebuf/module.desktop src/modules/conf_paths/Makefile src/modules/conf_paths/module.desktop src/modules/conf_mime/Makefile src/modules/conf_mime/module.desktop src/preload/Makefile data/Makefile data/fonts/Makefile data/images/Makefile data/init/Makefile data/init/images/Makefile data/input_methods/Makefile data/themes/Makefile data/themes/images/Makefile data/other/Makefile data/xsession/Makefile data/xsession/enlightenment.desktop data/backgrounds/Makefile data/etc/Makefile data/icons/Makefile doc/Makefile po/Makefile.in enlightenment-config debian/changelog"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -26958,6 +26998,16 @@ do
     "src/modules/start/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/start/module.desktop" ;;
     "src/modules/layout/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/layout/Makefile" ;;
     "src/modules/layout/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/layout/module.desktop" ;;
+    "src/modules/exebuf/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/exebuf/Makefile" ;;
+    "src/modules/exebuf/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/exebuf/module.desktop" ;;
+    "src/modules/winlist/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/winlist/Makefile" ;;
+    "src/modules/winlist/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/winlist/module.desktop" ;;
+    "src/modules/fileman/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/fileman/Makefile" ;;
+    "src/modules/fileman/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/fileman/module.desktop" ;;
+    "src/modules/wizard/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/wizard/Makefile" ;;
+    "src/modules/wizard/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/wizard/module.desktop" ;;
+    "src/modules/conf/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf/Makefile" ;;
+    "src/modules/conf/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf/module.desktop" ;;
     "src/modules/conf_wallpaper/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_wallpaper/Makefile" ;;
     "src/modules/conf_wallpaper/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_wallpaper/module.desktop" ;;
     "src/modules/conf_theme/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_theme/Makefile" ;;
@@ -26976,6 +27026,58 @@ do
     "src/modules/conf_transitions/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_transitions/module.desktop" ;;
     "src/modules/conf_startup/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_startup/Makefile" ;;
     "src/modules/conf_startup/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_startup/module.desktop" ;;
+    "src/modules/conf_intl/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_intl/Makefile" ;;
+    "src/modules/conf_intl/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_intl/module.desktop" ;;
+    "src/modules/conf_imc/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_imc/Makefile" ;;
+    "src/modules/conf_imc/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_imc/module.desktop" ;;
+    "src/modules/conf_profiles/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_profiles/Makefile" ;;
+    "src/modules/conf_profiles/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_profiles/module.desktop" ;;
+    "src/modules/conf_engine/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_engine/Makefile" ;;
+    "src/modules/conf_engine/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_engine/module.desktop" ;;
+    "src/modules/conf_applications/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_applications/Makefile" ;;
+    "src/modules/conf_applications/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_applications/module.desktop" ;;
+    "src/modules/conf_desks/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_desks/Makefile" ;;
+    "src/modules/conf_desks/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_desks/module.desktop" ;;
+    "src/modules/conf_desk/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_desk/Makefile" ;;
+    "src/modules/conf_desk/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_desk/module.desktop" ;;
+    "src/modules/conf_display/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_display/Makefile" ;;
+    "src/modules/conf_display/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_display/module.desktop" ;;
+    "src/modules/conf_desklock/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_desklock/Makefile" ;;
+    "src/modules/conf_desklock/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_desklock/module.desktop" ;;
+    "src/modules/conf_screensaver/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_screensaver/Makefile" ;;
+    "src/modules/conf_screensaver/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_screensaver/module.desktop" ;;
+    "src/modules/conf_dpms/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_dpms/Makefile" ;;
+    "src/modules/conf_dpms/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_dpms/module.desktop" ;;
+    "src/modules/conf_shelves/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_shelves/Makefile" ;;
+    "src/modules/conf_shelves/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_shelves/module.desktop" ;;
+    "src/modules/conf_keybindings/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_keybindings/Makefile" ;;
+    "src/modules/conf_keybindings/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_keybindings/module.desktop" ;;
+    "src/modules/conf_mousebindings/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_mousebindings/Makefile" ;;
+    "src/modules/conf_mousebindings/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_mousebindings/module.desktop" ;;
+    "src/modules/conf_mouse/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_mouse/Makefile" ;;
+    "src/modules/conf_mouse/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_mouse/module.desktop" ;;
+    "src/modules/conf_window_display/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_window_display/Makefile" ;;
+    "src/modules/conf_window_display/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_window_display/module.desktop" ;;
+    "src/modules/conf_window_focus/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_window_focus/Makefile" ;;
+    "src/modules/conf_window_focus/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_window_focus/module.desktop" ;;
+    "src/modules/conf_window_manipulation/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_window_manipulation/Makefile" ;;
+    "src/modules/conf_window_manipulation/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_window_manipulation/module.desktop" ;;
+    "src/modules/conf_menus/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_menus/Makefile" ;;
+    "src/modules/conf_menus/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_menus/module.desktop" ;;
+    "src/modules/conf_clientlist/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_clientlist/Makefile" ;;
+    "src/modules/conf_clientlist/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_clientlist/module.desktop" ;;
+    "src/modules/conf_dialogs/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_dialogs/Makefile" ;;
+    "src/modules/conf_dialogs/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_dialogs/module.desktop" ;;
+    "src/modules/conf_performance/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_performance/Makefile" ;;
+    "src/modules/conf_performance/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_performance/module.desktop" ;;
+    "src/modules/conf_winlist/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_winlist/Makefile" ;;
+    "src/modules/conf_winlist/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_winlist/module.desktop" ;;
+    "src/modules/conf_exebuf/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_exebuf/Makefile" ;;
+    "src/modules/conf_exebuf/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_exebuf/module.desktop" ;;
+    "src/modules/conf_paths/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_paths/Makefile" ;;
+    "src/modules/conf_paths/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_paths/module.desktop" ;;
+    "src/modules/conf_mime/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/conf_mime/Makefile" ;;
+    "src/modules/conf_mime/module.desktop") CONFIG_FILES="$CONFIG_FILES src/modules/conf_mime/module.desktop" ;;
     "src/preload/Makefile") CONFIG_FILES="$CONFIG_FILES src/preload/Makefile" ;;
     "data/Makefile") CONFIG_FILES="$CONFIG_FILES data/Makefile" ;;
     "data/fonts/Makefile") CONFIG_FILES="$CONFIG_FILES data/fonts/Makefile" ;;

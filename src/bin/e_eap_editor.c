@@ -265,7 +265,7 @@ _e_desktop_edit_create_data(E_Config_Dialog *cfd)
 	  {
 	     /* file not in user's dir, so create new desktop that points there */
 	     if (!ecore_file_exists(dir)) ecore_file_mkdir(dir);
-	     file = ecore_file_get_file(cfdata->editor->desktop->orig_path);
+	     file = ecore_file_file_get(cfdata->editor->desktop->orig_path);
 	     snprintf(path, sizeof(path), "%s/%s", dir, file);
 	     /*
 	      * if a file already exists in the user dir with this name, we
@@ -314,7 +314,7 @@ _e_desktop_edit_create_data(E_Config_Dialog *cfd)
 static void
 _e_desktop_edit_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   if (cfdata->desktop && cfdata->editor->new_desktop && !cfdata->editor->saved)
+   if (cfdata->desktop)
 	efreet_desktop_free(cfdata->desktop);
 
    if (cfdata->editor->tmp_image_path) 
@@ -577,7 +577,8 @@ _e_desktop_editor_cb_icon_select(void *data1, void *data2)
 
    dia = e_dialog_new(cfdata->editor->cfd->con, "E", "_eap_icon_select_dialog");
    if (!dia) return;
-   e_object_del_attach_func_set(E_OBJECT(dia), _e_desktop_edit_cb_icon_select_destroy);
+   e_object_del_attach_func_set(E_OBJECT(dia), 
+				_e_desktop_edit_cb_icon_select_destroy);
    e_dialog_title_set(dia, _("Select an Icon"));
    dia->data = cfdata;
 
@@ -585,20 +586,20 @@ _e_desktop_editor_cb_icon_select(void *data1, void *data2)
    /* XXX change this to a generic icon selector (that can do either
     * files from a dir, or icons in the current theme */
    if (cfdata->icon) 
-     dir = ecore_file_get_dir(cfdata->icon);
+     dir = ecore_file_dir_get(cfdata->icon);
 
    if (dir)
      {
 	o = e_widget_fsel_add(dia->win->evas, dir, "/", NULL, NULL,
-	      _e_desktop_edit_select_cb, cfdata,
-	      NULL, cfdata, 1);
+			      _e_desktop_edit_select_cb, cfdata,
+			      NULL, cfdata, 1);
 	free(dir);
      }
    else
      {
 	o = e_widget_fsel_add(dia->win->evas, "~/", "/", NULL, NULL,
-	      _e_desktop_edit_select_cb, cfdata,
-	      NULL, cfdata, 1);
+			      _e_desktop_edit_select_cb, cfdata,
+			      NULL, cfdata, 1);
      }
    
    evas_object_show(o);
@@ -607,12 +608,13 @@ _e_desktop_editor_cb_icon_select(void *data1, void *data2)
    e_dialog_content_set(dia, o, mw, mh);
 
    /* buttons at the bottom */
-   e_dialog_button_add(dia, _("OK"), NULL, _e_desktop_edit_cb_icon_select_ok, cfdata);
-   e_dialog_button_add(dia, _("Cancel"), NULL, _e_desktop_edit_cb_icon_select_cancel, cfdata);
+   e_dialog_button_add(dia, _("OK"), NULL, 
+		       _e_desktop_edit_cb_icon_select_ok, cfdata);
+   e_dialog_button_add(dia, _("Cancel"), NULL, 
+		       _e_desktop_edit_cb_icon_select_cancel, cfdata);
    e_dialog_resizable_set(dia, 1);
    e_win_centered_set(dia->win, 1);
    e_dialog_show(dia);
-   e_win_resize(dia->win, 475, 341);
    editor->icon_fsel_dia = dia;
 }
 
@@ -633,26 +635,27 @@ _e_desktop_editor_cb_exec_select(void *data1, void *data2)
 
    dia = e_dialog_new(cfdata->editor->cfd->con, "E", "_eap_exec_select_dialog");
    if (!dia) return;
-   e_object_del_attach_func_set(E_OBJECT(dia), _e_desktop_edit_cb_exec_select_destroy);
+   e_object_del_attach_func_set(E_OBJECT(dia), 
+				_e_desktop_edit_cb_exec_select_destroy);
    e_dialog_title_set(dia, _("Select an Executable"));
    dia->data = cfdata;
 
    /* absolute path to exe */
    if (cfdata->exec) 
-     dir = ecore_file_get_dir(cfdata->exec);
+     dir = ecore_file_dir_get(cfdata->exec);
 
    if (dir)
      {
 	o = e_widget_fsel_add(dia->win->evas, dir, "/", NULL, NULL,
-	      _e_desktop_edit_select_cb, cfdata,
-	      NULL, cfdata, 1);
+			      _e_desktop_edit_select_cb, cfdata,
+			      NULL, cfdata, 1);
 	free(dir);
      }
    else
      {
 	o = e_widget_fsel_add(dia->win->evas, "~/", "/", NULL, NULL,
-	      _e_desktop_edit_select_cb, cfdata,
-	      NULL, cfdata, 1);
+			      _e_desktop_edit_select_cb, cfdata,
+			      NULL, cfdata, 1);
      }
    
    evas_object_show(o);
@@ -666,7 +669,6 @@ _e_desktop_editor_cb_exec_select(void *data1, void *data2)
    e_dialog_resizable_set(dia, 1);
    e_win_centered_set(dia->win, 1);
    e_dialog_show(dia);
-   e_win_resize(dia->win, 475, 341);
    editor->exec_fsel_dia = dia;
 }
 
@@ -684,7 +686,8 @@ _e_desktop_edit_cb_icon_select_destroy(void *obj)
    E_Dialog *dia = obj;
    E_Config_Dialog_Data *cfdata = dia->data;
 
-   e_object_unref(E_OBJECT(dia));
+/* extra unref isn't needed - there is no extra ref() anywhere i saw */   
+/*   e_object_unref(E_OBJECT(dia));*/
    _e_desktop_edit_cb_icon_select_cancel(cfdata, NULL);
 }
 
@@ -765,8 +768,6 @@ _e_desktop_edit_cb_exec_select_cancel(void *data, E_Dialog *dia)
 static void
 _e_desktop_editor_exec_update(E_Config_Dialog_Data *cfdata)
 {
-   Evas_Object *o;
-   
    if (!cfdata->editor->entry_widget) return;
 
    e_widget_entry_text_set(cfdata->editor->entry_widget, cfdata->exec);

@@ -701,6 +701,7 @@ main(int argc, char **argv)
        _e_main_shutdown(-1);
     }
    _e_main_shutdown_push(e_fm2_shutdown);
+/*
    TS("fwin");
    if (!e_fwin_init())
     {
@@ -708,6 +709,7 @@ main(int argc, char **argv)
        _e_main_shutdown(-1);
     }
    _e_main_shutdown_push(e_fwin_shutdown);
+*/
    TS("msg");
    /* setup generic msg handling etc */
    if (!e_msg_init())
@@ -740,14 +742,6 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_module_shutdown);
-   TS("winlist");
-   /* setup winlist */
-   if (!e_winlist_init())
-     {
-	e_error_message_show(_("Enlightenment cannot set up its window list system."));
-	_e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_winlist_shutdown);
    TS("colorclasses");
    /* setup color_class */
    if (!e_color_class_init())
@@ -772,14 +766,6 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_shelf_shutdown);
-   TS("exebuf");
-   /* setup exebuf */
-   if (!e_exebuf_init())
-     {
-	e_error_message_show(_("Enlightenment cannot set up its exebuf system."));
-	_e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_exebuf_shutdown);
 
    TS("dpms");     
    /* setup dpms */
@@ -858,7 +844,7 @@ main(int argc, char **argv)
      e_module_all_load();
    else
      {
-	e_int_config_modules(e_container_current_get(e_manager_current_get()));
+	e_int_config_modules(e_container_current_get(e_manager_current_get()), NULL);
 	e_error_message_show
 	  (_("Enlightenment crashed early on start and has<br>"
 	     "been restarted. All modules have been disabled<br>"
@@ -903,11 +889,6 @@ main(int argc, char **argv)
    /* if we were flagged to restart, then  restart. */
    if (restart)
      {
-	/* selected shutdown */
-#if 0
-	e_ipc_shutdown();
-	ecore_file_shutdown();
-#endif
 	e_util_env_set("E_RESTART_OK", "1");
 	ecore_app_restart();
      }

@@ -10,25 +10,25 @@
  * 
  */
 
-typedef struct _Module_Menu_Data Module_Menu_Data;
-
-struct _Module_Menu_Data
-{
-   Evas_List *submenus;
-};
-
 /* local subsystem functions */
 static void _e_module_free(E_Module *m);
 static void _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m);
 static void _e_module_cb_dialog_disable(void *data, E_Dialog *dia);
+static void _e_module_event_update_free(void *data, void *event);
+static int _e_module_cb_idler(void *data);
 
 /* local subsystem globals */
 static Evas_List *_e_modules = NULL;
+static Ecore_Idler *_e_module_idler = NULL;
+static Evas_List *_e_modules_delayed = NULL;
+
+EAPI int E_EVENT_MODULE_UPDATE = 0;
 
 /* externally accessible functions */
 EAPI int
 e_module_init(void)
 {
+   E_EVENT_MODULE_UPDATE = ecore_event_type_new();
    return 1;
 }
 
@@ -57,28 +57,27 @@ e_module_shutdown(void)
 EAPI void
 e_module_all_load(void)
 {
-   Evas_List *pl = NULL, *l;
+   Evas_List *l;
    
-   for (l = e_config->modules; l;)
+   for (l = e_config->modules; l; l = l->next)
      {
 	E_Config_Module *em;
 	E_Module *m;
 	
 	em = l->data;
-	pl = l;
-	l = l->next;
-	m = NULL;
-	if (em->name) m = e_module_new(em->name);
-	if (m)
+	if ((em->delayed) && (em->enabled))
 	  {
-	     if (em->enabled) e_module_enable(m);
+	     if (!_e_module_idler)
+	       _e_module_idler = ecore_idler_add(_e_module_cb_idler, NULL);
+	     _e_modules_delayed = 
+	       evas_list_append(_e_modules_delayed,
+				evas_stringshare_add(em->name));
 	  }
-	else
+	else if (em->enabled)
 	  {
-	     if (em->name) evas_stringshare_del(em->name);
-	     E_FREE(em);
-	     e_config->modules = evas_list_remove_list(e_config->modules, pl);
-	     e_config_save_queue();
+	     m = NULL;
+	     if (em->name) m = e_module_new(em->name);
+	     if (m) e_module_enable(m);
 	  }
      }
 }
@@ -193,12 +192,12 @@ init_done:
    m->name = evas_stringshare_add(name);
    if (modpath)
      {
-	s =  ecore_file_get_dir(modpath);
+	s =  ecore_file_dir_get(modpath);
 	if (s)
 	  {
 	     char *s2;
 	     
-	     s2 = ecore_file_get_dir(s);
+	     s2 = ecore_file_dir_get(s);
 	     free(s);
 	     if (s2)
 	       {
@@ -253,6 +252,7 @@ EAPI int
 e_module_enable(E_Module *m)
 {
    Evas_List *l;
+   E_Event_Module_Update *ev;
    
    E_OBJECT_CHECK_RETURN(m, 0);
    E_OBJECT_TYPE_CHECK_RETURN(m, E_MODULE_TYPE, 0);
@@ -270,6 +270,12 @@ e_module_enable(E_Module *m)
 	       {
 		  em->enabled = 1;
 		  e_config_save_queue();
+		  
+		  ev = E_NEW(E_Event_Module_Update, 1);
+		  ev->name = strdup(em->name);
+		  ev->enabled = 1;
+		  ecore_event_add(E_EVENT_MODULE_UPDATE, ev, 
+				  _e_module_event_update_free, NULL);
 		  break;
 	       }
 	  }
@@ -281,6 +287,7 @@ e_module_enable(E_Module *m)
 EAPI int
 e_module_disable(E_Module *m)
 {
+   E_Event_Module_Update *ev;
    Evas_List *l;
    int ret;
    
@@ -299,6 +306,12 @@ e_module_disable(E_Module *m)
 	  {
 	     em->enabled = 0;
 	     e_config_save_queue();
+	     
+	     ev = E_NEW(E_Event_Module_Update, 1);
+	     ev->name = strdup(em->name);
+	     ev->enabled = 0;
+	     ecore_event_add(E_EVENT_MODULE_UPDATE, ev, 
+			     _e_module_event_update_free, NULL);
 	     break;
 	  }
      }
@@ -362,7 +375,7 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
    E_Dialog *dia;
    E_Border *bd;
    char buf[PATH_MAX];
-   const char *icon = NULL;
+   char *icon = NULL;
 
    dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_module_dialog");
    if (!dia) return;
@@ -381,14 +394,15 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
 	     if (!icon)
 	       {
 		  snprintf(buf, sizeof(buf), "%s/%s.edj",
-			e_module_dir_get(m), desktop->icon);
-		  icon = buf;
+			   e_module_dir_get(m), desktop->icon);
+		  icon = strdup(buf);
 	       }
 	     dia->icon_object = e_util_icon_add(icon, e_win_evas_get(dia->win));
 	     edje_extern_object_min_size_set(dia->icon_object, 64, 64);
 	     edje_object_part_swallow(dia->bg_object, "e.swallow.icon", dia->icon_object);
 	     evas_object_show(dia->icon_object);
 	  }
+	if (desktop) efreet_desktop_free(desktop);
      }
    else
      e_dialog_icon_set(dia, "enlightenment/modules", 64);
@@ -402,6 +416,29 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
    bd = dia->win->border;
    if (!bd) return;
    bd->internal_icon = evas_stringshare_add(icon);
+   free(icon);
+}
+
+EAPI void
+e_module_delayed_set(E_Module *m, int delayed)
+{
+   Evas_List *l;
+   
+   for (l = e_config->modules; l; l = l->next)
+     {
+        E_Config_Module *em;
+	
+	em = l->data;
+	if ((em->name) && (!strcmp(m->name, em->name)))
+	  {
+	     if (em->delayed != delayed)
+	       {
+		  em->delayed = delayed;
+		  e_config_save_queue();
+	       }
+	     break;
+	  }
+     }
 }
 
 /* local subsystem functions */
@@ -468,4 +505,35 @@ _e_module_cb_dialog_disable(void *data, E_Dialog *dia)
    e_object_del(E_OBJECT(m));
    e_object_del(E_OBJECT(dia));
    e_config_save_queue();
+}
+
+static void 
+_e_module_event_update_free(void *data, void *event) 
+{
+   E_Event_Module_Update *ev;
+   
+   ev = event;
+   if (!ev) return;
+   E_FREE(ev->name);
+   E_FREE(ev);
+}
+
+static int
+_e_module_cb_idler(void *data)
+{
+   if (_e_modules_delayed)
+     {
+	const char *name;
+	E_Module *m;
+	
+	name = _e_modules_delayed->data;
+	_e_modules_delayed = evas_list_remove_list(_e_modules_delayed, _e_modules_delayed);
+	m = NULL;
+	if (name) m = e_module_new(name);
+	if (m) e_module_enable(m);
+	evas_stringshare_del(name);
+     }
+   if (_e_modules_delayed) return 1;
+   _e_module_idler = NULL;
+   return 0;
 }

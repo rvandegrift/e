@@ -3,6 +3,7 @@
  */
 
 #include "e.h"
+#include "e_int_config_theme_import.h"
 
 static void        *_create_data          (E_Config_Dialog *cfd);
 static void         _free_data            (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
@@ -40,7 +41,7 @@ struct _E_Config_Dialog_Data
 };
 
 EAPI E_Config_Dialog *
-e_int_config_theme(E_Container *con)
+e_int_config_theme(E_Container *con, const char *params __UNUSED__)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -474,7 +475,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    
    /* Actually take our cfdata settings and apply them in real life */
    ct = e_theme_config_get("theme");
-   if (!strcmp(ct->file, cfdata->theme)) return 1;
+   if ((ct) && (!strcmp(ct->file, cfdata->theme))) return 1;
    
    e_theme_config_set("theme", cfdata->theme);
    e_config_save_queue();
@@ -766,7 +767,7 @@ _ilist_files_add(E_Config_Dialog_Data *cfdata, const char *header, const char *d
    DIR *d = NULL;
    struct dirent *dentry = NULL;
    Evas_List *themefiles = NULL;
-   int count;
+   int count = 0;
    char themename[1024];
    char *tmp;
    Evas_Object *o;
@@ -929,14 +930,14 @@ _cb_adv_btn_assign(void *data1, void *data2)
 
    for (themes = cfdata->theme_list; themes; themes = themes->next)
      {
-	char * filename;
+	const char *filename = NULL;
 
 	t = themes->data;
 	if (!strcmp(t->category, newtheme->category))
 	  {
 	     if ((t->file) && (strcmp(t->file, newtheme->file)))
 	       {
-		  filename = strdup(t->file);
+		  filename = evas_stringshare_add(t->file);
 		  free((void *)(t->file));
 		  t->file = NULL;
 		  if (!_theme_file_used(cfdata->theme_list, filename))
@@ -945,16 +946,16 @@ _cb_adv_btn_assign(void *data1, void *data2)
 			 if (!strcmp(filename, _files_ilist_nth_label_to_file(cfdata, n)))
 			   e_widget_ilist_nth_icon_set(of, n, NULL);
 		    }
-		  free(filename);
 	       }
 	     t->file = strdup(newtheme->file);
+	     if (filename) evas_stringshare_del(filename);
 	     break;
 	  }
      }	
    if (!themes)
-	cfdata->theme_list = evas_list_append(cfdata->theme_list, newtheme);
+     cfdata->theme_list = evas_list_append(cfdata->theme_list, newtheme);
    else 
-        free(newtheme);
+     free(newtheme);
 
    return;
 }
@@ -968,7 +969,7 @@ _cb_adv_btn_clear(void *data1, void *data2)
    Evas_Object *oc = NULL, *of = NULL;
    char cat[1024];
    const char *label;
-   const char *filename;
+   const char *filename = NULL;
    int n;
 
    cfdata = data1;
@@ -992,7 +993,7 @@ _cb_adv_btn_clear(void *data1, void *data2)
 	  {
 	     if (t->file)
 	       {
-		  filename = strdup(t->file);
+		  filename = evas_stringshare_add(t->file);
 		  free((void *)(t->file));
 		  t->file = NULL;
 	       }
@@ -1005,6 +1006,7 @@ _cb_adv_btn_clear(void *data1, void *data2)
 	for (n = 0; n < e_widget_ilist_count(of); n++)
 	  if (!strcmp(filename, _files_ilist_nth_label_to_file(cfdata, n)))
 	    e_widget_ilist_nth_icon_set(of, n, NULL);
+	evas_stringshare_del(filename);
      }
 
    return;

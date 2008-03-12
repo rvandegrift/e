@@ -215,26 +215,26 @@ main(int argc, char **argv)
    e_dbus_init();
    _e_dbus_conn = e_dbus_bus_get(DBUS_BUS_SYSTEM);
    if (_e_dbus_conn)
-   {
-      e_hal_manager_get_all_devices(_e_dbus_conn, _e_dbus_cb_dev_all, NULL);
-      e_hal_manager_find_device_by_capability(_e_dbus_conn, "storage",
-	    _e_dbus_cb_dev_store, NULL);
-      e_hal_manager_find_device_by_capability(_e_dbus_conn, "volume",
-	    _e_dbus_cb_dev_vol, NULL);
-
-      e_dbus_signal_handler_add(_e_dbus_conn, "org.freedesktop.Hal",
-	    "/org/freedesktop/Hal/Manager",
-	    "org.freedesktop.Hal.Manager",
-	    "DeviceAdded", _e_dbus_cb_dev_add, NULL);
-      e_dbus_signal_handler_add(_e_dbus_conn, "org.freedesktop.Hal",
-	    "/org/freedesktop/Hal/Manager",
-	    "org.freedesktop.Hal.Manager",
-	    "DeviceRemoved", _e_dbus_cb_dev_del, NULL);
-      e_dbus_signal_handler_add(_e_dbus_conn, "org.freedesktop.Hal",
-	    "/org/freedesktop/Hal/Manager",
-	    "org.freedesktop.Hal.Manager",
-	    "NewCapability", _e_dbus_cb_cap_add, NULL);
-   }
+     {
+	e_hal_manager_get_all_devices(_e_dbus_conn, _e_dbus_cb_dev_all, NULL);
+	e_hal_manager_find_device_by_capability(_e_dbus_conn, "storage",
+						_e_dbus_cb_dev_store, NULL);
+	e_hal_manager_find_device_by_capability(_e_dbus_conn, "volume",
+						_e_dbus_cb_dev_vol, NULL);
+	
+	e_dbus_signal_handler_add(_e_dbus_conn, "org.freedesktop.Hal",
+				  "/org/freedesktop/Hal/Manager",
+				  "org.freedesktop.Hal.Manager",
+				  "DeviceAdded", _e_dbus_cb_dev_add, NULL);
+	e_dbus_signal_handler_add(_e_dbus_conn, "org.freedesktop.Hal",
+				  "/org/freedesktop/Hal/Manager",
+				  "org.freedesktop.Hal.Manager",
+				  "DeviceRemoved", _e_dbus_cb_dev_del, NULL);
+	e_dbus_signal_handler_add(_e_dbus_conn, "org.freedesktop.Hal",
+				  "/org/freedesktop/Hal/Manager",
+				  "org.freedesktop.Hal.Manager",
+				  "NewCapability", _e_dbus_cb_cap_add, NULL);
+     }
 #endif
    
    if (_e_ipc_init()) ecore_main_loop_begin();
@@ -274,22 +274,17 @@ _e_dbus_cb_dev_all(void *user_data, void *reply_data, DBusError *error)
 	return;
      }
 
-   ecore_list_goto_first(ret->strings);
+   ecore_list_first_goto(ret->strings);
    while ((device = ecore_list_next(ret->strings)))
      {
 //	printf("DB INIT DEV+: %s\n", device);
-	if (!strncmp(device, "/org/freedesktop/Hal/devices/storage",
-		     strlen("/org/freedesktop/Hal/devices/storage")))
-	  {
-	     char *udi;
-	     int ret;
-	     
-	     udi = device;
-	     ret = e_hal_device_query_capability(_e_dbus_conn, udi, "storage",
-						 _e_dbus_cb_store_is, strdup(udi));
-	     e_hal_device_query_capability(_e_dbus_conn, udi, "volume", 
-					   _e_dbus_cb_vol_is, strdup(udi));
-	  }
+	char *udi;
+
+	udi = device;
+	e_hal_device_query_capability(_e_dbus_conn, udi, "storage",
+	      _e_dbus_cb_store_is, strdup(udi));
+	e_hal_device_query_capability(_e_dbus_conn, udi, "volume", 
+	      _e_dbus_cb_vol_is, strdup(udi));
      }
 }
 
@@ -307,7 +302,7 @@ _e_dbus_cb_dev_store(void *user_data, void *reply_data, DBusError *error)
 	return;
      }
    
-   ecore_list_goto_first(ret->strings);
+   ecore_list_first_goto(ret->strings);
    while ((device = ecore_list_next(ret->strings)))
      {
 //	printf("DB STORE+: %s\n", device);
@@ -329,7 +324,7 @@ _e_dbus_cb_dev_vol(void *user_data, void *reply_data, DBusError *error)
 	return;
      }
    
-   ecore_list_goto_first(ret->strings);
+   ecore_list_first_goto(ret->strings);
    while ((device = ecore_list_next(ret->strings)))
      {
 //	printf("DB VOL+: %s\n", device);
@@ -714,7 +709,7 @@ e_volume_mount(E_Volume *v)
    static int mount_id = 1;
    char buf[4096];
    char *mount_point;
-   Ecore_List *opt;
+   Ecore_List *opt = NULL;
    
    if (v->mount_point && v->mount_point[0])
      mount_point = v->mount_point;
@@ -735,9 +730,13 @@ e_volume_mount(E_Volume *v)
    printf("mount %s %s\n", v->udi, v->mount_point);
 // FIXME; need to mount AS the USER - not root!!! seems it mounts as root
 //   opt = ecore_list_new();
-//   ecore_list_append(opt, "user");
+//   snprintf(buf, sizeof(buf), "uid=%i", (int)getuid());
+//// hmmm - so how do these work?
+//   ecore_list_append(opt, buf);
+////   ecore_list_append(opt, "user");
+////   ecore_list_append(opt, "utf8");
    e_hal_device_volume_mount(_e_dbus_conn, v->udi, v->mount_point,
-			     v->fstype, NULL, _e_dbus_cb_vol_mounted, v);
+			     v->fstype, opt, _e_dbus_cb_vol_mounted, v);
 //   ecore_list_destroy(opt);
 }
 
@@ -1037,7 +1036,7 @@ _e_ipc_cb_server_data(void *data, int type, void *event)
 	     dst = src + strlen(src) + 1;
 	     ecore_file_mv(src, dst);
 	     /* FIXME: send back if succeeded or failed - why */
-	     _e_path_fix_order(dst, ecore_file_get_file(src), 2, -9999, -9999);
+	     _e_path_fix_order(dst, ecore_file_file_get(src), 2, -9999, -9999);
 	  }
 	break;
       case 6: /* fop mv file/dir */
@@ -1221,8 +1220,8 @@ _e_cb_file_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, c
    const char *file;
    Evas_List *l;
 
-   dir = ecore_file_get_dir(path);
-   file = ecore_file_get_file(path);
+   dir = ecore_file_dir_get(path);
+   file = ecore_file_file_get(path);
    /* FIXME: get no create events if dir is empty */
    if ((event == ECORE_FILE_EVENT_CREATED_FILE) ||
        (event == ECORE_FILE_EVENT_CREATED_DIRECTORY))
@@ -1885,10 +1884,10 @@ _e_path_fix_order(const char *path, const char *rel, int rel_to, int x, int y)
    
    if (!path) return;
    if (!rel[0]) return;
-   f = ecore_file_get_file(path);
+   f = ecore_file_file_get(path);
    if (!f) return;
    if (!strcmp(f, rel)) return;
-   d = ecore_file_get_dir(path);
+   d = ecore_file_dir_get(path);
    if (!d) return;
    snprintf(buf, sizeof(buf), "%s/.order", d);
    if (ecore_file_exists(buf))

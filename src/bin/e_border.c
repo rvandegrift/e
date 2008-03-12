@@ -118,6 +118,8 @@ static Evas_List *focus_stack = NULL;
 
 static Ecore_X_Screen_Size screen_size = { -1, -1 };
 
+static int focus_track_frozen = 0;
+
 EAPI int E_EVENT_BORDER_ADD = 0;
 EAPI int E_EVENT_BORDER_REMOVE = 0;
 EAPI int E_EVENT_BORDER_ZONE_SET = 0;
@@ -611,10 +613,7 @@ e_border_zone_set(E_Border *bd, E_Zone *zone)
    bd->zone = zone;
 
    if (bd->desk->zone != bd->zone)
-     {
-	e_border_desk_set(bd, e_desk_current_get(bd->zone));
-     }
-
+     e_border_desk_set(bd, e_desk_current_get(bd->zone));
 
    ev = calloc(1, sizeof(E_Event_Border_Zone_Set));
    ev->border = bd;
@@ -1327,7 +1326,7 @@ e_border_focus_set(E_Border *bd, int focus, int set)
 	  }
 	if (bd->visible)
 	  {
-	     if (!e_winlist_active_get())
+	     if (focus_track_frozen == 0)
 	       e_border_focus_latest_set(bd);
 	  }
 //	printf("EMIT 0x%x activeve\n", bd->client.win);
@@ -2628,7 +2627,7 @@ e_border_icon_add(E_Border *bd, Evas *evas)
 	  }
 	return o;
      }
-   if (e_config->use_app_icon)
+   if ((e_config->use_app_icon) && (bd->icon_preference != E_ICON_PREF_USER))
      {
 	if (bd->client.netwm.icons)
 	  {
@@ -2642,10 +2641,11 @@ e_border_icon_add(E_Border *bd, Evas *evas)
      }
    if (!o)
      {
-	if (bd->desktop)
+	if ((bd->desktop) && (bd->icon_preference != E_ICON_PREF_NETWM))
 	  {
 	     o = e_util_desktop_icon_add(bd->desktop, "24x24", evas);
-	     return o;
+	     if (o)
+	       return o;
 	  }
 	else if (bd->client.netwm.icons)
 	  {
@@ -4360,6 +4360,7 @@ _e_border_cb_efreet_desktop_change(void *data, int ev_type, void *ev)
 	      bd = l->data;
 	      if (bd->desktop == event->current)
 		{
+		   efreet_desktop_free(bd->desktop);
 		   bd->desktop = NULL;
 		   bd->changes.icon = 1;
 		   bd->changed = 1;
@@ -4376,6 +4377,8 @@ _e_border_cb_efreet_desktop_change(void *data, int ev_type, void *ev)
 
 	      if (bd->desktop == event->previous)
 		{
+		   efreet_desktop_free(bd->desktop);
+		   efreet_desktop_ref(event->current);
 		   bd->desktop = event->current;
 		   bd->changes.icon = 1;
 		   bd->changed = 1;
@@ -5643,6 +5646,8 @@ _e_border_eval(E_Border *bd)
 	       }
 	     if (rem->apply & E_REMEMBER_APPLY_SKIP_WINLIST)
 	       bd->user_skip_winlist = rem->prop.skip_winlist;
+	     if (rem->apply & E_REMEMBER_APPLY_ICON_PREF)
+	       bd->icon_preference = rem->prop.icon_preference;
 	  }
      }
 
@@ -5731,23 +5736,12 @@ _e_border_eval(E_Border *bd)
 
 		  bd->bg_object = o;
 		  shape_option = edje_object_data_get(o, "shaped");
-		  if (shape_option)
+		  if (shape_option && !strcmp(shape_option, "1"))
 		    {
-		       if (!strcmp(shape_option, "1"))
+		       if (!bd->shaped)
 			 {
-			    if (!bd->shaped)
-			      {
-				 bd->shaped = 1;
-				 ecore_evas_shaped_set(bd->bg_ecore_evas, bd->shaped);
-			      }
-			 }
-		       else
-			 {
-			    if (bd->shaped)
-			      {
-				 bd->shaped = 0;
-				 ecore_evas_shaped_set(bd->bg_ecore_evas, bd->shaped);
-			      }
+			    bd->shaped = 1;
+			    ecore_evas_shaped_set(bd->bg_ecore_evas, bd->shaped);
 			 }
 		    }
 		  else
@@ -6517,11 +6511,17 @@ _e_border_eval(E_Border *bd)
 	     bd->icon_object = NULL;
 	  }
 	if (!bd->desktop)
-	  bd->desktop = efreet_util_desktop_wm_class_find(bd->client.icccm.name,
-							  bd->client.icccm.class);
+	  {
+	     bd->desktop = efreet_util_desktop_wm_class_find(bd->client.icccm.name,
+							     bd->client.icccm.class);
+	     if (bd->desktop) efreet_desktop_ref(bd->desktop);
+	  }
 	if (!bd->desktop)
-	  bd->desktop = e_exec_startup_id_pid_find(bd->client.netwm.startup_id,
-						   bd->client.netwm.pid);
+	  {
+	     bd->desktop = e_exec_startup_id_pid_find(bd->client.netwm.startup_id,
+						      bd->client.netwm.pid);
+	     if (bd->desktop) efreet_desktop_ref(bd->desktop);
+	  }
 	bd->icon_object = e_border_icon_add(bd, bd->bg_evas);
 	if ((bd->focused) && (bd->icon_object))
 	  edje_object_signal_emit(bd->icon_object, "e,state,focused", "e");
@@ -7430,4 +7430,16 @@ e_border_hook_del(E_Border_Hook *bh)
      }
    else
      _e_border_hooks_delete++;
+}
+
+EAPI void
+e_border_focus_track_freeze(void)
+{
+   focus_track_frozen++;
+}
+
+EAPI void
+e_border_focus_track_thaw(void)
+{
+   focus_track_frozen--;
 }

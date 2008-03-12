@@ -293,6 +293,9 @@ ACT_FN_GO(window_kill)
 	obj = E_OBJECT(e_border_focused_get());
 	if (!obj) return;
      }
+   bd = (E_Border *)obj;
+   if ((bd->lock_close) || (bd->internal)) return;
+   
    if (kill_dialog) e_object_del(E_OBJECT(kill_dialog));
 
    if (e_config->cnfmdlg_disabled)
@@ -301,7 +304,6 @@ ACT_FN_GO(window_kill)
 	return;
      }
 
-   bd = (E_Border *)obj;
    snprintf(dialog_text, sizeof(dialog_text),
 	    _("You are about to kill %s.<br><br>"
 	    "Please keep in mind that all data of this window,<br>"
@@ -460,15 +462,16 @@ ACT_FN_GO(window_fullscreen)
 	  {
 	     int v;
 	     char buf[32];
+	     buf[0] = 0;
 	     if (sscanf(params, "%i %20s", &v, buf) == 2)
 	       {
 		  if (v == 1)
 		    {
-		      if (buf == 0 || *buf == '\0')
+		      if (*buf == '\0')
 			e_border_fullscreen(bd, e_config->fullscreen_policy);
-		      else if (! strcmp(buf, "resize"))
+		      else if (!strcmp(buf, "resize"))
 			e_border_fullscreen(bd, E_FULLSCREEN_RESIZE);
-		      else if (! strcmp(buf, "zoom"))
+		      else if (!strcmp(buf, "zoom"))
 			e_border_fullscreen(bd, E_FULLSCREEN_ZOOM);
 		    }
 		  else if (v == 0)
@@ -1440,100 +1443,6 @@ ACT_FN_GO(app)
 }
 
 /***************************************************************************/
-ACT_FN_GO(winlist)
-{
-   E_Zone *zone;
-   
-   zone = _e_actions_zone_get(obj);
-   if (zone)
-     {
-	if (params)
-	  {
-	     if (!strcmp(params, "next"))
-	       {
-		  if (!e_winlist_show(zone))
-		    e_winlist_next();
-	       }
-	     else if (!strcmp(params, "prev"))
-	       {
-		  if (!e_winlist_show(zone))
-		    e_winlist_prev();
-	       }
-	  }
-	else
-	  {
-	     if (!e_winlist_show(zone))
-	       e_winlist_next();
-	  }
-     }
-}
-ACT_FN_GO_MOUSE(winlist)
-{
-   E_Zone *zone;
-   
-   zone = _e_actions_zone_get(obj);
-   if (zone)
-     {
-	if (params)
-	  {
-	     if (!strcmp(params, "next"))
-	       {
-		  if (e_winlist_show(zone))
-		    e_winlist_modifiers_set(ev->modifiers);
-		  else
-		    e_winlist_next();
-	       }
-	     else if (!strcmp(params, "prev"))
-	       {
-		  if (e_winlist_show(zone))
-		    e_winlist_modifiers_set(ev->modifiers);
-		  else
-		    e_winlist_prev();
-	       }
-	  }
-	else
-	  {
-	     if (e_winlist_show(zone))
-	       e_winlist_modifiers_set(ev->modifiers);
-	     else
-	       e_winlist_next();
-	  }
-     }
-}
-ACT_FN_GO_KEY(winlist)
-{
-   E_Zone *zone;
-   
-   zone = _e_actions_zone_get(obj);
-   if (zone)
-     {
-	if (params)
-	  {
-	     if (!strcmp(params, "next"))
-	       {
-		  if (e_winlist_show(zone))
-		    e_winlist_modifiers_set(ev->modifiers);
-		  else
-		    e_winlist_next();
-	       }
-	     else if (!strcmp(params, "prev"))
-	       {
-		  if (e_winlist_show(zone))
-		    e_winlist_modifiers_set(ev->modifiers);
-		  else
-		    e_winlist_prev();
-	       }
-	  }
-	else
-	  {
-	     if (e_winlist_show(zone))
-	       e_winlist_modifiers_set(ev->modifiers);
-	     else
-	       e_winlist_next();
-	  }
-     }
-}
-
 ACT_FN_GO(desk_deskshow_toggle)
 {
    E_Zone *zone;
@@ -1963,16 +1872,6 @@ ACT_FN_GO(pointer_resize_pop)
 }
 
 /***************************************************************************/
-ACT_FN_GO(exebuf)
-{
-   E_Zone *zone;
-   
-   zone = _e_actions_zone_get(obj);
-   if (zone)
-     e_exebuf_show(zone);
-}
-
-/***************************************************************************/
 ACT_FN_GO(desk_lock)
 {
 /*  E_Zone *zone;
@@ -2258,15 +2157,6 @@ e_actions_init(void)
    e_action_predef_name_set(_("Launch"), _("Application"), "app", NULL, 
 			    "syntax: , example:", 1);
    
-   /* winlist */
-   ACT_GO(winlist);
-   e_action_predef_name_set(_("Window : List"), _("Next Window"), "winlist", 
-			    "next", NULL, 0);
-   e_action_predef_name_set(_("Window : List"), _("Previous Window"), 
-			    "winlist", "prev", NULL, 0);
-   ACT_GO_MOUSE(winlist);
-   ACT_GO_KEY(winlist);
-   
    ACT_GO(restart);
    e_action_predef_name_set(_("Enlightenment"), _("Restart"), "restart", 
 			    NULL, NULL, 0);
@@ -2302,11 +2192,6 @@ e_actions_init(void)
    ACT_GO(pointer_resize_push);
    ACT_GO(pointer_resize_pop);
    
-   /* exebuf */
-   ACT_GO(exebuf);
-   e_action_predef_name_set(_("Launch"), _("Run Command Dialog"), "exebuf", 
-			    NULL, NULL, 0);
-
    /* desk_lock */
    ACT_GO(desk_lock);
    e_action_predef_name_set(_("Desktop"), _("Desktop Lock"), "desk_lock", 
@@ -2323,20 +2208,12 @@ e_actions_init(void)
 EAPI int
 e_actions_shutdown(void)
 {
-   Evas_List *l;
-
    e_action_predef_name_all_del();
    action_names = evas_list_free(action_names);
    evas_hash_free(actions);
    actions = NULL;
 
-   l = action_list;
-   action_list = NULL;
-   while (l)
-     {
-	e_object_del(E_OBJECT(l->data));
-	l = evas_list_remove_list(l, l);
-     }
+   E_FREE_LIST(action_list, e_object_del);
    return 1;
 }
 

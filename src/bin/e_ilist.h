@@ -21,6 +21,9 @@ struct _E_Ilist_Item
 
 EAPI Evas_Object *e_ilist_add                   (Evas *evas);
 EAPI void         e_ilist_append                (Evas_Object *obj, Evas_Object *icon, const char *label, int header, void (*func) (void *data, void *data2), void (*func_hilight) (void *data, void *data2), void *data, void *data2);
+EAPI void         e_ilist_append_relative       (Evas_Object *obj, Evas_Object *icon, const char *label, int header, void (*func) (void *data, void *data2), void (*func_hilight) (void *data, void *data2), void *data, void *data2, int relative);
+EAPI void         e_ilist_prepend               (Evas_Object *obj, Evas_Object *icon, const char *label, int header, void (*func) (void *data, void *data2), void (*func_hilight) (void *data, void *data2), void *data, void *data2);
+EAPI void         e_ilist_prepend_relative      (Evas_Object *obj, Evas_Object *icon, const char *label, int header, void (*func) (void *data, void *data2), void (*func_hilight) (void *data, void *data2), void *data, void *data2, int relative);
 EAPI void         e_ilist_clear                 (Evas_Object *obj);
 EAPI void         e_ilist_freeze                (Evas_Object *obj);
 EAPI void         e_ilist_thaw                  (Evas_Object *obj);
@@ -38,6 +41,7 @@ EAPI void        *e_ilist_selected_data_get     (Evas_Object *obj);
 EAPI void        *e_ilist_selected_data2_get    (Evas_Object *obj);
 EAPI Evas_Object *e_ilist_selected_icon_get     (Evas_Object *obj);
 EAPI void         e_ilist_selected_geometry_get (Evas_Object *obj, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h);
+EAPI int          e_ilist_selected_count_get    (Evas_Object *obj);
 EAPI void         e_ilist_remove_num            (Evas_Object *obj, int n);
 EAPI const char  *e_ilist_nth_label_get         (Evas_Object *obj, int n);
 EAPI void         e_ilist_nth_label_set         (Evas_Object *obj, int n, const char *label);

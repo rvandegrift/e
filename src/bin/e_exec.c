@@ -118,7 +118,8 @@ e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
 	launch->zone = zone;
 	e_object_ref(E_OBJECT(launch->zone));
      }
-   if (launch_method) launch->launch_method = evas_stringshare_add(launch_method);
+   if (launch_method) 
+     launch->launch_method = evas_stringshare_add(launch_method);
 
    if (desktop)
      {
@@ -128,9 +129,7 @@ e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
 	  efreet_desktop_command_get(desktop, files, _e_exec_cb_exec, launch);
      }
    else
-     {
-	_e_exec_cb_exec(launch, NULL, strdup(exec), 0);
-     }
+     _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
    return 1;
 }
 
@@ -209,10 +208,13 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    e_util_env_set("DESKTOP_STARTUP_ID", buf);
 
    e_util_library_path_strip();
-   exe = ecore_exe_pipe_run(exec,
-			    ECORE_EXE_PIPE_AUTO | ECORE_EXE_PIPE_READ | ECORE_EXE_PIPE_ERROR |
-			    ECORE_EXE_PIPE_READ_LINE_BUFFERED | ECORE_EXE_PIPE_ERROR_LINE_BUFFERED,
-			    inst);
+//// FIXME: seem to be some issues with the pipe and filling up ram - need to
+//// check. for now disable.   
+//   exe = ecore_exe_pipe_run(exec,
+//			    ECORE_EXE_PIPE_AUTO | ECORE_EXE_PIPE_READ | ECORE_EXE_PIPE_ERROR |
+//			    ECORE_EXE_PIPE_READ_LINE_BUFFERED | ECORE_EXE_PIPE_ERROR_LINE_BUFFERED,
+//			    inst);
+   exe = ecore_exe_run(exec, inst);
    e_util_library_path_restore();
    if (penv_display)
      {
@@ -233,13 +235,16 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    if (launch->launch_method) e_exehist_add(launch->launch_method, exec);
    free(exec);
    /* 20 lines at start and end, 20x100 limit on bytes at each end. */
-   ecore_exe_auto_limits_set(exe, 2000, 2000, 20, 20);
+//// FIXME: seem to be some issues with the pipe and filling up ram - need to
+//// check. for now disable.   
+//   ecore_exe_auto_limits_set(exe, 2000, 2000, 20, 20);
    ecore_exe_tag_set(exe, "E/exec");
 
    if (desktop)
      {
 	Evas_List *l;
 
+	efreet_desktop_ref(desktop);
 	inst->desktop = desktop;
 	inst->exe = exe;
 	inst->startup_id = startup_id;
@@ -259,8 +264,9 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 	  }
 	e_exec_start_pending = evas_list_append(e_exec_start_pending, desktop);
      }
-   else
+   else if (exe) 
      ecore_exe_free(exe);
+   
    if (!remaining)
      {
 	if (launch->launch_method) evas_stringshare_del(launch->launch_method);
@@ -290,7 +296,7 @@ _e_exec_cb_exit(void *data, int type, void *event)
    ev = event;
    if (!ev->exe) return 1;
    if (!(ecore_exe_tag_get(ev->exe) && 
-	(!strcmp(ecore_exe_tag_get(ev->exe), "E/exec")))) return 1;
+	 (!strcmp(ecore_exe_tag_get(ev->exe), "E/exec")))) return 1;
    inst = ecore_exe_data_get(ev->exe);
    if (!inst) return 1;
 
@@ -340,6 +346,7 @@ _e_exec_cb_exit(void *data, int type, void *event)
      }
    e_exec_start_pending = evas_list_remove(e_exec_start_pending, inst->desktop);
    if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
+   if (inst->desktop) efreet_desktop_free(inst->desktop);
    free(inst);
    return 1;
 }

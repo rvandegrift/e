@@ -20,9 +20,7 @@ struct _Main_Data
 /* local subsystem functions */
 static void _e_int_menus_main_del_hook       (void *obj);
 static void _e_int_menus_main_about          (void *data, E_Menu *m, E_Menu_Item *mi);
-static int  _e_int_menus_main_run_defer_cb   (void *data);
-static void _e_int_menus_fwin_favorites_item_cb(void *data, E_Menu *m, E_Menu_Item *mi);
-static void _e_int_menus_main_run            (void *data, E_Menu *m, E_Menu_Item*mi);
+//static void _e_int_menus_fwin_favorites_item_cb(void *data, E_Menu *m, E_Menu_Item *mi);
 static int  _e_int_menus_main_lock_defer_cb  (void *data);
 static void _e_int_menus_main_lock           (void *data, E_Menu *m, E_Menu_Item*mi);
 static void _e_int_menus_main_restart        (void *data, E_Menu *m, E_Menu_Item *mi);
@@ -40,7 +38,6 @@ static void _e_int_menus_apps_run            (void *data, E_Menu *m, E_Menu_Item
 static void _e_int_menus_apps_drag           (void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_int_menus_config_pre_cb       (void *data, E_Menu *m);
 static void _e_int_menus_config_free_hook    (void *obj);
-static void _e_int_menus_config_item_cb      (void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_int_menus_clients_pre_cb      (void *data, E_Menu *m);
 static void _e_int_menus_clients_item_create (E_Border *bd, E_Menu *m);
 static void _e_int_menus_clients_free_hook   (void *obj);
@@ -85,6 +82,7 @@ e_int_menus_main_new(void)
    E_Menu *m, *subm;
    E_Menu_Item *mi;
    Main_Data *dat;
+   Evas_List *l;
    
    dat = calloc(1, sizeof(Main_Data));
    m = e_menu_new();
@@ -94,6 +92,9 @@ e_int_menus_main_new(void)
    e_object_del_attach_func_set(E_OBJECT(m), _e_int_menus_main_del_hook);
 
    e_menu_category_set(m, "main");
+
+   l = evas_hash_find(_e_int_menus_augmentation, "main/0");
+   if (l) _e_int_menus_augmentation_add(m, l);
 
    if (e_config->menu_favorites_show) 
      {
@@ -117,21 +118,23 @@ e_int_menus_main_new(void)
 	e_util_menu_item_edje_icon_set(mi, "enlightenment/applications");
 	e_menu_item_submenu_set(mi, subm);
      }
-   
+/*   
 #ifdef ENABLE_FILES
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Files"));
    e_util_menu_item_edje_icon_set(mi, "enlightenment/fileman");
    e_menu_item_callback_set(mi, _e_int_menus_fwin_favorites_item_cb, NULL);
 #endif
+*/
    
-   mi = e_menu_item_new(m);
-   e_menu_item_label_set(mi, _("Run Command"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/run");
-   e_menu_item_callback_set(mi, _e_int_menus_main_run, NULL);	
+   l = evas_hash_find(_e_int_menus_augmentation, "main/1");
+   if (l) _e_int_menus_augmentation_add(m, l);
 
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
+
+   l = evas_hash_find(_e_int_menus_augmentation, "main/2");
+   if (l) _e_int_menus_augmentation_add(m, l);
 
    subm = e_int_menus_desktops_new();
    dat->desktops = subm;
@@ -156,8 +159,15 @@ e_int_menus_main_new(void)
    e_util_menu_item_edje_icon_set(mi, "enlightenment/lost_windows");
    e_menu_item_submenu_set(mi, subm);
  */
+
+   l = evas_hash_find(_e_int_menus_augmentation, "main/3");
+   if (l) _e_int_menus_augmentation_add(m, l);
+
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
+
+   l = evas_hash_find(_e_int_menus_augmentation, "main/4");
+   if (l) _e_int_menus_augmentation_add(m, l);
 
    subm = e_menu_new();
    mi = e_menu_item_new(m);
@@ -176,9 +186,15 @@ e_int_menus_main_new(void)
    e_util_menu_item_edje_icon_set(mi, "enlightenment/themes");
    e_menu_item_callback_set(mi, _e_int_menus_themes_about, NULL);
    
+   l = evas_hash_find(_e_int_menus_augmentation, "main/5");
+   if (l) _e_int_menus_augmentation_add(m, l);
+
    mi = e_menu_item_new(subm);
    e_menu_item_separator_set(mi, 1);
    
+   l = evas_hash_find(_e_int_menus_augmentation, "main/6");
+   if (l) _e_int_menus_augmentation_add(m, l);
+
    mi = e_menu_item_new(subm);
    e_menu_item_label_set(mi, _("Restart"));
    e_util_menu_item_edje_icon_set(mi, "enlightenment/reset");
@@ -189,8 +205,14 @@ e_int_menus_main_new(void)
    e_util_menu_item_edje_icon_set(mi, "enlightenment/exit");
    e_menu_item_callback_set(mi, _e_int_menus_main_exit, NULL);
 
+   l = evas_hash_find(_e_int_menus_augmentation, "main/7");
+   if (l) _e_int_menus_augmentation_add(m, l);
+
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
+
+   l = evas_hash_find(_e_int_menus_augmentation, "main/8");
+   if (l) _e_int_menus_augmentation_add(m, l);
 
    subm = e_int_menus_config_new();
    dat->config = subm;
@@ -199,8 +221,14 @@ e_int_menus_main_new(void)
    e_util_menu_item_edje_icon_set(mi, "enlightenment/configuration");
    e_menu_item_submenu_set(mi, subm);
 
+   l = evas_hash_find(_e_int_menus_augmentation, "main/9");
+   if (l) _e_int_menus_augmentation_add(m, l);
+
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
+
+   l = evas_hash_find(_e_int_menus_augmentation, "main/10");
+   if (l) _e_int_menus_augmentation_add(m, l);
 
    subm = e_int_menus_sys_new();
    dat->sys = subm;
@@ -208,6 +236,9 @@ e_int_menus_main_new(void)
    e_menu_item_label_set(mi, _("System"));
    e_util_menu_item_edje_icon_set(mi, "enlightenment/system");
    e_menu_item_submenu_set(mi, subm);
+
+   l = evas_hash_find(_e_int_menus_augmentation, "main/11");
+   if (l) _e_int_menus_augmentation_add(m, l);
 
    return m;
 }
@@ -345,6 +376,9 @@ e_int_menus_menu_augmentation_add(const char *menu,
    maug->del.data = data_del;
 
    l = evas_hash_find(_e_int_menus_augmentation, menu);
+   if (l) 
+     _e_int_menus_augmentation = evas_hash_del(_e_int_menus_augmentation, menu, l);
+
    l = evas_list_append(l, maug);
    _e_int_menus_augmentation = evas_hash_add(_e_int_menus_augmentation, menu, l);
 
@@ -394,6 +428,18 @@ _e_int_menus_main_del_hook(void *obj)
 	e_object_del(E_OBJECT(dat->sys));
 	free(dat);
      }
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/0"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/1"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/2"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/3"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/4"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/5"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/6"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/7"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/8"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/9"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/10"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "main/11"));
 }
 
 static void
@@ -414,30 +460,13 @@ _e_int_menus_themes_about(void *data, E_Menu *m, E_Menu_Item *mi)
    if (about) e_theme_about_show(about);
 }
 
-/* FIXME: this is a workaround for menus' haveing a key grab AND exebuf
- * wanting one too
- */
-static int
-_e_int_menus_main_run_defer_cb(void *data)
-{
-   E_Zone *zone;
-   
-   zone = data;
-   e_exebuf_show(zone);
-   return 0;
-}
-
+/*
 static void
 _e_int_menus_fwin_favorites_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 {
    e_fwin_new(m->zone->container, "favorites", "/");
 }
-
-static void
-_e_int_menus_main_run(void *data, E_Menu *m, E_Menu_Item *mi)
-{
-   ecore_idle_enterer_add(_e_int_menus_main_run_defer_cb, m->zone);
-}
+*/
 
 /* FIXME: this is a workaround for menus' haveing a key grab AND exebuf
  * wanting one too
@@ -536,7 +565,7 @@ _e_int_menus_apps_scan(E_Menu *m, Efreet_Menu *menu)
      {
 	Efreet_Menu *entry;
 	
-        ecore_list_goto_first(menu->entries);
+        ecore_list_first_goto(menu->entries);
 	while ((entry = ecore_list_next(menu->entries)))
 	  {
 	     mi = e_menu_item_new(m);
@@ -545,11 +574,16 @@ _e_int_menus_apps_scan(E_Menu *m, Efreet_Menu *menu)
 	     
 	     if (entry->icon)
 	       {
-		  const char *file;
+		  if (entry->icon[0] == '/')
+		    e_menu_item_icon_file_set(mi, entry->icon);
+		  else
+		    {
+		       char *file;
 
-		  if (entry->icon[0] == '/') file = entry->icon;
-		  else file = efreet_icon_path_find(e_config->icon_theme, entry->icon, "24x24");
-		  e_menu_item_icon_file_set(mi, file);
+		       file = efreet_icon_path_find(e_config->icon_theme, entry->icon, "24x24");
+		       e_menu_item_icon_file_set(mi, file);
+		       E_FREE(file);
+		    }
 	       }
 	     if (entry->type == EFREET_MENU_ENTRY_SEPARATOR)
 	       e_menu_item_separator_set(mi, 1);
@@ -706,12 +740,16 @@ _e_int_menus_virtuals_pre_cb(void *data, E_Menu *m)
 	     e_menu_item_callback_set(mi, _e_int_menus_virtuals_item_cb, desk);
 	  }
      }
-   mi = e_menu_item_new(m);
-   e_menu_item_separator_set(mi, 1);
 
-   mi = e_menu_item_new(m);
-   e_menu_item_label_set(mi, _("Configure Virtual Desktops"));
-   e_menu_item_callback_set(mi, _e_int_menus_desk_item_cb, NULL);
+   if (e_configure_registry_exists("screen/virtual_desktops"))
+     {
+	mi = e_menu_item_new(m);
+	e_menu_item_separator_set(mi, 1);
+
+	mi = e_menu_item_new(m);
+	e_menu_item_label_set(mi, _("Configure Virtual Desktops"));
+	e_menu_item_callback_set(mi, _e_int_menus_desk_item_cb, NULL);
+     }
 }
 
 static void
@@ -729,27 +767,9 @@ _e_int_menus_virtuals_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_int_menus_background_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
-{
-   e_configure_registry_call("appearance/wallpaper", m->zone->container, NULL);
-}
-
-static void
-_e_int_menus_theme_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
-{
-   e_configure_registry_call("appearance/theme", m->zone->container, NULL);
-}
-
-static void
 _e_int_menus_module_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 {
    e_configure_registry_call("extensions/modules", m->zone->container, NULL);
-}
-
-static void
-_e_int_menus_shelf_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
-{
-   e_configure_registry_call("extensions/shelves", m->zone->container, NULL);
 }
 
 static void
@@ -760,30 +780,14 @@ _e_int_menus_config_pre_cb(void *data, E_Menu *m)
 
    e_menu_pre_activate_callback_set(m, NULL, NULL);
    
-   mi = e_menu_item_new(m);
-   e_menu_item_label_set(mi, _("Configuration Panel"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/configuration");
-   e_menu_item_callback_set(mi, _e_int_menus_config_item_cb, NULL);
-
-   mi = e_menu_item_new(m);
-   e_menu_item_separator_set(mi, 1);
-
-   if (e_configure_registry_exists("appearance/wallpaper"))
+   l = evas_hash_find(_e_int_menus_augmentation, "config/0");
+   if (l)
      {
+	_e_int_menus_augmentation_add(m, l);
 	mi = e_menu_item_new(m);
-	e_menu_item_label_set(mi, _("Wallpaper"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/background");
-	e_menu_item_callback_set(mi, _e_int_menus_background_item_cb, NULL);
+	e_menu_item_separator_set(mi, 1);
      }
    
-   if (e_configure_registry_exists("appearance/theme"))
-     {
-	mi = e_menu_item_new(m);
-	e_menu_item_label_set(mi, _("Theme"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/themes");
-	e_menu_item_callback_set(mi, _e_int_menus_theme_item_cb, NULL);
-     }
-
    if (e_configure_registry_exists("extensions/modules"))
      {
 	mi = e_menu_item_new(m);
@@ -792,15 +796,13 @@ _e_int_menus_config_pre_cb(void *data, E_Menu *m)
 	e_menu_item_callback_set(mi, _e_int_menus_module_item_cb, NULL);
      }
 
-   if (e_configure_registry_exists("extensions/shelves"))
+   l = evas_hash_find(_e_int_menus_augmentation, "config/1");
+   if (l)
      {
-	mi = e_menu_item_new(m);
-	e_menu_item_label_set(mi, _("Shelves"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/shelf");
-	e_menu_item_callback_set(mi, _e_int_menus_shelf_item_cb, NULL);
+	_e_int_menus_augmentation_add(m, l);
      }
-   
-   l = evas_hash_find(_e_int_menus_augmentation, "config");
+
+   l = evas_hash_find(_e_int_menus_augmentation, "config/2");
    if (l)
      {
 	mi = e_menu_item_new(m);
@@ -818,13 +820,9 @@ _e_int_menus_config_free_hook(void *obj)
    E_Menu *m;
 
    m = obj;
-   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "config"));
-}
-
-static void
-_e_int_menus_config_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
-{
-   e_configure_show(m->zone->container);
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "config/0"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "config/1"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "config/2"));
 }
 
 static void
@@ -835,7 +833,7 @@ _e_int_menus_sys_pre_cb(void *data, E_Menu *m)
 
    e_menu_pre_activate_callback_set(m, NULL, NULL);
    
-   l = evas_hash_find(_e_int_menus_augmentation, "sys");
+   l = evas_hash_find(_e_int_menus_augmentation, "sys/0");
    if (l)
      {
 	_e_int_menus_augmentation_add(m, l);
@@ -894,6 +892,15 @@ _e_int_menus_sys_pre_cb(void *data, E_Menu *m)
    e_util_menu_item_edje_icon_set(mi, "enlightenment/logout");
    e_menu_item_callback_set(mi, _e_int_menus_main_logout, NULL);
    
+   l = evas_hash_find(_e_int_menus_augmentation, "sys/1");
+   if (l)
+     {
+	_e_int_menus_augmentation_add(m, l);
+	
+	mi = e_menu_item_new(m);
+	e_menu_item_separator_set(mi, 1);
+     }
+
    e_object_free_attach_func_set(E_OBJECT(m), _e_int_menus_sys_free_hook);
 }
 
@@ -903,7 +910,8 @@ _e_int_menus_sys_free_hook(void *obj)
    E_Menu *m;
 
    m = obj;
-   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "sys"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "sys/0"));
+   _e_int_menus_augmentation_del(m, evas_hash_find(_e_int_menus_augmentation, "sys/1"));
 }
 
 static int
@@ -1458,23 +1466,12 @@ static void
 _e_int_menus_augmentation_add(E_Menu *m, Evas_List *augmentation)
 {
    Evas_List *l;
-   E_Menu_Item *mi;
-   int i = 0;
 
    for (l = augmentation; l; l = l->next)
      {
 	E_Int_Menu_Augmentation *aug;
 
 	aug = l->data;
-
-	if (i)
-	  {
-	     mi = e_menu_item_new(m);
-	     e_menu_item_separator_set(mi, 1);
-	  }
-	else
-	  i++;
-
 	if (aug->add.func)
 	  aug->add.func(aug->add.data, m);
      }

@@ -64,7 +64,7 @@ e_config_init(void)
 	  {
 	     char *data;
 	     int data_len = 0;
-	     
+
 	     data = eet_read(ef, "config", &data_len);
 	     if ((data) && (data_len > 0))
 	       {
@@ -174,6 +174,7 @@ e_config_init(void)
 #define D _e_config_module_edd
    E_CONFIG_VAL(D, T, name, STR);
    E_CONFIG_VAL(D, T, enabled, UCHAR);
+   E_CONFIG_VAL(D, T, delayed, UCHAR);
 
    _e_config_font_default_edd = E_CONFIG_DD_NEW("E_Font_Default", 
 						E_Font_Default);
@@ -303,6 +304,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, prop.zone, INT);
    E_CONFIG_VAL(D, T, prop.head, INT);
    E_CONFIG_VAL(D, T, prop.command, STR);
+   E_CONFIG_VAL(D, T, prop.icon_preference, UCHAR);
    
    _e_config_color_class_edd = E_CONFIG_DD_NEW("E_Color_Class", E_Color_Class);
 #undef T
@@ -360,6 +362,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, zone_desks_x_count, INT); /**/
    E_CONFIG_VAL(D, T, zone_desks_y_count, INT); /**/
    E_CONFIG_VAL(D, T, use_virtual_roots, INT); /* should not make this a config option (for now) */
+   E_CONFIG_VAL(D, T, show_desktop_icons, INT); /**/
    E_CONFIG_VAL(D, T, edge_flip_dragging, INT); /**/
    E_CONFIG_VAL(D, T, edge_flip_moving, INT); /**/
    E_CONFIG_VAL(D, T, edge_flip_timeout, DOUBLE); /**/
@@ -739,30 +742,60 @@ e_config_init(void)
      {
 	E_Config_Module *em;
 
-#define CFG_MODULE(_name, _enabled) \
+#define CFG_MODULE(_name, _enabled, _delayed) \
    em = E_NEW(E_Config_Module, 1); \
    em->name = evas_stringshare_add(_name); \
    em->enabled = _enabled; \
+   em->delayed = _delayed; \
    e_config->modules = evas_list_append(e_config->modules, em)
 
-	CFG_MODULE("start", 1);
-	CFG_MODULE("ibar", 1);
-	CFG_MODULE("ibox", 1);
-	CFG_MODULE("dropshadow", 1);
-	CFG_MODULE("clock", 1);
-	CFG_MODULE("battery", 1);
-	CFG_MODULE("cpufreq", 1);
-	CFG_MODULE("temperature", 1);
-	CFG_MODULE("pager", 1);
-	CFG_MODULE("conf_wallpaper", 1);
-	CFG_MODULE("conf_theme", 1);
-	CFG_MODULE("conf_colors", 1);
-	CFG_MODULE("conf_fonts", 1);
-	CFG_MODULE("conf_borders", 1);
-	CFG_MODULE("conf_icon_theme", 1);
-	CFG_MODULE("conf_mouse_cursor", 1);
-	CFG_MODULE("conf_transitions", 1);
-	CFG_MODULE("conf_startup", 1);
+	CFG_MODULE("start", 1, 0);
+	CFG_MODULE("ibar", 1, 0);
+	CFG_MODULE("ibox", 1, 0);
+	CFG_MODULE("dropshadow", 1, 0);
+	CFG_MODULE("clock", 1, 0);
+	CFG_MODULE("battery", 1, 0);
+	CFG_MODULE("cpufreq", 1, 0);
+	CFG_MODULE("temperature", 1, 0);
+	CFG_MODULE("pager", 1, 0);
+	CFG_MODULE("exebuf", 1, 1);
+	CFG_MODULE("winlist", 1, 1);
+	CFG_MODULE("conf", 1, 1);
+	CFG_MODULE("conf_applications", 1, 1);
+	CFG_MODULE("conf_borders", 1, 1);
+	CFG_MODULE("conf_clientlist", 1, 1);
+	CFG_MODULE("conf_colors", 1, 1);
+	CFG_MODULE("conf_desk", 1, 1);
+	CFG_MODULE("conf_desklock", 1, 1);
+	CFG_MODULE("conf_desks", 1, 1);
+	CFG_MODULE("conf_dialogs", 1, 1);
+	CFG_MODULE("conf_display", 1, 1);
+	CFG_MODULE("conf_dpms", 1, 1);
+	CFG_MODULE("conf_exebuf", 1, 1);
+	CFG_MODULE("conf_fonts", 1, 1);
+	CFG_MODULE("conf_icon_theme", 1, 1);
+	CFG_MODULE("conf_imc", 1, 1);
+	CFG_MODULE("conf_intl", 1, 1);
+	CFG_MODULE("conf_keybindings", 1, 1);
+	CFG_MODULE("conf_menus", 1, 1);
+	CFG_MODULE("conf_mime", 1, 1);
+	CFG_MODULE("conf_mouse", 1, 1);
+	CFG_MODULE("conf_mousebindings", 1, 1);
+	CFG_MODULE("conf_mouse_cursor", 1, 1);
+	CFG_MODULE("conf_paths", 1, 1);
+	CFG_MODULE("conf_performance", 1, 1);
+	CFG_MODULE("conf_profiles", 1, 1);
+	CFG_MODULE("conf_screensaver", 1, 1);
+	CFG_MODULE("conf_shelves", 1, 1);
+	CFG_MODULE("conf_startup", 1, 1);
+	CFG_MODULE("conf_theme", 1, 1);
+	CFG_MODULE("conf_transitions", 1, 1);
+	CFG_MODULE("conf_wallpaper", 1, 1);
+	CFG_MODULE("conf_window_display", 1, 1);
+	CFG_MODULE("conf_window_focus", 1, 1);
+	CFG_MODULE("conf_window_manipulation", 1, 1);
+	CFG_MODULE("conf_winlist", 1, 1);
+	CFG_MODULE("fileman", 1, 1);
      }
 #if 0
      {
@@ -886,10 +919,10 @@ e_config_init(void)
 		    E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
 		    "window_maximized_toggle", NULL);
 	CFG_KEYBIND(E_BINDING_CONTEXT_ANY, "F10",
-		    E_BINDING_MODIFIER_ALT, 0,
+		    E_BINDING_MODIFIER_SHIFT, 0,
 		    "window_maximized_toggle", "default vertical");
 	CFG_KEYBIND(E_BINDING_CONTEXT_ANY, "F10",
-		    E_BINDING_MODIFIER_SHIFT, 0,
+		    E_BINDING_MODIFIER_SHIFT | E_BINDING_MODIFIER_ALT, 0,
 		    "window_maximized_toggle", "default horizontal");
 	CFG_KEYBIND(E_BINDING_CONTEXT_ANY, "r",
 		    E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
@@ -1060,6 +1093,10 @@ e_config_init(void)
 		       "e.event.shade",
 		       E_BINDING_MODIFIER_NONE, 1,
 		       "window_shaded_toggle", "up");
+	CFG_SIGNALBIND(E_BINDING_CONTEXT_BORDER, "mouse,clicked,?", 
+		       "e.event.lower",
+		       E_BINDING_MODIFIER_NONE, 1,
+		       "window_lower", NULL);	       
 	CFG_SIGNALBIND(E_BINDING_CONTEXT_BORDER, "mouse,down,1", 
 		       "e.event.icon",
 		       E_BINDING_MODIFIER_NONE, 1, 
@@ -1428,6 +1465,10 @@ e_config_init(void)
    e_config->allow_above_fullscreen = 0;
    IFCFGEND;
 
+   IFCFG(0x0120);
+   e_config->show_desktop_icons = 1;
+   IFCFGEND;
+
    e_config->config_version = E_CONFIG_FILE_VERSION;   
      
 #if 0 /* example of new config */
@@ -1451,6 +1492,7 @@ e_config_init(void)
    E_CONFIG_LIMIT(e_config->cache_flush_interval, 0.0, 600.0);
    E_CONFIG_LIMIT(e_config->zone_desks_x_count, 1, 64);
    E_CONFIG_LIMIT(e_config->zone_desks_y_count, 1, 64);
+   E_CONFIG_LIMIT(e_config->show_desktop_icons, 0, 1);
    E_CONFIG_LIMIT(e_config->edge_flip_dragging, 0, 1);
    E_CONFIG_LIMIT(e_config->edge_flip_moving, 0, 1);
    E_CONFIG_LIMIT(e_config->edge_flip_timeout, 0.0, 2.0);
@@ -1676,7 +1718,7 @@ e_config_profile_list(void)
      {
 	char *file;
 	
-	ecore_list_goto_first(files);
+	ecore_list_first_goto(files);
 	while ((file = ecore_list_current(files)))
 	  {
 	     snprintf(buf, sizeof(buf), "%s/.e/e/config/%s", homedir, file);
@@ -1714,7 +1756,7 @@ e_config_profile_del(char *prof)
      {
 	char *file;
 	
-	ecore_list_goto_first(files);
+	ecore_list_first_goto(files);
 	while ((file = ecore_list_current(files)))
 	  {
 	     snprintf(buf, sizeof(buf), "%s/.e/e/config/%s/%s",
@@ -1770,12 +1812,6 @@ e_config_domain_load(char *domain, E_Config_DD *edd)
    snprintf(buf, sizeof(buf), "%s/.e/e/config/%s/%s.cfg",
 	    homedir, _e_config_profile, domain);
    ef = eet_open(buf, EET_FILE_MODE_READ);
-   if (!ef)
-     {
-	snprintf(buf, sizeof(buf), "%s/.e/e/config/%s/%s.cfg",
-		 homedir, "default", domain);
-	ef = eet_open(buf, EET_FILE_MODE_READ);
-     }
    if (ef)
      {
 	data = eet_data_read(ef, edd, "config");

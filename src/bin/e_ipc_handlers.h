@@ -1390,7 +1390,7 @@ break;
 /****************************************************************************/
 #define HDL E_IPC_OP_SHUTDOWN
 #if (TYPE == E_REMOTE_OPTIONS)
-   OP("-shutdown", 0, "Shutdown (exit) Enlightenment", 0, HDL)
+   OP("-exit", 0, "Exit Enlightenment", 0, HDL)
 #elif (TYPE == E_REMOTE_OUT)
    REQ_NULL(HDL);
 #elif (TYPE == E_WM_IN)
@@ -5951,20 +5951,6 @@ break;
 #undef HDL
 
 /****************************************************************************/
-#define HDL E_IPC_OP_CONFIG_PANEL_SHOW
-#if (TYPE == E_REMOTE_OPTIONS)
-   OP("-config-panel-show", 0, "Show the configuration panel", 0, HDL)
-#elif (TYPE == E_REMOTE_OUT)
-   REQ_NULL(HDL)
-#elif (TYPE == E_WM_IN)
-   GENERIC(HDL);
-   e_configure_show(e_container_current_get(e_manager_current_get()));
-   END_GENERIC();
-#elif (TYPE == E_REMOTE_IN)
-#endif
-#undef HDL
-
-/****************************************************************************/
 #define HDL E_IPC_OP_BINDING_SIGNAL_LIST 
 #if (TYPE == E_REMOTE_OPTIONS)
    /* e_remote define command line args */
@@ -7556,7 +7542,7 @@ break;
      {
 	const char *i;
 	const char *f;
-	f = ecore_file_get_file(s);
+	f = ecore_file_file_get(s);
 	i = e_path_find(path_init, f);
 	if (!e_util_edje_collection_exists(i, "init/splash")) 
 	  {
@@ -7783,6 +7769,23 @@ break;
    GENERIC(HDL);
    E_Action  *act;
    act = e_action_find("suspend");
+   if (act && act->func.go)
+      act->func.go(NULL, NULL);
+   END_GENERIC();
+#elif (TYPE == E_REMOTE_IN)
+#endif
+#undef HDL
+
+/****************************************************************************/
+#define HDL E_IPC_OP_HALT
+#if (TYPE == E_REMOTE_OPTIONS)
+   OP("-shutdown", 0, "Halt (shutdown) the computer", 0, HDL)
+#elif (TYPE == E_REMOTE_OUT)
+   REQ_NULL(HDL);
+#elif (TYPE == E_WM_IN)
+   GENERIC(HDL);
+   E_Action  *act;
+   act = e_action_find("halt");
    if (act && act->func.go)
       act->func.go(NULL, NULL);
    END_GENERIC();

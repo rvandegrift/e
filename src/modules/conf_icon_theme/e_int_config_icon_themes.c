@@ -12,7 +12,7 @@ static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+//static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 
 static void _ilist_cb_change(void *data, Evas_Object *obj);
 static int _sort_icon_themes(void *data1, void *data2);
@@ -33,7 +33,7 @@ struct _E_Config_Dialog_Data
 };
 
 EAPI E_Config_Dialog *
-e_int_config_icon_themes(E_Container *con)
+e_int_config_icon_themes(E_Container *con, const char *params __UNUSED__)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -67,12 +67,13 @@ _fill_data(E_Config_Dialog_Data *cfdata)
      {
 	Efreet_Icon_Theme *theme;
 
-	ecore_list_goto_first(icon_themes);
+	ecore_list_first_goto(icon_themes);
 	while ((theme = ecore_list_next(icon_themes)))
 	  cfdata->icon_themes = evas_list_append(cfdata->icon_themes, theme);
 	cfdata->icon_themes = evas_list_sort(cfdata->icon_themes,
 					     evas_list_count(cfdata->icon_themes),
 					     _sort_icon_themes);
+	ecore_list_destroy(icon_themes);
      }
    cfdata->themename = strdup(e_config->icon_theme);
 
@@ -116,6 +117,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    return 1; /* Apply was OK */
 }
 
+/*
 static void
 _cb_button_up(void *data1, void *data2)
 {
@@ -179,7 +181,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 	theme = l->data;
 	if (theme->example_icon)
 	  {
-	     const char *path;
+	     char *path;
 
 	     path = efreet_icon_path_find(theme->name.internal, theme->example_icon, "24x24");
 	     if (path)
@@ -187,6 +189,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 		  oc = e_icon_add(evas);
 		  e_icon_file_set(oc, path);
 		  e_icon_fill_inside_set(oc, 1);
+		  free(path);
 	       }
 	  }
 	e_widget_ilist_append(ilist, oc, theme->name.name, NULL, NULL, theme->name.internal);
@@ -263,6 +266,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    _ilist_cb_change(cfdata, ilist);
    return o;
 }
+*/
 
 static Evas_Object *
 _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
@@ -291,7 +295,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 	theme = l->data;
 	if (theme->example_icon)
 	  {
-	     const char *path;
+	     char *path;
 
 	     path = efreet_icon_path_find(theme->name.internal, theme->example_icon, "24x24");
 	     if (path)
@@ -299,6 +303,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 		  oc = e_icon_add(evas);
 		  e_icon_file_set(oc, path);
 		  e_icon_fill_inside_set(oc, 1);
+		  free(path);
 	       }
 	  }
 	e_widget_ilist_append(ilist, oc, theme->name.name, NULL, NULL, theme->name.internal);
@@ -365,7 +370,7 @@ _ilist_cb_change(void *data, Evas_Object *obj)
 	char *path;
 	int first = 1;
 
-	ecore_list_goto_first(theme->paths.path);
+	ecore_list_first_goto(theme->paths.path);
 	while ((path = ecore_list_next(theme->paths.path)))
 	  {
 	     length += strlen(theme->paths.path) + 16;
@@ -394,7 +399,7 @@ _ilist_cb_change(void *data, Evas_Object *obj)
 	const char *inherit;
 	int first = 1;
 
-	ecore_list_goto_first(theme->inherits);
+	ecore_list_first_goto(theme->inherits);
 	while ((inherit = ecore_list_next(theme->inherits)))
 	  {
 	     length += strlen(theme->paths.path) + 32;
@@ -421,7 +426,7 @@ _ilist_cb_change(void *data, Evas_Object *obj)
    free(text);
    if (dir)
      {
-	dir = ecore_file_get_dir(dir);
+	dir = ecore_file_dir_get(dir);
 	e_fm2_path_set(cfdata->gui.o_fm, dir, "/");
 	free(dir);
      }

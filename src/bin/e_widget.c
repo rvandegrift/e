@@ -409,16 +409,16 @@ EAPI void
 e_widget_activate(Evas_Object *obj)
 {
    API_ENTRY return;
-   if (sd->activate_func) sd->activate_func(obj);
    e_widget_change(obj);
+   if (sd->activate_func) sd->activate_func(obj);
 }
 
 EAPI void
 e_widget_change(Evas_Object *obj)
 {
    API_ENTRY return;
-   if (sd->on_change_func) sd->on_change_func(sd->on_change_data, obj);
    e_widget_change(e_widget_parent_get(obj));
+   if (sd->on_change_func) sd->on_change_func(sd->on_change_data, obj);
 }
 
 EAPI void
@@ -563,16 +563,22 @@ static void
 _e_smart_init(void)
 {
    if (_e_smart) return;
-   _e_smart = evas_smart_new(SMART_NAME,
-			     _e_smart_add,
-			     _e_smart_del, 
-			     NULL, NULL, NULL, NULL, NULL,
-			     _e_smart_move,
-			     _e_smart_resize,
-			     _e_smart_show,
-			     _e_smart_hide,
-			     _e_smart_color_set,
-			     _e_smart_clip_set,
-			     _e_smart_clip_unset,
-			     NULL);
+     {
+	static const Evas_Smart_Class sc =
+	  {
+	     SMART_NAME,
+	       EVAS_SMART_CLASS_VERSION,
+	       _e_smart_add,
+	       _e_smart_del, 
+	       _e_smart_move,
+	       _e_smart_resize,
+	       _e_smart_show,
+	       _e_smart_hide,
+	       _e_smart_color_set,
+	       _e_smart_clip_set,
+	       _e_smart_clip_unset,
+	       NULL
+	  };
+        _e_smart = evas_smart_class_new(&sc);
+     }
 }

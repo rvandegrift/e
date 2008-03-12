@@ -16,7 +16,6 @@ static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E
 
 static void _basic_font_cb_change(void *data, Evas_Object *obj);
 static void _basic_enable_cb_change(void *data, Evas_Object *obj);
-static void _basic_style_cb_change(void *data, Evas_Object *obj);
 static void _basic_init_data_fill(E_Config_Dialog_Data *cfdata);
 
 static void _adv_class_cb_change(void *data, Evas_Object *obj);
@@ -148,7 +147,7 @@ struct _E_Config_Dialog_Data
 };
 
 EAPI E_Config_Dialog *
-e_int_config_fonts(E_Container *con)
+e_int_config_fonts(E_Container *con, const char *params __UNUSED__)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -205,7 +204,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 			    E_Font_Properties *efp;
 
 			    efp = e_font_fontconfig_name_parse(efd->font);
-			    tc->font = evas_stringshare_add(efp->name);
+			    if (efp->name)
+			      tc->font = evas_stringshare_add(efp->name);
 			    if (efp->styles) 
 			      tc->style = evas_stringshare_add(efp->styles->data);
 			    e_font_properties_free(efp);
@@ -226,7 +226,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 			    E_Font_Properties *efp;
 
 			    efp = e_font_fontconfig_name_parse(efd->font);
-			    tc->font = evas_stringshare_add(efp->name);
+			    if (efp->name)
+			      tc->font = evas_stringshare_add(efp->name);
 			    if (efp->styles) 
 			      tc->style = evas_stringshare_add(efp->styles->data);
 			    e_font_properties_free(efp);
@@ -399,11 +400,14 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	if (tc->font) evas_stringshare_del(tc->font);
 	if (cfdata->cur_font)
 	  tc->font = evas_stringshare_add(cfdata->cur_font);
-
+	else
+	  tc->font = NULL;
+	
 	if (tc->style) evas_stringshare_del(tc->style);
 	if (cfdata->cur_style)
 	  tc->style = evas_stringshare_add(cfdata->cur_style);
-
+	else
+	  tc->style = NULL;
 	tc->enabled = cfdata->cur_enabled;
      }
 
@@ -465,17 +469,6 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 
    e_dialog_resizable_set(cfd->dia, 1);
    return ot;
-}
-
-static void
-_basic_style_cb_change(void *data, Evas_Object *obj)
-{
-   E_Config_Dialog_Data *cfdata;
-   
-   cfdata = data;
-   if (!cfdata) return;
-
-   _font_preview_update(cfdata);
 }
 
 static void
@@ -784,9 +777,13 @@ _adv_class_cb_change(void *data, Evas_Object *obj)
 	if (tc->font) evas_stringshare_del(tc->font);
 	if (cfdata->cur_font)
 	  tc->font = evas_stringshare_add(cfdata->cur_font);
+	else
+	  tc->font = NULL;
 	if (tc->style) evas_stringshare_del(tc->style);
 	if (cfdata->cur_style)
 	  tc->style = evas_stringshare_add(cfdata->cur_style);
+	else
+	  tc->style = NULL;
 	if (cfdata->gui.style_list)
 	  e_widget_ilist_unselect(cfdata->gui.style_list);
 	if (cfdata->gui.size_list)
@@ -1120,6 +1117,8 @@ _adv_style_cb_change(void *data, Evas_Object *obj)
 	if (tc->style) evas_stringshare_del(tc->style);
 	if (cfdata->cur_style)
 	  tc->style = evas_stringshare_add(cfdata->cur_style);
+	else
+	  tc->style = NULL;
      }
 
    _font_preview_update(cfdata);

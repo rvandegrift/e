@@ -5,7 +5,7 @@ AC_INIT(configure.in)
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_ISC_POSIX
-AM_INIT_AUTOMAKE(enlightenment, 0.16.999.040)
+AM_INIT_AUTOMAKE(enlightenment, 0.16.999.041)
 AM_CONFIG_HEADER(config.h)
 
 AC_C_BIGENDIAN
@@ -169,12 +169,16 @@ PKG_CHECK_MODULES(E, [
   ecore
   ecore-evas
   ecore-config
-  ecore-dbus
   ecore-file
+  ecore-ipc
+  ecore-con
+  ecore-job
+  ecore-txt
   edje
   eet
   embryo
   efreet
+  efreet-mime
 ])
 
 # ecore-txt is really only needed by the temperature module,
@@ -250,6 +254,16 @@ src/modules/start/Makefile
 src/modules/start/module.desktop
 src/modules/layout/Makefile
 src/modules/layout/module.desktop
+src/modules/exebuf/Makefile
+src/modules/exebuf/module.desktop
+src/modules/winlist/Makefile
+src/modules/winlist/module.desktop
+src/modules/fileman/Makefile
+src/modules/fileman/module.desktop
+src/modules/wizard/Makefile
+src/modules/wizard/module.desktop
+src/modules/conf/Makefile
+src/modules/conf/module.desktop
 src/modules/conf_wallpaper/Makefile
 src/modules/conf_wallpaper/module.desktop
 src/modules/conf_theme/Makefile
@@ -268,6 +282,58 @@ src/modules/conf_transitions/Makefile
 src/modules/conf_transitions/module.desktop
 src/modules/conf_startup/Makefile
 src/modules/conf_startup/module.desktop
+src/modules/conf_intl/Makefile
+src/modules/conf_intl/module.desktop
+src/modules/conf_imc/Makefile
+src/modules/conf_imc/module.desktop
+src/modules/conf_profiles/Makefile
+src/modules/conf_profiles/module.desktop
+src/modules/conf_engine/Makefile
+src/modules/conf_engine/module.desktop
+src/modules/conf_applications/Makefile
+src/modules/conf_applications/module.desktop
+src/modules/conf_desks/Makefile
+src/modules/conf_desks/module.desktop
+src/modules/conf_desk/Makefile
+src/modules/conf_desk/module.desktop
+src/modules/conf_display/Makefile
+src/modules/conf_display/module.desktop
+src/modules/conf_desklock/Makefile
+src/modules/conf_desklock/module.desktop
+src/modules/conf_screensaver/Makefile
+src/modules/conf_screensaver/module.desktop
+src/modules/conf_dpms/Makefile
+src/modules/conf_dpms/module.desktop
+src/modules/conf_shelves/Makefile
+src/modules/conf_shelves/module.desktop
+src/modules/conf_keybindings/Makefile
+src/modules/conf_keybindings/module.desktop
+src/modules/conf_mousebindings/Makefile
+src/modules/conf_mousebindings/module.desktop
+src/modules/conf_mouse/Makefile
+src/modules/conf_mouse/module.desktop
+src/modules/conf_window_display/Makefile
+src/modules/conf_window_display/module.desktop
+src/modules/conf_window_focus/Makefile
+src/modules/conf_window_focus/module.desktop
+src/modules/conf_window_manipulation/Makefile
+src/modules/conf_window_manipulation/module.desktop
+src/modules/conf_menus/Makefile
+src/modules/conf_menus/module.desktop
+src/modules/conf_clientlist/Makefile
+src/modules/conf_clientlist/module.desktop
+src/modules/conf_dialogs/Makefile
+src/modules/conf_dialogs/module.desktop
+src/modules/conf_performance/Makefile
+src/modules/conf_performance/module.desktop
+src/modules/conf_winlist/Makefile
+src/modules/conf_winlist/module.desktop
+src/modules/conf_exebuf/Makefile
+src/modules/conf_exebuf/module.desktop
+src/modules/conf_paths/Makefile
+src/modules/conf_paths/module.desktop
+src/modules/conf_mime/Makefile
+src/modules/conf_mime/module.desktop
 src/preload/Makefile
 data/Makefile
 data/fonts/Makefile

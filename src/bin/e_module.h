@@ -8,11 +8,21 @@
 typedef struct _E_Module     E_Module;
 typedef struct _E_Module_Api E_Module_Api;
 
+typedef struct _E_Event_Module_Update E_Event_Module_Update;
+
 #else
 #ifndef E_MODULE_H
 #define E_MODULE_H
 
 #define E_MODULE_TYPE 0xE0b0100b
+
+extern EAPI int E_EVENT_MODULE_UPDATE;
+
+struct _E_Event_Module_Update
+{
+   char *name;
+   unsigned char enabled : 1;
+};
 
 struct _E_Module
 {
@@ -59,6 +69,7 @@ EAPI int          e_module_save_all(void);
 EAPI E_Module    *e_module_find(const char *name);
 EAPI Evas_List   *e_module_list(void);
 EAPI void         e_module_dialog_show(E_Module *m, const char *title, const char *body);
-
+EAPI void         e_module_delayed_set(E_Module *m, int delayed);
+    
 #endif
 #endif

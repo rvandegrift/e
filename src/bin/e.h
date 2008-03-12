@@ -67,14 +67,13 @@
 #include <Ecore_Ipc.h>
 #include <Ecore_Job.h>
 #include <Ecore_Txt.h>
-#include <Ecore_Config.h>
 #include <Ecore_File.h>
 #include <Ecore_X_Atoms.h>
 #include <Ecore_X_Cursor.h>
-#include <Ecore_DBus.h>
 #include <Eet.h>
 #include <Edje.h>
 #include <Efreet.h>
+#include <Efreet_Mime.h>
 
 #if HAVE___ATTRIBUTE__
 #define __UNUSED__ __attribute__((unused))
@@ -119,7 +118,23 @@ typedef struct _E_Rect E_Rect;
 #define E_REALLOC(p, s, n) p = (s *)realloc(p, sizeof(s) * n)
 #define E_NEW(s, n) (s *)calloc(n, sizeof(s))
 #define E_NEW_BIG(s, n) (s *)malloc(n * sizeof(s))
-#define E_FREE(p) { if (p) {free(p); p = NULL;} }
+#define E_FREE(p) do { if (p) {free(p); p = NULL;} } while (0)
+#define E_FREE_LIST(list, free) \
+  do \
+    { \
+       if (list) \
+	 { \
+	    Evas_List *tmp; \
+	    tmp = list; \
+	    list = NULL; \
+	    while (tmp) \
+	      { \
+		 free(tmp->data); \
+		 tmp = evas_list_remove_list(tmp, tmp); \
+	      } \
+	 } \
+    } \
+  while (0)
 
 #define E_CLAMP(x, min, max) (x < min ? min : (x > max ? max : x))
 

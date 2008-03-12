@@ -10,6 +10,9 @@ EAPI Evas_Object *e_widget_ilist_add(Evas *evas, int icon_w, int icon_h, char **
 EAPI void         e_widget_ilist_freeze(Evas_Object *obj);
 EAPI void         e_widget_ilist_thaw(Evas_Object *obj);
 EAPI void         e_widget_ilist_append(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val);
+EAPI void         e_widget_ilist_append_relative(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val, int relative);
+EAPI void         e_widget_ilist_prepend(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val);
+EAPI void         e_widget_ilist_prepend_relative(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val, int relative);
 EAPI void         e_widget_ilist_header_append(Evas_Object *obj, Evas_Object *icon, const char *label);
 EAPI void         e_widget_ilist_selector_set(Evas_Object *obj, int selector);
 EAPI void         e_widget_ilist_go(Evas_Object *obj);
@@ -27,6 +30,7 @@ EAPI void         e_widget_ilist_selected_set(Evas_Object *obj, int n);
 EAPI int          e_widget_ilist_selected_get(Evas_Object *obj);
 EAPI const char  *e_widget_ilist_selected_label_get(Evas_Object *obj);
 EAPI Evas_Object *e_widget_ilist_selected_icon_get(Evas_Object *obj);
+EAPI int          e_widget_ilist_selected_count_get(Evas_Object *obj);
 EAPI void         e_widget_ilist_unselect(Evas_Object *obj);
 EAPI void         e_widget_ilist_remove_num(Evas_Object *obj, int n);
 EAPI void         e_widget_ilist_multi_select_set(Evas_Object *obj, int multi);

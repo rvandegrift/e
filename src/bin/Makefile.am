@@ -68,11 +68,11 @@ e_bindings.h \
 e_moveresize.h \
 e_actions.h \
 e_popup.h \
+e_gadcon_popup.h \
 e_ipc_codec.h \
 e_prefix.h \
 e_datastore.h \
 e_msg.h \
-e_winlist.h \
 e_alert.h \
 e_maximize.h \
 e_grabinput.h \
@@ -97,11 +97,6 @@ e_widget_table.h \
 e_widget_entry.h \
 e_widget_image.h \
 e_config_dialog.h \
-e_int_config_focus.h \
-e_int_config_desks.h \
-e_int_config_intl.h \
-e_int_config_imc.h \
-e_int_config_imc_import.h \
 e_configure.h \
 e_int_border_locks.h \
 e_thumb.h \
@@ -117,23 +112,6 @@ e_widget_tlist.h \
 e_widget_config_list.h \
 e_slider.h \
 e_widget_slider.h \
-e_int_config_window_manipulation.h \
-e_int_config_window_display.h \
-e_int_config_menus.h \
-e_int_config_keybindings.h \
-e_int_config_mousebindings.h \
-e_int_config_performance.h \
-e_int_config_winlist.h \
-e_int_config_display.h \
-e_int_config_desklock.h \
-e_int_config_exebuf.h \
-e_int_config_apps.h \
-e_int_config_dialogs.h \
-e_int_config_mime.h \
-e_int_config_mime_edit.h \
-e_int_config_screensaver.h \
-e_int_config_dpms.h \
-e_exebuf.h \
 e_desklock.h \
 e_screensaver.h \
 e_dpms.h \
@@ -145,9 +123,7 @@ e_stolen.h \
 e_gadcon.h \
 e_shelf.h \
 e_widget_preview.h \
-e_int_config_paths.h \
 e_int_shelf_config.h \
-e_int_config_shelf.h \
 e_int_gadcon_config.h \
 e_confirm_dialog.h \
 e_int_border_prop.h \
@@ -166,20 +142,16 @@ e_widget_color_well.h \
 e_color_dialog.h  \
 e_sys.h \
 e_obj_dialog.h \
-e_fwin.h \
 e_widget_aspect.h \
 e_filereg.h \
 e_widget_desk_preview.h \
-e_int_config_desk.h \
-e_int_config_clientlist.h \
 e_fm_prop.h \
 e_mouse.h \
 e_order.h \
 e_exec.h \
 e_widget_font_preview.h \
 e_fm_custom.h \
-e_fm_shared.h \
-e_int_config_mouse.h
+e_fm_shared.h
  
 enlightenment_src = \
 e_user.c \
@@ -222,11 +194,11 @@ e_bindings.c \
 e_moveresize.c \
 e_actions.c \
 e_popup.c \
+e_gadcon_popup.c \
 e_ipc_codec.c \
 e_prefix.c \
 e_datastore.c \
 e_msg.c \
-e_winlist.c \
 e_alert.c \
 e_maximize.c \
 e_grabinput.c \
@@ -251,8 +223,6 @@ e_widget_table.c \
 e_widget_entry.c \
 e_widget_image.c \
 e_config_dialog.c \
-e_int_config_focus.c \
-e_int_config_desks.c \
 e_configure.c \
 e_int_border_locks.c \
 e_thumb.c \
@@ -268,26 +238,6 @@ e_widget_tlist.c \
 e_widget_config_list.c \
 e_slider.c \
 e_widget_slider.c \
-e_int_config_window_manipulation.c \
-e_int_config_window_display.c \
-e_int_config_menus.c \
-e_int_config_keybindings.c \
-e_int_config_mousebindings.c \
-e_int_config_performance.c \
-e_int_config_winlist.c \
-e_int_config_display.c \
-e_int_config_desklock.c \
-e_int_config_exebuf.c \
-e_int_config_apps.c \
-e_int_config_dialogs.c \
-e_int_config_intl.c \
-e_int_config_imc.c \
-e_int_config_imc_import.c \
-e_int_config_mime.c \
-e_int_config_mime_edit.c \
-e_int_config_screensaver.c \
-e_int_config_dpms.c \
-e_exebuf.c \
 e_desklock.c \
 e_screensaver.c \
 e_dpms.c \
@@ -299,9 +249,7 @@ e_stolen.c \
 e_gadcon.c \
 e_shelf.c \
 e_widget_preview.c \
-e_int_config_paths.c \
 e_int_shelf_config.c \
-e_int_config_shelf.c \
 e_int_gadcon_config.c \
 e_confirm_dialog.c \
 e_int_border_prop.c \
@@ -320,19 +268,15 @@ e_widget_color_well.c \
 e_color_dialog.c \
 e_sys.c \
 e_obj_dialog.c \
-e_fwin.c \
 e_widget_aspect.c \
 e_widget_desk_preview.c \
 e_filereg.c \
-e_int_config_desk.c \
 e_fm_prop.c \
-e_int_config_clientlist.c \
 e_mouse.c \
 e_order.c \
 e_exec.c \
 e_widget_font_preview.c \
 e_fm_custom.c \
-e_int_config_mouse.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \

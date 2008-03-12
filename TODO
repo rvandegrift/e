@@ -44,21 +44,20 @@ Some of the things (in very short form) that need to be done to E17...
 
 * after creating a background with the bg config dialog, we need to be able
   to change its properties (stretch, tile, center, etc...)
-* fm2 removable devices seem to be mounted as root, not user, thus no write
+* fm2 removable devices seem to be mounted as root, not user, thus no write -
+  why don't mount options work?
 * fm2 theme needs to not suck
 * fwin initial placement needs to be near icon that spawned the fwin
 * fm2 custom icon view mode needs to have cleanup, align etc.
 * fm2 custom icon view mode initial placement needs some fixing - better
   placement, more efficient etc.
-* fm2 fwin needs options for view mode
 * fm2 needs a way to specify a multiplier, explicit size or "use original icon"
   config per icon and per dir, as well as globally.
 * fm2 should remember scroll pos per dir
-* fwin should have option to display full path in window
 * fm2 thumbnails - should display an icon while generating thumb
 * fm2 needs to be able to handle signals from the fm fwin theme wallpaper and
   overlay - to exec or do things (eg go to parent, close, refresh, top, bottom)
-* fm2 on desktop needs option to turn off and select which dir on which zone
+* fm2 on desktop needs option to select which dir on which zone
 * fm2 needs to show icons again if drag was aborted
 * fm2 needs to handle dnd of e apps too
 * need a default desktop dir & file setup
@@ -77,6 +76,7 @@ Some of the things (in very short form) that need to be done to E17...
 * fm2 needs to not unrealize then re-realize on re-sort/arrange - keep objects
   around.
 * fm2 needs a mime/extension/glob filter
+* fwin doesn't change window icon when using view.open_in_place
 * dnd needs to do xdnd properly.
 * language packs: need to have a tool to load/setup a language pack (which
   means .mo compiled files from a .po, an optional font and a config file that
@@ -87,8 +87,6 @@ Some of the things (in very short form) that need to be done to E17...
 * add a "taskbar" module
 * add cpu load module
 * add setup/install wizard to seed .desktop files etc. etc.
-* finish clientinfo dialog for borders (netwm props etc. etc.)
-* gui config dialogs for all config
 * make it possible to disable border buttons/actions (tell theme what is
   disabled) like close, maximize, etc. etc. buttons.
 ]]]
@@ -137,7 +135,6 @@ Some of the things (in very short form) that need to be done to E17...
 -------------------------------------------------------------------------------
 
 * insets in shelf needs to rottate with shelf
-* a way for modules to add config panel items
 * a way for external apps to register config panel items (and be executed)
 * option for svg icon render resolution size
 * for startup - apps that say "wait for me befofe running the next app" have

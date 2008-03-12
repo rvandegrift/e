@@ -70,18 +70,22 @@ e_entry_add(Evas *evas)
 {
    if (!_e_entry_smart)
      {
-        _e_entry_smart = evas_smart_new("e_entry",
-					_e_entry_smart_add, /* add */
-					_e_entry_smart_del, /* del */
-					NULL, NULL, NULL, NULL, NULL, /* stacking */
-					_e_entry_smart_move, /* move */
-					_e_entry_smart_resize, /* resize */
-					_e_entry_smart_show, /* show */
-					_e_entry_smart_hide, /* hide */
-					_e_entry_color_set, /* color_set */
-					_e_entry_clip_set, /* clip_set */
-					_e_entry_clip_unset, /* clip_unset */
-					NULL); /* data*/
+        static const Evas_Smart_Class sc =
+	  {
+	     "e_entry",
+	       EVAS_SMART_CLASS_VERSION,
+	       _e_entry_smart_add,
+	       _e_entry_smart_del,
+	       _e_entry_smart_move,
+	       _e_entry_smart_resize,
+	       _e_entry_smart_show,
+	       _e_entry_smart_hide,
+	       _e_entry_color_set,
+	       _e_entry_clip_set,
+	       _e_entry_clip_unset,
+	       NULL
+	  };
+	_e_entry_smart = evas_smart_class_new(&sc);
         _e_entry_smart_use = 0;
      }
    
@@ -184,8 +188,8 @@ e_entry_min_size_get(Evas_Object *entry, Evas_Coord *minw, Evas_Coord *minh)
    if ((!entry) || (!(sd = evas_object_smart_data_get(entry))))
      return;
    
-   if (minw)   *minw = sd->min_width;
-   if (minh)   *minh = sd->height;
+   if (minw) *minw = sd->min_width;
+   if (minh) *minh = sd->height;
 }
 
 /**
@@ -924,6 +928,15 @@ _e_entry_smart_del(Evas_Object *object)
    
    if ((!object) || !(sd = evas_object_smart_data_get(object)))
      return;
+
+   evas_object_event_callback_del(object, EVAS_CALLBACK_KEY_DOWN,
+                                  _e_entry_key_down_cb);
+   evas_object_event_callback_del(object, EVAS_CALLBACK_MOUSE_DOWN,
+                                  _e_entry_mouse_down_cb);
+   evas_object_event_callback_del(object, EVAS_CALLBACK_MOUSE_UP,
+                                  _e_entry_mouse_up_cb);
+   evas_object_event_callback_del(object, EVAS_CALLBACK_MOUSE_MOVE,
+                                  _e_entry_mouse_move_cb);
    
    ecore_event_handler_del(sd->selection_handler);
    evas_object_del(sd->editable_object);
