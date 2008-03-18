@@ -4,7 +4,7 @@ debian/tmp/etc/enlightenment/sysactions.conf
 debian/tmp/usr/lib/enlightenment/preload/e_precache.so
 debian/tmp/usr/lib/enlightenment/modules/*/*/module.so
 debian/tmp/usr/lib/enlightenment/modules/*/module.desktop
-debian/tmp/usr/lib/enlightenment/modules/*/module.edj
+debian/tmp/usr/lib/enlightenment/modules/*/e-module-*.edj
 debian/tmp/usr/lib/enlightenment/modules/battery/*/batget
 debian/tmp/usr/lib/enlightenment/modules/cpufreq/*/freqset
 debian/tmp/usr/lib/enlightenment/modules/temperature/*/tempget
