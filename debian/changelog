@@ -1,4 +1,4 @@
-e17 (0.16.999.042+dfsg-1) experimental; urgency=low
+e17 (0.16.999.042-1) experimental; urgency=low
 
   * Initial Release (Closes: #405860)
 

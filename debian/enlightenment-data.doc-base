@@ -1,9 +1,8 @@
 Document: enlightenment
 Title: Enlightenment DR17 Documentation
 Author: Carsten Haitzler
-Abstract: This document describes what is Enlightenment DR17
- and how it works 
-Section: Apps/Graphics
+Abstract: This document describes what is Enlightenment DR17 and how it works
+Section: Window Managers
 
 Format: text
 Files: /usr/share/doc/enlightenment/*.txt.gz
