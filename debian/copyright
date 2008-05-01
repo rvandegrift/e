@@ -78,9 +78,8 @@ License:
 Files: debian/*
 Copyright: © 2006-2008 Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 License: GPL-2+
- The Debian packaging information licensed is under the GPL, version 2 or
+ The Debian packaging information is licensed under the GPL, version 2 or
  later.
 
 On Debian GNU/Linux systems, the complete text of the GNU General
 Public License (version 2) can be found in `/usr/share/common-licenses/GPL-2'.
-

@@ -1,14 +1,11 @@
 Enlightenment DR0.17
 --------------------
 About the menu files
-  Enlightenment handles the menus the same way as gnome or kde, that means, a
-  full compliance with the FDO specs. In order to have menus, you have to use
-  a .menu file. The enlightenment-data package provides an exemple file in
-  /etc/xdg/menus/enlightenment-applications.menu.
-  If you want to use it, copy it to $HOME/.config/menus/applications.menu, or
-  symlink it. You can also renames it to /etc/xdg/menus/applications.menu if
-  this file does not exist yet.
+  Enlightenment handles the menus according to the FDO menu specification.
+  In order to have an 'Applications' menu, you need to use a .menu file.
   Please see http://wiki.enlightenment.org/index.php/E17_and_Efreet for further
   information.
+  If no menu is found, then /etc/xdg/menus/enlightement-applications.menu,
+  provided by the 'e17-data', package, will be used as a fallback
 
-  -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 21 Oct 2007 23:30:27 +0200
+  -- Albin Tonnerre <albin.tonnerre@gmail.com>  Thu, 01 May 2008 12:58:45 +0200

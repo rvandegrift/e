@@ -4,18 +4,18 @@ include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/rules/simple-patchsys.mk
 
-install/enlightenment-data::
+install/e17-data::
 	gzip -9 debian/tmp/usr/share/enlightenment/doc/*.txt
 	rm debian/tmp/usr/share/enlightenment/COPYING
 	rm debian/tmp/usr/share/enlightenment/data/fonts/*
 	mkdir -p debian/tmp/usr/share/lintian/overrides
-	cp debian/enlightenment-data.overrides debian/tmp/usr/share/lintian/overrides/enlightenment-data
+	cp debian/e17-data.overrides debian/tmp/usr/share/lintian/overrides/e17-data
 
-install/enlightenment::
+install/e17::
 	rm -r debian/tmp/usr/lib/enlightenment/modules/layout
 	rm -r debian/tmp/usr/lib/enlightenment/modules/wizard
 	mkdir -p debian/tmp/usr/share/lintian/overrides
-	cp debian/enlightenment.overrides debian/tmp/usr/share/lintian/overrides/enlightenment
+	cp debian/e17.overrides debian/tmp/usr/share/lintian/overrides/e17
 
-DEB_DH_STRIP_ARGS := --dbg-package=enlightenment-dbg
+DEB_DH_STRIP_ARGS := --dbg-package=e17-dbg
 DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath
