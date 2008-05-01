@@ -14,4 +14,4 @@ debian/tmp/usr/lib/enlightenment/modules/*/e-module-*.edj
 #debian/tmp/usr/lib/enlightenment/modules/battery/*/batget
 debian/tmp/usr/lib/enlightenment/modules/cpufreq/*/freqset
 debian/tmp/usr/lib/enlightenment/modules/temperature/*/tempget
-debian/tmp/usr/share/lintian/overrides/enlightenment
+debian/tmp/usr/share/lintian/overrides/e17

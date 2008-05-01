@@ -1,4 +1,4 @@
-debian/tmp/usr/share/lintian/overrides/enlightenment-data
+debian/tmp/usr/share/lintian/overrides/e17-data
 debian/tmp/usr/share/enlightenment
 debian/tmp/usr/share/locale
 debian/tmp/usr/share/xsessions

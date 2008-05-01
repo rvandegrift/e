@@ -1,1 +1,1 @@
-enlightenment-data: package-contains-empty-directory usr/share/enlightenment/data/fonts/
+e17-data: package-contains-empty-directory usr/share/enlightenment/data/fonts/

@@ -17,5 +17,7 @@ install/e17::
 	mkdir -p debian/tmp/usr/share/lintian/overrides
 	cp debian/e17.overrides debian/tmp/usr/share/lintian/overrides/e17
 
+DEB_INSTALL_MANPAGES_e17 := $(DEB_SRCDIR)/debian/enlightenment.1 $(DEB_SRCDIR)/debian/enlightenment_*.1
+DEB_INSTALL_MANPAGES_e17-dev := $(DEB_SRCDIR)/debian/enlightenment-config.1
 DEB_DH_STRIP_ARGS := --dbg-package=e17-dbg
 DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath
