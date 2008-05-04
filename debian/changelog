@@ -1,6 +1,8 @@
 e17 (0.16.999.042-1) experimental; urgency=low
 
+  [ Albin Tonnerre ]
   * Initial Release (Closes: #405860)
+  * Override linian tag possible-gpl-code-linked-with-openssl
+    - Only the Debian packaging is GPL
 
- -- Albin Tonnerre <albin.tonnerre@gmail.com>  Wed, 12 Mar 2008 18:20:31 +0100
-
+ -- Jan Lübbe <jluebbe@debian.org>  Sun, 04 May 2008 22:55:33 +0200
