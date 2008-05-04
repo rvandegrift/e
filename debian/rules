@@ -8,14 +8,10 @@ install/e17-data::
 	gzip -9 debian/tmp/usr/share/enlightenment/doc/*.txt
 	rm debian/tmp/usr/share/enlightenment/COPYING
 	rm debian/tmp/usr/share/enlightenment/data/fonts/*
-	mkdir -p debian/tmp/usr/share/lintian/overrides
-	cp debian/e17-data.overrides debian/tmp/usr/share/lintian/overrides/e17-data
 
 install/e17::
 	rm -r debian/tmp/usr/lib/enlightenment/modules/layout
 	rm -r debian/tmp/usr/lib/enlightenment/modules/wizard
-	mkdir -p debian/tmp/usr/share/lintian/overrides
-	cp debian/e17.overrides debian/tmp/usr/share/lintian/overrides/e17
 
 DEB_INSTALL_MANPAGES_e17 := $(DEB_SRCDIR)/debian/enlightenment.1 $(DEB_SRCDIR)/debian/enlightenment_*.1
 DEB_INSTALL_MANPAGES_e17-dev := $(DEB_SRCDIR)/debian/enlightenment-config.1
