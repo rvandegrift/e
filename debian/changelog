@@ -1,3 +1,9 @@
+e17 (0.16.999.042-2) experimental; urgency=low
+
+  * Install setuid binaries correctly
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Mon, 05 May 2008 00:25:47 +0200
+
 e17 (0.16.999.042-1) experimental; urgency=low
 
   [ Albin Tonnerre ]

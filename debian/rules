@@ -13,6 +13,11 @@ install/e17::
 	rm -r debian/tmp/usr/lib/enlightenment/modules/layout
 	rm -r debian/tmp/usr/lib/enlightenment/modules/wizard
 
+binary-predeb/e17::
+	chmod 4755 debian/e17/usr/lib/enlightenment/enlightenment_sys
+	chmod 4755 debian/e17/usr/lib/enlightenment/modules/cpufreq/*/freqset
+	chmod 4755 debian/e17/usr/lib/enlightenment/modules/temperature/*/tempget
+
 DEB_INSTALL_MANPAGES_e17 := $(DEB_SRCDIR)/debian/enlightenment.1 $(DEB_SRCDIR)/debian/enlightenment_*.1
 DEB_INSTALL_MANPAGES_e17-dev := $(DEB_SRCDIR)/debian/enlightenment-config.1
 DEB_DH_STRIP_ARGS := --dbg-package=e17-dbg
