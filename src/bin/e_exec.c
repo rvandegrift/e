@@ -13,22 +13,12 @@
  */
 
 typedef struct _E_Exec_Launch   E_Exec_Launch;
-typedef struct _E_Exec_Instance E_Exec_Instance;
 typedef struct _E_Exec_Search   E_Exec_Search;
 
 struct _E_Exec_Launch
 {
    E_Zone         *zone;
    const char     *launch_method;
-};
-
-struct _E_Exec_Instance
-{
-   Efreet_Desktop *desktop;
-   Ecore_Exe      *exe;
-   int             startup_id;
-   double          launch_time;
-   Ecore_Timer    *expire_timer;
 };
 
 struct _E_Exec_Search
@@ -53,11 +43,11 @@ struct _E_Config_Dialog_Data
 };
 
 /* local subsystem functions */
-static void _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining);
+static E_Exec_Instance *_e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining);
 static int  _e_exec_cb_expire_timer(void *data);
 static int  _e_exec_cb_exit(void *data, int type, void *event);
 
-static Evas_Bool _e_exec_startup_id_pid_find(Evas_Hash *hash, const char *key, void *value, void *data);
+static Evas_Bool _e_exec_startup_id_pid_find(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *value, void *data);
 
 static void         _e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_Del *event, Ecore_Exe_Event_Data *error, Ecore_Exe_Event_Data *read);
 static void         _fill_data(E_Config_Dialog_Data *cfdata);
@@ -104,15 +94,16 @@ e_exec_shutdown(void)
    return 1;
 }
 
-EAPI int
+EAPI E_Exec_Instance *
 e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
        Ecore_List *files, const char *launch_method)
 {
    E_Exec_Launch *launch;
+   E_Exec_Instance *inst = NULL;
 
-   if ((!desktop) && (!exec)) return 0;
+   if ((!desktop) && (!exec)) return NULL;
    launch = E_NEW(E_Exec_Launch, 1);
-   if (!launch) return 0;
+   if (!launch) return NULL;
    if (zone)
      {
 	launch->zone = zone;
@@ -124,13 +115,13 @@ e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
    if (desktop)
      {
 	if (exec)
-	  _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
+	  inst = _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
 	else
-	  efreet_desktop_command_get(desktop, files, _e_exec_cb_exec, launch);
+	  inst = efreet_desktop_command_get(desktop, files, _e_exec_cb_exec, launch);
      }
    else
-     _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
-   return 1;
+     inst = _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
+   return inst;
 }
 
 EAPI Efreet_Desktop *
@@ -146,7 +137,7 @@ e_exec_startup_id_pid_find(int startup_id, pid_t pid)
 }
 
 /* local subsystem functions */
-static void
+static E_Exec_Instance *
 _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 {
    E_Exec_Instance *inst = NULL;
@@ -159,7 +150,7 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    if (desktop)
      {
 	inst = E_NEW(E_Exec_Instance, 1);
-	if (!inst) return;
+	if (!inst) return NULL;
      }
 
    if (startup_id == 0)
@@ -229,7 +220,7 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 			     "<br>"
 			     "%s<br>"),
 			   exec);
-	return;
+	return NULL;
      }
    /* reset env vars */
    if (launch->launch_method) e_exehist_add(launch->launch_method, exec);
@@ -264,15 +255,20 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 	  }
 	e_exec_start_pending = evas_list_append(e_exec_start_pending, desktop);
      }
-   else if (exe) 
-     ecore_exe_free(exe);
+   else if (exe)
+     {
+	E_FREE(inst);
+	inst = NULL;
+	ecore_exe_free(exe);
+     }
    
    if (!remaining)
      {
 	if (launch->launch_method) evas_stringshare_del(launch->launch_method);
 	if (launch->zone) e_object_unref(E_OBJECT(launch->zone));
-       	free(launch);
+      	free(launch);
      }
+   return inst;
 }
 
 static int
@@ -294,12 +290,17 @@ _e_exec_cb_exit(void *data, int type, void *event)
    E_Exec_Instance *inst;
 
    ev = event;
+   printf("child exit...\n");
    if (!ev->exe) return 1;
+   if (ecore_exe_tag_get(ev->exe)) printf("  tag %s\n", ecore_exe_tag_get(ev->exe));
    if (!(ecore_exe_tag_get(ev->exe) && 
 	 (!strcmp(ecore_exe_tag_get(ev->exe), "E/exec")))) return 1;
    inst = ecore_exe_data_get(ev->exe);
+   printf("  inst = %p\n", inst);
    if (!inst) return 1;
 
+   printf("  inst exec line -- '%s'\n", ecore_exe_cmd_get(inst->exe));
+   
    /* /bin/sh uses this if cmd not found */
    if ((ev->exited) &&
        ((ev->exit_code == 127) || (ev->exit_code == 255)))
@@ -335,14 +336,17 @@ _e_exec_cb_exit(void *data, int type, void *event)
 			     ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_ERROR),
 			     ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_READ));
      }
-   instances = evas_hash_find(e_exec_instances, inst->desktop->orig_path);
-   if (instances)
+   if (inst->desktop)
      {
-	instances = evas_list_remove(instances, inst);
+	instances = evas_hash_find(e_exec_instances, inst->desktop->orig_path);
 	if (instances)
-	  evas_hash_modify(e_exec_instances, inst->desktop->orig_path, instances);
-	else
-	  e_exec_instances = evas_hash_del(e_exec_instances, inst->desktop->orig_path, NULL);
+	  {
+	     instances = evas_list_remove(instances, inst);
+	     if (instances)
+	       evas_hash_modify(e_exec_instances, inst->desktop->orig_path, instances);
+	     else
+	       e_exec_instances = evas_hash_del(e_exec_instances, inst->desktop->orig_path, NULL);
+	  }
      }
    e_exec_start_pending = evas_list_remove(e_exec_start_pending, inst->desktop);
    if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
@@ -352,10 +356,10 @@ _e_exec_cb_exit(void *data, int type, void *event)
 }
 
 static Evas_Bool
-_e_exec_startup_id_pid_find(Evas_Hash *hash, const char *key, void *value, void *data)
+_e_exec_startup_id_pid_find(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *value, void *data)
 {
    E_Exec_Search *search;
-   Evas_List     *instances, *l;
+   Evas_List *instances, *l;
 
    search = data;
    instances = value;
@@ -365,7 +369,8 @@ _e_exec_startup_id_pid_find(Evas_Hash *hash, const char *key, void *value, void 
 
 	inst = l->data;
 	if (((search->startup_id > 0) && (search->startup_id == inst->startup_id)) ||
-	    ((inst->exe) && (search->pid > 1) && (search->pid == ecore_exe_pid_get(inst->exe))))
+	    ((inst->exe) && (search->pid > 1) && 
+             (search->pid == ecore_exe_pid_get(inst->exe))))
 	  {
 	     search->desktop = inst->desktop;
 	     return 0;

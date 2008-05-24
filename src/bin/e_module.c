@@ -43,7 +43,19 @@ e_module_shutdown(void)
     */
    VALGRIND_DO_LEAK_CHECK
 #endif
-
+     
+   for (l = _e_modules; l; l = l->next)
+     {
+	E_Module *m;
+	
+	m = l->data;
+	if ((m->enabled) && (!m->error))
+	  {
+	     m->func.save(m);
+	     m->func.shutdown(m);
+	     m->enabled = 0;
+	  }
+     }
    l = _e_modules;
    _e_modules = NULL;
    while (l)

@@ -36,10 +36,11 @@ typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 #define E_CONFIG_FILE_GENERATION 0x0124
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH << 16) | E_CONFIG_FILE_GENERATION)
 
-#define E_EVAS_ENGINE_DEFAULT      0
-#define E_EVAS_ENGINE_SOFTWARE_X11 1
-#define E_EVAS_ENGINE_GL_X11       2
-#define E_EVAS_ENGINE_XRENDER_X11  3
+#define E_EVAS_ENGINE_DEFAULT         0
+#define E_EVAS_ENGINE_SOFTWARE_X11    1
+#define E_EVAS_ENGINE_GL_X11          2
+#define E_EVAS_ENGINE_XRENDER_X11     3
+#define E_EVAS_ENGINE_SOFTWARE_X11_16 4
 
 typedef enum _E_Engine_Context
 {
@@ -426,20 +427,20 @@ EAPI int        e_config_save(void);
 EAPI void       e_config_save_flush(void);
 EAPI void       e_config_save_queue(void);
 
-EAPI char      *e_config_profile_get(void);
-EAPI void       e_config_profile_set(char *prof);
+EAPI const char *e_config_profile_get(void);
+EAPI void       e_config_profile_set(const char *prof);
 EAPI Evas_List *e_config_profile_list(void);
-EAPI void       e_config_profile_add(char *prof);
-EAPI void       e_config_profile_del(char *prof);
+EAPI void       e_config_profile_add(const char *prof);
+EAPI void       e_config_profile_del(const char *prof);
 
 EAPI Evas_List *e_config_engine_list(void);
 
 EAPI void       e_config_save_block_set(int block);
 EAPI int        e_config_save_block_get(void);
     
-EAPI void      *e_config_domain_load(char *domain, E_Config_DD *edd);
+EAPI void      *e_config_domain_load(const char *domain, E_Config_DD *edd);
 EAPI int        e_config_profile_save(void);
-EAPI int        e_config_domain_save(char *domain, E_Config_DD *edd, void *data);
+EAPI int        e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data);
 
 EAPI E_Config_Binding_Mouse  *e_config_binding_mouse_match(E_Config_Binding_Mouse *eb_in);
 EAPI E_Config_Binding_Key    *e_config_binding_key_match(E_Config_Binding_Key *eb_in);

@@ -506,6 +506,7 @@ e_zone_update_flip(E_Zone *zone)
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
    
    _e_zone_update_flip(zone);
+   _e_zone_update_edge(zone);
 }
 
 EAPI void
@@ -995,6 +996,8 @@ _e_zone_cb_timer(void *data)
    
    zone->flip.timer = NULL;
    
+   current = e_desk_current_get(zone);
+   
    if (current)
      ecore_event_add(E_EVENT_POINTER_WARP, ev, NULL, NULL);
    else
@@ -1014,6 +1017,7 @@ _e_zone_cb_desk_show(void *data, int type, void *event)
    if (ev->desk->zone != zone) return 1;
 
    _e_zone_update_flip(zone);
+   _e_zone_update_edge(zone);
    return 1;
 }
 

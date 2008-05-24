@@ -304,7 +304,7 @@ ACT_FN_GO(window_kill)
 
    if (e_config->cnfmdlg_disabled)
      {
-	_e_actions_cb_kill_dialog_ok (obj, NULL);
+	_e_actions_cb_kill_dialog_ok(obj, NULL);
 	return;
      }
 
@@ -1478,15 +1478,15 @@ ACT_FN_GO_KEY(menu_show)
 /***************************************************************************/
 ACT_FN_GO(exec)
 {
-   if (params)
+   E_Zone *zone;
+   
+   zone = _e_actions_zone_get(obj);
+   if (zone)
      {
-	Ecore_Exe *exe;
-
-	e_util_library_path_strip();
-	exe = ecore_exe_run(params, NULL);
-	e_util_library_path_restore();
-	e_exehist_add("action/exec", params);
-	if (exe) ecore_exe_free(exe);
+	if (params)
+	  {
+	     e_exec(zone, NULL, params, NULL, "action/exec");
+	  }
      }
 }
 
@@ -1583,7 +1583,7 @@ ACT_FN_GO(exit)
 
    if (e_config->cnfmdlg_disabled)
      {
-	_e_actions_cb_exit_dialog_ok (NULL, NULL);
+	_e_actions_cb_exit_dialog_ok(NULL, NULL);
 	return;
      }
 
@@ -1654,7 +1654,7 @@ ACT_FN_GO(logout)
    
    if (e_config->cnfmdlg_disabled)
      {
-	_e_actions_cb_logout_dialog_ok (NULL, NULL);
+	_e_actions_cb_logout_dialog_ok(NULL, NULL);
 	return;
      }
 
@@ -1713,7 +1713,7 @@ ACT_FN_GO(halt)
 
    if (e_config->cnfmdlg_disabled)
      {
-	_e_actions_cb_halt_dialog_ok (NULL, NULL);
+	_e_actions_cb_halt_dialog_ok(NULL, NULL);
 	return;
      }
 
@@ -1772,7 +1772,7 @@ ACT_FN_GO(reboot)
 
    if (e_config->cnfmdlg_disabled)
      {
-	_e_actions_cb_reboot_dialog_ok (NULL, NULL);
+	_e_actions_cb_reboot_dialog_ok(NULL, NULL);
 	return;
      }
 
@@ -1831,7 +1831,7 @@ ACT_FN_GO(suspend)
 
    if (e_config->cnfmdlg_disabled)
      {
-	_e_actions_cb_suspend_dialog_ok (NULL, NULL);
+	_e_actions_cb_suspend_dialog_ok(NULL, NULL);
 	return;
      }
 
@@ -1890,7 +1890,7 @@ ACT_FN_GO(hibernate)
 
    if (e_config->cnfmdlg_disabled)
      {
-	_e_actions_cb_hibernate_dialog_ok (NULL, NULL);
+	_e_actions_cb_hibernate_dialog_ok(NULL, NULL);
 	return;
      }
 
@@ -1925,7 +1925,8 @@ ACT_FN_GO(pointer_resize_push)
 	bd = (E_Border *)obj;
 	if ((bd->lock_user_size) || (bd->shaded) || (bd->shading) ||
 	    (bd->fullscreen) || 
-		((bd->maximized == E_MAXIMIZE_FULLSCREEN) && (!e_config->allow_manip)))
+	    ((bd->maximized == E_MAXIMIZE_FULLSCREEN) &&
+	     (!e_config->allow_manip)))
 	  return;
 	if (bd->zone)
 	  man = bd->zone->container->manager;

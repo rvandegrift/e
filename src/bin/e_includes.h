@@ -132,3 +132,6 @@
 #include "e_toolbar.h"
 #include "e_int_toolbar_config.h"
 #include "e_powersave.h"
+#include "e_slidesel.h"
+#include "e_slidecore.h"
+#include "e_widget_flist.h"

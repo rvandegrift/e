@@ -26,5 +26,12 @@ module_la_LIBADD       = @e_libs@ @cf_libs@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version
 module_la_DEPENDENCIES = $(top_builddir)/config.h
 
+batgetdir = $(pkgdir)
+
+batget_PROGRAMS        = batget
+batget_SOURCES         = batget.c
+batget_LDFLAGS         = @BATTERY_LIBS@
+
+
 uninstall:
 	rm -rf $(DESTDIR)$(libdir)/enlightenment/modules/$(MODULE)

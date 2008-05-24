@@ -419,6 +419,14 @@ e_border_new(E_Container *con, Ecore_X_Window win, int first_map, int internal)
 		       bd->client.e.fetch.state = 1;
 		    }
 	       }
+	     /* loop to check for qtopia atoms */
+	     for (i = 0; i < at_num; i++)
+	       {
+		  if (atoms[i] == _QTOPIA_SOFT_MENU)
+		    bd->client.qtopia.fetch.soft_menu = 1;
+		  else if (atoms[i] == _QTOPIA_SOFT_MENUS)
+		    bd->client.qtopia.fetch.soft_menus = 1;
+	       }
 	     free(atoms);
 	  }
      }
@@ -1353,6 +1361,17 @@ e_border_raise_latest_set(E_Border *bd)
 EAPI void
 e_border_focus_set_with_pointer(E_Border *bd)
 {
+   /* note: this is here as it seems there are enough apps that do not even
+    * expect us to emulate a look of focus but not actually set x input
+    * focus as we do - so simply abort any focuse set on such windows */
+   /* be strict about accepting focus hint */
+//   printf(" 2accept:%i take:%i\n", bd->client.icccm.accepts_focus, bd->client.icccm.take_focus);
+   if (!bd->client.icccm.accepts_focus) return;
+   
+   /* Try to grab the pointer to make sure it's not "in use" */
+   if (!ecore_x_pointer_grab(bd->zone->container->win))
+     return;
+
    if (e_config->focus_policy == E_FOCUS_SLOPPY)
      {
 	if (e_border_under_pointer_get(bd->desk, bd))
@@ -1368,6 +1387,8 @@ e_border_focus_set_with_pointer(E_Border *bd)
    else
      if (!e_border_pointer_warp_to_center(bd))
        e_border_focus_set(bd, 1, 1);
+
+   ecore_x_pointer_ungrab();
 }
 
 EAPI void
@@ -1375,7 +1396,16 @@ e_border_focus_set(E_Border *bd, int focus, int set)
 {
    E_OBJECT_CHECK(bd);
    E_OBJECT_TYPE_CHECK(bd, E_BORDER_TYPE);
-   //printf("e_border_focus_set(%p, %i %i);\n", bd, focus, set);
+   /* note: this is here as it seems there are enough apps that do not even
+    * expect us to emulate a look of focus but not actually set x input
+    * focus as we do - so simply abort any focuse set on such windows */
+   /* be strict about accepting focus hint */
+//   printf("e_border_focus_set(%p, %s, %i %i);\n", bd, bd->client.icccm.name, focus, set);
+//   printf(" accept:%i take:%i\n", bd->client.icccm.accepts_focus, bd->client.icccm.take_focus);
+   if (!bd->client.icccm.accepts_focus) return;
+   /* dont focus an iconified window. that's silly! */
+   if ((focus) && (bd->iconic)) return;
+   
    if ((bd->modal) && (bd->modal != bd))
      {
 	e_border_focus_set(bd->modal, focus, set);
@@ -1395,14 +1425,17 @@ e_border_focus_set(E_Border *bd, int focus, int set)
      {
 	if ((bd->visible) && (bd->changes.visible))
 	  {
+	     e_border_focus_latest_set(bd);
 	     bd->want_focus = 1;
 	     bd->changed = 1;
 	     return;
 	  }
-	if (bd->visible)
+//	if (bd->visible)
 	  {
 	     if (focus_track_frozen == 0)
-	       e_border_focus_latest_set(bd);
+	       {
+		  e_border_focus_latest_set(bd);
+	       }
 	  }
 //	printf("EMIT 0x%x activeve\n", bd->client.win);
 	edje_object_signal_emit(bd->bg_object, "e,state,focused", "e");
@@ -2259,6 +2292,7 @@ e_border_stick(E_Border *bd)
 	  }
      }
 
+   edje_object_signal_emit(bd->bg_object, "e,state,sticky", "e");
    ev = E_NEW(E_Event_Border_Stick, 1);
    ev->border = bd;
    e_object_ref(E_OBJECT(bd));
@@ -2294,6 +2328,7 @@ e_border_unstick(E_Border *bd)
 	  }
      }
 
+   edje_object_signal_emit(bd->bg_object, "e,state,unsticky", "e");
    ev = E_NEW(E_Event_Border_Unstick, 1);
    ev->border = bd;
    e_object_ref(E_OBJECT(bd));
@@ -3244,6 +3279,8 @@ _e_border_free(E_Border *bd)
 	  free(bd->client.netwm.icons[i].data);
 	free(bd->client.netwm.icons);
      }
+   if (bd->client.netwm.extra_types)
+     free(bd->client.netwm.extra_types);
    if (bd->client.border.name) evas_stringshare_del(bd->client.border.name);
    if (bd->bordername) evas_stringshare_del(bd->bordername);
    if (bd->client.icccm.title) free(bd->client.icccm.title);
@@ -3947,6 +3984,16 @@ _e_border_cb_window_property(void *data, int ev_type, void *ev)
    else if (e->atom == ECORE_X_ATOM_NET_WM_ICON)
      {
 	bd->client.netwm.fetch.icon = 1;
+	bd->changed = 1;
+     }
+   else if (e->atom == _QTOPIA_SOFT_MENU)
+     {
+	bd->client.qtopia.fetch.soft_menu = 1;
+	bd->changed = 1;
+     }
+   else if (e->atom == _QTOPIA_SOFT_MENUS)
+     {
+	bd->client.qtopia.fetch.soft_menus = 1;
 	bd->changed = 1;
      }
    /*
@@ -5032,6 +5079,7 @@ _e_border_eval(E_Border *bd)
    int rem_change = 0;
    int send_event = 1;
    
+   _e_border_hook_call(E_BORDER_HOOK_EVAL_PRE_FETCH, bd);
    /* fetch any info queued to be fetched */
    if (bd->client.icccm.fetch.client_leader)
      {
@@ -5161,7 +5209,6 @@ _e_border_eval(E_Border *bd)
 
 	if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_DOCK)
 	  {
-	     /* TODO: Make this user options */
 	     if (!bd->client.netwm.state.skip_pager)
 	       {
 		  bd->client.netwm.state.skip_pager = 1;
@@ -5428,6 +5475,18 @@ _e_border_eval(E_Border *bd)
 	     bd->client.netwm.strut.bottom_end_x = 0;
 	  }
 	bd->client.netwm.fetch.strut = 0;
+     }
+   if (bd->client.qtopia.fetch.soft_menu)
+     {
+	e_hints_window_qtopia_soft_menu_get(bd);
+	bd->client.qtopia.fetch.soft_menu = 0;
+	rem_change = 1;
+     }
+   if (bd->client.qtopia.fetch.soft_menus)
+     {
+	e_hints_window_qtopia_soft_menus_get(bd);
+	bd->client.qtopia.fetch.soft_menus = 0;
+	rem_change = 1;
      }
    if (bd->changes.shape)
      {
@@ -5782,6 +5841,10 @@ _e_border_eval(E_Border *bd)
 	       }
 	     if (rem->apply & E_REMEMBER_APPLY_SKIP_WINLIST)
 	       bd->user_skip_winlist = rem->prop.skip_winlist;
+	     if (rem->apply & E_REMEMBER_APPLY_SKIP_PAGER)
+	       bd->client.netwm.state.skip_pager = rem->prop.skip_pager;
+	     if (rem->apply & E_REMEMBER_APPLY_SKIP_TASKBAR)
+	       bd->client.netwm.state.skip_taskbar = rem->prop.skip_taskbar;
 	     if (rem->apply & E_REMEMBER_APPLY_ICON_PREF)
 	       bd->icon_preference = rem->prop.icon_preference;
 	     if (rem->apply & E_REMEMBER_SET_FOCUS_ON_START)
@@ -5790,6 +5853,7 @@ _e_border_eval(E_Border *bd)
      }
 
    _e_border_hook_call(E_BORDER_HOOK_EVAL_POST_FETCH, bd);
+   _e_border_hook_call(E_BORDER_HOOK_EVAL_PRE_BORDER_ASSIGN, bd);
    
    if ((bd->client.border.changed) && (!bd->shaded) &&
        (!(((bd->maximized & E_MAXIMIZE_TYPE) == E_MAXIMIZE_FULLSCREEN))))
@@ -5926,6 +5990,8 @@ _e_border_eval(E_Border *bd)
 		    }
 		  if (bd->shaded)
 		    edje_object_signal_emit(bd->bg_object, "e,state,shaded", "e");
+		  if (bd->sticky)
+		    edje_object_signal_emit(bd->bg_object, "e,state,sticky", "e");
 		  if ((bd->maximized & E_MAXIMIZE_TYPE) == E_MAXIMIZE_FULLSCREEN)
 		    edje_object_signal_emit(bd->bg_object, "e,action,maximize,fullscreen", "e");
 		  else if ((bd->maximized & E_MAXIMIZE_TYPE) != E_MAXIMIZE_NONE)
@@ -5965,6 +6031,9 @@ _e_border_eval(E_Border *bd)
 	  ecore_x_window_show(bd->client.win);
 	bd->need_reparent = 0;
      }
+   
+   _e_border_hook_call(E_BORDER_HOOK_EVAL_POST_BORDER_ASSIGN, bd);
+   _e_border_hook_call(E_BORDER_HOOK_EVAL_PRE_NEW_BORDER, bd);
    
    if (bd->new_client)
      {
@@ -6185,6 +6254,8 @@ _e_border_eval(E_Border *bd)
 	       e_border_zone_set(bd, zone);
 	  }
      }
+   
+   _e_border_hook_call(E_BORDER_HOOK_EVAL_POST_NEW_BORDER, bd);
    
    /* effect changes to the window border itself */
    if ((bd->changes.shading))
@@ -6809,6 +6880,7 @@ _e_border_eval(E_Border *bd)
 	e_object_ref(E_OBJECT(bd));
 	ecore_event_add(E_EVENT_BORDER_PROPERTY, event, _e_border_event_border_property_free, NULL);
      }
+   _e_border_hook_call(E_BORDER_HOOK_EVAL_END, bd);
 }
 
 static void

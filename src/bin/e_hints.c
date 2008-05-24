@@ -3,12 +3,17 @@
  */
 #include "e.h"
 
+Ecore_X_Atom _QTOPIA_SOFT_MENU = 0;
+Ecore_X_Atom _QTOPIA_SOFT_MENUS = 0;
+
 EAPI void
 e_hints_init(void)
 {
    Ecore_X_Window *roots = NULL;
    int num;
 
+   _QTOPIA_SOFT_MENU = ecore_x_atom_get("_QTOPIA_SOFT_MENU");
+   _QTOPIA_SOFT_MENUS = ecore_x_atom_get("_QTOPIA_SOFT_MENUS");
    roots = ecore_x_window_root_list(&num);
    if (roots)
      {
@@ -656,7 +661,36 @@ e_hints_window_type_set(E_Border *bd)
 EAPI void
 e_hints_window_type_get(E_Border *bd)
 {
-   ecore_x_netwm_window_type_get(bd->client.win, &bd->client.netwm.type);
+   Ecore_X_Window_Type *types = NULL;
+   int num, i;
+   
+   num = ecore_x_netwm_window_types_get(bd->client.win, &types);
+   if (bd->client.netwm.extra_types)
+     {
+	free(bd->client.netwm.extra_types);
+	bd->client.netwm.extra_types = NULL;
+	bd->client.netwm.extra_types_num = 0;
+     }
+   if (num == 0) 
+     {
+	bd->client.netwm.type = ECORE_X_WINDOW_TYPE_UNKNOWN;
+     }
+   else
+     {
+	bd->client.netwm.type = types[0];
+	if (num > 1)
+	  {
+	     bd->client.netwm.extra_types = 
+	       malloc((num - 1) * sizeof(Ecore_X_Window_Type));
+	     if (bd->client.netwm.extra_types)
+	       {
+		  for (i = 1; i < num; i++)
+		    bd->client.netwm.extra_types[i - 1] = types[i];
+		  bd->client.netwm.extra_types_num = num - 1;
+	       }
+	  }
+	free(types);
+     }
 }
 
 EAPI void
@@ -1306,6 +1340,28 @@ e_hints_window_e_state_set(E_Border *bd)
 }
 
 EAPI void
+e_hints_window_qtopia_soft_menu_get(E_Border *bd)
+{
+   unsigned int val;
+   
+   if (ecore_x_window_prop_card32_get(bd->client.win, _QTOPIA_SOFT_MENU, &val, 1))
+     bd->client.qtopia.soft_menu = val;
+   else
+     bd->client.qtopia.soft_menu = 0;
+}
+
+EAPI void
+e_hints_window_qtopia_soft_menus_get(E_Border *bd)
+{
+   unsigned int val;
+
+   if (ecore_x_window_prop_card32_get(bd->client.win, _QTOPIA_SOFT_MENUS, &val, 1))
+     bd->client.qtopia.soft_menus = val;
+   else
+     bd->client.qtopia.soft_menus = 0;
+}
+
+EAPI void
 e_hints_openoffice_gnome_fake(Ecore_X_Window root)
 {
    Ecore_X_Atom gnome_atom, string_atom;
@@ -1325,3 +1381,4 @@ e_hints_openoffice_kde_fake(Ecore_X_Window root)
    win2 = ecore_x_window_new(root, -20, -20, 1, 1);
    ecore_x_netwm_wm_identify(root, win2, "KWin");
 }
+

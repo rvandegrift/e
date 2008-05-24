@@ -1,7 +1,7 @@
 # get rid of that stupid cache mechanism
 rm -f config.cache
 
-AC_INIT(enlightenment, 0.16.999.042, enlightenment-devel@lists.sourceforge.net)
+AC_INIT(enlightenment, 0.16.999.043, enlightenment-devel@lists.sourceforge.net)
 AC_PREREQ(2.52)
 AC_CONFIG_SRCDIR(configure.in)
 AC_CANONICAL_BUILD
@@ -191,7 +191,7 @@ PKG_CHECK_MODULES(E, [
   ecore-imf
   ecore-imf-evas
   edje
-  eet
+  eet >= 1.0.1
   embryo
   efreet
   efreet-mime
@@ -201,13 +201,20 @@ PKG_CHECK_MODULES(ECORE_TXT, [
   ecore-txt
 ], [
   have_temp="yes"
+  have_battery="yes"
   # This test will succeed as these modules are also checked before
   PKG_CHECK_MODULES(TEMPERATURE, [
     ecore
     ecore-file
   ])
+  PKG_CHECK_MODULES(BATTERY, [
+    ecore
+    ecore-file
+    ecore-con
+  ])
 ], [ have_temp="no"])
 AM_CONDITIONAL(HAVE_TEMPERATURE, test x$have_temp = "xyes")
+AM_CONDITIONAL(HAVE_BATTERY, test x$have_bat = "xyes")
 
 PKG_CHECK_MODULES(E_DBUS, edbus, have_edbus=yes, have_edbus=no)
 PKG_CHECK_MODULES(E_HAL, ehal, have_ehal=yes, have_ehal=no)
@@ -258,6 +265,7 @@ AC_DEFINE(E_INTERNAL, 1, "This define can be used to wrap internal E stuff, as c
 AC_OUTPUT([
 Makefile
 enlightenment.spec
+enlightenment.pc
 src/Makefile
 src/bin/Makefile
 src/modules/Makefile
@@ -279,8 +287,6 @@ src/modules/ibox/Makefile
 src/modules/ibox/module.desktop
 src/modules/start/Makefile
 src/modules/start/module.desktop
-src/modules/layout/Makefile
-src/modules/layout/module.desktop
 src/modules/exebuf/Makefile
 src/modules/exebuf/module.desktop
 src/modules/winlist/Makefile
@@ -345,6 +351,8 @@ src/modules/conf_window_display/Makefile
 src/modules/conf_window_display/module.desktop
 src/modules/conf_window_focus/Makefile
 src/modules/conf_window_focus/module.desktop
+src/modules/conf_window_remembers/Makefile
+src/modules/conf_window_remembers/module.desktop
 src/modules/conf_window_manipulation/Makefile
 src/modules/conf_window_manipulation/module.desktop
 src/modules/conf_menus/Makefile
