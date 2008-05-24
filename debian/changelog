@@ -1,7 +1,11 @@
 e17 (0.16.999.043-1) UNRELEASED; urgency=low
 
+  [ Jan Lübbe ]
   * New upstream release
   * Add watch file
+
+  [ Albin Tonnerre ]
+  * Install the batget binary, as it actually exists in this version
 
  -- Jan Lübbe <jluebbe@debian.org>  Sat, 24 May 2008 17:54:16 +0200
 
