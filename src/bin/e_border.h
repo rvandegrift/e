@@ -80,7 +80,13 @@ typedef enum _E_Window_Placement
 
 typedef enum _E_Border_Hook_Point
 {
-   E_BORDER_HOOK_EVAL_POST_FETCH
+   E_BORDER_HOOK_EVAL_PRE_FETCH,
+   E_BORDER_HOOK_EVAL_POST_FETCH,
+   E_BORDER_HOOK_EVAL_PRE_BORDER_ASSIGN,
+   E_BORDER_HOOK_EVAL_POST_BORDER_ASSIGN,
+   E_BORDER_HOOK_EVAL_PRE_NEW_BORDER,
+   E_BORDER_HOOK_EVAL_POST_NEW_BORDER,
+   E_BORDER_HOOK_EVAL_END,
 } E_Border_Hook_Point;
 
 typedef struct _E_Border                     E_Border;
@@ -296,6 +302,8 @@ struct _E_Border
          } action;
 
 	 Ecore_X_Window_Type type;
+	 Ecore_X_Window_Type *extra_types;
+	 int extra_types_num;
 	 int startup_id;
 
 	 struct {
@@ -329,6 +337,16 @@ struct _E_Border
 	    unsigned char state : 1;
 	 } fetch;
       } e;
+      
+      struct {
+	 struct {
+	    unsigned char soft_menu : 1;
+	    unsigned char soft_menus : 1;
+	 } fetch;
+	 
+	 unsigned char soft_menu : 1;
+	 unsigned char soft_menus : 1;
+      } qtopia;
 
       Ecore_X_Window_Attributes initial_attributes;
    } client;

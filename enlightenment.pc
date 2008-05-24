@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/enlightenment
+
+Name: enlightenment
+Description: Enlightenmnt Window Manager
+Version: 0.16.999.043
+Libs: ${exec_prefix}/lib/enlightenment/modules
+Libs.private: 
+Cflags: -I${includedir}

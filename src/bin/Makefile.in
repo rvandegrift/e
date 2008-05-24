@@ -113,7 +113,9 @@ am__objects_2 = e_user.$(OBJEXT) e_manager.$(OBJEXT) e_path.$(OBJEXT) \
 	e_order.$(OBJEXT) e_exec.$(OBJEXT) \
 	e_widget_font_preview.$(OBJEXT) e_fm_custom.$(OBJEXT) \
 	e_toolbar.$(OBJEXT) e_int_toolbar_config.$(OBJEXT) \
-	e_powersave.$(OBJEXT) $(am__objects_1)
+	e_powersave.$(OBJEXT) e_slidesel.$(OBJEXT) \
+	e_slidecore.$(OBJEXT) e_widget_flist.$(OBJEXT) \
+	$(am__objects_1)
 am_enlightenment_OBJECTS = e_main.$(OBJEXT) $(am__objects_2)
 enlightenment_OBJECTS = $(am_enlightenment_OBJECTS)
 enlightenment_LDADD = $(LDADD)
@@ -185,6 +187,8 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BATTERY_CFLAGS = @BATTERY_CFLAGS@
+BATTERY_LIBS = @BATTERY_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -197,6 +201,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DSYMUTIL = @DSYMUTIL@
 ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
@@ -216,6 +221,8 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_BATTERY_FALSE = @HAVE_BATTERY_FALSE@
+HAVE_BATTERY_TRUE = @HAVE_BATTERY_TRUE@
 HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
 HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
 HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
@@ -241,6 +248,7 @@ MKINSTALLDIRS = @MKINSTALLDIRS@
 MODULE_ARCH = @MODULE_ARCH@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
+NMEDIT = @NMEDIT@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BIN_DIR = @PACKAGE_BIN_DIR@
@@ -479,7 +487,10 @@ e_config_data.h \
 e_intl_data.h \
 e_toolbar.h \
 e_int_toolbar_config.h \
-e_powersave.h
+e_powersave.h \
+e_slidesel.h \
+e_slidecore.h \
+e_widget_flist.h
 
 enlightenment_src = \
 e_user.c \
@@ -612,6 +623,9 @@ e_fm_custom.c \
 e_toolbar.c \
 e_int_toolbar_config.c \
 e_powersave.c \
+e_slidesel.c \
+e_slidecore.c \
+e_widget_flist.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \
@@ -845,7 +859,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_sha1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_shelf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_signals.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_slidecore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_slider.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_slidesel.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_spectrum.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_start_main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_startup.Po@am__quote@
@@ -872,6 +888,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_cslider.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_desk_preview.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_entry.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_flist.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_font_preview.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_framelist.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_frametable.Po@am__quote@

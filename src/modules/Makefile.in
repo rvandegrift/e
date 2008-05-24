@@ -61,8 +61,8 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 ETAGS = etags
 CTAGS = ctags
 DIST_SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
-	layout exebuf winlist fileman wizard conf conf_wallpaper \
-	conf_theme conf_colors conf_fonts conf_borders conf_icon_theme \
+	exebuf winlist fileman wizard conf conf_wallpaper conf_theme \
+	conf_colors conf_fonts conf_borders conf_icon_theme \
 	conf_mouse_cursor conf_transitions conf_startup conf_intl \
 	conf_imc msgbus_lang conf_profiles conf_engine \
 	conf_applications conf_desks conf_desk conf_display \
@@ -71,7 +71,7 @@ DIST_SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
 	conf_window_display conf_window_focus conf_window_manipulation \
 	conf_menus conf_clientlist conf_dialogs conf_performance \
 	conf_winlist conf_exebuf conf_paths conf_mime conf_interaction \
-	temperature
+	conf_window_remembers temperature
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
@@ -84,6 +84,8 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BATTERY_CFLAGS = @BATTERY_CFLAGS@
+BATTERY_LIBS = @BATTERY_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -96,6 +98,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DSYMUTIL = @DSYMUTIL@
 ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
@@ -115,6 +118,8 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_BATTERY_FALSE = @HAVE_BATTERY_FALSE@
+HAVE_BATTERY_TRUE = @HAVE_BATTERY_TRUE@
 HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
 HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
 HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
@@ -140,6 +145,7 @@ MKINSTALLDIRS = @MKINSTALLDIRS@
 MODULE_ARCH = @MODULE_ARCH@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
+NMEDIT = @NMEDIT@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BIN_DIR = @PACKAGE_BIN_DIR@
@@ -229,8 +235,8 @@ x_cflags = @x_cflags@
 x_libs = @x_libs@
 MAINTAINERCLEANFILES = Makefile.in
 SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
-	layout exebuf winlist fileman wizard conf conf_wallpaper \
-	conf_theme conf_colors conf_fonts conf_borders conf_icon_theme \
+	exebuf winlist fileman wizard conf conf_wallpaper conf_theme \
+	conf_colors conf_fonts conf_borders conf_icon_theme \
 	conf_mouse_cursor conf_transitions conf_startup conf_intl \
 	conf_imc msgbus_lang conf_profiles conf_engine \
 	conf_applications conf_desks conf_desk conf_display \
@@ -239,7 +245,7 @@ SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
 	conf_window_display conf_window_focus conf_window_manipulation \
 	conf_menus conf_clientlist conf_dialogs conf_performance \
 	conf_winlist conf_exebuf conf_paths conf_mime conf_interaction \
-	$(am__append_1)
+	conf_window_remembers $(am__append_1)
 all: all-recursive
 
 .SUFFIXES:

@@ -93,6 +93,8 @@ struct _E_Gadcon
    E_Drop_Handler *drop_handler;
 
    E_Config_Gadcon *cf;
+
+   unsigned char          instant_edit : 1;
 };
 
 #define GADCON_CLIENT_CLASS_VERSION 2
@@ -100,7 +102,7 @@ struct _E_Gadcon_Client_Class
 {
    int   version;
    /* All members below are part of version 1 */
-   char *name;
+   const char *name;
    struct 
      {
 	E_Gadcon_Client *(*init)     (E_Gadcon *gc, const char *name, const char *id, const char *style);
@@ -149,6 +151,7 @@ struct _E_Gadcon_Client
 	Evas_Coord        w, h;
      } pad, min, aspect;
    Ecore_Timer           *scroll_timer;
+   Ecore_Timer           *instant_edit_timer;
    Ecore_Animator        *scroll_animator;
    double                 scroll_pos;
    double                 scroll_wanted;

@@ -159,7 +159,10 @@ e_config_data.h \
 e_intl_data.h \
 e_toolbar.h \
 e_int_toolbar_config.h \
-e_powersave.h
+e_powersave.h \
+e_slidesel.h \
+e_slidecore.h \
+e_widget_flist.h
 
 enlightenment_src = \
 e_user.c \
@@ -292,6 +295,9 @@ e_fm_custom.c \
 e_toolbar.c \
 e_int_toolbar_config.c \
 e_powersave.c \
+e_slidesel.c \
+e_slidecore.c \
+e_widget_flist.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \

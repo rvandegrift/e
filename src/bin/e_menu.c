@@ -86,7 +86,7 @@ static int  _e_menu_cb_scroll_animator            (void *data);
 static int  _e_menu_cb_window_shape               (void *data, int ev_type, void *ev);
 
 static void _e_menu_cb_item_submenu_post_default  (void *data, E_Menu *m, E_Menu_Item *mi);
-static Evas_Bool _e_menu_categories_free_cb(Evas_Hash *hash, const char *key, void *data, void *fdata);
+static Evas_Bool _e_menu_categories_free_cb(const Evas_Hash *hash, const char *key, void *data, void *fdata);
 
 /* local subsystem globals */
 static Ecore_X_Window       _e_menu_win                 = 0;
@@ -1421,7 +1421,15 @@ _e_menu_realize(E_Menu *m)
    evas_object_show(o);
 
    if (m->shaped)
-     ecore_evas_shaped_set(m->ecore_evas, m->shaped);
+     {       
+	if (e_config->use_composite)
+	  {
+	     ecore_evas_alpha_set(m->ecore_evas, m->shaped);
+	     m->evas_win = ecore_evas_software_x11_window_get(m->ecore_evas);
+	  }
+	else
+	  ecore_evas_shaped_set(m->ecore_evas, m->shaped);
+     }
    
    o = e_box_add(m->evas);
    m->container_object = o;
@@ -2867,7 +2875,7 @@ _e_menu_cb_item_submenu_post_default(void *data, E_Menu *m, E_Menu_Item *mi)
 
 
 static Evas_Bool
-_e_menu_categories_free_cb(Evas_Hash *hash, const char *key, void *data, void *fdata)
+_e_menu_categories_free_cb(const Evas_Hash *hash, const char *key, void *data, void *fdata)
 {
    Evas_List *l;
    E_Menu_Category *cat;

@@ -99,8 +99,7 @@ e_box_orientation_set(Evas_Object *obj, int horizontal)
    
    sd = evas_object_smart_data_get(obj);
    if (!sd) return;
-   if (((sd->horizontal) && (horizontal)) ||
-       ((!sd->horizontal) && (!horizontal))) return;
+   if (sd->horizontal == horizontal) return;
    sd->horizontal = horizontal;
    sd->changed = 1;
    if (sd->frozen <= 0) _e_box_smart_reconfigure(sd);
@@ -486,10 +485,12 @@ _e_box_smart_reconfigure(E_Smart_Data *sd)
 		       hh = h;
 		       ow = bi->min.w;
 		       if (bi->fill_w) ow = ww;
-		       if ((bi->max.w >= 0) && (bi->max.w < ow)) ow = bi->max.w;
+		       if ((bi->max.w >= 0) && (bi->max.w < ow)) 
+                         ow = bi->max.w;
 		       oh = bi->min.h;
 		       if (bi->fill_h) oh = hh;
-		       if ((bi->max.h >= 0) && (bi->max.h < oh)) oh = bi->max.h;
+		       if ((bi->max.h >= 0) && (bi->max.h < oh)) 
+                         oh = bi->max.h;
 		       evas_object_move(obj, 
 					xx + (Evas_Coord)(((double)(ww - ow)) * bi->align.x),
 					yy + (Evas_Coord)(((double)(hh - oh)) * bi->align.y));
@@ -596,26 +597,14 @@ _e_box_smart_extents_calculate(E_Smart_Data *sd)
 	     bi = evas_object_data_get(obj, "e_box_data");	
 	     if (bi)
 	       {
-		  if (sd->horizontal)
-		    {
-		       if (minh < bi->min.h) minh = bi->min.h;
-		       if (minw < bi->min.w) minw = bi->min.w;
-		    }
-		  else
-		    {
-		       if (minw < bi->min.w) minw = bi->min.w;
-		       if (minh < bi->min.h) minh = bi->min.h;
-		    }
+                  if (minh < bi->min.h) minh = bi->min.h;
+                  if (minw < bi->min.w) minw = bi->min.w;
 	       }
 	  }
 	if (sd->horizontal)
-	  {
-	     minw *= evas_list_count(sd->items);	     
-	  }
+          minw *= evas_list_count(sd->items);	     
 	else
-	  {
-	     minh *= evas_list_count(sd->items);	     
-	  }
+          minh *= evas_list_count(sd->items);	     
      }
    else
      {

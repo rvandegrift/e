@@ -87,7 +87,7 @@ static void _e_fwin_cb_exec_cmd_changed(void *data, void *data2);
 static void _e_fwin_cb_open(void *data, E_Dialog *dia);
 static void _e_fwin_cb_close(void *data, E_Dialog *dia);
 static void _e_fwin_cb_dialog_free(void *obj);
-static Evas_Bool _e_fwin_cb_hash_foreach(Evas_Hash *hash, const char *key, void *data, void *fdata);
+static Evas_Bool _e_fwin_cb_hash_foreach(const Evas_Hash *hash __UNUSED__, const char *key, void *data __UNUSED__, void *fdata);
 static E_Fwin_Exec_Type _e_fwin_file_is_exec(E_Fm2_Icon_Info *ici);
 static void _e_fwin_file_exec(E_Fwin *fwin, E_Fm2_Icon_Info *ici, E_Fwin_Exec_Type ext);
 static void _e_fwin_file_open_dialog(E_Fwin *fwin, Evas_List *files, int always);
@@ -154,12 +154,12 @@ e_fwin_zone_new(E_Zone *zone, const char *dev, const char *path)
    fwin->zone = zone;
    
    /* Add Event Handler for zone move/resize & del */
-   fwin->zone_handler = ecore_event_handler_add(E_EVENT_ZONE_MOVE_RESIZE, 
-						_e_fwin_zone_move_resize, 
-						fwin);
-   fwin->zone_del_handler = ecore_event_handler_add(E_EVENT_ZONE_DEL, 
-						    _e_fwin_zone_del,
-						    fwin);
+   fwin->zone_handler = 
+     ecore_event_handler_add(E_EVENT_ZONE_MOVE_RESIZE, 
+                             _e_fwin_zone_move_resize, fwin);
+   fwin->zone_del_handler = 
+     ecore_event_handler_add(E_EVENT_ZONE_DEL, 
+                             _e_fwin_zone_del, fwin);
    
    /* Trap the mouse_down on zone so we can unselect */
    evas_object_event_callback_add(zone->bg_event_object, 
@@ -295,7 +295,7 @@ e_fwin_reload_all(void)
 		  else 
 		    {
 		       char buf[256];
-		       
+
 		       if (fileman_config->view.show_desktop_icons) 
 			 {
 			    snprintf(buf, sizeof(buf), "%i", 
@@ -443,12 +443,6 @@ static void
 _e_fwin_free(E_Fwin *fwin)
 {
    if (!fwin) return; //safety
-   if (fwin->fad)
-     {
-	e_object_del(E_OBJECT(fwin->fad->dia));
-	fwin->fad = NULL;
-     }
-   if (fwin->win) e_object_del(E_OBJECT(fwin->win));
    if (fwin->fm_obj) evas_object_del(fwin->fm_obj);
    if (fwin->tbar) e_object_del(E_OBJECT(fwin->tbar));
    if (fwin->scrollframe_obj) evas_object_del(fwin->scrollframe_obj);
@@ -469,6 +463,12 @@ _e_fwin_free(E_Fwin *fwin)
    if (fwin->overlay_file) evas_stringshare_del(fwin->overlay_file);
    if (fwin->scrollframe_file) evas_stringshare_del(fwin->scrollframe_file);
    if (fwin->theme_file) evas_stringshare_del(fwin->theme_file);
+   if (fwin->fad)
+     {
+	e_object_del(E_OBJECT(fwin->fad->dia));
+	fwin->fad = NULL;
+     }
+   if (fwin->win) e_object_del(E_OBJECT(fwin->win));
    free(fwin);
 }
 
@@ -709,7 +709,7 @@ static void
 _e_fwin_cb_menu_open_with(void *data, E_Menu *m, E_Menu_Item *mi)
 {
    E_Fwin *fwin;
-   Evas_List *selected;
+   Evas_List *selected = NULL;
    
    fwin = data;
    selected = e_fm2_selected_list_get(fwin->fm_obj);
@@ -784,6 +784,9 @@ _e_fwin_cb_open(void *data, E_Dialog *dia)
      desktop = efreet_util_desktop_file_id_find(fad->app1);
    else if (fad->app2) 
      desktop = efreet_util_desktop_file_id_find(fad->app2);
+
+   if ((!desktop) && (!fad->exec_cmd)) return;
+
    if ((desktop) || (strcmp(fad->exec_cmd, "")))
      {
 	getcwd(pcwd, sizeof(pcwd));
@@ -831,21 +834,31 @@ _e_fwin_cb_open(void *data, E_Dialog *dia)
 		    }
 	       }
 	     evas_list_free(selected);
+	     
+	     // Create a fake .desktop for custom command.
+	     if (!desktop)
+	       {
+		  desktop = efreet_desktop_empty_new("");
+		  desktop->exec = strdup(fad->exec_cmd);
+	       }
+
 	     if (fad->fwin->win)
 	       {
 		  if (desktop)
-		    e_exec(fad->fwin->win->border->zone, desktop, NULL, files, "fwin");
-		  else
-		    e_exec(fad->fwin->win->border->zone, NULL, fad->exec_cmd, files, "fwin");
+                    e_exec(fad->fwin->win->border->zone, desktop, NULL, files,
+                           "fwin");
 	       }
 	     else if (fad->fwin->zone)
 	       {
 		  if (desktop)
-		    e_exec(fad->fwin->zone, desktop, NULL, files, "fwin");
-		  else
-		    e_exec(fad->fwin->zone, NULL, fad->exec_cmd, files, "fwin");
+                    e_exec(fad->fwin->zone, desktop, NULL, files, "fwin");
 	       }
-	     ecore_list_destroy(files);
+
+	     // Free fake .desktop
+	     if (!strcmp(fad->exec_cmd, ""))
+               efreet_desktop_free(desktop);
+
+	     ecore_list_destroy(files);	    
 	  }
 	chdir(pcwd);
      }
@@ -877,7 +890,7 @@ _e_fwin_cb_dialog_free(void *obj)
 }
 
 static Evas_Bool
-_e_fwin_cb_hash_foreach(Evas_Hash *hash, const char *key, void *data, void *fdata)
+_e_fwin_cb_hash_foreach(const Evas_Hash *hash __UNUSED__, const char *key, void *data __UNUSED__, void *fdata)
 {
    Evas_List **mlist;
    
@@ -1072,7 +1085,7 @@ _e_fwin_file_open_dialog(E_Fwin *fwin, Evas_List *files, int always)
 	       {
 		  if (S_ISDIR(ici->statinfo.st_mode))
 		    {
-		       if (!fileman_config->view.open_dirs_in_place || fwin->zone) 
+		       if ((!fileman_config->view.open_dirs_in_place) || (fwin->zone)) 
 			 {
 			    if (fwin->win)
 			      fwin2 = _e_fwin_new(fwin->win->container, NULL, ici->real_link);

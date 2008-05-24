@@ -40,10 +40,10 @@ host_triplet = @host@
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/enlightenment-config.in \
-	$(srcdir)/enlightenment.spec.in $(top_srcdir)/configure \
-	ABOUT-NLS AUTHORS COPYING ChangeLog INSTALL NEWS compile \
-	config.guess config.rpath config.sub depcomp install-sh \
-	ltmain.sh missing mkinstalldirs
+	$(srcdir)/enlightenment.pc.in $(srcdir)/enlightenment.spec.in \
+	$(top_srcdir)/configure ABOUT-NLS AUTHORS COPYING ChangeLog \
+	INSTALL NEWS compile config.guess config.rpath config.sub \
+	depcomp install-sh ltmain.sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac_attribute.m4 \
@@ -58,8 +58,10 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = enlightenment.spec enlightenment-config
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(filesdir)"
+CONFIG_CLEAN_FILES = enlightenment.spec enlightenment.pc \
+	enlightenment-config
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(filesdir)" \
+	"$(DESTDIR)$(pkgconfigdir)"
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
 SOURCES =
@@ -77,7 +79,8 @@ am__vpath_adj = case $$p in \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 filesDATA_INSTALL = $(INSTALL_DATA)
-DATA = $(files_DATA)
+pkgconfigDATA_INSTALL = $(INSTALL_DATA)
+DATA = $(files_DATA) $(pkgconfig_DATA)
 ETAGS = etags
 CTAGS = ctags
 DIST_SUBDIRS = $(SUBDIRS)
@@ -103,6 +106,8 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BATTERY_CFLAGS = @BATTERY_CFLAGS@
+BATTERY_LIBS = @BATTERY_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -115,6 +120,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DSYMUTIL = @DSYMUTIL@
 ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
@@ -134,6 +140,8 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_BATTERY_FALSE = @HAVE_BATTERY_FALSE@
+HAVE_BATTERY_TRUE = @HAVE_BATTERY_TRUE@
 HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
 HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
 HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
@@ -159,6 +167,7 @@ MKINSTALLDIRS = @MKINSTALLDIRS@
 MODULE_ARCH = @MODULE_ARCH@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
+NMEDIT = @NMEDIT@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BIN_DIR = @PACKAGE_BIN_DIR@
@@ -251,15 +260,17 @@ MAINTAINERCLEANFILES = Makefile.in aclocal.m4 config.guess \
                        config.h.in config.sub configure install-sh \
 		       ltconfig ltmain.sh missing mkinstalldirs \
 		       stamp-h.in acconfig.h \
-		       enlightenment.spec
+		       enlightenment.spec enlightenment.pc
 
 bin_SCRIPTS = enlightenment-config
 EXTRA_DIST = config.rpath  README AUTHORS COPYING COPYING-PLAIN \
-             enlightenment.spec.in enlightenment.spec
+             enlightenment.spec.in enlightenment.spec enlightenment.pc
 
 filesdir = $(datadir)/enlightenment/
 files_DATA = AUTHORS COPYING 
 ACLOCAL_AMFLAGS = -I m4
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = enlightenment.pc
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -316,6 +327,8 @@ distclean-hdr:
 	-rm -f config.h stamp-h1
 enlightenment.spec: $(top_builddir)/config.status $(srcdir)/enlightenment.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
+enlightenment.pc: $(top_builddir)/config.status $(srcdir)/enlightenment.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 enlightenment-config: $(top_builddir)/config.status $(srcdir)/enlightenment-config.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binSCRIPTS: $(bin_SCRIPTS)
@@ -363,6 +376,23 @@ uninstall-filesDATA:
 	  f=$(am__strip_dir) \
 	  echo " rm -f '$(DESTDIR)$(filesdir)/$$f'"; \
 	  rm -f "$(DESTDIR)$(filesdir)/$$f"; \
+	done
+install-pkgconfigDATA: $(pkgconfig_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(pkgconfigdir)" || $(mkdir_p) "$(DESTDIR)$(pkgconfigdir)"
+	@list='$(pkgconfig_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(pkgconfigDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(pkgconfigdir)/$$f'"; \
+	  $(pkgconfigDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(pkgconfigdir)/$$f"; \
+	done
+
+uninstall-pkgconfigDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(pkgconfig_DATA)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(pkgconfigdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(pkgconfigdir)/$$f"; \
 	done
 
 # This directory's subdirectories are mostly independent; you can cd
@@ -500,7 +530,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/data/xsession $(distdir)/m4 $(distdir)/po $(distdir)/src/modules/battery $(distdir)/src/modules/clock $(distdir)/src/modules/conf $(distdir)/src/modules/conf_applications $(distdir)/src/modules/conf_borders $(distdir)/src/modules/conf_clientlist $(distdir)/src/modules/conf_colors $(distdir)/src/modules/conf_desk $(distdir)/src/modules/conf_desklock $(distdir)/src/modules/conf_desks $(distdir)/src/modules/conf_dialogs $(distdir)/src/modules/conf_display $(distdir)/src/modules/conf_dpms $(distdir)/src/modules/conf_engine $(distdir)/src/modules/conf_exebuf $(distdir)/src/modules/conf_fonts $(distdir)/src/modules/conf_icon_theme $(distdir)/src/modules/conf_imc $(distdir)/src/modules/conf_interaction $(distdir)/src/modules/conf_intl $(distdir)/src/modules/conf_keybindings $(distdir)/src/modules/conf_menus $(distdir)/src/modules/conf_mime $(distdir)/src/modules/conf_mouse $(distdir)/src/modules/conf_mouse_cursor $(distdir)/src/modules/conf_mousebindings $(distdir)/src/modules/conf_paths $(distdir)/src/modules/conf_performance $(distdir)/src/modules/conf_profiles $(distdir)/src/modules/conf_screensaver $(distdir)/src/modules/conf_shelves $(distdir)/src/modules/conf_startup $(distdir)/src/modules/conf_theme $(distdir)/src/modules/conf_transitions $(distdir)/src/modules/conf_wallpaper $(distdir)/src/modules/conf_window_display $(distdir)/src/modules/conf_window_focus $(distdir)/src/modules/conf_window_manipulation $(distdir)/src/modules/conf_winlist $(distdir)/src/modules/cpufreq $(distdir)/src/modules/dropshadow $(distdir)/src/modules/exebuf $(distdir)/src/modules/fileman $(distdir)/src/modules/ibar $(distdir)/src/modules/ibox $(distdir)/src/modules/layout $(distdir)/src/modules/msgbus_lang $(distdir)/src/modules/pager $(distdir)/src/modules/start $(distdir)/src/modules/temperature $(distdir)/src/modules/winlist $(distdir)/src/modules/wizard
+	$(mkdir_p) $(distdir)/. $(distdir)/data/xsession $(distdir)/m4 $(distdir)/po $(distdir)/src/modules/battery $(distdir)/src/modules/clock $(distdir)/src/modules/conf $(distdir)/src/modules/conf_applications $(distdir)/src/modules/conf_borders $(distdir)/src/modules/conf_clientlist $(distdir)/src/modules/conf_colors $(distdir)/src/modules/conf_desk $(distdir)/src/modules/conf_desklock $(distdir)/src/modules/conf_desks $(distdir)/src/modules/conf_dialogs $(distdir)/src/modules/conf_display $(distdir)/src/modules/conf_dpms $(distdir)/src/modules/conf_engine $(distdir)/src/modules/conf_exebuf $(distdir)/src/modules/conf_fonts $(distdir)/src/modules/conf_icon_theme $(distdir)/src/modules/conf_imc $(distdir)/src/modules/conf_interaction $(distdir)/src/modules/conf_intl $(distdir)/src/modules/conf_keybindings $(distdir)/src/modules/conf_menus $(distdir)/src/modules/conf_mime $(distdir)/src/modules/conf_mouse $(distdir)/src/modules/conf_mouse_cursor $(distdir)/src/modules/conf_mousebindings $(distdir)/src/modules/conf_paths $(distdir)/src/modules/conf_performance $(distdir)/src/modules/conf_profiles $(distdir)/src/modules/conf_screensaver $(distdir)/src/modules/conf_shelves $(distdir)/src/modules/conf_startup $(distdir)/src/modules/conf_theme $(distdir)/src/modules/conf_transitions $(distdir)/src/modules/conf_wallpaper $(distdir)/src/modules/conf_window_display $(distdir)/src/modules/conf_window_focus $(distdir)/src/modules/conf_window_manipulation $(distdir)/src/modules/conf_window_remembers $(distdir)/src/modules/conf_winlist $(distdir)/src/modules/cpufreq $(distdir)/src/modules/dropshadow $(distdir)/src/modules/exebuf $(distdir)/src/modules/fileman $(distdir)/src/modules/ibar $(distdir)/src/modules/ibox $(distdir)/src/modules/msgbus_lang $(distdir)/src/modules/pager $(distdir)/src/modules/start $(distdir)/src/modules/temperature $(distdir)/src/modules/winlist $(distdir)/src/modules/wizard
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -644,7 +674,7 @@ check: check-recursive
 all-am: Makefile $(SCRIPTS) $(DATA) config.h
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(filesdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(filesdir)" "$(DESTDIR)$(pkgconfigdir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-recursive
@@ -692,7 +722,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-filesDATA
+install-data-am: install-filesDATA install-pkgconfigDATA
 
 install-exec-am: install-binSCRIPTS
 
@@ -721,7 +751,7 @@ ps: ps-recursive
 ps-am:
 
 uninstall-am: uninstall-binSCRIPTS uninstall-filesDATA \
-	uninstall-info-am
+	uninstall-info-am uninstall-pkgconfigDATA
 
 uninstall-info: uninstall-info-recursive
 
@@ -734,13 +764,14 @@ uninstall-info: uninstall-info-recursive
 	distuninstallcheck dvi dvi-am html html-am info info-am \
 	install install-am install-binSCRIPTS install-data \
 	install-data-am install-exec install-exec-am install-filesDATA \
-	install-info install-info-am install-man install-strip \
-	installcheck installcheck-am installdirs installdirs-am \
-	maintainer-clean maintainer-clean-generic \
+	install-info install-info-am install-man install-pkgconfigDATA \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
 	maintainer-clean-recursive mostlyclean mostlyclean-generic \
 	mostlyclean-libtool mostlyclean-recursive pdf pdf-am ps ps-am \
 	tags tags-recursive uninstall uninstall-am \
-	uninstall-binSCRIPTS uninstall-filesDATA uninstall-info-am
+	uninstall-binSCRIPTS uninstall-filesDATA uninstall-info-am \
+	uninstall-pkgconfigDATA
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

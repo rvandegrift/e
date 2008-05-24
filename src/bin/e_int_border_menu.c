@@ -24,6 +24,7 @@ static void _e_border_menu_cb_below(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_fullscreen(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_skip_winlist(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_skip_pager(void *data, E_Menu *m, E_Menu_Item *mi);
+static void _e_border_menu_cb_skip_taskbar(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_sendto_pre(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_sendto(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_pin(void *data, E_Menu *m, E_Menu_Item *mi);
@@ -44,7 +45,7 @@ static void _e_border_menu_cb_default_icon(void *data, E_Menu *m, E_Menu_Item *m
 static void _e_border_menu_cb_netwm_icon(void *data, E_Menu *m, E_Menu_Item *mi);
 
 EAPI void
-e_int_border_menu_show(E_Border *bd, Evas_Coord x, Evas_Coord y, int key, Ecore_X_Time timestamp)
+e_int_border_menu_create(E_Border *bd)
 {
    E_Menu *m;
    E_Menu_Item *mi;
@@ -371,10 +372,16 @@ e_int_border_menu_show(E_Border *bd, Evas_Coord x, Evas_Coord y, int key, Ecore_
 	  }
      }
 
+}
+	
+EAPI void
+e_int_border_menu_show(E_Border *bd, Evas_Coord x, Evas_Coord y, int key, Ecore_X_Time timestamp)
+{
+   e_int_border_menu_create(bd);
    if (key)
-     e_menu_activate_key(m, bd->zone, x, y, 1, 1, E_MENU_POP_DIRECTION_DOWN);
+     e_menu_activate_key(bd->border_menu, bd->zone, x, y, 1, 1, E_MENU_POP_DIRECTION_DOWN);
    else
-     e_menu_activate_mouse(m, bd->zone, x, y, 1, 1,
+     e_menu_activate_mouse(bd->border_menu, bd->zone, x, y, 1, 1,
 			   E_MENU_POP_DIRECTION_DOWN, timestamp);
 }
 
@@ -660,6 +667,7 @@ _e_border_menu_cb_skip_winlist(void *data, E_Menu *m, E_Menu_Item *mi)
      bd->user_skip_winlist = e_menu_item_toggle_get(mi);
    else
      bd->user_skip_winlist = 0;
+   bd->changed = 1;
    if (bd->remember) e_remember_update(bd->remember, bd);
 }
 
@@ -675,6 +683,22 @@ _e_border_menu_cb_skip_pager(void *data, E_Menu *m, E_Menu_Item *mi)
      bd->client.netwm.state.skip_pager = e_menu_item_toggle_get(mi);
    else
      bd->client.netwm.state.skip_pager = 0;
+   bd->changed = 1;
+   if (bd->remember) e_remember_update(bd->remember, bd);
+}
+
+static void
+_e_border_menu_cb_skip_taskbar(void *data, E_Menu *m, E_Menu_Item *mi)
+{
+   E_Border *bd;
+
+   bd = data;
+   if (!bd) return;
+
+   if ((bd->client.icccm.accepts_focus) || (bd->client.icccm.take_focus))
+     bd->client.netwm.state.skip_taskbar = e_menu_item_toggle_get(mi);
+   else
+     bd->client.netwm.state.skip_taskbar = 0;
    bd->changed = 1;
    if (bd->remember) e_remember_update(bd->remember, bd);
 }
@@ -985,6 +1009,16 @@ _e_border_menu_cb_skip(void *data, E_Menu *m, E_Menu_Item *mi)
 			     e_theme_edje_file_get("base/theme/borders",
 						   "e/widgets/border/default/skip_pager"),
 			     "e/widgets/border/default/skip_pager");
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Taskbar"));
+   e_menu_item_check_set(submi, 1);
+   e_menu_item_toggle_set(submi, bd->client.netwm.state.skip_taskbar);
+   e_menu_item_callback_set(submi, _e_border_menu_cb_skip_taskbar, bd);
+   e_menu_item_icon_edje_set(submi,
+			     e_theme_edje_file_get("base/theme/borders",
+						   "e/widgets/border/default/skip_taskbar"),
+			     "e/widgets/border/default/skip_taskbar");
 }
 
 static void

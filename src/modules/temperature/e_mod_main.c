@@ -43,8 +43,8 @@ static void _temperature_face_cb_post_menu(void *data, E_Menu *m);
 static void _temperature_face_level_set(Config_Face *inst, double level);
 static void _temperature_face_cb_menu_configure(void *data, E_Menu *m, E_Menu_Item *mi);
 
-static Evas_Bool _temperature_face_shutdown(Evas_Hash *hash, const char *key, void *hdata, void *fdata);
-static Evas_Bool _temperature_face_id_max(Evas_Hash *hash, const char *key, void *hdata, void *fdata);
+static Evas_Bool _temperature_face_shutdown(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *hdata, void *fdata __UNUSED__);
+static Evas_Bool _temperature_face_id_max(const Evas_Hash *hash __UNUSED__, const char *key, void *hdata __UNUSED__, void *fdata);
 
 static E_Config_DD *conf_edd = NULL;
 static E_Config_DD *conf_face_edd = NULL;
@@ -59,7 +59,6 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    Evas_Object *o;
    E_Gadcon_Client *gcc;
    Config_Face *inst;
-   char buf[PATH_MAX];
 
    inst = evas_hash_find(temperature_config->faces, id);
    if (!inst)
@@ -91,16 +90,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    inst->o_temp = o;
    inst->module = temperature_config->module;
    inst->have_temp = -1;
-   snprintf(buf, sizeof(buf),
-	    "%s/%s/tempget %i \"%s\" %i", 
-	    e_module_dir_get(temperature_config->module), MODULE_ARCH, 
-	    inst->sensor_type,
-	    (inst->sensor_name != NULL ? inst->sensor_name : "-null-"),
-	    inst->poll_interval);
-   inst->tempget_exe = ecore_exe_pipe_run(buf, 
-					  ECORE_EXE_PIPE_READ | 
-					  ECORE_EXE_PIPE_READ_LINE_BUFFERED,
-					  inst);
+
    inst->tempget_data_handler = 
      ecore_event_handler_add(ECORE_EXE_EVENT_DATA,
 			     _temperature_cb_exe_data,
@@ -109,6 +99,8 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
      ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
 			     _temperature_cb_exe_del,
 			     inst);
+   
+   temperature_face_update_config(inst);
    
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
 				  _temperature_face_cb_mouse_down, inst);
@@ -360,7 +352,7 @@ _temperature_face_cb_menu_configure(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static Evas_Bool
-_temperature_face_shutdown(Evas_Hash *hash, const char *key, void *hdata, void *fdata)
+_temperature_face_shutdown(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *hdata, void *fdata __UNUSED__)
 {
    Config_Face *inst;
 
@@ -373,11 +365,11 @@ _temperature_face_shutdown(Evas_Hash *hash, const char *key, void *hdata, void *
 }
 
 static Evas_Bool
-_temperature_face_id_max(Evas_Hash *hash, const char *key, void *hdata, void *fdata)
+_temperature_face_id_max(const Evas_Hash *hash __UNUSED__, const char *key, void *hdata __UNUSED__, void *fdata)
 {
    const char *p;
-   int        *max;
-   int         num = -1;
+   int *max;
+   int num = -1;
 
    max = fdata;
    p = strrchr(key, '.');
@@ -390,10 +382,13 @@ void
 temperature_face_update_config(Config_Face *inst)
 {
    char buf[PATH_MAX];
-   
-   ecore_exe_terminate(inst->tempget_exe);
-   ecore_exe_free(inst->tempget_exe);
-   inst->tempget_exe = NULL;
+
+   if (inst->tempget_exe)
+     {
+	ecore_exe_terminate(inst->tempget_exe);
+	ecore_exe_free(inst->tempget_exe);
+	inst->tempget_exe = NULL;
+     }
    snprintf(buf, sizeof(buf),
 	    "%s/%s/tempget %i \"%s\" %i", 
 	    e_module_dir_get(temperature_config->module), MODULE_ARCH, 
@@ -402,59 +397,63 @@ temperature_face_update_config(Config_Face *inst)
 	    inst->poll_interval);
    inst->tempget_exe = ecore_exe_pipe_run(buf, 
 					  ECORE_EXE_PIPE_READ | 
-					  ECORE_EXE_PIPE_READ_LINE_BUFFERED,
+					  ECORE_EXE_PIPE_READ_LINE_BUFFERED |
+					  ECORE_EXE_NOT_LEADER,
 					  inst);
 }
 
 Ecore_List *
-temperature_get_i2c_files()
+temperature_get_bus_files(const char* bus)
 {
    Ecore_List *result;
    Ecore_List *therms;
    char        path[PATH_MAX];
-
+   char		busdir[PATH_MAX];
+   
    result = ecore_list_new();
    if (result)
      {
-        ecore_list_free_cb_set(result, free);
-
-        /* Look through all the i2c devices. */
-        therms = ecore_file_ls("/sys/bus/i2c/devices");
-        if (therms)
-          {
-             char *name;
-
+	ecore_list_free_cb_set(result, free);
+	snprintf(busdir, sizeof(busdir), "/sys/bus/%s/devices", bus);
+	/* Look through all the devices for the given bus. */
+	therms = ecore_file_ls(busdir);
+	if (therms)
+	  {
+	     char *name;
+	     
 	     while ((name = ecore_list_next(therms)))
 	       {
-                  Ecore_List *files;
-
-                  /* Search each device for temp*_input, these should be i2c temperature devices. */
-	          sprintf(path, "/sys/bus/i2c/devices/%s", name);
-	          files = ecore_file_ls(path);
-	          if (files)
-	            {
-                       char *file;
-
-	               while ((file = ecore_list_next(files)))
-	                 {
-		    	    if ((strncmp("temp", file, 4) == 0) && (strcmp("_input", &file[strlen(file) - 6]) == 0))
+		  Ecore_List *files;
+		  
+		  /* Search each device for temp*_input, these should be 
+		   * temperature devices. */
+		  snprintf(path, sizeof(path),
+			   "%s/%s", busdir, name);
+		  files = ecore_file_ls(path);
+		  if (files)
+		    {
+		       char *file;
+		       
+		       while ((file = ecore_list_next(files)))
+			 {
+			    if ((!strncmp("temp", file, 4)) && 
+				(!strcmp("_input", &file[strlen(file) - 6])))
 			      {
-			         char *f;
-
-	                         sprintf(path, "/sys/bus/i2c/devices/%s/%s", name, file);
-	                         f = strdup(path);
-			         if (f)
-	                            ecore_list_append(result, f);
+				 char *f;
+				 
+				 snprintf(path, sizeof(path),
+					  "%s/%s/%s", busdir, name, file);
+				 f = strdup(path);
+				 if (f) ecore_list_append(result, f);
 			      }
-	                 }
-	               ecore_list_destroy(files);
+			 }
+		       ecore_list_destroy(files);
 		    }
 	       }
 	     ecore_list_destroy(therms);
-          }
-        ecore_list_first_goto(result);
+	  }
+	ecore_list_first_goto(result);
      }
-
    return result;
 }
 

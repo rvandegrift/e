@@ -1697,14 +1697,14 @@ e_config_save_queue(void)
 							  NULL);
 }
 
-EAPI char *
+EAPI const char *
 e_config_profile_get(void)
 {
    return _e_config_profile;
 }
 
 EAPI void
-e_config_profile_set(char *prof)
+e_config_profile_set(const char *prof)
 {
    E_FREE(_e_config_profile);
    _e_config_profile = strdup(prof);
@@ -1740,7 +1740,7 @@ e_config_profile_list(void)
 }
 
 EAPI void
-e_config_profile_add(char *prof)
+e_config_profile_add(const char *prof)
 {
    char buf[4096];
    const char *homedir;
@@ -1751,7 +1751,7 @@ e_config_profile_add(char *prof)
 }
 
 EAPI void
-e_config_profile_del(char *prof)
+e_config_profile_del(const char *prof)
 {
    Ecore_List *files;
    char buf[4096];
@@ -1792,7 +1792,10 @@ e_config_engine_list(void)
 #if 0
    l = evas_list_append(l, strdup("GL"));
 #endif
-   l = evas_list_append(l, strdup("XRENDER"));
+   if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_XRENDER_X11))
+     l = evas_list_append(l, strdup("XRENDER"));
+   if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_X11_16))
+     l = evas_list_append(l, strdup("SOFTWARE_16"));
    return l;
 }
 
@@ -1809,7 +1812,7 @@ e_config_save_block_get(void)
 }
 
 EAPI void *
-e_config_domain_load(char *domain, E_Config_DD *edd)
+e_config_domain_load(const char *domain, E_Config_DD *edd)
 {
    Eet_File *ef;
    char buf[4096];
@@ -1824,7 +1827,22 @@ e_config_domain_load(char *domain, E_Config_DD *edd)
      {
 	data = eet_data_read(ef, edd, "config");
 	eet_close(ef);
+        return data;
      }
+
+   /* fallback to a system directory
+    * FIXME proper $PATH like handling might be wanted
+    */ 
+   snprintf(buf, sizeof(buf), "%s/data/config/%s/%s.cfg",
+	    e_prefix_data_get(), _e_config_profile, domain);
+   ef = eet_open(buf, EET_FILE_MODE_READ);
+   if (ef)
+     {
+	data = eet_data_read(ef, edd, "config");
+	eet_close(ef);
+        return data;
+     }
+
    return data;
 }
 
@@ -1864,7 +1882,7 @@ e_config_profile_save(void)
 }
 
 EAPI int
-e_config_domain_save(char *domain, E_Config_DD *edd, void *data)
+e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data)
 {
    Eet_File *ef;
    char buf[4096], buf2[4096];

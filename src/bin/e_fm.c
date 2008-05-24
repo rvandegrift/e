@@ -453,7 +453,7 @@ EAPI void
 e_fm2_path_set(Evas_Object *obj, const char *dev, const char *path)
 {
    E_Fm2_Smart_Data *sd;
-   const char *realpath, *extended_path;
+   const char *realpath;
 
    sd = evas_object_smart_data_get(obj);
    if (!sd || !path) return; // safety
@@ -491,12 +491,7 @@ e_fm2_path_set(Evas_Object *obj, const char *dev, const char *path)
 	sd->config->theme.fixed = 0;
      }
    
-   if (!strcmp(path, "~/")) 
-     extended_path = e_user_homedir_get();
-   else 
-     extended_path = path;
-
-   realpath = _e_fm2_dev_path_map(dev, extended_path);
+   realpath = _e_fm2_dev_path_map(dev, path);
    /* If the path doesn't exist, popup a dialog */
    if (dev && strncmp(dev, "removable:", 10)
        && !ecore_file_exists(realpath))
@@ -514,10 +509,10 @@ e_fm2_path_set(Evas_Object *obj, const char *dev, const char *path)
 	dialog = e_dialog_new(con, "E", "_fm_file_unexisting_path_dialog");
 	e_dialog_button_add(dialog, _("Close"), NULL, NULL, dialog);
 	e_dialog_button_focus_num(dialog, 0);
-	e_dialog_title_set(dialog, _("Unexisting path"));
+	e_dialog_title_set(dialog, _("Nonexistent path"));
 
 	snprintf(text, sizeof(text), 
-		 _("%s doesn't exists"),
+		 _("%s doesn't exist."),
 		 realpath);
 
 	e_dialog_text_set(dialog, text);
@@ -537,7 +532,7 @@ e_fm2_path_set(Evas_Object *obj, const char *dev, const char *path)
    sd->order_file = 0;
    
    if (dev) sd->dev = evas_stringshare_add(dev);
-   if (path) sd->path = evas_stringshare_add(extended_path);
+   if (path) sd->path = evas_stringshare_add(path);
    sd->realpath = realpath;
    _e_fm2_queue_free(obj);
    _e_fm2_regions_free(obj);
@@ -2267,7 +2262,6 @@ _e_fm2_dev_path_map(const char *dev, const char *path)
    int len;
    
    /* map a device name to a mount point/path on the os (and append path) */
-   if (!dev) return evas_stringshare_add(path);
 
    /* FIXME: load mappings from config and use them first - maybe device
     * discovery should be done through config and not the below (except
@@ -2286,7 +2280,7 @@ _e_fm2_dev_path_map(const char *dev, const char *path)
 	s = (char *)e_user_homedir_get();
 	PRT("%s%s", s, path);
      }
-   else if (dev[0] == '/') 
+   else if ((dev) && (dev[0] == '/'))
      {
 	/* dev is a full path - consider it a mountpoint device on its own */
 	PRT("%s%s", dev, path);
@@ -2349,6 +2343,8 @@ _e_fm2_dev_path_map(const char *dev, const char *path)
    /* maybe make part of the device mappings config? */
    /* FIXME: add code for finding nfs shares, smb shares etc. */
    /* maybe make part of the device mappings config? */
+
+   if (!strlen(buf)) snprintf(buf, sizeof(buf), "%s", path);
 
    /* strip out excess multiple slashes */
    s = buf;
@@ -3381,6 +3377,7 @@ _e_fm2_icon_unfill(E_Fm2_Icon *ic)
    if (ic->info.icon) evas_stringshare_del(ic->info.icon);
    if (ic->info.link) evas_stringshare_del(ic->info.link);
    if (ic->info.real_link) evas_stringshare_del(ic->info.real_link);
+   if (ic->info.category) evas_stringshare_del(ic->info.category);
    ic->info.mime = NULL;
    ic->info.label = NULL;
    ic->info.comment = NULL;
@@ -3653,6 +3650,7 @@ _e_fm2_icon_free(E_Fm2_Icon *ic)
    if (ic->info.icon) evas_stringshare_del(ic->info.icon);
    if (ic->info.link) evas_stringshare_del(ic->info.link);
    if (ic->info.real_link) evas_stringshare_del(ic->info.real_link);
+   if (ic->info.category) evas_stringshare_del(ic->info.category);
    free(ic);
 }
 
@@ -3929,6 +3927,8 @@ _e_fm2_icon_desktop_load(E_Fm2_Icon *ic)
 	       }
 	  }
      }
+   /* FIXME: get category */
+   ic->info.category = NULL;
    efreet_desktop_free(desktop);
 
    return 1;
@@ -3938,11 +3938,13 @@ _e_fm2_icon_desktop_load(E_Fm2_Icon *ic)
    if (ic->info.generic) evas_stringshare_del(ic->info.generic);
    if (ic->info.icon) evas_stringshare_del(ic->info.icon);
    if (ic->info.link) evas_stringshare_del(ic->info.link);
+   if (ic->info.category) evas_stringshare_del(ic->info.category);
    ic->info.label = NULL;
    ic->info.comment = NULL;
    ic->info.generic = NULL;
    ic->info.icon = NULL;
    ic->info.link = NULL;
+   ic->info.category = NULL;
    //Hack
    if (!strncmp(ic->info.file, "|storage_", 9)) ecore_file_unlink(buf);
    return 0;
@@ -5011,7 +5013,7 @@ _e_fm2_mouse_1_handler(E_Fm2_Icon *ic, int up, Evas_Modifier *modifiers)
        (ic->sd->config->view.single_click)
        )
      {
-	if (!up)
+	if (up)
 	  evas_object_smart_callback_call(ic->sd->obj, "selected", NULL);
      }
 }
@@ -5145,8 +5147,8 @@ _e_fm2_cb_icon_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_inf
    E_Fm2_Icon_Info *ici;
    
    ic = data;
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    ev = event_info;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    if ((ic->drag.start) && (ic->sd->eobj))
      {     
 	int dx, dy;
@@ -5811,10 +5813,17 @@ _e_fm2_cb_icon_sort(void *data1, void *data2)
      {
 	char buf1[4096], buf2[4096], *p;
 	
-	strncpy(buf1, l1, sizeof(buf1) - 2);
-	strncpy(buf2, l2, sizeof(buf2) - 2);
-	buf1[sizeof(buf1) - 1] = 0;
-	buf2[sizeof(buf2) - 1] = 0;
+/*	if (ic1->sd->config->list.sort.category)
+	  {
+ * FIXME: implement category sorting
+	  }
+	else
+*/	  {
+	     strncpy(buf1, l1, sizeof(buf1) - 2);
+	     strncpy(buf2, l2, sizeof(buf2) - 2);
+	     buf1[sizeof(buf1) - 1] = 0;
+	     buf2[sizeof(buf2) - 1] = 0;
+	  }
 	p = buf1;
 	while (*p)
 	  {
@@ -5982,6 +5991,7 @@ _e_fm2_smart_del(Evas_Object *obj)
    sd = evas_object_smart_data_get(obj);
    if (!sd) return;
 
+   _e_fm2_client_monitor_list_end(obj);
    if (sd->realpath) _e_fm2_client_monitor_del(sd->id, sd->realpath);
    _e_fm2_live_process_end(obj);
    _e_fm2_queue_free(obj);
