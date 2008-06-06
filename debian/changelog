@@ -6,6 +6,7 @@ e17 (0.16.999.043-1) UNRELEASED; urgency=low
 
   [ Albin Tonnerre ]
   * Install the batget binary, as it actually exists in this version
+  * debian/control: Add Vcs-* and Homepage fields
   * debian/rules:
     - No longer remove the layout module, as it's not installed anymore
     - No need for the tempget binary to be chmod 4755 - 755 is enough
