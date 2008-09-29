@@ -36,40 +36,6 @@ static Ecore_Timer *_e_util_dummy_timer = NULL;
 
 /* externally accessible functions */
 EAPI void
-e_util_container_fake_mouse_up_later(E_Container *con, int button)
-{
-   E_OBJECT_CHECK(con);
-   E_OBJECT_TYPE_CHECK(con, E_CONTAINER_TYPE);
-
-   e_util_evas_fake_mouse_up_later(con->bg_evas, button);
-}
-
-EAPI void
-e_util_container_fake_mouse_up_all_later(E_Container *con)
-{
-   E_OBJECT_CHECK(con);
-   E_OBJECT_TYPE_CHECK(con, E_CONTAINER_TYPE);
-
-   e_util_container_fake_mouse_up_later(con, 1);
-   e_util_container_fake_mouse_up_later(con, 2);
-   e_util_container_fake_mouse_up_later(con, 3);
-}
-
-EAPI void
-e_util_evas_fake_mouse_up_later(Evas *e, int button)
-{
-   E_Util_Fake_Mouse_Up_Info *info;
-
-   info = calloc(1, sizeof(E_Util_Fake_Mouse_Up_Info));
-   if (info)
-     {
-	info->evas = e;
-	info->button = button;
-	ecore_job_add(_e_util_container_fake_mouse_up_cb, info);
-     }
-}
-
-EAPI void
 e_util_wakeup(void)
 {
    if (_e_util_dummy_timer) return;
@@ -859,7 +825,7 @@ e_util_icon_add(const char *path, Evas *evas)
 }
 
 EAPI Evas_Object *
-e_util_desktop_icon_add(Efreet_Desktop *desktop, const char *size, Evas *evas)
+e_util_desktop_icon_add(Efreet_Desktop *desktop, unsigned int size, Evas *evas)
 {
    if ((!desktop) || (!desktop->icon)) return NULL;
 
@@ -867,7 +833,7 @@ e_util_desktop_icon_add(Efreet_Desktop *desktop, const char *size, Evas *evas)
 }
 
 EAPI Evas_Object *
-e_util_icon_theme_icon_add(const char *icon_name, const char *size, Evas *evas)
+e_util_icon_theme_icon_add(const char *icon_name, unsigned int size, Evas *evas)
 {
    if (!icon_name) return NULL;
    if (icon_name[0] == '/') return e_util_icon_add(icon_name, evas);
@@ -888,7 +854,7 @@ e_util_icon_theme_icon_add(const char *icon_name, const char *size, Evas *evas)
 }
 
 EAPI void
-e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, const char *size, E_Menu_Item *mi)
+e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, unsigned int size, E_Menu_Item *mi)
 {
    char *path = NULL;
 

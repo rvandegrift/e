@@ -748,7 +748,7 @@ _e_winlist_cb_key_down(void *data, int type, void *event)
    Ecore_X_Event_Key_Down *ev;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
    if      (!strcmp(ev->keysymbol, "Up"))
      e_winlist_prev();
    else if (!strcmp(ev->keysymbol, "Down"))
@@ -803,7 +803,8 @@ _e_winlist_cb_key_down(void *data, int type, void *event)
 	     if (ev->modifiers & ECORE_X_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
 	     if (ev->modifiers & ECORE_X_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
 
-	     if (bind->key && (!strcmp(bind->key, ev->keyname)) && ((bind->modifiers == mod))) 
+	     if (bind->key && (!strcmp(bind->key, ev->keyname)) && 
+		 ((bind->modifiers == mod) || (bind->any_mod))) 
 	       {	
 		  act = e_action_find(bind->action);
 		  
@@ -868,7 +869,8 @@ _e_winlist_cb_key_up(void *data, int type, void *event)
 	if (ev->modifiers & ECORE_X_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
 	if (ev->modifiers & ECORE_X_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
 
-	if (bind->key && (!strcmp(bind->key, ev->keyname)) && ((bind->modifiers == mod))) 
+	if (bind->key && (!strcmp(bind->key, ev->keyname)) && 
+	    ((bind->modifiers == mod) || (bind->any_mod))) 
 	  {	
 	     act = e_action_find(bind->action);
 
@@ -890,7 +892,7 @@ _e_winlist_cb_mouse_down(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Button_Down *ev;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
    e_bindings_mouse_down_event_handle(E_BINDING_CONTEXT_WINLIST,
 				      E_OBJECT(winlist->zone), ev);
    return 1;
@@ -902,7 +904,7 @@ _e_winlist_cb_mouse_up(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Button_Up *ev;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
    e_bindings_mouse_up_event_handle(E_BINDING_CONTEXT_WINLIST,
 				    E_OBJECT(winlist->zone), ev);
    return 1;
@@ -914,7 +916,7 @@ _e_winlist_cb_mouse_wheel(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Wheel *ev;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
    e_bindings_wheel_event_handle(E_BINDING_CONTEXT_WINLIST,
 				 E_OBJECT(winlist->zone), ev);
    if (ev->z < 0) /* up */
@@ -938,7 +940,7 @@ _e_winlist_cb_mouse_move(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Move *ev;
 
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
 
    evas_event_feed_mouse_move(winlist->evas, ev->x - winlist->x +
 	 winlist->zone->x, ev->y - winlist->y + winlist->zone->y, ev->time, NULL);

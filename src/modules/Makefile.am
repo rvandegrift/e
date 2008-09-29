@@ -50,7 +50,11 @@ conf_exebuf \
 conf_paths \
 conf_mime \
 conf_interaction \
-conf_window_remembers
+gadman \
+mixer \
+conf_window_remembers \
+conf_scale \
+connman
 
 if HAVE_TEMPERATURE
 SUBDIRS += temperature

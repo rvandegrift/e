@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Enlightenment DR0.17\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-05-19 09:50+1000\n"
+"POT-Creation-Date: 2008-09-25 12:34+1000\n"
 "PO-Revision-Date: 2006-03-21 02:50+0100\n"
 "Last-Translator: Perat Tomaž <pithlit@gmail.com>\n"
 "Language-Team:  <pithlit@gmail.com>\n"
@@ -13,20 +13,21 @@ msgstr ""
 "X-Poedit-Country: SLOVENIA\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: src/bin/e_about.c:66
+#: src/bin/e_about.c:68
 msgid "About Enlightenment"
 msgstr "O Enlightenment"
 
-#: src/bin/e_about.c:74 src/bin/e_actions.c:2301 src/bin/e_actions.c:2305
-#: src/bin/e_actions.c:2309 src/bin/e_actions.c:2313 src/bin/e_int_menus.c:168
-#: src/bin/e_main.c:563
+#: src/bin/e_about.c:76 src/bin/e_actions.c:2597 src/bin/e_actions.c:2601
+#: src/bin/e_actions.c:2605 src/bin/e_actions.c:2609 src/bin/e_actions.c:2613
+#: src/bin/e_int_menus.c:168 src/bin/e_main.c:576
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:175
 msgid "Enlightenment"
 msgstr "Enlightenment"
 
-#: src/bin/e_about.c:79
+#: src/bin/e_about.c:81
 #, fuzzy
 msgid ""
-"Copyright &copy; 1999-2007, by the Enlightenment Development Team.<br><br>We "
+"Copyright &copy; 1999-2008, by the Enlightenment Development Team.<br><br>We "
 "hope you enjoy using this software as much as we enjoyed writing it."
 "<br><br>This software is provided as-is with no explicit or implied "
 "warranty. This software is governed by licensing conditions, so please see "
@@ -45,11 +46,11 @@ msgstr ""
 "ni. V vsakem primeru pa pričakujte ogromno hroščev. Bili ste "
 "<hilight>POSVARJENI!</hilight>"
 
-#: src/bin/e_about.c:104
+#: src/bin/e_about.c:106
 msgid "<title>The Team</title>"
 msgstr "<title>D' Ekipa</title>"
 
-#: src/bin/e_actions.c:312
+#: src/bin/e_actions.c:338
 #, c-format
 msgid ""
 "You are about to kill %s.<br><br>Please keep in mind that all data of this "
@@ -57,52 +58,54 @@ msgid ""
 "you want to kill this window?"
 msgstr ""
 
-#: src/bin/e_actions.c:324
+#: src/bin/e_actions.c:350
 #, fuzzy
 msgid "Are you sure you want to kill this window?"
 msgstr "Ste prepričani, da bi radi zapustili Enlightenment?"
 
-#: src/bin/e_actions.c:327 src/bin/e_actions.c:1600 src/bin/e_actions.c:1671
-#: src/bin/e_actions.c:1730 src/bin/e_actions.c:1789 src/bin/e_actions.c:1848
-#: src/bin/e_actions.c:1907 src/bin/e_confirm_dialog.c:47 src/bin/e_fm.c:7012
-#: src/bin/e_module.c:497 src/modules/conf_display/e_int_config_display.c:215
+#: src/bin/e_actions.c:353 src/bin/e_actions.c:1631 src/bin/e_actions.c:1713
+#: src/bin/e_actions.c:1777 src/bin/e_actions.c:1841 src/bin/e_actions.c:1905
+#: src/bin/e_actions.c:1969 src/bin/e_confirm_dialog.c:47 src/bin/e_fm.c:7182
+#: src/bin/e_fm.c:7362 src/bin/e_module.c:526
+#: src/modules/conf_display/e_int_config_display.c:215
 msgid "Yes"
 msgstr "Da"
 
-#: src/bin/e_actions.c:329 src/bin/e_actions.c:1602 src/bin/e_actions.c:1673
-#: src/bin/e_actions.c:1732 src/bin/e_actions.c:1791 src/bin/e_actions.c:1850
-#: src/bin/e_actions.c:1909 src/bin/e_confirm_dialog.c:48 src/bin/e_fm.c:7013
-#: src/bin/e_module.c:498 src/modules/conf_display/e_int_config_display.c:216
+#: src/bin/e_actions.c:355 src/bin/e_actions.c:1633 src/bin/e_actions.c:1715
+#: src/bin/e_actions.c:1779 src/bin/e_actions.c:1843 src/bin/e_actions.c:1907
+#: src/bin/e_actions.c:1971 src/bin/e_confirm_dialog.c:48 src/bin/e_fm.c:7180
+#: src/bin/e_fm.c:7363 src/bin/e_module.c:527
+#: src/modules/conf_display/e_int_config_display.c:216
 msgid "No"
 msgstr "Ne"
 
-#: src/bin/e_actions.c:1593
+#: src/bin/e_actions.c:1624
 msgid "Are you sure you want to exit?"
 msgstr "Ste prepričani, da bi radi zapustili Enlightenment?"
 
-#: src/bin/e_actions.c:1595
+#: src/bin/e_actions.c:1626
 msgid ""
 "You requested to exit Enlightenment.<br><br>Are you sure you want to exit?"
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/bin/e_actions.c:1664
+#: src/bin/e_actions.c:1706
 #, fuzzy
 msgid "Are you sure you want to log out?"
 msgstr "Ste prepričani, da bi radi zapustili Enlightenment?"
 
-#: src/bin/e_actions.c:1666
+#: src/bin/e_actions.c:1708
 #, fuzzy
 msgid "You are about to log out.<br><br>Are you sure you want to do this?"
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/bin/e_actions.c:1723 src/bin/e_actions.c:1841
+#: src/bin/e_actions.c:1770 src/bin/e_actions.c:1898
 #, fuzzy
 msgid "Are you sure you want to turn off?"
 msgstr "Ste prepričani, da bi radi zapustili Enlightenment?"
 
-#: src/bin/e_actions.c:1725
+#: src/bin/e_actions.c:1772
 #, fuzzy
 msgid ""
 "You requested to turn off your Computer.<br><br>Are you sure you want to "
@@ -110,12 +113,12 @@ msgid ""
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/bin/e_actions.c:1782
+#: src/bin/e_actions.c:1834
 #, fuzzy
 msgid "Are you sure you want to reboot?"
 msgstr "Ste prepričani, da bi radi zapustili Enlightenment?"
 
-#: src/bin/e_actions.c:1784
+#: src/bin/e_actions.c:1836
 #, fuzzy
 msgid ""
 "You requested to reboot your Computer.<br><br>Are you sure you want to "
@@ -123,7 +126,7 @@ msgid ""
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/bin/e_actions.c:1843
+#: src/bin/e_actions.c:1900
 #, fuzzy
 msgid ""
 "You requested to suspend your Computer.<br><br>Are you sure you want to "
@@ -131,12 +134,12 @@ msgid ""
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/bin/e_actions.c:1900
+#: src/bin/e_actions.c:1962
 #, fuzzy
 msgid "Are you sure you want to hibernate?"
 msgstr "Ste prepričani, da bi radi zapustili Enlightenment?"
 
-#: src/bin/e_actions.c:1902
+#: src/bin/e_actions.c:1964
 #, fuzzy
 msgid ""
 "You requested to hibernate your Computer.<br><br>Are you sure you want to "
@@ -144,368 +147,369 @@ msgid ""
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/bin/e_actions.c:1981 src/bin/e_actions.c:1991 src/bin/e_actions.c:2009
-#: src/bin/e_actions.c:2014 src/bin/e_actions.c:2019 src/bin/e_actions.c:2024
-#: src/bin/e_actions.c:2233 src/bin/e_actions.c:2238 src/bin/e_actions.c:2244
-#: src/bin/e_actions.c:2250 src/bin/e_actions.c:2256
+#: src/bin/e_actions.c:2275 src/bin/e_actions.c:2286 src/bin/e_actions.c:2305
+#: src/bin/e_actions.c:2310 src/bin/e_actions.c:2315 src/bin/e_actions.c:2320
+#: src/bin/e_actions.c:2529 src/bin/e_actions.c:2534 src/bin/e_actions.c:2540
+#: src/bin/e_actions.c:2546 src/bin/e_actions.c:2552
 #, fuzzy
 msgid "Window : Actions"
 msgstr "Izbira Okenskih Okvirjev"
 
-#: src/bin/e_actions.c:1981
+#: src/bin/e_actions.c:2275 src/bin/e_fm.c:4756
 #, fuzzy
 msgid "Move"
 msgstr "Jaz"
 
-#: src/bin/e_actions.c:1991
+#: src/bin/e_actions.c:2286
 #, fuzzy
 msgid "Resize"
 msgstr "Upor"
 
-#: src/bin/e_actions.c:2001 src/bin/e_actions.c:2277 src/bin/e_actions.c:2279
-#: src/bin/e_actions.c:2281 src/bin/e_actions.c:2283 src/bin/e_actions.c:2285
+#: src/bin/e_actions.c:2297 src/bin/e_actions.c:2573 src/bin/e_actions.c:2575
+#: src/bin/e_actions.c:2577 src/bin/e_actions.c:2579 src/bin/e_actions.c:2581
 #: src/modules/conf_mousebindings/e_int_config_mousebindings.c:345
 msgid "Menu"
 msgstr "Meni"
 
-#: src/bin/e_actions.c:2001
+#: src/bin/e_actions.c:2297
 #, fuzzy
 msgid "Window Menu"
 msgstr "Vloga Okna"
 
-#: src/bin/e_actions.c:2009 src/bin/e_int_border_menu.c:347
+#: src/bin/e_actions.c:2305 src/bin/e_int_border_menu.c:182
 msgid "Raise"
 msgstr ""
 
-#: src/bin/e_actions.c:2014 src/bin/e_int_border_menu.c:355
+#: src/bin/e_actions.c:2310 src/bin/e_int_border_menu.c:174
 #, fuzzy
 msgid "Lower"
 msgstr "Nizko"
 
-#: src/bin/e_actions.c:2019 src/bin/e_config_dialog.c:226 src/bin/e_fm.c:510
-#: src/bin/e_int_border_menu.c:329 src/bin/e_int_border_prop.c:81
-#: src/modules/conf/e_conf.c:170 src/modules/fileman/e_fwin.c:1322
+#: src/bin/e_actions.c:2315 src/bin/e_config_dialog.c:228 src/bin/e_fm.c:546
+#: src/bin/e_int_border_menu.c:208 src/bin/e_int_border_prop.c:81
+#: src/modules/conf/e_conf.c:170 src/modules/fileman/e_fwin.c:1417
+#: src/modules/mixer/app_mixer.c:537
 msgid "Close"
 msgstr "Zapri"
 
-#: src/bin/e_actions.c:2024 src/bin/e_int_border_menu.c:318
+#: src/bin/e_actions.c:2320 src/bin/e_int_border_menu.c:197
 msgid "Kill"
 msgstr "Uniči"
 
-#: src/bin/e_actions.c:2029 src/bin/e_actions.c:2036 src/bin/e_actions.c:2043
-#: src/bin/e_actions.c:2050 src/bin/e_actions.c:2052 src/bin/e_actions.c:2055
-#: src/bin/e_actions.c:2058 src/bin/e_actions.c:2060 src/bin/e_actions.c:2062
-#: src/bin/e_actions.c:2064 src/bin/e_actions.c:2071 src/bin/e_actions.c:2073
-#: src/bin/e_actions.c:2075 src/bin/e_actions.c:2077 src/bin/e_actions.c:2079
-#: src/bin/e_actions.c:2086 src/bin/e_actions.c:2091
+#: src/bin/e_actions.c:2325 src/bin/e_actions.c:2332 src/bin/e_actions.c:2339
+#: src/bin/e_actions.c:2346 src/bin/e_actions.c:2348 src/bin/e_actions.c:2351
+#: src/bin/e_actions.c:2354 src/bin/e_actions.c:2356 src/bin/e_actions.c:2358
+#: src/bin/e_actions.c:2360 src/bin/e_actions.c:2367 src/bin/e_actions.c:2369
+#: src/bin/e_actions.c:2371 src/bin/e_actions.c:2373 src/bin/e_actions.c:2375
+#: src/bin/e_actions.c:2382 src/bin/e_actions.c:2387
 #, fuzzy
 msgid "Window : State"
 msgstr "Ime Okna"
 
-#: src/bin/e_actions.c:2029
+#: src/bin/e_actions.c:2325
 msgid "Sticky Mode Toggle"
 msgstr ""
 
-#: src/bin/e_actions.c:2036
+#: src/bin/e_actions.c:2332
 msgid "Iconic Mode Toggle"
 msgstr ""
 
-#: src/bin/e_actions.c:2043
+#: src/bin/e_actions.c:2339
 #, fuzzy
 msgid "Fullscreen Mode Toggle"
 msgstr "Celozaslonsko stanje"
 
-#: src/bin/e_actions.c:2050 src/bin/e_int_border_menu.c:108
-#: src/bin/e_int_border_menu.c:238
+#: src/bin/e_actions.c:2346 src/bin/e_int_border_menu.c:148
+#: src/bin/e_int_border_menu.c:343
 msgid "Maximize"
 msgstr "Maksimiraj"
 
-#: src/bin/e_actions.c:2052
+#: src/bin/e_actions.c:2348
 #, fuzzy
 msgid "Maximize Vertically"
 msgstr "Maksimirano po vertikali"
 
-#: src/bin/e_actions.c:2055
+#: src/bin/e_actions.c:2351
 #, fuzzy
 msgid "Maximize Horizontally"
 msgstr "Maksimirano po horizontali"
 
-#: src/bin/e_actions.c:2058
+#: src/bin/e_actions.c:2354
 #, fuzzy
 msgid "Maximize Fullscreen"
 msgstr "Celozaslonsko"
 
-#: src/bin/e_actions.c:2060
+#: src/bin/e_actions.c:2356
 #, fuzzy
 msgid "Maximize Mode \"Smart\""
 msgstr "Maksimirano stanje"
 
-#: src/bin/e_actions.c:2062
+#: src/bin/e_actions.c:2358
 msgid "Maximize Mode \"Expand\""
 msgstr ""
 
-#: src/bin/e_actions.c:2064
+#: src/bin/e_actions.c:2360
 #, fuzzy
 msgid "Maximize Mode \"Fill\""
 msgstr "Taktika Maksimiranja"
 
-#: src/bin/e_actions.c:2071
+#: src/bin/e_actions.c:2367
 msgid "Shade Up Mode Toggle"
 msgstr ""
 
-#: src/bin/e_actions.c:2073
+#: src/bin/e_actions.c:2369
 msgid "Shade Down Mode Toggle"
 msgstr ""
 
-#: src/bin/e_actions.c:2075
+#: src/bin/e_actions.c:2371
 msgid "Shade Left Mode Toggle"
 msgstr ""
 
-#: src/bin/e_actions.c:2077
+#: src/bin/e_actions.c:2373
 msgid "Shade Right Mode Toggle"
 msgstr ""
 
-#: src/bin/e_actions.c:2079
+#: src/bin/e_actions.c:2375
 msgid "Shade Mode Toggle"
 msgstr ""
 
-#: src/bin/e_actions.c:2086
+#: src/bin/e_actions.c:2382
 #, fuzzy
 msgid "Toggle Borderless State"
 msgstr "Brez okvirjev"
 
-#: src/bin/e_actions.c:2091
+#: src/bin/e_actions.c:2387
 #, fuzzy
 msgid "Toggle Pinned State"
 msgstr "Brez okvirjev"
 
-#: src/bin/e_actions.c:2096 src/bin/e_actions.c:2098 src/bin/e_actions.c:2100
-#: src/bin/e_actions.c:2102 src/bin/e_actions.c:2104 src/bin/e_actions.c:2110
-#: src/bin/e_actions.c:2115 src/bin/e_actions.c:2121 src/bin/e_actions.c:2127
-#: src/bin/e_actions.c:2129 src/bin/e_actions.c:2131 src/bin/e_actions.c:2133
-#: src/bin/e_actions.c:2135 src/bin/e_actions.c:2137 src/bin/e_actions.c:2139
-#: src/bin/e_actions.c:2141 src/bin/e_actions.c:2143 src/bin/e_actions.c:2145
-#: src/bin/e_actions.c:2147 src/bin/e_actions.c:2149 src/bin/e_actions.c:2151
-#: src/bin/e_actions.c:2157 src/bin/e_actions.c:2159 src/bin/e_actions.c:2161
-#: src/bin/e_actions.c:2163 src/bin/e_actions.c:2165 src/bin/e_actions.c:2171
-#: src/bin/e_actions.c:2177 src/bin/e_actions.c:2183 src/bin/e_actions.c:2185
-#: src/bin/e_actions.c:2187 src/bin/e_actions.c:2189 src/bin/e_actions.c:2191
-#: src/bin/e_actions.c:2193 src/bin/e_actions.c:2195 src/bin/e_actions.c:2197
-#: src/bin/e_actions.c:2199 src/bin/e_actions.c:2201 src/bin/e_actions.c:2203
-#: src/bin/e_actions.c:2205 src/bin/e_actions.c:2207 src/bin/e_actions.c:2337
-#: src/bin/e_actions.c:2342 src/bin/e_int_menus.c:135
-#: src/bin/e_int_shelf_config.c:661
+#: src/bin/e_actions.c:2392 src/bin/e_actions.c:2394 src/bin/e_actions.c:2396
+#: src/bin/e_actions.c:2398 src/bin/e_actions.c:2400 src/bin/e_actions.c:2406
+#: src/bin/e_actions.c:2411 src/bin/e_actions.c:2417 src/bin/e_actions.c:2423
+#: src/bin/e_actions.c:2425 src/bin/e_actions.c:2427 src/bin/e_actions.c:2429
+#: src/bin/e_actions.c:2431 src/bin/e_actions.c:2433 src/bin/e_actions.c:2435
+#: src/bin/e_actions.c:2437 src/bin/e_actions.c:2439 src/bin/e_actions.c:2441
+#: src/bin/e_actions.c:2443 src/bin/e_actions.c:2445 src/bin/e_actions.c:2447
+#: src/bin/e_actions.c:2453 src/bin/e_actions.c:2455 src/bin/e_actions.c:2457
+#: src/bin/e_actions.c:2459 src/bin/e_actions.c:2461 src/bin/e_actions.c:2467
+#: src/bin/e_actions.c:2473 src/bin/e_actions.c:2479 src/bin/e_actions.c:2481
+#: src/bin/e_actions.c:2483 src/bin/e_actions.c:2485 src/bin/e_actions.c:2487
+#: src/bin/e_actions.c:2489 src/bin/e_actions.c:2491 src/bin/e_actions.c:2493
+#: src/bin/e_actions.c:2495 src/bin/e_actions.c:2497 src/bin/e_actions.c:2499
+#: src/bin/e_actions.c:2501 src/bin/e_actions.c:2503 src/bin/e_actions.c:2637
+#: src/bin/e_actions.c:2642 src/bin/e_int_menus.c:135
+#: src/bin/e_int_shelf_config.c:662
 #: src/modules/conf_clientlist/e_int_config_clientlist.c:103
 #: src/modules/ibox/e_mod_config.c:141
 msgid "Desktop"
 msgstr "Desktop"
 
-#: src/bin/e_actions.c:2096
+#: src/bin/e_actions.c:2392
 #, fuzzy
 msgid "Flip Desktop Left"
 msgstr "To Namizje"
 
-#: src/bin/e_actions.c:2098
+#: src/bin/e_actions.c:2394
 #, fuzzy
 msgid "Flip Desktop Right"
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2100
+#: src/bin/e_actions.c:2396
 #, fuzzy
 msgid "Flip Desktop Up"
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2102
+#: src/bin/e_actions.c:2398
 #, fuzzy
 msgid "Flip Desktop Down"
 msgstr "To Namizje"
 
-#: src/bin/e_actions.c:2104
+#: src/bin/e_actions.c:2400
 #, fuzzy
 msgid "Flip Desktop By..."
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2110
+#: src/bin/e_actions.c:2406
 #, fuzzy
 msgid "Show The Desktop"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2115
+#: src/bin/e_actions.c:2411
 #, fuzzy
 msgid "Flip Desktop To..."
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2121
+#: src/bin/e_actions.c:2417
 msgid "Flip Desktop Linearly..."
 msgstr ""
 
-#: src/bin/e_actions.c:2127
+#: src/bin/e_actions.c:2423
 #, fuzzy
 msgid "Switch To Desktop 0"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2129
+#: src/bin/e_actions.c:2425
 #, fuzzy
 msgid "Switch To Desktop 1"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2131
+#: src/bin/e_actions.c:2427
 #, fuzzy
 msgid "Switch To Desktop 2"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2133
+#: src/bin/e_actions.c:2429
 #, fuzzy
 msgid "Switch To Desktop 3"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2135
+#: src/bin/e_actions.c:2431
 #, fuzzy
 msgid "Switch To Desktop 4"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2137
+#: src/bin/e_actions.c:2433
 #, fuzzy
 msgid "Switch To Desktop 5"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2139
+#: src/bin/e_actions.c:2435
 #, fuzzy
 msgid "Switch To Desktop 6"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2141
+#: src/bin/e_actions.c:2437
 #, fuzzy
 msgid "Switch To Desktop 7"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2143
+#: src/bin/e_actions.c:2439
 #, fuzzy
 msgid "Switch To Desktop 8"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2145
+#: src/bin/e_actions.c:2441
 #, fuzzy
 msgid "Switch To Desktop 9"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2147
+#: src/bin/e_actions.c:2443
 #, fuzzy
 msgid "Switch To Desktop 10"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2149
+#: src/bin/e_actions.c:2445
 #, fuzzy
 msgid "Switch To Desktop 11"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2151
+#: src/bin/e_actions.c:2447
 #, fuzzy
 msgid "Switch To Desktop..."
 msgstr "Pošlji na namizje"
 
-#: src/bin/e_actions.c:2157
+#: src/bin/e_actions.c:2453
 #, fuzzy
 msgid "Flip Desktop Left (All Screens)"
 msgstr "To Namizje"
 
-#: src/bin/e_actions.c:2159
+#: src/bin/e_actions.c:2455
 #, fuzzy
 msgid "Flip Desktop Right (All Screens)"
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2161
+#: src/bin/e_actions.c:2457
 #, fuzzy
 msgid "Flip Desktop Up (All Screens)"
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2163
+#: src/bin/e_actions.c:2459
 #, fuzzy
 msgid "Flip Desktop Down (All Screens)"
 msgstr "To Namizje"
 
-#: src/bin/e_actions.c:2165
+#: src/bin/e_actions.c:2461
 #, fuzzy
 msgid "Flip Desktop By... (All Screens)"
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2171
+#: src/bin/e_actions.c:2467
 #, fuzzy
 msgid "Flip Desktop To... (All Screens)"
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2177
+#: src/bin/e_actions.c:2473
 #, fuzzy
 msgid "Flip Desktop Linearly... (All Screens)"
 msgstr "Vsa Namizja"
 
-#: src/bin/e_actions.c:2183
+#: src/bin/e_actions.c:2479
 #, fuzzy
 msgid "Switch To Desktop 0 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2185
+#: src/bin/e_actions.c:2481
 #, fuzzy
 msgid "Switch To Desktop 1 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2187
+#: src/bin/e_actions.c:2483
 #, fuzzy
 msgid "Switch To Desktop 2 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2189
+#: src/bin/e_actions.c:2485
 #, fuzzy
 msgid "Switch To Desktop 3 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2191
+#: src/bin/e_actions.c:2487
 #, fuzzy
 msgid "Switch To Desktop 4 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2193
+#: src/bin/e_actions.c:2489
 #, fuzzy
 msgid "Switch To Desktop 5 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2195
+#: src/bin/e_actions.c:2491
 #, fuzzy
 msgid "Switch To Desktop 6 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2197
+#: src/bin/e_actions.c:2493
 #, fuzzy
 msgid "Switch To Desktop 7 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2199
+#: src/bin/e_actions.c:2495
 #, fuzzy
 msgid "Switch To Desktop 8 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2201
+#: src/bin/e_actions.c:2497
 #, fuzzy
 msgid "Switch To Desktop 9 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2203
+#: src/bin/e_actions.c:2499
 #, fuzzy
 msgid "Switch To Desktop 10 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2205
+#: src/bin/e_actions.c:2501
 #, fuzzy
 msgid "Switch To Desktop 11 (All Screens)"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_actions.c:2207
+#: src/bin/e_actions.c:2503
 #, fuzzy
 msgid "Switch To Desktop... (All Screens)"
 msgstr "Pošlji na namizje"
 
-#: src/bin/e_actions.c:2214 src/bin/e_actions.c:2216 src/bin/e_actions.c:2218
-#: src/bin/e_actions.c:2223 src/bin/e_actions.c:2225 src/bin/e_actions.c:2227
+#: src/bin/e_actions.c:2510 src/bin/e_actions.c:2512 src/bin/e_actions.c:2514
+#: src/bin/e_actions.c:2519 src/bin/e_actions.c:2521 src/bin/e_actions.c:2523
 #: src/modules/conf_desklock/e_mod_main.c:34
 #: src/modules/conf_desks/e_mod_main.c:34
 #: src/modules/conf_display/e_mod_main.c:34
@@ -516,170 +520,184 @@ msgstr "Pošlji na namizje"
 msgid "Screen"
 msgstr "Zakleni zaslon"
 
-#: src/bin/e_actions.c:2214
+#: src/bin/e_actions.c:2510
 msgid "Send Mouse To Screen 0"
 msgstr ""
 
-#: src/bin/e_actions.c:2216
+#: src/bin/e_actions.c:2512
 msgid "Send Mouse To Screen 1"
 msgstr ""
 
-#: src/bin/e_actions.c:2218
+#: src/bin/e_actions.c:2514
 msgid "Send Mouse To Screen..."
 msgstr ""
 
-#: src/bin/e_actions.c:2223
+#: src/bin/e_actions.c:2519
 msgid "Send Mouse Forward 1 Screen"
 msgstr ""
 
-#: src/bin/e_actions.c:2225
+#: src/bin/e_actions.c:2521
 msgid "Send Mouse Back 1 Screen"
 msgstr ""
 
-#: src/bin/e_actions.c:2227
+#: src/bin/e_actions.c:2523
 msgid "Send Mouse Forward/Back Screens..."
 msgstr ""
 
-#: src/bin/e_actions.c:2261 src/bin/e_actions.c:2263 src/bin/e_actions.c:2265
-#: src/bin/e_actions.c:2271
+#: src/bin/e_actions.c:2557 src/bin/e_actions.c:2559 src/bin/e_actions.c:2561
+#: src/bin/e_actions.c:2567
 #, fuzzy
 msgid "Window : Moving"
 msgstr "Zasenčevanje oken"
 
-#: src/bin/e_actions.c:2261
+#: src/bin/e_actions.c:2557
 #, fuzzy
 msgid "To Next Desktop"
 msgstr "Pošlji na namizje"
 
-#: src/bin/e_actions.c:2263
+#: src/bin/e_actions.c:2559
 #, fuzzy
 msgid "To Previous Desktop"
 msgstr "To Namizje"
 
-#: src/bin/e_actions.c:2265
+#: src/bin/e_actions.c:2561
 #, fuzzy
 msgid "By Desktop #..."
 msgstr "Desktop"
 
-#: src/bin/e_actions.c:2271
+#: src/bin/e_actions.c:2567
 #, fuzzy
 msgid "To Desktop..."
 msgstr "To Namizje"
 
-#: src/bin/e_actions.c:2277
+#: src/bin/e_actions.c:2573
 #, fuzzy
 msgid "Show Main Menu"
 msgstr "Prikaži Ime v Meniju"
 
-#: src/bin/e_actions.c:2279
+#: src/bin/e_actions.c:2575
 #, fuzzy
 msgid "Show Favorites Menu"
 msgstr "Prikaži Ime v Meniju"
 
-#: src/bin/e_actions.c:2281
+#: src/bin/e_actions.c:2577
 #, fuzzy
 msgid "Show All Applications Menu"
 msgstr "(Ni Programov)"
 
-#: src/bin/e_actions.c:2283
+#: src/bin/e_actions.c:2579
 #, fuzzy
 msgid "Show Clients Menu"
 msgstr "Prikaži Komentar v Meniju"
 
-#: src/bin/e_actions.c:2285
+#: src/bin/e_actions.c:2581
 #, fuzzy
 msgid "Show Menu..."
 msgstr "Prikaži Ime v Meniju"
 
-#: src/bin/e_actions.c:2292 src/bin/e_actions.c:2297
+#: src/bin/e_actions.c:2588 src/bin/e_actions.c:2593
 #: src/modules/conf/e_mod_main.c:46 src/modules/conf/e_mod_main.c:67
 #: src/modules/exebuf/e_mod_main.c:48 src/modules/exebuf/e_mod_main.c:68
 #: src/modules/fileman/e_mod_main.c:57 src/modules/fileman/e_mod_main.c:136
 msgid "Launch"
 msgstr ""
 
-#: src/bin/e_actions.c:2292
+#: src/bin/e_actions.c:2588
 #, fuzzy
 msgid "Defined Command"
 msgstr "Poženi ukaz"
 
-#: src/bin/e_actions.c:2297
+#: src/bin/e_actions.c:2593
 #, fuzzy
 msgid "Application"
 msgstr "(Ni Programov)"
 
-#: src/bin/e_actions.c:2301 src/bin/e_int_menus.c:193
+#: src/bin/e_actions.c:2597 src/bin/e_int_menus.c:193
 msgid "Restart"
 msgstr ""
 
-#: src/bin/e_actions.c:2305 src/bin/e_int_menus.c:198
+#: src/bin/e_actions.c:2601 src/bin/e_int_menus.c:198
 #, fuzzy
 msgid "Exit"
 msgstr "Počakaj z izhodom"
 
-#: src/bin/e_actions.c:2309
+#: src/bin/e_actions.c:2605
 msgid "Log Out"
 msgstr ""
 
-#: src/bin/e_actions.c:2313
+#: src/bin/e_actions.c:2609
 msgid "Exit Immediately"
 msgstr ""
 
-#: src/bin/e_actions.c:2317 src/bin/e_actions.c:2321 src/bin/e_actions.c:2325
-#: src/bin/e_actions.c:2329 src/bin/e_int_config_modules.c:45
-#: src/bin/e_int_menus.c:230
+#: src/bin/e_actions.c:2613
+msgid "Shut Down Immediately"
+msgstr ""
+
+#: src/bin/e_actions.c:2617 src/bin/e_actions.c:2621 src/bin/e_actions.c:2625
+#: src/bin/e_actions.c:2629 src/bin/e_configure.c:129
+#: src/bin/e_int_config_modules.c:45 src/bin/e_int_menus.c:230
 #: src/modules/conf_desklock/e_int_config_desklock.c:195
 #: src/modules/conf_imc/e_int_config_imc.c:823
 #: src/modules/conf_startup/e_int_config_startup.c:273
-#: src/modules/conf_theme/e_int_config_theme.c:335
-#: src/modules/conf_theme/e_int_config_theme.c:768
+#: src/modules/conf_theme/e_int_config_theme.c:358
+#: src/modules/conf_theme/e_int_config_theme.c:797
 #: src/modules/conf_wallpaper/e_int_config_wallpaper.c:501
 #: src/modules/conf_wallpaper/e_int_config_wallpaper.c:627
 msgid "System"
 msgstr ""
 
-#: src/bin/e_actions.c:2317 src/bin/e_int_menus.c:890
+#: src/bin/e_actions.c:2617 src/bin/e_int_menus.c:890
 msgid "Shut Down"
 msgstr ""
 
-#: src/bin/e_actions.c:2321 src/bin/e_int_menus.c:883
+#: src/bin/e_actions.c:2621 src/bin/e_int_menus.c:883
 msgid "Reboot"
 msgstr ""
 
-#: src/bin/e_actions.c:2325 src/bin/e_int_menus.c:869
+#: src/bin/e_actions.c:2625 src/bin/e_int_menus.c:869
 msgid "Suspend"
 msgstr ""
 
-#: src/bin/e_actions.c:2329
+#: src/bin/e_actions.c:2629
 #, fuzzy
 msgid "Suspend to Disk"
 msgstr "Pošlji na namizje"
 
-#: src/bin/e_actions.c:2337
+#: src/bin/e_actions.c:2637
 #, fuzzy
 msgid "Desktop Lock"
 msgstr "Desktop"
 
-#: src/bin/e_actions.c:2342 src/bin/e_int_menus.c:1254
+#: src/bin/e_actions.c:2642 src/bin/e_int_menus.c:1254
 msgid "Cleanup Windows"
 msgstr "Razporedi Okna"
+
+#: src/bin/e_actions.c:2647
+#, fuzzy
+msgid "Generic : Actions"
+msgstr "Izbira Okenskih Okvirjev"
+
+#: src/bin/e_actions.c:2647
+#, fuzzy
+msgid "Delayed Action"
+msgstr "Dejanja Modula"
 
 #: src/bin/e_bg.c:21 src/modules/conf_wallpaper/e_mod_main.c:34
 #, fuzzy
 msgid "Set As Background"
 msgstr "Nastavi Ozadje za"
 
-#: src/bin/e_border.c:4476
+#: src/bin/e_border.c:4795
 #, fuzzy
 msgid "Desktop files scan done"
 msgstr "Desktop"
 
-#: src/bin/e_border.c:4488
+#: src/bin/e_border.c:4807
 #, fuzzy
 msgid "Desktop file scan"
 msgstr "Desktop"
 
-#: src/bin/e_config.c:593
+#: src/bin/e_config.c:644
 msgid ""
 "Configuration data needed upgrading. Your old configuration<br>has been "
 "wiped and a new set of defaults initialized. This<br>will happen regularly "
@@ -696,7 +714,7 @@ msgstr ""
 "stara nastavitvena datoteka ne vsebuje. Sedaj<br>pa lahko ponovno nastavite "
 "stvari po svoje. Opravičujemo se za kolcanje.<br>"
 
-#: src/bin/e_config.c:607
+#: src/bin/e_config.c:658
 msgid ""
 "Your configuration is NEWER than Enlightenment. This is very<br>strange. "
 "This should not happen unless you downgraded<br>Enlightenment or copied the "
@@ -711,16 +729,16 @@ msgstr ""
 "nastavili na privzete vrednosti. Prosimo, sprejmite naše<br>opravičilo za "
 "vse nevšečnosti.<br>"
 
-#: src/bin/e_config.c:629
+#: src/bin/e_config.c:680
 #, fuzzy, c-format
 msgid "Desktop %i, %i"
 msgstr "Desktop"
 
-#: src/bin/e_config.c:2227
+#: src/bin/e_config.c:2311
 msgid "Configuration Upgraded"
 msgstr "Nastavitve Osvežene"
 
-#: src/bin/e_config.c:2252
+#: src/bin/e_config.c:2336
 #, c-format
 msgid ""
 "An error occured while saving Enlightenment's<br>configuration to disk. The "
@@ -728,7 +746,7 @@ msgid ""
 "was:<br>%s<br><br>This file has been deleted to avoid corrupt data.<br>"
 msgstr ""
 
-#: src/bin/e_config.c:2263
+#: src/bin/e_config.c:2347
 #, c-format
 msgid ""
 "Enlightenment's configuration files are too big<br>for the file system they "
@@ -738,7 +756,7 @@ msgid ""
 "been deleted to avoid corrupt data.<br>"
 msgstr ""
 
-#: src/bin/e_config.c:2276
+#: src/bin/e_config.c:2360
 #, c-format
 msgid ""
 "An output error occured when writing the configuration<br>files for "
@@ -747,7 +765,7 @@ msgid ""
 "file has been deleted to avoid corrupt data.<br>"
 msgstr ""
 
-#: src/bin/e_config.c:2287
+#: src/bin/e_config.c:2371
 #, c-format
 msgid ""
 "Enlightenment cannot write its configuration file<br>because it ran out of "
@@ -756,7 +774,7 @@ msgid ""
 "was:<br>%s<br><br>This file has been deleted to avoid corrupt data.<br>"
 msgstr ""
 
-#: src/bin/e_config.c:2299
+#: src/bin/e_config.c:2383
 #, c-format
 msgid ""
 "Enlightenment unexpectedly had the configuration file<br>it was writing "
@@ -764,32 +782,32 @@ msgid ""
 "was:<br>%s<br><br>This file has been deleted to avoid corrupt data.<br>"
 msgstr ""
 
-#: src/bin/e_config.c:2324
+#: src/bin/e_config.c:2408
 #, fuzzy
 msgid "Enlightenment Configuration Write Problems"
 msgstr "Nastavitev Enlightenment"
 
-#: src/bin/e_config.c:2328 src/bin/e_config_dialog.c:218
-#: src/bin/e_eap_editor.c:596 src/bin/e_eap_editor.c:660
-#: src/bin/e_entry_dialog.c:58 src/bin/e_exec.c:325 src/bin/e_fm_prop.c:513
-#: src/bin/e_int_border_remember.c:259 src/bin/e_int_border_remember.c:339
-#: src/bin/e_int_border_remember.c:381 src/bin/e_module.c:414
-#: src/bin/e_sys.c:397 src/bin/e_sys.c:442 src/bin/e_utils.c:577
+#: src/bin/e_config.c:2412 src/bin/e_config_dialog.c:220
+#: src/bin/e_eap_editor.c:599 src/bin/e_eap_editor.c:663
+#: src/bin/e_entry_dialog.c:58 src/bin/e_exec.c:321 src/bin/e_fm_prop.c:513
+#: src/bin/e_int_border_remember.c:258 src/bin/e_int_border_remember.c:339
+#: src/bin/e_int_border_remember.c:381 src/bin/e_module.c:418
+#: src/bin/e_sys.c:401 src/bin/e_sys.c:447 src/bin/e_utils.c:543
 #: src/modules/conf_dpms/e_int_config_dpms.c:60
 #: src/modules/conf_dpms/e_int_config_dpms.c:81
 #: src/modules/conf_imc/e_int_config_imc_import.c:112
 #: src/modules/conf_mime/e_int_config_mime_edit.c:283
-#: src/modules/conf_profiles/e_int_config_profiles.c:288
-#: src/modules/conf_theme/e_int_config_theme_import.c:112
+#: src/modules/conf_profiles/e_int_config_profiles.c:284
+#: src/modules/conf_theme/e_int_config_theme_import.c:113
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_gradient.c:198
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_import.c:204
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_web.c:171
-#: src/modules/cpufreq/e_mod_main.c:340 src/modules/cpufreq/e_mod_main.c:367
-#: src/modules/cpufreq/e_mod_main.c:386
+#: src/modules/cpufreq/e_mod_main.c:338 src/modules/cpufreq/e_mod_main.c:365
+#: src/modules/cpufreq/e_mod_main.c:384 src/modules/connman/e_mod_main.c:784
 msgid "OK"
 msgstr "V Redu"
 
-#: src/bin/e_config_dialog.c:189 src/modules/battery/e_mod_main.c:415
+#: src/bin/e_config_dialog.c:191 src/modules/battery/e_mod_main.c:412
 #: src/modules/conf_dialogs/e_mod_main.c:34
 #: src/modules/conf_engine/e_mod_main.c:34
 #: src/modules/conf_exebuf/e_mod_main.c:34
@@ -800,22 +818,24 @@ msgstr "V Redu"
 msgid "Advanced"
 msgstr "Napredno"
 
-#: src/bin/e_config_dialog.c:204
+#: src/bin/e_config_dialog.c:206
 msgid "Basic"
 msgstr "Osnovno"
 
-#: src/bin/e_config_dialog.c:219
+#: src/bin/e_config_dialog.c:221
 msgid "Apply"
 msgstr "Uporabi"
 
-#: src/bin/e_configure.c:8 src/modules/conf_shelves/e_mod_main.c:38
+#: src/bin/e_configure.c:15 src/modules/conf_shelves/e_mod_main.c:38
+#: src/modules/gadman/e_mod_main.c:30 src/modules/mixer/e_mod_main.c:1083
 msgid "Extensions"
 msgstr ""
 
-#: src/bin/e_configure.c:9 src/bin/e_int_menus.c:805
+#: src/bin/e_configure.c:16 src/bin/e_int_menus.c:805
 #: src/modules/conf_colors/e_int_config_color_classes.c:83
 #: src/modules/conf_fonts/e_int_config_fonts.c:99
 #: src/modules/conf_paths/e_int_config_paths.c:85
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:188
 msgid "Modules"
 msgstr "Moduli"
 
@@ -824,20 +844,20 @@ msgstr "Moduli"
 msgid "Container %d"
 msgstr "Območje %d"
 
-#: src/bin/e_desklock.c:143
+#: src/bin/e_desklock.c:144
 msgid "Error - no PAM support"
 msgstr ""
 
-#: src/bin/e_desklock.c:144
+#: src/bin/e_desklock.c:145
 msgid ""
 "No PAM support was built into Enlightenment, so<br>desk locking is disabled."
 msgstr ""
 
-#: src/bin/e_desklock.c:210
+#: src/bin/e_desklock.c:211
 msgid "Lock Failed"
 msgstr "Zaklep neuspešen"
 
-#: src/bin/e_desklock.c:211
+#: src/bin/e_desklock.c:212
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<br>has grabbed either "
@@ -846,15 +866,15 @@ msgstr ""
 "Zaklep namizja ni uspel, ker je nek program<br>prevzel tipkovnico oziroma "
 "miško oziroma oboje<br>in se prevzem ne more prekiniti."
 
-#: src/bin/e_desklock.c:297
+#: src/bin/e_desklock.c:298
 msgid "Please enter your unlock password"
 msgstr "Vnesite vaše geslo za odklep"
 
-#: src/bin/e_desklock.c:639
+#: src/bin/e_desklock.c:648
 msgid "Authentication System Error"
 msgstr ""
 
-#: src/bin/e_desklock.c:640
+#: src/bin/e_desklock.c:649
 #, c-format
 msgid ""
 "Authentication via PAM had errors setting up the<br>authentication session. "
@@ -879,150 +899,151 @@ msgstr ""
 msgid "Desktop Entry Editor"
 msgstr ""
 
-#: src/bin/e_eap_editor.c:444 src/bin/e_fm_prop.c:400
+#: src/bin/e_eap_editor.c:447 src/bin/e_fm_prop.c:400
 #: src/modules/conf_fonts/e_int_config_fonts.c:96
 #: src/modules/conf_mime/e_int_config_mime_edit.c:145
 msgid "Icon"
 msgstr "Ikona"
 
-#: src/bin/e_eap_editor.c:455
+#: src/bin/e_eap_editor.c:458
 #: src/modules/conf_mime/e_int_config_mime_edit.c:136
 msgid "Basic Info"
 msgstr "Osnovni podatki"
 
-#: src/bin/e_eap_editor.c:456 src/bin/e_int_border_prop.c:420
+#: src/bin/e_eap_editor.c:459 src/bin/e_int_border_prop.c:420
 #: src/bin/e_int_border_prop.c:467 src/modules/conf_imc/e_int_config_imc.c:907
 #, fuzzy
 msgid "Name"
 msgstr "Po imenu"
 
-#: src/bin/e_eap_editor.c:462
+#: src/bin/e_eap_editor.c:465
 msgid "Executable"
 msgstr "Zagonska datoteka"
 
-#: src/bin/e_eap_editor.c:470
+#: src/bin/e_eap_editor.c:473
 msgid "Comment"
 msgstr "Komentar"
 
-#: src/bin/e_eap_editor.c:495
+#: src/bin/e_eap_editor.c:498
 msgid "General"
 msgstr "Splošno"
 
-#: src/bin/e_eap_editor.c:498
+#: src/bin/e_eap_editor.c:501
 #, fuzzy
 msgid "Generic Name"
 msgstr "Splošni podatki"
 
-#: src/bin/e_eap_editor.c:503
+#: src/bin/e_eap_editor.c:506
 #: src/modules/conf_clientlist/e_int_config_clientlist.c:105
 msgid "Window Class"
 msgstr "Razred Okna"
 
-#: src/bin/e_eap_editor.c:507 src/modules/conf/e_conf.c:151
+#: src/bin/e_eap_editor.c:510 src/modules/conf/e_conf.c:151
 #: src/modules/conf_mime/e_int_config_mime.c:189
 msgid "Categories"
 msgstr ""
 
-#: src/bin/e_eap_editor.c:511
+#: src/bin/e_eap_editor.c:514
 #, fuzzy
 msgid "Mime Types"
 msgstr "Datoteka:"
 
-#: src/bin/e_eap_editor.c:517
+#: src/bin/e_eap_editor.c:520
 #, fuzzy
 msgid "Options"
 msgstr "Opcije"
 
-#: src/bin/e_eap_editor.c:518
+#: src/bin/e_eap_editor.c:521
 msgid "Startup Notify"
 msgstr "Obvestilo ob zagonu"
 
-#: src/bin/e_eap_editor.c:520
+#: src/bin/e_eap_editor.c:523
 msgid "Run in Terminal"
 msgstr ""
 
-#: src/bin/e_eap_editor.c:522
+#: src/bin/e_eap_editor.c:525
 #, fuzzy
 msgid "Show in Menus"
 msgstr "Prikaži Ime v Meniju"
 
-#: src/bin/e_eap_editor.c:526
+#: src/bin/e_eap_editor.c:529
 #, fuzzy
 msgid "Desktop file"
 msgstr "Desktop"
 
-#: src/bin/e_eap_editor.c:527
+#: src/bin/e_eap_editor.c:530
 #, fuzzy
 msgid "Filename"
 msgstr "Preimenuj"
 
-#: src/bin/e_eap_editor.c:556
+#: src/bin/e_eap_editor.c:559
 #, fuzzy
 msgid "Select an Icon"
 msgstr "Izberi okno"
 
-#: src/bin/e_eap_editor.c:598 src/bin/e_eap_editor.c:662
+#: src/bin/e_eap_editor.c:601 src/bin/e_eap_editor.c:665
 #: src/bin/e_entry_dialog.c:59 src/bin/e_fm_prop.c:514
 #: src/modules/conf_imc/e_int_config_imc_import.c:116
 #: src/modules/conf_mime/e_int_config_mime_edit.c:284
-#: src/modules/conf_profiles/e_int_config_profiles.c:289
-#: src/modules/conf_theme/e_int_config_theme_import.c:116
+#: src/modules/conf_profiles/e_int_config_profiles.c:285
+#: src/modules/conf_theme/e_int_config_theme_import.c:117
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_gradient.c:199
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_import.c:208
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_web.c:172
+#: src/modules/connman/e_mod_main.c:785
 msgid "Cancel"
 msgstr "Pozabi"
 
-#: src/bin/e_eap_editor.c:625
+#: src/bin/e_eap_editor.c:628
 #, fuzzy
 msgid "Select an Executable"
 msgstr "Izberi okno"
 
-#: src/bin/e_entry.c:470 src/bin/e_fm.c:6527
+#: src/bin/e_entry.c:491 src/bin/e_fm.c:6663
 #: src/modules/conf_applications/e_int_config_apps.c:271
-#: src/modules/conf_profiles/e_int_config_profiles.c:93
+#: src/modules/conf_profiles/e_int_config_profiles.c:113
 #: src/modules/conf_shelves/e_int_config_shelf.c:81
 #: src/modules/ibar/e_mod_config.c:111
 msgid "Delete"
 msgstr "Izbriši"
 
-#: src/bin/e_entry.c:483 src/bin/e_fm.c:6437
+#: src/bin/e_entry.c:504 src/bin/e_fm.c:6573
 #, fuzzy
 msgid "Cut"
 msgstr "Odreži"
 
-#: src/bin/e_entry.c:494 src/bin/e_fm.c:6454
+#: src/bin/e_entry.c:515 src/bin/e_fm.c:4748 src/bin/e_fm.c:6590
 msgid "Copy"
 msgstr "Kopiraj"
 
-#: src/bin/e_entry.c:505 src/bin/e_fm.c:6278 src/bin/e_fm.c:6468
+#: src/bin/e_entry.c:526 src/bin/e_fm.c:6414 src/bin/e_fm.c:6604
 #, fuzzy
 msgid "Paste"
 msgstr "Hitro"
 
-#: src/bin/e_entry.c:517
+#: src/bin/e_entry.c:538
 #, fuzzy
 msgid "Select All"
 msgstr "Izbriši"
 
-#: src/bin/e_exec.c:218 src/bin/e_utils.c:237
+#: src/bin/e_exec.c:218 src/bin/e_utils.c:203
 #: src/modules/conf_imc/e_int_config_imc.c:278
 #: src/modules/conf_imc/e_int_config_imc.c:516
 msgid "Run Error"
 msgstr "Napaka pri zagonu"
 
-#: src/bin/e_exec.c:219 src/bin/e_utils.c:238
+#: src/bin/e_exec.c:219 src/bin/e_utils.c:204
 #: src/modules/conf_imc/e_int_config_imc.c:279
 #: src/modules/conf_imc/e_int_config_imc.c:517
 #, c-format
 msgid "Enlightenment was unable to fork a child process:<br><br>%s<br>"
 msgstr "Enlightenment ni uspel odcepiti hčerinskega procesa:<br><br>%s<br>"
 
-#: src/bin/e_exec.c:316
+#: src/bin/e_exec.c:312
 msgid "Application run error"
 msgstr "Napaka pri pogonu programa"
 
-#: src/bin/e_exec.c:318
+#: src/bin/e_exec.c:314
 #, c-format
 msgid ""
 "Enlightenment was unable to run the application:<br><br>%s<br><br>The "
@@ -1031,201 +1052,240 @@ msgstr ""
 "Enlightenment ni uspelo zagnati programa:<br><br>%s<br><br>Program se ni "
 "zagnal."
 
-#: src/bin/e_exec.c:412
+#: src/bin/e_exec.c:418
 msgid "Application Execution Error"
 msgstr "Napaka pri zagonu programa"
 
-#: src/bin/e_exec.c:424
+#: src/bin/e_exec.c:430
 #, c-format
 msgid "%s stopped running unexpectedly."
 msgstr "%s se je nepričakovano zaustavil"
 
-#: src/bin/e_exec.c:430
+#: src/bin/e_exec.c:436
 #, fuzzy, c-format
 msgid "An exit code of %i was returned from %s."
 msgstr "Izhodna koda %i je bila vrnjena zaradi %s"
 
-#: src/bin/e_exec.c:437
+#: src/bin/e_exec.c:443
 #, fuzzy, c-format
 msgid "%s was interrupted by an Interrupt Signal."
 msgstr "%s je bil prekinjen z \"Interrupt\" signalom"
 
-#: src/bin/e_exec.c:439
+#: src/bin/e_exec.c:445
 #, fuzzy, c-format
 msgid "%s was interrupted by a Quit Signal."
 msgstr "%s je bil prekinjen s \"Quit\" signalom"
 
-#: src/bin/e_exec.c:443
+#: src/bin/e_exec.c:449
 #, fuzzy, c-format
 msgid "%s was interrupted by an Abort Signal."
 msgstr "%s je bil prekinjen z \"Abort\" signalom"
 
-#: src/bin/e_exec.c:446
+#: src/bin/e_exec.c:452
 #, fuzzy, c-format
 msgid "%s was interrupted by a Floating Point Error."
 msgstr "%s je bil prekinjen z napako plavajoče vejice \"Floating Point Error\""
 
-#: src/bin/e_exec.c:449
+#: src/bin/e_exec.c:455
 #, fuzzy, c-format
 msgid "%s was interrupted by an Uninterruptable Kill Signal."
 msgstr "%s je bil prekinjen z neprekinitvenim \"Kill\" signalom"
 
-#: src/bin/e_exec.c:452
+#: src/bin/e_exec.c:458
 #, fuzzy, c-format
 msgid "%s was interrupted by a Segmentation Fault."
 msgstr "%s je bil prekinjen s segmentacijsko napako \"Segmentation Fault\""
 
-#: src/bin/e_exec.c:455
+#: src/bin/e_exec.c:461
 #, fuzzy, c-format
 msgid "%s was interrupted by a Broken Pipe."
 msgstr "%s je bil prekinjen s prekinjeno cevjo \"Broken Pipe\""
 
-#: src/bin/e_exec.c:458
+#: src/bin/e_exec.c:464
 #, fuzzy, c-format
 msgid "%s was interrupted by a Termination Signal."
 msgstr "%s je bil prekinjen s \"Termination\" signalom"
 
-#: src/bin/e_exec.c:461
+#: src/bin/e_exec.c:467
 #, fuzzy, c-format
 msgid "%s was interrupted by a Bus Error."
 msgstr "%s je bil prekinjen z napako vodila \"Bus Error\""
 
-#: src/bin/e_exec.c:464
+#: src/bin/e_exec.c:470
 #, fuzzy, c-format
 msgid "%s was interrupted by the signal number %i."
 msgstr "%s je bil prekinjen s signalom št. %i"
 
-#: src/bin/e_exec.c:520
+#: src/bin/e_exec.c:526
 msgid ""
 "***The remaining output has been truncated. Save the output to view.***\n"
 msgstr ""
 
-#: src/bin/e_exec.c:584 src/bin/e_exec.c:658 src/bin/e_exec.c:664
+#: src/bin/e_exec.c:590 src/bin/e_exec.c:664 src/bin/e_exec.c:670
 msgid "Error Logs"
 msgstr "Zapisniki Napak"
 
-#: src/bin/e_exec.c:589 src/bin/e_exec.c:665
+#: src/bin/e_exec.c:595 src/bin/e_exec.c:671
 msgid "There was no error message."
 msgstr "Ni bilo poročila o napaki"
 
-#: src/bin/e_exec.c:593 src/bin/e_exec.c:672
+#: src/bin/e_exec.c:599 src/bin/e_exec.c:678
 msgid "Save This Message"
 msgstr "Shrani to sporočilo"
 
-#: src/bin/e_exec.c:597 src/bin/e_exec.c:675
+#: src/bin/e_exec.c:603 src/bin/e_exec.c:681
 #, c-format
 msgid "This error log will be saved as %s/%s.log"
 msgstr ""
 
-#: src/bin/e_exec.c:623
+#: src/bin/e_exec.c:629
 msgid "Error Information"
 msgstr "Informacija o napaki"
 
-#: src/bin/e_exec.c:631
+#: src/bin/e_exec.c:637
 msgid "Error Signal Information"
 msgstr "Informacija o napaki signala"
 
-#: src/bin/e_exec.c:642 src/bin/e_exec.c:648
+#: src/bin/e_exec.c:648 src/bin/e_exec.c:654
 msgid "Output Data"
 msgstr "Izhodni podatki"
 
-#: src/bin/e_exec.c:649
+#: src/bin/e_exec.c:655
 msgid "There was no output."
 msgstr "Ni bilo izhodnih podatkov"
 
-#: src/bin/e_fm.c:512
+#: src/bin/e_fm.c:548
 msgid "Nonexistent path"
 msgstr ""
 
-#: src/bin/e_fm.c:515
+#: src/bin/e_fm.c:551
 #, c-format
 msgid "%s doesn't exist."
 msgstr ""
 
-#: src/bin/e_fm.c:2697
+#: src/bin/e_fm.c:2646
 #, fuzzy, c-format
 msgid "%i Files"
 msgstr "%1.0f files"
 
-#: src/bin/e_fm.c:6197 src/bin/e_fm.c:6358
-#: src/modules/fileman/e_mod_config.c:154
+#: src/bin/e_fm.c:4764 src/bin/e_fm.c:7126 src/bin/e_fm.c:7256
+#, fuzzy
+msgid "Abort"
+msgstr "O"
+
+#: src/bin/e_fm.c:6337 src/bin/e_fm.c:6494
+#: src/modules/fileman/e_mod_config.c:171
 #, fuzzy
 msgid "View Mode"
 msgstr "Urejevalni Način"
 
-#: src/bin/e_fm.c:6204 src/bin/e_fm.c:6365
+#: src/bin/e_fm.c:6344 src/bin/e_fm.c:6501
 #, fuzzy
 msgid "Refresh View"
 msgstr "Stopnja osveževanja"
 
-#: src/bin/e_fm.c:6215 src/bin/e_fm.c:6376
+#: src/bin/e_fm.c:6355 src/bin/e_fm.c:6512
 msgid "Show Hidden Files"
 msgstr ""
 
-#: src/bin/e_fm.c:6230 src/bin/e_fm.c:6391
+#: src/bin/e_fm.c:6370 src/bin/e_fm.c:6527
 #, fuzzy
 msgid "Remember Ordering"
 msgstr "Zapomni si uporabo"
 
-#: src/bin/e_fm.c:6242 src/bin/e_fm.c:6403
+#: src/bin/e_fm.c:6382 src/bin/e_fm.c:6539
 msgid "Sort Now"
 msgstr ""
 
-#: src/bin/e_fm.c:6260 src/bin/e_fm.c:6421
+#: src/bin/e_fm.c:6397 src/bin/e_fm.c:6557
 #: src/modules/conf_paths/e_int_config_paths.c:211
 #, fuzzy
 msgid "New Directory"
 msgstr "Mapa"
 
-#: src/bin/e_fm.c:6538
+#: src/bin/e_fm.c:6674
 msgid "Rename"
 msgstr "Preimenuj"
 
-#: src/bin/e_fm.c:6548
+#: src/bin/e_fm.c:6684
 #, fuzzy
 msgid "Properties"
 msgstr "Lastnosti"
 
-#: src/bin/e_fm.c:6709 src/modules/conf_paths/e_int_config_paths.c:83
-#: src/modules/fileman/e_mod_config.c:156
+#: src/bin/e_fm.c:6845 src/modules/conf_paths/e_int_config_paths.c:83
+#: src/modules/fileman/e_mod_config.c:173
 msgid "Icons"
 msgstr "Ikone"
 
-#: src/bin/e_fm.c:6717 src/modules/fileman/e_mod_config.c:169
+#: src/bin/e_fm.c:6853 src/modules/fileman/e_mod_config.c:186
 #, fuzzy
 msgid "List"
 msgstr "Seznam Oken"
 
-#: src/bin/e_fm.c:6855
+#: src/bin/e_fm.c:6991
 msgid "Create a new Directory"
 msgstr ""
 
-#: src/bin/e_fm.c:6856
+#: src/bin/e_fm.c:6992
 #, fuzzy
 msgid "New Directory Name:"
 msgstr "Mapa"
 
-#: src/bin/e_fm.c:6915
+#: src/bin/e_fm.c:7051
 #, fuzzy, c-format
 msgid "Rename %s to:"
 msgstr "Preimenuj"
 
-#: src/bin/e_fm.c:6917
+#: src/bin/e_fm.c:7053
 #, fuzzy
 msgid "Rename File"
 msgstr "Preimenuj"
 
-#: src/bin/e_fm.c:7015
+#: src/bin/e_fm.c:7125 src/bin/e_fm.c:7255
+msgid "Retry"
+msgstr ""
+
+#: src/bin/e_fm.c:7129 src/bin/e_fm.c:7186 src/bin/e_fm.c:7261
+msgid "Error"
+msgstr "Napaka"
+
+#: src/bin/e_fm.c:7131 src/bin/e_fm.c:7188
+#, c-format
+msgid "%s"
+msgstr ""
+
+#: src/bin/e_fm.c:7181
+msgid "No to all"
+msgstr ""
+
+#: src/bin/e_fm.c:7183
+msgid "Yes to all"
+msgstr ""
+
+#: src/bin/e_fm.c:7257
+msgid "Ignore this"
+msgstr ""
+
+#: src/bin/e_fm.c:7258
+msgid "Ignore all"
+msgstr ""
+
+#: src/bin/e_fm.c:7263
+#, c-format
+msgid "An error occured while performing an operation.<br>%s"
+msgstr ""
+
+#: src/bin/e_fm.c:7365
 #, fuzzy
 msgid "Confirm Delete"
 msgstr "Potrdi"
 
-#: src/bin/e_fm.c:7019
+#: src/bin/e_fm.c:7369
 #, fuzzy, c-format
 msgid "Are you sure you want to delete<br><hilight>%s</hilight> ?"
 msgstr "Ste prepričani, da hočete pobrisati <br><b>%s</b> ?"
 
-#: src/bin/e_fm.c:7025
+#: src/bin/e_fm.c:7375
 #, fuzzy, c-format
 msgid ""
 "Are you sure you want to delete<br>the %d selected files in:<br><hilight>%s</"
@@ -1282,7 +1342,7 @@ msgid "Owner can write"
 msgstr ""
 
 #: src/bin/e_fm_prop.c:385 src/bin/e_widget_fsel.c:302
-#: src/modules/conf_theme/e_int_config_theme.c:1001
+#: src/modules/conf_theme/e_int_config_theme.c:1030
 #: src/modules/conf_transitions/e_int_config_transitions.c:167
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_gradient.c:154
 msgid "Preview"
@@ -1319,50 +1379,50 @@ msgstr "Informacija o napaki"
 msgid "Select an Image"
 msgstr "Izberi okno"
 
-#: src/bin/e_fm_hal.c:212
+#: src/bin/e_fm_hal.c:214
 #, c-format
 msgid "%llu TiB"
 msgstr ""
 
-#: src/bin/e_fm_hal.c:214
+#: src/bin/e_fm_hal.c:216
 #, c-format
 msgid "%llu GiB"
 msgstr ""
 
-#: src/bin/e_fm_hal.c:216
+#: src/bin/e_fm_hal.c:218
 #, c-format
 msgid "%llu MiB"
 msgstr ""
 
-#: src/bin/e_fm_hal.c:218
+#: src/bin/e_fm_hal.c:220
 #, c-format
 msgid "%llu KiB"
 msgstr ""
 
-#: src/bin/e_fm_hal.c:220
+#: src/bin/e_fm_hal.c:222
 #, c-format
 msgid "%llu B"
 msgstr ""
 
-#: src/bin/e_fm_hal.c:251
+#: src/bin/e_fm_hal.c:253
 #, fuzzy, c-format
 msgid "Unknown Volume"
 msgstr "Neznan"
 
-#: src/bin/e_fm_hal.c:291
+#: src/bin/e_fm_hal.c:293
 msgid "Removable Device"
 msgstr ""
 
-#: src/bin/e_gadcon.c:1194
+#: src/bin/e_gadcon.c:1210 src/modules/gadman/e_mod_gadman.c:537
 msgid "Plain"
 msgstr ""
 
-#: src/bin/e_gadcon.c:1203
+#: src/bin/e_gadcon.c:1219 src/modules/gadman/e_mod_gadman.c:545
 #, fuzzy
 msgid "Inset"
 msgstr "Ikone"
 
-#: src/bin/e_gadcon.c:1212 src/bin/e_int_config_modules.c:41
+#: src/bin/e_gadcon.c:1228 src/bin/e_int_config_modules.c:41
 #: src/modules/conf_borders/e_mod_main.c:34
 #: src/modules/conf_colors/e_mod_main.c:34
 #: src/modules/conf_fonts/e_mod_main.c:34
@@ -1373,57 +1433,58 @@ msgstr "Ikone"
 #: src/modules/conf_transitions/e_mod_main.c:34
 #: src/modules/conf_wallpaper/e_mod_main.c:28
 #: src/modules/dropshadow/e_mod_main.c:89
+#: src/modules/gadman/e_mod_gadman.c:553
 msgid "Appearance"
 msgstr ""
 
-#: src/bin/e_gadcon.c:1218
+#: src/bin/e_gadcon.c:1237
 msgid "Automatically scroll contents"
 msgstr ""
 
-#: src/bin/e_gadcon.c:1225
+#: src/bin/e_gadcon.c:1244
 msgid "Able to be resized"
 msgstr ""
 
-#: src/bin/e_gadcon.c:1237
+#: src/bin/e_gadcon.c:1256 src/modules/gadman/e_mod_gadman.c:588
 msgid "Begin move/resize this gadget"
 msgstr ""
 
-#: src/bin/e_gadcon.c:1243
+#: src/bin/e_gadcon.c:1262 src/modules/gadman/e_mod_gadman.c:594
 msgid "Remove this gadget"
 msgstr ""
 
-#: src/bin/e_gadcon.c:1646
+#: src/bin/e_gadcon.c:1675
 msgid "Stop move/resize this gadget"
 msgstr ""
 
-#: src/bin/e_hints.c:131
+#: src/bin/e_hints.c:151
 msgid ""
 "A previous instance of Enlightenment is still active\n"
 "on this screen. Aborting startup.\n"
 msgstr ""
 
-#: src/bin/e_init.c:297
+#: src/bin/e_init.c:298
 #, c-format
 msgid "X reports there are no root windows and %i screens!\n"
 msgstr "X pravi da ni osnovnih oken in %i zaslonov!\n"
 
-#: src/bin/e_init.c:361
+#: src/bin/e_init.c:362
 msgid "Disable this splash screen in the future?"
 msgstr "V prihodnje onemogoči to animacijo?"
 
-#: src/bin/e_init.c:558
+#: src/bin/e_init.c:559
 #, fuzzy
 msgid "Theme Bug Detected"
 msgstr "Tematski izbirnik"
 
-#: src/bin/e_init.c:559
+#: src/bin/e_init.c:560
 msgid ""
 "The theme you are using for your init splash<br>has a bug. It does not "
 "respond to signals when<br>startup is complete. You should use an "
 "init<br>splash theme that is correctly made or fix the<br>one you use."
 msgstr ""
 
-#: src/bin/e_int_border_locks.c:67 src/bin/e_int_border_menu.c:160
+#: src/bin/e_int_border_locks.c:67 src/bin/e_int_border_menu.c:558
 msgid "Window Locks"
 msgstr "Zaklepi Oken"
 
@@ -1462,16 +1523,16 @@ msgid "Position"
 msgstr "Pozicija"
 
 #: src/bin/e_int_border_locks.c:311 src/bin/e_int_border_locks.c:330
-#: src/bin/e_int_border_remember.c:509 src/bin/e_int_shelf_config.c:515
-#: src/bin/e_int_shelf_config.c:596
+#: src/bin/e_int_border_remember.c:509 src/bin/e_int_shelf_config.c:516
+#: src/bin/e_int_shelf_config.c:597
 #: src/modules/conf_fonts/e_int_config_fonts.c:462
 #: src/modules/conf_fonts/e_int_config_fonts.c:657
 msgid "Size"
 msgstr "Velikost"
 
 #: src/bin/e_int_border_locks.c:313 src/bin/e_int_border_locks.c:332
-#: src/bin/e_int_border_menu.c:226 src/bin/e_int_border_prop.c:469
-#: src/bin/e_int_border_remember.c:511 src/bin/e_int_shelf_config.c:552
+#: src/bin/e_int_border_menu.c:530 src/bin/e_int_border_prop.c:469
+#: src/bin/e_int_border_remember.c:511 src/bin/e_int_shelf_config.c:553
 msgid "Stacking"
 msgstr "Razvrščanje"
 
@@ -1521,147 +1582,156 @@ msgstr "Izhod iz seje s tem oknom odprtim"
 msgid "Remember these Locks"
 msgstr "Zapomni si te zaklepe"
 
-#: src/bin/e_int_border_menu.c:65
+#: src/bin/e_int_border_menu.c:71
+msgid "Edit Icon"
+msgstr "Uredi ikono"
+
+#: src/bin/e_int_border_menu.c:76
+#, fuzzy
+msgid "Add Application..."
+msgstr "(Ni Programov)"
+
+#: src/bin/e_int_border_menu.c:87
+msgid "Create Icon"
+msgstr "Ustvari ikono"
+
+#: src/bin/e_int_border_menu.c:97
+msgid "Send to Desktop"
+msgstr "Pošlji na namizje"
+
+#: src/bin/e_int_border_menu.c:109
+#, fuzzy
+msgid "Pin to Desktop"
+msgstr "Pošlji na namizje"
+
+#: src/bin/e_int_border_menu.c:120
+#, fuzzy
+msgid "Unpin from Desktop"
+msgstr "Pošlji na namizje"
+
+#: src/bin/e_int_border_menu.c:129
+msgid "More..."
+msgstr ""
+
+#: src/bin/e_int_border_menu.c:162
+msgid "Iconify"
+msgstr "Minimiraj"
+
+#: src/bin/e_int_border_menu.c:354
+#, fuzzy
+msgid "Maximize vertically"
+msgstr "Maksimirano po vertikali"
+
+#: src/bin/e_int_border_menu.c:365
+#, fuzzy
+msgid "Maximize horizontally"
+msgstr "Maksimirano po horizontali"
+
+#: src/bin/e_int_border_menu.c:376
+#, fuzzy
+msgid "Unmaximize"
+msgstr "Maksimiraj"
+
+#: src/bin/e_int_border_menu.c:477
+msgid "Keyboard Shortcut"
+msgstr ""
+
+#: src/bin/e_int_border_menu.c:483
+#, fuzzy
+msgid "To Favorites Menu"
+msgstr "Prikaži Ime v Meniju"
+
+#: src/bin/e_int_border_menu.c:488
+msgid "To Launcher"
+msgstr ""
+
+#: src/bin/e_int_border_menu.c:510 src/modules/conf_borders/e_mod_main.c:37
+#: src/modules/conf_mousebindings/e_int_config_mousebindings.c:341
+msgid "Border"
+msgstr "Okvir"
+
+#: src/bin/e_int_border_menu.c:519
+msgid "Skip"
+msgstr ""
+
+#: src/bin/e_int_border_menu.c:539 src/bin/e_int_border_prop.c:433
+#: src/modules/conf_colors/e_int_config_color_classes.c:427
+msgid "State"
+msgstr ""
+
+#: src/bin/e_int_border_menu.c:550
+msgid "Remember"
+msgstr "Zapomni si"
+
+#: src/bin/e_int_border_menu.c:566 src/bin/e_int_border_prop.c:75
+#, fuzzy
+msgid "Window Properties"
+msgstr "Lastnosti"
+
+#: src/bin/e_int_border_menu.c:778
 msgid "Always On Top"
 msgstr "Vedno na vrhu"
 
-#: src/bin/e_int_border_menu.c:76
+#: src/bin/e_int_border_menu.c:789
 #: src/modules/conf_fonts/e_int_config_fonts.c:101
 #: src/modules/conf_fonts/e_int_config_fonts.c:265
 #: src/modules/temperature/e_mod_config.c:261
 msgid "Normal"
 msgstr "Normalno"
 
-#: src/bin/e_int_border_menu.c:87
+#: src/bin/e_int_border_menu.c:800
 msgid "Always Below"
 msgstr "Vedno spodaj"
 
-#: src/bin/e_int_border_menu.c:119
-#, fuzzy
-msgid "Maximize vertically"
-msgstr "Maksimirano po vertikali"
-
-#: src/bin/e_int_border_menu.c:130
-#, fuzzy
-msgid "Maximize horizontally"
-msgstr "Maksimirano po horizontali"
-
-#: src/bin/e_int_border_menu.c:141
-#, fuzzy
-msgid "Unmaximize"
-msgstr "Maksimiraj"
-
-#: src/bin/e_int_border_menu.c:167
-msgid "Remember"
-msgstr "Zapomni si"
-
-#: src/bin/e_int_border_menu.c:176 src/modules/conf_borders/e_mod_main.c:37
-#: src/modules/conf_mousebindings/e_int_config_mousebindings.c:341
-msgid "Border"
-msgstr "Okvir"
-
-#: src/bin/e_int_border_menu.c:190
-msgid "Send to Desktop"
-msgstr "Pošlji na namizje"
-
-#: src/bin/e_int_border_menu.c:202
-#, fuzzy
-msgid "Pin to Desktop"
-msgstr "Pošlji na namizje"
-
-#: src/bin/e_int_border_menu.c:214
-#, fuzzy
-msgid "Unpin from Desktop"
-msgstr "Pošlji na namizje"
-
-#: src/bin/e_int_border_menu.c:247 src/bin/e_int_border_prop.c:433
-#: src/modules/conf_colors/e_int_config_color_classes.c:427
-msgid "State"
-msgstr ""
-
-#: src/bin/e_int_border_menu.c:255
-msgid "Skip"
-msgstr ""
-
-#: src/bin/e_int_border_menu.c:271
-msgid "Edit Icon"
-msgstr "Uredi ikono"
-
-#: src/bin/e_int_border_menu.c:276
-#, fuzzy
-msgid "Add To Favorites Menu"
-msgstr "Prikaži Ime v Meniju"
-
-#: src/bin/e_int_border_menu.c:283
-msgid "Add Keyboard Shortcut"
-msgstr ""
-
-#: src/bin/e_int_border_menu.c:288
-msgid "Add To Launcher"
-msgstr ""
-
-#: src/bin/e_int_border_menu.c:295
-msgid "Create Icon"
-msgstr "Ustvari ikono"
-
-#: src/bin/e_int_border_menu.c:305 src/bin/e_int_border_prop.c:75
-#, fuzzy
-msgid "Window Properties"
-msgstr "Lastnosti"
-
-#: src/bin/e_int_border_menu.c:366
-msgid "Iconify"
-msgstr "Minimiraj"
-
-#: src/bin/e_int_border_menu.c:850
+#: src/bin/e_int_border_menu.c:892
 #, fuzzy
 msgid "Select Border Style"
 msgstr "Stil Okvirjev"
 
-#: src/bin/e_int_border_menu.c:862
+#: src/bin/e_int_border_menu.c:904
 msgid "Use E17 Default Icon Preference"
 msgstr ""
 
-#: src/bin/e_int_border_menu.c:871
+#: src/bin/e_int_border_menu.c:913
 #, fuzzy
 msgid "Use Application Provided Icon "
 msgstr "Uporabi privzeto programsko ikono"
 
-#: src/bin/e_int_border_menu.c:879
+#: src/bin/e_int_border_menu.c:921
 #, fuzzy
 msgid "Use User Defined Icon"
 msgstr "Ustvari ikono"
 
-#: src/bin/e_int_border_menu.c:943 src/bin/e_int_border_prop.c:473
+#: src/bin/e_int_border_menu.c:982 src/bin/e_int_border_prop.c:473
 msgid "Shaded"
 msgstr "Zasenči"
 
-#: src/bin/e_int_border_menu.c:956 src/bin/e_int_border_prop.c:472
+#: src/bin/e_int_border_menu.c:995 src/bin/e_int_border_prop.c:472
 msgid "Sticky"
 msgstr "Prilepi"
 
-#: src/bin/e_int_border_menu.c:969 src/bin/e_int_border_prop.c:477
+#: src/bin/e_int_border_menu.c:1008 src/bin/e_int_border_prop.c:477
 #: src/modules/conf_window_manipulation/e_int_config_window_manipulation.c:154
 #: src/modules/conf_window_manipulation/e_int_config_window_manipulation.c:215
 msgid "Fullscreen"
 msgstr "Celozaslonsko"
 
-#: src/bin/e_int_border_menu.c:994 src/modules/conf_winlist/e_mod_main.c:35
+#: src/bin/e_int_border_menu.c:1033 src/modules/conf_winlist/e_mod_main.c:35
 #, fuzzy
 msgid "Window List"
 msgstr "Seznam Oken"
 
-#: src/bin/e_int_border_menu.c:1004 src/modules/pager/e_mod_main.c:263
-#: src/modules/pager/e_mod_main.c:2799 src/modules/pager/e_mod_main.c:2806
-#: src/modules/pager/e_mod_main.c:2812 src/modules/pager/e_mod_main.c:2813
-#: src/modules/pager/e_mod_main.c:2814 src/modules/pager/e_mod_main.c:2815
-#: src/modules/pager/e_mod_main.c:2846 src/modules/pager/e_mod_main.c:2847
-#: src/modules/pager/e_mod_main.c:2848 src/modules/pager/e_mod_main.c:2849
+#: src/bin/e_int_border_menu.c:1043 src/modules/pager/e_mod_main.c:263
+#: src/modules/pager/e_mod_main.c:2794 src/modules/pager/e_mod_main.c:2801
+#: src/modules/pager/e_mod_main.c:2807 src/modules/pager/e_mod_main.c:2808
+#: src/modules/pager/e_mod_main.c:2809 src/modules/pager/e_mod_main.c:2810
+#: src/modules/pager/e_mod_main.c:2841 src/modules/pager/e_mod_main.c:2842
+#: src/modules/pager/e_mod_main.c:2843 src/modules/pager/e_mod_main.c:2844
 #, fuzzy
 msgid "Pager"
 msgstr "Nevarno"
 
-#: src/bin/e_int_border_menu.c:1014
+#: src/bin/e_int_border_menu.c:1053
 msgid "Taskbar"
 msgstr ""
 
@@ -1806,11 +1876,11 @@ msgstr ""
 msgid "Window Remember"
 msgstr "Zapomni si lasnosti Okna"
 
-#: src/bin/e_int_border_remember.c:242
+#: src/bin/e_int_border_remember.c:241
 msgid "Window properties are not a unique match"
 msgstr "Lastnosti Okna se ne ujemajo popolno"
 
-#: src/bin/e_int_border_remember.c:245
+#: src/bin/e_int_border_remember.c:244
 msgid ""
 "You are trying to ask Enlightenment to remember to apply<br>properties (such "
 "as size, location, border style etc.) to<br>a window that <hilight>does not "
@@ -1953,10 +2023,10 @@ msgid "Always focus on start"
 msgstr ""
 
 #: src/bin/e_int_config_modules.c:42 src/bin/e_int_menus.c:214
-#: src/modules/battery/e_mod_main.c:170 src/modules/ibar/e_mod_main.c:315
-#: src/modules/ibar/e_mod_main.c:830 src/modules/ibox/e_mod_main.c:309
-#: src/modules/ibox/e_mod_main.c:708 src/modules/pager/e_mod_main.c:803
-#: src/modules/temperature/e_mod_main.c:304
+#: src/modules/battery/e_mod_main.c:172 src/modules/ibar/e_mod_main.c:315
+#: src/modules/ibar/e_mod_main.c:828 src/modules/ibox/e_mod_main.c:309
+#: src/modules/ibox/e_mod_main.c:707 src/modules/pager/e_mod_main.c:803
+#: src/modules/temperature/e_mod_main.c:306 src/modules/mixer/e_mod_main.c:667
 msgid "Configuration"
 msgstr "Nastavitve"
 
@@ -1975,28 +2045,28 @@ msgstr ""
 msgid "Module Settings"
 msgstr "Nastavitve Modulov"
 
-#: src/bin/e_int_config_modules.c:168
+#: src/bin/e_int_config_modules.c:167
 #, fuzzy
 msgid "Available Modules"
 msgstr "Priljubljeni programi"
 
-#: src/bin/e_int_config_modules.c:175
+#: src/bin/e_int_config_modules.c:174
 #, fuzzy
 msgid "Load Module"
 msgstr "(Ni naloženih modulov)"
 
-#: src/bin/e_int_config_modules.c:182
+#: src/bin/e_int_config_modules.c:181
 #, fuzzy
 msgid "Loaded Modules"
 msgstr "(Ni naloženih modulov)"
 
-#: src/bin/e_int_config_modules.c:189
+#: src/bin/e_int_config_modules.c:188
 #, fuzzy
 msgid "Unload Module"
 msgstr "Napaka pri nalaganju modula"
 
-#: src/bin/e_int_config_modules.c:199 src/bin/e_int_config_modules.c:553
-#: src/bin/e_int_config_modules.c:571 src/bin/e_int_config_modules.c:596
+#: src/bin/e_int_config_modules.c:198 src/bin/e_int_config_modules.c:551
+#: src/bin/e_int_config_modules.c:568 src/bin/e_int_config_modules.c:593
 #: src/bin/e_int_gadcon_config.c:121 src/bin/e_int_gadcon_config.c:156
 #: src/bin/e_int_gadcon_config.c:178
 msgid "Description: Unavailable"
@@ -2011,11 +2081,11 @@ msgstr ""
 msgid "Toolbar Contents"
 msgstr "Nastavitve"
 
-#: src/bin/e_int_gadcon_config.c:93
+#: src/bin/e_int_gadcon_config.c:93 src/modules/gadman/e_mod_config.c:73
 msgid "Available Gadgets"
 msgstr ""
 
-#: src/bin/e_int_gadcon_config.c:100
+#: src/bin/e_int_gadcon_config.c:100 src/modules/gadman/e_mod_config.c:84
 #, fuzzy
 msgid "Add Gadget"
 msgstr "Pripomočki"
@@ -2030,13 +2100,13 @@ msgstr "Izberi Drugo Temo"
 msgid "Remove Gadget"
 msgstr "Pripomočki"
 
-#: src/bin/e_int_toolbar_config.c:30 src/bin/e_toolbar.c:328
+#: src/bin/e_int_toolbar_config.c:30 src/bin/e_toolbar.c:327
 #, fuzzy
 msgid "Toolbar Configuration"
 msgstr "Nastavitve IBar"
 
-#: src/bin/e_int_toolbar_config.c:82 src/bin/e_int_shelf_config.c:499
-#: src/bin/e_int_shelf_config.c:564
+#: src/bin/e_int_toolbar_config.c:82 src/bin/e_int_shelf_config.c:500
+#: src/bin/e_int_shelf_config.c:565
 msgid "Layout"
 msgstr ""
 
@@ -2064,6 +2134,7 @@ msgid "Favorite Applications"
 msgstr "Priljubljeni programi"
 
 #: src/bin/e_int_menus.c:118 src/modules/conf_applications/e_mod_main.c:34
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:153
 #, fuzzy
 msgid "Applications"
 msgstr "(Ni Programov)"
@@ -2134,135 +2205,135 @@ msgstr "Izgubljena Okna"
 msgid "No name!!"
 msgstr "Ni Imena!!"
 
-#: src/bin/e_int_menus.c:1514
+#: src/bin/e_int_menus.c:1515
 msgid "(No Shelves)"
 msgstr ""
 
-#: src/bin/e_int_menus.c:1527 src/bin/e_shelf.c:1069
+#: src/bin/e_int_menus.c:1528 src/bin/e_shelf.c:1081
 #: src/modules/conf_shelves/e_int_config_shelf.c:132
 msgid "Shelf #"
 msgstr ""
 
-#: src/bin/e_int_menus.c:1580
+#: src/bin/e_int_menus.c:1581
 msgid "Add A Shelf"
 msgstr ""
 
-#: src/bin/e_int_menus.c:1586
+#: src/bin/e_int_menus.c:1587
 #, fuzzy
 msgid "Delete A Shelf"
 msgstr "Izbriši"
 
-#: src/bin/e_int_shelf_config.c:71 src/bin/e_shelf.c:1639
+#: src/bin/e_int_shelf_config.c:71 src/bin/e_shelf.c:1656
 #, fuzzy
 msgid "Shelf Configuration"
 msgstr "Nastavitve"
 
-#: src/bin/e_int_shelf_config.c:517
+#: src/bin/e_int_shelf_config.c:518
 #: src/modules/conf_fonts/e_int_config_fonts.c:253
 msgid "Tiny"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:519
+#: src/bin/e_int_shelf_config.c:520
 #: src/modules/conf_fonts/e_int_config_fonts.c:100
 #: src/modules/conf_fonts/e_int_config_fonts.c:259
 msgid "Small"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:521 src/modules/dropshadow/e_mod_config.c:126
+#: src/bin/e_int_shelf_config.c:522 src/modules/dropshadow/e_mod_config.c:126
 msgid "Medium"
 msgstr "Srednje"
 
-#: src/bin/e_int_shelf_config.c:523
+#: src/bin/e_int_shelf_config.c:524
 #: src/modules/conf_fonts/e_int_config_fonts.c:102
 msgid "Large"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:525
+#: src/bin/e_int_shelf_config.c:526
 #: src/modules/conf_fonts/e_int_config_fonts.c:283
 msgid "Huge"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:531 src/bin/e_int_shelf_config.c:636
+#: src/bin/e_int_shelf_config.c:532 src/bin/e_int_shelf_config.c:637
 #, fuzzy
 msgid "Configure Contents..."
 msgstr "Nastavitve"
 
-#: src/bin/e_int_shelf_config.c:554
+#: src/bin/e_int_shelf_config.c:555
 #, fuzzy
 msgid "Above Everything"
 msgstr "Vse"
 
-#: src/bin/e_int_shelf_config.c:556
+#: src/bin/e_int_shelf_config.c:557
 #, fuzzy
 msgid "Below Windows"
 msgstr "(Ni Oken)"
 
-#: src/bin/e_int_shelf_config.c:558
+#: src/bin/e_int_shelf_config.c:559
 #, fuzzy
 msgid "Below Everything"
 msgstr "Vse"
 
-#: src/bin/e_int_shelf_config.c:560
+#: src/bin/e_int_shelf_config.c:561
 #, fuzzy
 msgid "Allow windows to overlap the shelf"
 msgstr "Prikaži okna na drugih zaslonih"
 
-#: src/bin/e_int_shelf_config.c:597
+#: src/bin/e_int_shelf_config.c:598
 msgid "Shrink to Content Size"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:599
+#: src/bin/e_int_shelf_config.c:600
 msgid "Shelf Size"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:601
+#: src/bin/e_int_shelf_config.c:602
 #, c-format
 msgid "%3.0f pixels"
 msgstr "%3.0f pikslov"
 
-#: src/bin/e_int_shelf_config.c:605
+#: src/bin/e_int_shelf_config.c:606
 #: src/modules/conf_fonts/e_int_config_fonts.c:648
 msgid "Styles"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:643
+#: src/bin/e_int_shelf_config.c:644
 #, fuzzy
 msgid "Auto Hide"
 msgstr "Avtomatsko privzdigovanje"
 
-#: src/bin/e_int_shelf_config.c:644
+#: src/bin/e_int_shelf_config.c:645
 msgid "Auto-hide the shelf"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:647
+#: src/bin/e_int_shelf_config.c:648
 #, fuzzy
 msgid "Show on mouse in"
 msgstr "prikazi na zaslonski coni :"
 
-#: src/bin/e_int_shelf_config.c:649
+#: src/bin/e_int_shelf_config.c:650
 msgid "Show on mouse click"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:651
+#: src/bin/e_int_shelf_config.c:652
 msgid "Hide timeout"
 msgstr ""
 
-#: src/bin/e_int_shelf_config.c:653 src/bin/e_int_shelf_config.c:657
+#: src/bin/e_int_shelf_config.c:654 src/bin/e_int_shelf_config.c:658
 #, fuzzy, c-format
 msgid "%.1f seconds"
 msgstr "%1.1f sekund"
 
-#: src/bin/e_int_shelf_config.c:655
+#: src/bin/e_int_shelf_config.c:656
 #, fuzzy
 msgid "Hide duration"
 msgstr "Brez Mehčanja"
 
-#: src/bin/e_int_shelf_config.c:663
+#: src/bin/e_int_shelf_config.c:664
 #, fuzzy
 msgid "Show on all Desktops"
 msgstr "Prikaži ime namizja"
 
-#: src/bin/e_int_shelf_config.c:665
+#: src/bin/e_int_shelf_config.c:666
 #, fuzzy
 msgid "Show on specified Desktops"
 msgstr "Prikaži ime namizja"
@@ -2287,7 +2358,7 @@ msgid ""
 "%s/enlightenment-%s\n"
 msgstr ""
 
-#: src/bin/e_main.c:250
+#: src/bin/e_main.c:252
 #, c-format
 msgid ""
 "Options:\n"
@@ -2332,7 +2403,7 @@ msgstr ""
 "\t-psihotičen\n"
 "\t\tBodi psohotičen.\n"
 
-#: src/bin/e_main.c:312
+#: src/bin/e_main.c:314
 msgid ""
 "Enlightenment cannot Initialize Ecore!\n"
 "Perhaps you are out of memory?"
@@ -2340,7 +2411,7 @@ msgstr ""
 "Enlightenment ne more zagnati Ecore!\n"
 "Vam mogoče primankuje spomina?"
 
-#: src/bin/e_main.c:336
+#: src/bin/e_main.c:340
 msgid ""
 "Enlightenment cannot initialize the File system.\n"
 "Perhaps you are out of memory?"
@@ -2348,7 +2419,7 @@ msgstr ""
 "Enlightenment ne more zagnati datotečnega sistema.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:348
+#: src/bin/e_main.c:352
 msgid ""
 "Enlightenment cannot set up an exit signal handler.\n"
 "Perhaps you are out of memory?"
@@ -2356,7 +2427,7 @@ msgstr ""
 "Enlightenment ne more nastaviti upravitelja izhodnih signalov.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:354
+#: src/bin/e_main.c:358
 msgid ""
 "Enlightenment cannot set up a HUP signal handler.\n"
 "Perhaps you are out of memory?"
@@ -2364,7 +2435,7 @@ msgstr ""
 "Enlightenment ne more nastaviti upravitelja HUP signalov.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:366
+#: src/bin/e_main.c:370
 msgid ""
 "Enlightenment cannot initialize its X connection.\n"
 "Have you set your DISPLAY variable?"
@@ -2372,7 +2443,7 @@ msgstr ""
 "Enlightenment ne more ustvariti povezave z X serverjem.\n"
 "Ste že nastavili svojo DISPLAY spremenljivko?"
 
-#: src/bin/e_main.c:374
+#: src/bin/e_main.c:378
 msgid ""
 "Enlightenment cannot initialize its emergency alert system.\n"
 "Have you set your DISPLAY variable?"
@@ -2380,7 +2451,7 @@ msgstr ""
 "Enlightenment ne more pognati svojega alarmnega sistema.\n"
 "Ste že nastavili svojo DISPLAY spremenljivko?"
 
-#: src/bin/e_main.c:397
+#: src/bin/e_main.c:401
 msgid ""
 "Enlightenment cannot initialize the connections system.\n"
 "Perhaps you are out of memory?"
@@ -2388,7 +2459,7 @@ msgstr ""
 "Enlightenment ne more zagnati sistema povezav.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:405
+#: src/bin/e_main.c:409
 msgid ""
 "Enlightenment cannot initialize the IPC system.\n"
 "Perhaps you are out of memory?"
@@ -2396,7 +2467,7 @@ msgstr ""
 "Enlightenment ne more zagnati sistema IPC.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:414
+#: src/bin/e_main.c:418
 msgid ""
 "Enlightenment cannot setup xinerama wrapping.\n"
 "This should not happen."
@@ -2404,7 +2475,7 @@ msgstr ""
 "Enlightenment ne more nastaviti xinerama ovijanja.\n"
 "To se ne bi smelo dogajati."
 
-#: src/bin/e_main.c:436
+#: src/bin/e_main.c:437
 msgid ""
 "Enlightenment cannot initialize the Evas system.\n"
 "Perhaps you are out of memory?"
@@ -2412,7 +2483,7 @@ msgstr ""
 "Enlightenment ne more zagnati sistema Evas.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:442
+#: src/bin/e_main.c:443
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software X11\n"
 "rendering in Evas. Please check your installation of Evas and\n"
@@ -2422,7 +2493,7 @@ msgstr ""
 "izrisovanja v Evas. Preverite vaše Evas in Ecore nastavitve in se\n"
 "prepričajte, da podpirajo software X11 izrisovanje."
 
-#: src/bin/e_main.c:449
+#: src/bin/e_main.c:450
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software Buffer\n"
 "rendering in Evas. Please check your installation of Evas and\n"
@@ -2432,7 +2503,7 @@ msgstr ""
 "Buffer spomina. Preverite vaše Evas in Ecore nastavitve in se\n"
 "prepričajte, da podpjo izrisovanje iz Software Buffer spomina."
 
-#: src/bin/e_main.c:465 src/bin/e_main.c:472
+#: src/bin/e_main.c:466 src/bin/e_main.c:473
 #, fuzzy
 msgid ""
 "Enlightenment cannot initialize the FDO desktop system.\n"
@@ -2441,7 +2512,7 @@ msgstr ""
 "Enlightenment ne more zagnati datotečnega sistema.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:483
+#: src/bin/e_main.c:487
 msgid ""
 "Enlightenment cannot create directories in your home directory.\n"
 "Perhaps you have no home directory or the disk is full?"
@@ -2449,21 +2520,26 @@ msgstr ""
 "Enlightenment ne more ustvariti map v vaši domači mapi.\n"
 "Mogoče nimate domače mape ali pa imate poln disk?"
 
-#: src/bin/e_main.c:493
+#: src/bin/e_main.c:497
 #, fuzzy
 msgid "Enlightenment cannot set up its file registry system."
 msgstr "Enlightenment ne more nastaviti nastavitvenega sistema."
 
-#: src/bin/e_main.c:502
+#: src/bin/e_main.c:506
 msgid "Enlightenment cannot set up its config system."
 msgstr "Enlightenment ne more nastaviti nastavitvenega sistema."
 
-#: src/bin/e_main.c:510
+#: src/bin/e_main.c:515
+#, fuzzy
+msgid "Enlightenment cannot set up its scale system."
+msgstr "Enlightenment ne more nastaviti svojega sistema razporejanja."
+
+#: src/bin/e_main.c:523
 #, fuzzy
 msgid "Enlightenment cannot set up the pointer system."
 msgstr "Enlightenment ne more nastaviti internacionalizacijskega sistema."
 
-#: src/bin/e_main.c:519
+#: src/bin/e_main.c:532
 msgid ""
 "Enlightenment cannot set up paths for finding files.\n"
 "Perhaps you are out of memory?"
@@ -2471,15 +2547,15 @@ msgstr ""
 "Enlightenment ne more nastaviti poti za iskanje datotek.\n"
 "Mogoče ste ostali brez spomina?"
 
-#: src/bin/e_main.c:537
+#: src/bin/e_main.c:550
 msgid "Enlightenment cannot set up its font system."
 msgstr "Enlightenment ne more nastaviti sistema pisav."
 
-#: src/bin/e_main.c:548
+#: src/bin/e_main.c:561
 msgid "Enlightenment cannot set up its theme system."
 msgstr "Enlightenment ne more nastaviti tematskega sistema."
 
-#: src/bin/e_main.c:559
+#: src/bin/e_main.c:572
 msgid ""
 "Enlightenment cannot set up init screen.\n"
 "Perhaps you are out of memory?"
@@ -2487,11 +2563,11 @@ msgstr ""
 "Enlightenment ne more nastaviti zagonskega okna.\n"
 "Ste mogoče ostali brez spomina?"
 
-#: src/bin/e_main.c:570
+#: src/bin/e_main.c:583
 msgid "Testing Format Support"
 msgstr ""
 
-#: src/bin/e_main.c:580
+#: src/bin/e_main.c:593
 msgid ""
 "Enlightenment found Evas can't create a buffer canvas. Please check\n"
 "Evas has Software Buffer engine support.\n"
@@ -2499,7 +2575,7 @@ msgstr ""
 "Enlightenment je ugotovil, da Evas ne more ustvariti Buffer Canvas.\n"
 "Prepričajte se, da Evas podpira Software Buffer pogon.\n"
 
-#: src/bin/e_main.c:590
+#: src/bin/e_main.c:603
 msgid ""
 "Enlightenment found Evas can't load PNG files. Check Evas has PNG\n"
 "loader support.\n"
@@ -2507,7 +2583,7 @@ msgstr ""
 "Enlightenment je ugotovil, da Evas ne more odpirati PNG datotek.\n"
 "Prepričajte se, da Evas podpira PNG vtič.\n"
 
-#: src/bin/e_main.c:599
+#: src/bin/e_main.c:612
 msgid ""
 "Enlightenment found Evas can't load JPEG files. Check Evas has JPEG\n"
 "loader support.\n"
@@ -2515,7 +2591,7 @@ msgstr ""
 "Enlightenment je ugotovil, da Evas ne more odpirati JPEG datotek.\n"
 "Prepričajte se, da Evas podpira JPEG vtič.\n"
 
-#: src/bin/e_main.c:608
+#: src/bin/e_main.c:621
 msgid ""
 "Enlightenment found Evas can't load EET files. Check Evas has EET\n"
 "loader support.\n"
@@ -2523,80 +2599,80 @@ msgstr ""
 "Enlightenment je ugotovil, da Evas ne more odpirati EET datotek.\n"
 "Prepričajte se, da Evas podpira EET vtič.\n"
 
-#: src/bin/e_main.c:621
+#: src/bin/e_main.c:634
 msgid "Starting International Support"
 msgstr ""
 
-#: src/bin/e_main.c:626
+#: src/bin/e_main.c:639
 msgid "Enlightenment cannot set up its intl system."
 msgstr "Enlightenment ne more nastaviti internacionalizacijskega sistema."
 
-#: src/bin/e_main.c:631
+#: src/bin/e_main.c:644
 #, fuzzy
 msgid "Setting up Paths"
 msgstr "Nastavitve Fokusa"
 
-#: src/bin/e_main.c:648
+#: src/bin/e_main.c:661
 msgid "Setup Thumbnailer"
 msgstr ""
 
-#: src/bin/e_main.c:653
+#: src/bin/e_main.c:666
 msgid "Enlightenment cannot initialize the Thumbnailing system.\n"
 msgstr "Enlightenment ne more zagnati sistema za pomanjševanje slik.\n"
 
-#: src/bin/e_main.c:658
+#: src/bin/e_main.c:671
 #, fuzzy
 msgid "Setup System Controls"
 msgstr "Nastavi nadzornika"
 
-#: src/bin/e_main.c:663
+#: src/bin/e_main.c:676
 #, fuzzy
 msgid "Enlightenment cannot initialize the System Command system.\n"
 msgstr "Enlightenment ne more zagnati sistema za pomanjševanje slik.\n"
 
-#: src/bin/e_main.c:668
+#: src/bin/e_main.c:681
 #, fuzzy
 msgid "Setup Actions"
 msgstr "Priljubljeni programi"
 
-#: src/bin/e_main.c:673
+#: src/bin/e_main.c:686
 msgid "Enlightenment cannot set up its actions system."
 msgstr "Enlightenment ne more nastaviti svojega sistema akcij."
 
-#: src/bin/e_main.c:677
+#: src/bin/e_main.c:690
 #, fuzzy
 msgid "Setup Bindings"
 msgstr "Naveze tipk"
 
-#: src/bin/e_main.c:682
+#: src/bin/e_main.c:695
 msgid "Enlightenment cannot set up its bindings system."
 msgstr "Enlightenment ne more nastaviti svojega sistema povezav."
 
-#: src/bin/e_main.c:686
+#: src/bin/e_main.c:699
 #, fuzzy
 msgid "Setup Popups"
 msgstr "Prikaži popup"
 
-#: src/bin/e_main.c:691
+#: src/bin/e_main.c:704
 msgid "Enlightenment cannot set up its popup system."
 msgstr "Enlightenment ne more nastaviti svojega Popup sistema."
 
-#: src/bin/e_main.c:696
+#: src/bin/e_main.c:709
 #, fuzzy
 msgid "Setup Wallpaper"
 msgstr "Preskok na namizje z miško"
 
-#: src/bin/e_main.c:701
+#: src/bin/e_main.c:714
 #, fuzzy
 msgid "Enlightenment cannot set up its desktop background system."
 msgstr "Enlightenment ne more nastaviti svojega sistema zaklepanja namizja."
 
-#: src/bin/e_main.c:705
+#: src/bin/e_main.c:718
 #, fuzzy
 msgid "Setup Screens"
 msgstr "Zaslonsko Območje"
 
-#: src/bin/e_main.c:710
+#: src/bin/e_main.c:723
 msgid ""
 "Enlightenment set up window management for all the screens on your system\n"
 "failed. Perhaps another window manager is running?\n"
@@ -2605,154 +2681,154 @@ msgstr ""
 "vašega sistema in pri tem klavrno propadel. Mogoče uporabljate drug\n"
 "upravljalnik z okni?\n"
 
-#: src/bin/e_main.c:715
+#: src/bin/e_main.c:728
 msgid "Setup Execution System"
 msgstr ""
 
-#: src/bin/e_main.c:720
+#: src/bin/e_main.c:733
 #, fuzzy
 msgid "Enlightenment cannot set up its exec system."
 msgstr "Enlightenment ne more nastaviti svojega exebuf sistema."
 
-#: src/bin/e_main.c:724
+#: src/bin/e_main.c:737
 #, fuzzy
 msgid "Setup Remembers"
 msgstr "Zapomni si"
 
-#: src/bin/e_main.c:729
+#: src/bin/e_main.c:742
 msgid "Enlightenment cannot setup remember settings."
 msgstr "Enlightenment ne more nastaviti shranjevanja nastavitev."
 
-#: src/bin/e_main.c:737
+#: src/bin/e_main.c:750
 msgid "Setup FM"
 msgstr ""
 
-#: src/bin/e_main.c:742
+#: src/bin/e_main.c:755
 msgid "Enlightenment cannot initialize the File manager.\n"
 msgstr "Enlightenment ne more zagnati upravitelja datotek.\n"
 
-#: src/bin/e_main.c:755
+#: src/bin/e_main.c:768
 msgid "Setup Message System"
 msgstr ""
 
-#: src/bin/e_main.c:760
+#: src/bin/e_main.c:773
 msgid "Enlightenment cannot set up its msg system."
 msgstr "Enlightenment ne more nastaviti sistema sporočil."
 
-#: src/bin/e_main.c:764
+#: src/bin/e_main.c:777
 msgid "Setup DND"
 msgstr ""
 
-#: src/bin/e_main.c:769
+#: src/bin/e_main.c:782
 msgid "Enlightenment cannot set up its dnd system."
 msgstr "Enlightenment ne more nastaviti svojega sistema dnd."
 
-#: src/bin/e_main.c:773
+#: src/bin/e_main.c:786
 msgid "Setup Grab Input HAnding"
 msgstr ""
 
-#: src/bin/e_main.c:778
+#: src/bin/e_main.c:791
 msgid "Enlightenment cannot set up its input grab handling system."
 msgstr "Enlightenment ne more nastaviti svojega sistema za delo z vnosi."
 
-#: src/bin/e_main.c:782
+#: src/bin/e_main.c:795
 #, fuzzy
 msgid "Setup Modules"
 msgstr "Moduli"
 
-#: src/bin/e_main.c:787
+#: src/bin/e_main.c:800
 msgid "Enlightenment cannot set up its module system."
 msgstr "Enlightenment ne more nastaviti modularnega sistema."
 
-#: src/bin/e_main.c:791
+#: src/bin/e_main.c:804
 #, fuzzy
 msgid "Setup Color Classes"
 msgstr "Razred Ikone"
 
-#: src/bin/e_main.c:796
+#: src/bin/e_main.c:809
 msgid "Enlightenment cannot set up its color class system."
 msgstr "Enlightenment ne more nastaviti svojega sistema barvnih razredov."
 
-#: src/bin/e_main.c:800
+#: src/bin/e_main.c:813
 #, fuzzy
 msgid "Setup Gadcon"
 msgstr "Poženi ukaz"
 
-#: src/bin/e_main.c:805
+#: src/bin/e_main.c:818
 msgid "Enlightenment cannot set up its gadget control system."
 msgstr ""
 "Enlightenment ne more nastaviti svojega sistema upravljanja s pripomočki."
 
-#: src/bin/e_main.c:809
+#: src/bin/e_main.c:822
 msgid "Setup Shelves"
 msgstr ""
 
-#: src/bin/e_main.c:814
+#: src/bin/e_main.c:827
 msgid "Enlightenment cannot set up its shelf system."
 msgstr "Enlightenment ne more nastaviti svojega sistema razporejanja."
 
-#: src/bin/e_main.c:819
+#: src/bin/e_main.c:832
 msgid "Setup DPMS"
 msgstr ""
 
-#: src/bin/e_main.c:824
+#: src/bin/e_main.c:837
 #, fuzzy
 msgid "Enlightenment cannot configure the DPMS settings."
 msgstr "Enlightenment ne more nastaviti shranjevanja nastavitev."
 
-#: src/bin/e_main.c:828
+#: src/bin/e_main.c:841
 #, fuzzy
 msgid "Setup Screensaver"
 msgstr "Zaslonsko Območje"
 
-#: src/bin/e_main.c:833
+#: src/bin/e_main.c:846
 #, fuzzy
 msgid "Enlightenment cannot configure the X screensaver."
 msgstr "Enlightenment ne more zagnati upravitelja datotek.\n"
 
-#: src/bin/e_main.c:837
+#: src/bin/e_main.c:850
 #, fuzzy
 msgid "Setup Mouse"
 msgstr "Izbriši"
 
-#: src/bin/e_main.c:842
+#: src/bin/e_main.c:855
 #, fuzzy
-msgid "Enlightenment cannot configure the mouse acceleration settings."
+msgid "Enlightenment cannot configure the mouse settings."
 msgstr "Enlightenment ne more nastaviti shranjevanja nastavitev."
 
-#: src/bin/e_main.c:846
+#: src/bin/e_main.c:859
 #, fuzzy
 msgid "Setup Desklock"
 msgstr "Pošlji na namizje"
 
-#: src/bin/e_main.c:851
+#: src/bin/e_main.c:864
 msgid "Enlightenment cannot set up its desk locking system."
 msgstr "Enlightenment ne more nastaviti svojega sistema zaklepanja namizja."
 
-#: src/bin/e_main.c:856
+#: src/bin/e_main.c:869
 msgid "Set Up File Ordering"
 msgstr ""
 
-#: src/bin/e_main.c:860
+#: src/bin/e_main.c:873
 #, fuzzy
 msgid "Enlightenment cannot set up its order file system."
 msgstr "Enlightenment ne more nastaviti modularnega sistema."
 
-#: src/bin/e_main.c:865
+#: src/bin/e_main.c:878
 msgid "Set Up Powersave modes"
 msgstr ""
 
-#: src/bin/e_main.c:869
+#: src/bin/e_main.c:882
 #, fuzzy
 msgid "Enlightenment cannot set up its powersave modes."
 msgstr "Enlightenment ne more nastaviti svojega Popup sistema."
 
-#: src/bin/e_main.c:901
+#: src/bin/e_main.c:914
 #, fuzzy
 msgid "Load Modules"
 msgstr "(Ni naloženih modulov)"
 
-#: src/bin/e_main.c:909
+#: src/bin/e_main.c:922
 msgid ""
 "Enlightenment crashed early on start and has<br>been restarted. All modules "
 "have been disabled<br>and will not be loaded to help remove any "
@@ -2760,11 +2836,11 @@ msgid ""
 "dialog should let you select your<br>modules again."
 msgstr ""
 
-#: src/bin/e_main.c:916
+#: src/bin/e_main.c:929
 msgid "Enlightenment crashed early on start and has been restarted"
 msgstr ""
 
-#: src/bin/e_main.c:917
+#: src/bin/e_main.c:930
 msgid ""
 "Enlightenment crashed early on start and has been restarted.<br>All modules "
 "have been disabled and will not be loaded to help<br>remove any problem "
@@ -2772,16 +2848,16 @@ msgid ""
 "should let you select your<br>modules again."
 msgstr ""
 
-#: src/bin/e_main.c:925
+#: src/bin/e_main.c:938
 #, fuzzy
 msgid "Configure Shelves"
 msgstr "Nastavitve"
 
-#: src/bin/e_main.c:932
+#: src/bin/e_main.c:945
 msgid "Almost Done"
 msgstr ""
 
-#: src/bin/e_module.c:120
+#: src/bin/e_module.c:124
 #, c-format
 msgid ""
 "There was an error loading module named: %s<br>No module named %s could be "
@@ -2790,11 +2866,11 @@ msgstr ""
 "Pri zagonu modula %s je prišlo do napake.<br>Modul z imenom %s ni bil najden "
 "v<br>mapah z moduli."
 
-#: src/bin/e_module.c:124 src/bin/e_module.c:137 src/bin/e_module.c:158
+#: src/bin/e_module.c:128 src/bin/e_module.c:141 src/bin/e_module.c:162
 msgid "Error loading Module"
 msgstr "Napaka pri nalaganju modula"
 
-#: src/bin/e_module.c:131 src/bin/e_module.c:152
+#: src/bin/e_module.c:135 src/bin/e_module.c:156
 #, c-format
 msgid ""
 "There was an error loading module named: %s<br>The full path to this module "
@@ -2803,11 +2879,11 @@ msgstr ""
 "Pri zagonu modula %s je prišlo do napake.<br>Pot do modula je:<br>%"
 "s<br>Sporočena napaka je:<br>%s<br>"
 
-#: src/bin/e_module.c:157
+#: src/bin/e_module.c:161
 msgid "Module does not contain all needed functions"
 msgstr "Modul ne vsebuje vseh potrebnih funkcij."
 
-#: src/bin/e_module.c:171
+#: src/bin/e_module.c:175
 #, c-format
 msgid ""
 "Module API Error<br>Error initializing Module: %s<br>It requires a minimum "
@@ -2817,21 +2893,21 @@ msgstr ""
 "Napaka v Module API<br>Napaka pri zaginu modula: %s<br>Potrebuje najmanj "
 "Module API verzije: %i<br>Enlightenment poroča Module API verzije: %i.<br>"
 
-#: src/bin/e_module.c:176
+#: src/bin/e_module.c:180
 #, c-format
 msgid "Enlightenment %s Module"
 msgstr "Enlightenment %s Modul"
 
-#: src/bin/e_module.c:492
+#: src/bin/e_module.c:521
 msgid "Would you like to unload this module?<br>"
 msgstr "Bi radi razbremenili ta modul?<br>"
 
-#: src/bin/e_shelf.c:1178 src/modules/conf_shelves/e_int_config_shelf.c:281
+#: src/bin/e_shelf.c:1190 src/modules/conf_shelves/e_int_config_shelf.c:281
 #, fuzzy
 msgid "Are you sure you want to delete this shelf?"
 msgstr "Ste prepričani, da hočete pobrisati <br><b>%s</b> ?"
 
-#: src/bin/e_shelf.c:1179
+#: src/bin/e_shelf.c:1191
 #, fuzzy
 msgid ""
 "You requested to delete this shelf.<br><br>Are you sure you want to delete "
@@ -2839,159 +2915,159 @@ msgid ""
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/bin/e_shelf.c:1629 src/bin/e_toolbar.c:318
+#: src/bin/e_shelf.c:1646 src/bin/e_toolbar.c:317
 msgid "Stop Moving/Resizing Items"
 msgstr ""
 
-#: src/bin/e_shelf.c:1631 src/bin/e_toolbar.c:320
+#: src/bin/e_shelf.c:1648 src/bin/e_toolbar.c:319
 msgid "Begin Moving/Resizing Items"
 msgstr ""
 
-#: src/bin/e_shelf.c:1644
+#: src/bin/e_shelf.c:1661
 msgid "Configure Shelf Contents"
 msgstr ""
 
-#: src/bin/e_shelf.c:1649
+#: src/bin/e_shelf.c:1666
 msgid "Delete this Shelf"
 msgstr ""
 
-#: src/bin/e_startup.c:62
+#: src/bin/e_startup.c:61
 #, fuzzy
 msgid "Starting"
 msgstr "Zaganjam %s"
 
-#: src/bin/e_sys.c:128
+#: src/bin/e_sys.c:130
 msgid "Checking System Permissions"
 msgstr ""
 
-#: src/bin/e_sys.c:165 src/bin/e_sys.c:176 src/bin/e_sys.c:185
-#: src/bin/e_sys.c:194
+#: src/bin/e_sys.c:168 src/bin/e_sys.c:179 src/bin/e_sys.c:188
+#: src/bin/e_sys.c:197
 msgid "System Check Done"
 msgstr ""
 
-#: src/bin/e_sys.c:271
+#: src/bin/e_sys.c:274
 msgid "Logout problems"
 msgstr ""
 
-#: src/bin/e_sys.c:274
+#: src/bin/e_sys.c:277
 msgid ""
 "Logout is taking too long. Some<br>applications refuse to close.<br>Do you "
 "want to finish the logout<br>anyway without closing these<br>applications "
 "first?"
 msgstr ""
 
-#: src/bin/e_sys.c:280
+#: src/bin/e_sys.c:283
 #, fuzzy
 msgid "Logout now"
 msgstr "Izgubljena Okna"
 
-#: src/bin/e_sys.c:281
+#: src/bin/e_sys.c:284
 msgid "Wait longer"
 msgstr ""
 
-#: src/bin/e_sys.c:282
+#: src/bin/e_sys.c:285
 #, fuzzy
 msgid "Cancel Logout"
 msgstr "Pozabi"
 
-#: src/bin/e_sys.c:320
+#: src/bin/e_sys.c:323
 msgid "Logout in progress"
 msgstr ""
 
-#: src/bin/e_sys.c:323
+#: src/bin/e_sys.c:326
 msgid "Logout is currently in progress.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
-#: src/bin/e_sys.c:352 src/bin/e_sys.c:412
+#: src/bin/e_sys.c:355 src/bin/e_sys.c:416
 #, fuzzy
 msgid "Enlightenment is busy with another request"
 msgstr "Enlightenment ne more nastaviti tematskega sistema."
 
-#: src/bin/e_sys.c:358
+#: src/bin/e_sys.c:361
 msgid ""
 "Enlightenment is busy logging out.<br>You cannot perform other system "
 "actions<br>once a logout has begun."
 msgstr ""
 
-#: src/bin/e_sys.c:365
+#: src/bin/e_sys.c:369
 msgid ""
 "Enlightenment is shutting the system down.<br>You cannot do any other system "
 "actions<br>once a shutdown has been started."
 msgstr ""
 
-#: src/bin/e_sys.c:372
+#: src/bin/e_sys.c:376
 msgid ""
 "Enlightenment is rebooting the system.<br>You cannot do any other system "
 "actions<br>once a reboot has begun."
 msgstr ""
 
-#: src/bin/e_sys.c:379
+#: src/bin/e_sys.c:383
 msgid ""
 "Enlightenment is suspending the system.<br>Until suspend is complete you "
 "cannot perform<br>any other system actions."
 msgstr ""
 
-#: src/bin/e_sys.c:386
+#: src/bin/e_sys.c:390
 msgid ""
 "Enlightenment is hibernating the system.<br>You cannot perform an other "
 "system actions<br>until this is complete."
 msgstr ""
 
-#: src/bin/e_sys.c:393 src/bin/e_sys.c:438
+#: src/bin/e_sys.c:397 src/bin/e_sys.c:443
 msgid "EEK! This should not happen"
 msgstr ""
 
-#: src/bin/e_sys.c:418
+#: src/bin/e_sys.c:423
 msgid "Shutting down of your system failed."
 msgstr ""
 
-#: src/bin/e_sys.c:423
+#: src/bin/e_sys.c:428
 msgid "Rebooting your system failed."
 msgstr ""
 
-#: src/bin/e_sys.c:428
+#: src/bin/e_sys.c:433
 msgid "Suspend of your system failed."
 msgstr ""
 
-#: src/bin/e_sys.c:433
+#: src/bin/e_sys.c:438
 msgid "Hibernating your system failed."
 msgstr ""
 
-#: src/bin/e_sys.c:483
+#: src/bin/e_sys.c:489
 msgid "Shutting down"
 msgstr ""
 
-#: src/bin/e_sys.c:486
+#: src/bin/e_sys.c:492
 msgid "Shutting down your Computer.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
-#: src/bin/e_sys.c:510
+#: src/bin/e_sys.c:516
 #, fuzzy
 msgid "Rebooting"
 msgstr "Ločljivost"
 
-#: src/bin/e_sys.c:513
+#: src/bin/e_sys.c:519
 msgid "Rebooting your Computer.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
-#: src/bin/e_sys.c:536
+#: src/bin/e_sys.c:542
 msgid "Suspending"
 msgstr ""
 
-#: src/bin/e_sys.c:539
+#: src/bin/e_sys.c:545
 msgid "Suspending your Computer.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
-#: src/bin/e_sys.c:562
+#: src/bin/e_sys.c:568
 #, fuzzy
 msgid "Hibernating"
 msgstr "Brez Mehčanja"
 
-#: src/bin/e_sys.c:565
+#: src/bin/e_sys.c:571
 msgid "Hibernating your Computer.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
-#: src/bin/e_theme_about.c:66
+#: src/bin/e_theme_about.c:68
 msgid "About This Theme"
 msgstr "O tej temi"
 
@@ -3000,16 +3076,16 @@ msgstr "O tej temi"
 msgid "Set As Theme"
 msgstr "O tej temi"
 
-#: src/bin/e_toolbar.c:333
+#: src/bin/e_toolbar.c:332
 #, fuzzy
 msgid "Configure Toolbar Contents"
 msgstr "Nastavitve"
 
-#: src/bin/e_utils.c:282
+#: src/bin/e_utils.c:248
 msgid "Cannot exit - immortal windows."
 msgstr "Izhod nemogoč - nesmrtno okno"
 
-#: src/bin/e_utils.c:283
+#: src/bin/e_utils.c:249
 msgid ""
 "Some windows are left still around with the Lifespan lock enabled. This "
 "means<br>that Enlightenment will not allow itself to exit until these "
@@ -3019,74 +3095,74 @@ msgstr ""
 "da izhod iz Enlightenment ne bo mogoč, dekler se ta<br>okna ne zaprejo "
 "oziroma se jim ne odstrani zaklep.<br>"
 
-#: src/bin/e_utils.c:738
+#: src/bin/e_utils.c:704
 #, fuzzy, c-format
 msgid "%'.0f Bytes"
 msgstr "%1.0f minut"
 
-#: src/bin/e_utils.c:742
+#: src/bin/e_utils.c:708
 #, fuzzy, c-format
 msgid "%'.0f KB"
 msgstr "%1.0f MB"
 
-#: src/bin/e_utils.c:746
+#: src/bin/e_utils.c:712
 #, fuzzy, c-format
 msgid "%'.0f MB"
 msgstr "%1.0f MB"
 
-#: src/bin/e_utils.c:750
+#: src/bin/e_utils.c:716
 #, fuzzy, c-format
 msgid "%'.1f GB"
 msgstr "%1.1f MB"
 
-#: src/bin/e_utils.c:770
+#: src/bin/e_utils.c:736
 #, c-format
 msgid "In the Future"
 msgstr ""
 
-#: src/bin/e_utils.c:775
+#: src/bin/e_utils.c:741
 #, c-format
 msgid "In the last Minute"
 msgstr ""
 
-#: src/bin/e_utils.c:777
+#: src/bin/e_utils.c:743
 #, c-format
 msgid "%li Years ago"
 msgstr ""
 
-#: src/bin/e_utils.c:779
+#: src/bin/e_utils.c:745
 #, c-format
 msgid "%li Months ago"
 msgstr ""
 
-#: src/bin/e_utils.c:781
+#: src/bin/e_utils.c:747
 #, c-format
 msgid "%li Weeks ago"
 msgstr ""
 
-#: src/bin/e_utils.c:783
+#: src/bin/e_utils.c:749
 #, c-format
 msgid "%li Days ago"
 msgstr ""
 
-#: src/bin/e_utils.c:785
+#: src/bin/e_utils.c:751
 #, c-format
 msgid "%li Hours ago"
 msgstr ""
 
-#: src/bin/e_utils.c:787
+#: src/bin/e_utils.c:753
 #, c-format
 msgid "%li Minutes ago"
 msgstr ""
 
-#: src/bin/e_utils.c:793
+#: src/bin/e_utils.c:759
 #: src/modules/conf_keybindings/e_int_config_keybindings.c:1146
 msgid "Unknown"
 msgstr "Neznan"
 
 #: src/bin/e_widget_config_list.c:54
 #: src/modules/conf_applications/e_int_config_apps.c:245
-#: src/modules/conf_profiles/e_int_config_profiles.c:89
+#: src/modules/conf_profiles/e_int_config_profiles.c:111
 #: src/modules/conf_shelves/e_int_config_shelf.c:79
 #: src/modules/ibar/e_mod_config.c:109
 msgid "Add"
@@ -3115,7 +3191,7 @@ msgstr ""
 #: src/modules/conf_desklock/e_int_config_desklock.c:199
 #: src/modules/conf_imc/e_int_config_imc.c:830
 #: src/modules/conf_startup/e_int_config_startup.c:281
-#: src/modules/conf_theme/e_int_config_theme.c:342
+#: src/modules/conf_theme/e_int_config_theme.c:365
 #: src/modules/conf_wallpaper/e_int_config_wallpaper.c:507
 #: src/modules/conf_wallpaper/e_int_config_wallpaper.c:633
 #, fuzzy
@@ -3219,21 +3295,21 @@ msgstr ""
 msgid "%1.0f seconds"
 msgstr "%1.0f sekund"
 
-#: src/modules/battery/e_mod_main.c:129
+#: src/modules/battery/e_mod_main.c:131
 msgid "Battery"
 msgstr ""
 
-#: src/modules/battery/e_mod_main.c:417
+#: src/modules/battery/e_mod_main.c:414
 #, fuzzy
 msgid "Battery Meter"
 msgstr "Preveri baterijo vsake:"
 
-#: src/modules/battery/e_mod_main.c:494 src/modules/battery/e_mod_main.c:496
-#: src/modules/battery/e_mod_main.c:503 src/modules/battery/e_mod_main.c:505
+#: src/modules/battery/e_mod_main.c:491 src/modules/battery/e_mod_main.c:493
+#: src/modules/battery/e_mod_main.c:500 src/modules/battery/e_mod_main.c:502
 msgid "ERROR"
 msgstr ""
 
-#: src/modules/battery/e_mod_main.c:563
+#: src/modules/battery/e_mod_main.c:559
 msgid "N/A"
 msgstr ""
 
@@ -3281,7 +3357,7 @@ msgid "Restart Applications"
 msgstr "Priljubljeni programi"
 
 #: src/modules/conf_applications/e_int_config_apps.c:238
-#: src/modules/fileman/e_fwin.c:1361
+#: src/modules/fileman/e_fwin.c:1456
 #, fuzzy
 msgid "All Applications"
 msgstr "(Ni Programov)"
@@ -3634,9 +3710,9 @@ msgid "Desktop Name"
 msgstr "Desktop"
 
 #: src/modules/conf_desk/e_int_config_desk.c:150
-#: src/modules/conf_profiles/e_int_config_profiles.c:265
+#: src/modules/conf_profiles/e_int_config_profiles.c:261
 #: src/modules/conf_wallpaper/e_int_config_wallpaper_gradient.c:120
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:102
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:105
 #, fuzzy
 msgid "Name:"
 msgstr "Po imenu"
@@ -3683,8 +3759,8 @@ msgstr ""
 #: src/modules/conf_desklock/e_int_config_desklock.c:192
 #: src/modules/conf_imc/e_int_config_imc.c:818
 #: src/modules/conf_startup/e_int_config_startup.c:268
-#: src/modules/conf_theme/e_int_config_theme.c:331
-#: src/modules/conf_theme/e_int_config_theme.c:763
+#: src/modules/conf_theme/e_int_config_theme.c:354
+#: src/modules/conf_theme/e_int_config_theme.c:792
 #: src/modules/conf_wallpaper/e_int_config_wallpaper.c:497
 #: src/modules/conf_wallpaper/e_int_config_wallpaper.c:623
 #, fuzzy
@@ -3721,9 +3797,9 @@ msgstr "prikazi na zaslonski coni :"
 #: src/modules/conf_exebuf/e_int_config_exebuf.c:164
 #: src/modules/conf_exebuf/e_int_config_exebuf.c:168
 #: src/modules/conf_exebuf/e_int_config_exebuf.c:172
-#: src/modules/conf_mouse/e_int_config_mouse.c:95
-#: src/modules/conf_mouse/e_int_config_mouse.c:101
-#: src/modules/fileman/e_mod_config.c:175
+#: src/modules/conf_mouse/e_int_config_mouse.c:109
+#: src/modules/conf_mouse/e_int_config_mouse.c:115
+#: src/modules/fileman/e_mod_config.c:192
 #, c-format
 msgid "%1.0f"
 msgstr "%1.0f"
@@ -3837,14 +3913,15 @@ msgid "Dialog Settings"
 msgstr "Nastavitve Pogovornega Okna"
 
 #: src/modules/conf_dialogs/e_int_config_dialogs.c:84
-#: src/modules/conf_engine/e_int_config_engine.c:85
+#: src/modules/conf_engine/e_int_config_engine.c:94
 #: src/modules/conf_exebuf/e_int_config_exebuf.c:109
 #: src/modules/conf_exebuf/e_int_config_exebuf.c:161
 #: src/modules/conf_performance/e_int_config_performance.c:90
 #: src/modules/conf_performance/e_int_config_performance.c:123
 #: src/modules/conf_winlist/e_int_config_winlist.c:131
 #: src/modules/ibox/e_mod_config.c:93 src/modules/pager/e_mod_config.c:115
-#: src/modules/pager/e_mod_config.c:154
+#: src/modules/pager/e_mod_config.c:154 src/modules/mixer/conf_gadget.c:197
+#: src/modules/mixer/conf_module.c:96
 msgid "General Settings"
 msgstr "Splošne nastavitve"
 
@@ -4025,27 +4102,27 @@ msgstr ""
 msgid "Power Management"
 msgstr ""
 
-#: src/modules/conf_engine/e_int_config_engine.c:36
+#: src/modules/conf_engine/e_int_config_engine.c:38
 #, fuzzy
 msgid "Engine Settings"
 msgstr "Nastavitev velikosti"
 
-#: src/modules/conf_engine/e_int_config_engine.c:86
+#: src/modules/conf_engine/e_int_config_engine.c:95
 #, fuzzy
 msgid "Enable Composite"
 msgstr "Razred Ikone"
 
-#: src/modules/conf_engine/e_int_config_engine.c:93
+#: src/modules/conf_engine/e_int_config_engine.c:102
 #, fuzzy
 msgid "Default Engine"
 msgstr "Privzeto Namizje"
 
-#: src/modules/conf_engine/e_int_config_engine.c:122
+#: src/modules/conf_engine/e_int_config_engine.c:131
 #, fuzzy
 msgid "Enable Composite Support ?"
 msgstr "Razred Ikone"
 
-#: src/modules/conf_engine/e_int_config_engine.c:124
+#: src/modules/conf_engine/e_int_config_engine.c:133
 msgid ""
 "You have chosen to enable composite support,<br>but your current screen does "
 "not support composite.<br><br>Are you sure you wish to enable composite "
@@ -4426,7 +4503,6 @@ msgid "New"
 msgstr "Novo"
 
 #: src/modules/conf_imc/e_int_config_imc.c:899
-#: src/modules/conf_theme/e_int_config_theme.c:371
 msgid "Import..."
 msgstr ""
 
@@ -4632,18 +4708,22 @@ msgid "Binding Key Error"
 msgstr "Napaka naveze tipk"
 
 #: src/modules/conf_keybindings/e_int_config_keybindings.c:1289
+#: src/modules/gadman/e_mod_gadman.c:614
 msgid "CTRL"
 msgstr "CTRL"
 
 #: src/modules/conf_keybindings/e_int_config_keybindings.c:1294
+#: src/modules/gadman/e_mod_gadman.c:619
 msgid "ALT"
 msgstr "ALT"
 
 #: src/modules/conf_keybindings/e_int_config_keybindings.c:1300
+#: src/modules/gadman/e_mod_gadman.c:625
 msgid "SHIFT"
 msgstr "SHIFT"
 
 #: src/modules/conf_keybindings/e_int_config_keybindings.c:1306
+#: src/modules/gadman/e_mod_gadman.c:631
 msgid "WIN"
 msgstr "WIN"
 
@@ -4892,23 +4972,28 @@ msgstr "Velikost kazalca"
 msgid "Mouse Cursor"
 msgstr "Uporabi X kazalec"
 
-#: src/modules/conf_mouse/e_int_config_mouse.c:35
-#, fuzzy
-msgid "Mouse Acceleration Settings"
-msgstr "Namestitev izbire"
-
-#: src/modules/conf_mouse/e_int_config_mouse.c:91
+#: src/modules/conf_mouse/e_int_config_mouse.c:36
 #: src/modules/conf_mouse/e_mod_main.c:35
+#, fuzzy
+msgid "Mouse Settings"
+msgstr "Nastavitve Modulov"
+
+#: src/modules/conf_mouse/e_int_config_mouse.c:97
+#, fuzzy
+msgid "Mouse Hand"
+msgstr "Naveze tipk"
+
+#: src/modules/conf_mouse/e_int_config_mouse.c:105
 #, fuzzy
 msgid "Mouse Acceleration"
 msgstr "Dejanja Modula"
 
-#: src/modules/conf_mouse/e_int_config_mouse.c:93
+#: src/modules/conf_mouse/e_int_config_mouse.c:107
 #, fuzzy
 msgid "Acceleration"
 msgstr "Pospeši"
 
-#: src/modules/conf_mouse/e_int_config_mouse.c:99
+#: src/modules/conf_mouse/e_int_config_mouse.c:113
 msgid "Threshold"
 msgstr ""
 
@@ -4927,7 +5012,7 @@ msgid "Images"
 msgstr "Razporedi sliko"
 
 #: src/modules/conf_paths/e_int_config_paths.c:79
-#: src/modules/conf_theme/e_int_config_theme.c:981
+#: src/modules/conf_theme/e_int_config_theme.c:1010
 msgid "Themes"
 msgstr ""
 
@@ -5026,22 +5111,17 @@ msgstr "%1.0f zbirk"
 msgid "Performance"
 msgstr "Nastavitve Zmogljivosti"
 
-#: src/modules/conf_profiles/e_int_config_profiles.c:53
+#: src/modules/conf_profiles/e_int_config_profiles.c:54
 #, fuzzy
 msgid "Profile Selector"
 msgstr "Tematski izbirnik"
 
-#: src/modules/conf_profiles/e_int_config_profiles.c:82
+#: src/modules/conf_profiles/e_int_config_profiles.c:104
 #, fuzzy
 msgid "Available Profiles"
 msgstr "Lastnosti"
 
-#: src/modules/conf_profiles/e_int_config_profiles.c:91
-#, fuzzy
-msgid "Select"
-msgstr "Izbriši"
-
-#: src/modules/conf_profiles/e_int_config_profiles.c:212
+#: src/modules/conf_profiles/e_int_config_profiles.c:208
 #, fuzzy, c-format
 msgid ""
 "You requested to delete \"%s\".<br><br>Are you sure you want to delete this "
@@ -5049,21 +5129,21 @@ msgid ""
 msgstr ""
 "Zahtevali ste izhod iz Enlightenment.<br><br>Ste prepričani, da bi to radi?"
 
-#: src/modules/conf_profiles/e_int_config_profiles.c:215
+#: src/modules/conf_profiles/e_int_config_profiles.c:211
 #, fuzzy
 msgid "Are you sure you want to delete this profile?"
 msgstr "Ste prepričani, da hočete pobrisati <br><b>%s</b> ?"
 
-#: src/modules/conf_profiles/e_int_config_profiles.c:262
+#: src/modules/conf_profiles/e_int_config_profiles.c:258
 msgid "Add New Profile"
 msgstr ""
 
-#: src/modules/conf_profiles/e_int_config_profiles.c:276
+#: src/modules/conf_profiles/e_int_config_profiles.c:272
 #, fuzzy
 msgid "Plain Profile"
 msgstr "Lastnosti"
 
-#: src/modules/conf_profiles/e_int_config_profiles.c:280
+#: src/modules/conf_profiles/e_int_config_profiles.c:276
 msgid "Clone Current Profile"
 msgstr ""
 
@@ -5163,45 +5243,53 @@ msgstr "Prikaži začetno animacijo"
 msgid "Startup"
 msgstr "Ostro"
 
-#: src/modules/conf_theme/e_int_config_theme.c:59
+#: src/modules/conf_theme/e_int_config_theme.c:61
 msgid "Theme Selector"
 msgstr "Tematski izbirnik"
 
-#: src/modules/conf_theme/e_int_config_theme.c:972
+#: src/modules/conf_theme/e_int_config_theme.c:394
+msgid " Import..."
+msgstr ""
+
+#: src/modules/conf_theme/e_int_config_theme.c:399
+msgid " Online..."
+msgstr ""
+
+#: src/modules/conf_theme/e_int_config_theme.c:1001
 #, fuzzy
 msgid "Theme Categories"
 msgstr "Tematski izbirnik"
 
-#: src/modules/conf_theme/e_int_config_theme.c:990
+#: src/modules/conf_theme/e_int_config_theme.c:1019
 msgid "Assign"
 msgstr ""
 
-#: src/modules/conf_theme/e_int_config_theme.c:993
+#: src/modules/conf_theme/e_int_config_theme.c:1022
 #, fuzzy
 msgid "Clear"
 msgstr "Blizu"
 
-#: src/modules/conf_theme/e_int_config_theme.c:996
+#: src/modules/conf_theme/e_int_config_theme.c:1025
 #, fuzzy
 msgid "Clear All"
 msgstr "Izbriši"
 
-#: src/modules/conf_theme/e_int_config_theme_import.c:66
+#: src/modules/conf_theme/e_int_config_theme_import.c:67
 msgid "Select a Theme..."
 msgstr ""
 
-#: src/modules/conf_theme/e_int_config_theme_import.c:276
-#: src/modules/conf_theme/e_int_config_theme_import.c:285
+#: src/modules/conf_theme/e_int_config_theme_import.c:277
+#: src/modules/conf_theme/e_int_config_theme_import.c:286
 msgid "Theme Import Error"
 msgstr ""
 
-#: src/modules/conf_theme/e_int_config_theme_import.c:277
+#: src/modules/conf_theme/e_int_config_theme_import.c:278
 msgid ""
 "Enlightenment was unable to import the theme.<br><br>Are you sure this is "
 "really a valid theme?"
 msgstr ""
 
-#: src/modules/conf_theme/e_int_config_theme_import.c:286
+#: src/modules/conf_theme/e_int_config_theme_import.c:287
 #, fuzzy
 msgid "Enlightenment was unable to import the theme<br>due to a copy error."
 msgstr "Enlightenment ni uspel odcepiti hčerinskega procesa:<br><br>%s<br>"
@@ -5447,12 +5535,12 @@ msgstr ""
 msgid "[%s] Choose an image from list"
 msgstr ""
 
-#: src/modules/conf_wallpaper/e_int_config_wallpaper_web.c:573
+#: src/modules/conf_wallpaper/e_int_config_wallpaper_web.c:572
 #, c-format
 msgid "[%s] Downloading of edje file... %d%% done"
 msgstr ""
 
-#: src/modules/conf_wallpaper/e_int_config_wallpaper_web.c:608
+#: src/modules/conf_wallpaper/e_int_config_wallpaper_web.c:605
 #, c-format
 msgid "[%s] Getting feed..."
 msgstr ""
@@ -5757,57 +5845,57 @@ msgid "Automatically move/resize windows on shelf autohide"
 msgstr "Avtomatsko privzdigni Okno pri prehodu s kazalcem"
 
 #: src/modules/conf_window_remembers/e_int_config_remembers.c:29
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:89
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:92
 #: src/modules/conf_window_remembers/e_mod_main.c:17
 #, fuzzy
 msgid "Window Remembers"
 msgstr "Zapomni si lasnosti Okna"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:91
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:94
 #, fuzzy
 msgid "Delete Remember(s)"
 msgstr "Zapomni si"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:101
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:104
 #, fuzzy
 msgid "Details"
 msgstr "Privzeto Namizje"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:104
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:233
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:107
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:269
 #, fuzzy
 msgid "<No Name>"
 msgstr "Velikost ikon"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:107
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:110
 #, fuzzy
 msgid "Class:"
 msgstr "Celzij"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:109
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:235
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:112
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:271
 #, fuzzy
 msgid "<No Class>"
 msgstr "Razred Ikone"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:112
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:115
 #, fuzzy
 msgid "Title:"
 msgstr "Naslov"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:114
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:237
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:117
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:273
 #, fuzzy
 msgid "<No Title>"
 msgstr "Naslov"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:117
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:120
 #, fuzzy
 msgid "Role:"
 msgstr "Datoteka:"
 
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:119
-#: src/modules/conf_window_remembers/e_int_config_remembers.c:239
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:122
+#: src/modules/conf_window_remembers/e_int_config_remembers.c:275
 #, fuzzy
 msgid "<No Role>"
 msgstr "<Nič>"
@@ -5954,7 +6042,7 @@ msgstr ""
 msgid "Set CPU Speed"
 msgstr "Nastavi hitrost"
 
-#: src/modules/cpufreq/e_mod_main.c:337
+#: src/modules/cpufreq/e_mod_main.c:335
 #, fuzzy
 msgid ""
 "There was an error trying to set the<br>cpu frequency governor via the "
@@ -5963,14 +6051,14 @@ msgstr ""
 "Prišlo je do napake pri poizkusu nastavitve upravnika "
 "frekvence<br>procesorja preko modulovega setfreq orodja."
 
-#: src/modules/cpufreq/e_mod_main.c:363
+#: src/modules/cpufreq/e_mod_main.c:361
 msgid ""
 "Your kernel does not support setting the<br>CPU frequency at all. You may be "
 "missing<br>Kernel modules or features, or your CPU<br>simply does not "
 "support this feature."
 msgstr ""
 
-#: src/modules/cpufreq/e_mod_main.c:383
+#: src/modules/cpufreq/e_mod_main.c:381
 #, fuzzy
 msgid ""
 "There was an error trying to set the<br>cpu frequency setting via the "
@@ -6077,12 +6165,12 @@ msgstr ""
 msgid "Run Command Dialog"
 msgstr "Poženi ukaz"
 
-#: src/modules/fileman/e_mod_main.c:209
+#: src/modules/fileman/e_mod_main.c:213
 #, fuzzy
 msgid "Files"
 msgstr "Datoteka:"
 
-#: src/modules/fileman/e_mod_main.c:261
+#: src/modules/fileman/e_mod_main.c:265
 #, fuzzy
 msgid ""
 "Fileman Module Configuration data needed upgrading. Your old "
@@ -6100,7 +6188,7 @@ msgstr ""
 "stara nastavitvena datoteka ne vsebuje. Sedaj<br>pa lahko ponovno nastavite "
 "stvari po svoje. Opravičujemo se za kolcanje.<br>"
 
-#: src/modules/fileman/e_mod_main.c:274
+#: src/modules/fileman/e_mod_main.c:278
 #, fuzzy
 msgid ""
 "Your Fileman Module configuration is NEWER than Fileman Module version. This "
@@ -6117,92 +6205,131 @@ msgstr ""
 "nastavili na privzete vrednosti. Prosimo, sprejmite naše<br>opravičilo za "
 "vse nevšečnosti.<br>"
 
-#: src/modules/fileman/e_mod_main.c:343
+#: src/modules/fileman/e_mod_main.c:347
 #, fuzzy
 msgid "Fileman Configuration Updated"
 msgstr "Nastavitve Osvežene"
 
-#: src/modules/fileman/e_mod_config.c:82
+#: src/modules/fileman/e_mod_config.c:88
 #, fuzzy
 msgid "Fileman Settings"
 msgstr "Nastavitev velikosti"
 
-#: src/modules/fileman/e_mod_config.c:159
+#: src/modules/fileman/e_mod_config.c:176
 #, fuzzy
 msgid "Grid Icons"
 msgstr "Informacije o Datoteki:"
 
-#: src/modules/fileman/e_mod_config.c:161
+#: src/modules/fileman/e_mod_config.c:178
 #, fuzzy
 msgid "Custom Icons"
 msgstr "Avtomatsko prilagodi ikone"
 
-#: src/modules/fileman/e_mod_config.c:163
+#: src/modules/fileman/e_mod_config.c:180
 #, fuzzy
 msgid "Custom Grid Icons"
 msgstr "Avtomatsko prilagodi ikone"
 
-#: src/modules/fileman/e_mod_config.c:166
+#: src/modules/fileman/e_mod_config.c:183
 msgid "Custom Smart Grid Icons"
 msgstr ""
 
-#: src/modules/fileman/e_mod_config.c:173
+#: src/modules/fileman/e_mod_config.c:190
 #, fuzzy
 msgid "Icon Size"
 msgstr "Velikost ikon"
 
-#: src/modules/fileman/e_mod_config.c:179
+#: src/modules/fileman/e_mod_config.c:196
 msgid "Open Dirs In Place"
 msgstr ""
 
-#: src/modules/fileman/e_mod_config.c:182
+#: src/modules/fileman/e_mod_config.c:199
 msgid "Sort Dirs First"
 msgstr ""
 
-#: src/modules/fileman/e_mod_config.c:185
+#: src/modules/fileman/e_mod_config.c:202
 msgid "Use Single Click"
 msgstr ""
 
-#: src/modules/fileman/e_mod_config.c:188
+#: src/modules/fileman/e_mod_config.c:205
 #, fuzzy
 msgid "Show Icon Extension"
 msgstr "prikazi na zaslonski coni :"
 
-#: src/modules/fileman/e_mod_config.c:191
+#: src/modules/fileman/e_mod_config.c:208
 msgid "Show Full Path"
 msgstr ""
 
-#: src/modules/fileman/e_mod_config.c:194
+#: src/modules/fileman/e_mod_config.c:211
 #, fuzzy
 msgid "Show Desktop Icons"
 msgstr "Prikaži ime namizja"
 
-#: src/modules/fileman/e_mod_config.c:197
+#: src/modules/fileman/e_mod_config.c:214
 #, fuzzy
 msgid "Show Toolbar"
 msgstr "Prikaži sledilnik"
 
-#: src/modules/fileman/e_fwin.c:654
+#: src/modules/fileman/e_mod_config.c:217
+#, fuzzy
+msgid "Show HAL icons on desktop"
+msgstr "Prikaži ime namizja"
+
+#: src/modules/fileman/e_fwin.c:692
 msgid "Go to Parent Directory"
 msgstr ""
 
-#: src/modules/fileman/e_fwin.c:680 src/modules/fileman/e_fwin.c:1320
+#: src/modules/fileman/e_fwin.c:718 src/modules/fileman/e_fwin.c:1415
 msgid "Open"
 msgstr ""
 
-#: src/modules/fileman/e_fwin.c:687 src/modules/fileman/e_fwin.c:1318
+#: src/modules/fileman/e_fwin.c:725 src/modules/fileman/e_fwin.c:1413
 msgid "Open with..."
 msgstr ""
 
-#: src/modules/fileman/e_fwin.c:1336
+#: src/modules/fileman/e_fwin.c:1431
 #, fuzzy
 msgid "Specific Applications"
 msgstr "(Ni Programov)"
 
-#: src/modules/fileman/e_fwin.c:1407
+#: src/modules/fileman/e_fwin.c:1502
 #, fuzzy
 msgid "Custom Command"
 msgstr "Poženi ukaz"
+
+#: src/modules/gadman/e_mod_config.c:42
+#, fuzzy
+msgid "Gadgets Manager"
+msgstr "Preizkusi upravljalnika z datotekami"
+
+#: src/modules/gadman/e_mod_gadman.c:561
+#, fuzzy
+msgid "Always on desktop"
+msgstr "Vedno na vrhu"
+
+#: src/modules/gadman/e_mod_gadman.c:571
+msgid "On top pressing"
+msgstr ""
+
+#: src/modules/gadman/e_mod_gadman.c:581
+msgid "Behavior"
+msgstr ""
+
+#: src/modules/gadman/e_mod_gadman.c:599
+#, fuzzy
+msgid "Add other gadgets"
+msgstr "Pripomočki"
+
+#: src/modules/gadman/e_mod_main.c:32 src/modules/gadman/e_mod_main.c:52
+#: src/modules/gadman/e_mod_main.c:86 src/modules/gadman/e_mod_main.c:114
+#, fuzzy
+msgid "Gadgets"
+msgstr "Pripomočki"
+
+#: src/modules/gadman/e_mod_main.c:52 src/modules/gadman/e_mod_main.c:86
+#, fuzzy
+msgid "Show/hide gadgets"
+msgstr "Ne skrij pripomočkov"
 
 #: src/modules/winlist/e_mod_main.c:48 src/modules/winlist/e_mod_main.c:50
 #: src/modules/winlist/e_mod_main.c:63 src/modules/winlist/e_mod_main.c:64
@@ -6281,27 +6408,27 @@ msgstr "Ste prepričani, da hočete pobrisati <br><b>%s</b> ?"
 msgid "IBar"
 msgstr ""
 
-#: src/modules/ibar/e_mod_main.c:799
+#: src/modules/ibar/e_mod_main.c:797
 #, fuzzy
 msgid "Change Icon Properties"
 msgstr "Lastnosti"
 
-#: src/modules/ibar/e_mod_main.c:804
+#: src/modules/ibar/e_mod_main.c:802
 #, fuzzy
 msgid "Remove Icon"
 msgstr "Ustvari ikono"
 
-#: src/modules/ibar/e_mod_main.c:814
+#: src/modules/ibar/e_mod_main.c:812
 #, fuzzy
 msgid "Add An Icon"
 msgstr "(Ni Programov)"
 
-#: src/modules/ibar/e_mod_main.c:821
+#: src/modules/ibar/e_mod_main.c:819
 #, fuzzy
 msgid "Create New Icon"
 msgstr "Ustvari ikono"
 
-#: src/modules/ibar/e_mod_main.c:837
+#: src/modules/ibar/e_mod_main.c:835
 #, fuzzy
 msgid "Add Application"
 msgstr "(Ni Programov)"
@@ -6490,27 +6617,27 @@ msgstr "Spodaj"
 msgid "Virtual Desktops Configuration"
 msgstr "Navidezno Namizje"
 
-#: src/modules/pager/e_mod_main.c:2806
+#: src/modules/pager/e_mod_main.c:2801
 #, fuzzy
 msgid "Show Pager Popup"
 msgstr "Nastavitev Popup"
 
-#: src/modules/pager/e_mod_main.c:2812 src/modules/pager/e_mod_main.c:2846
+#: src/modules/pager/e_mod_main.c:2807 src/modules/pager/e_mod_main.c:2841
 #, fuzzy
 msgid "Popup Desk Right"
 msgstr "Vsa Namizja"
 
-#: src/modules/pager/e_mod_main.c:2813 src/modules/pager/e_mod_main.c:2847
+#: src/modules/pager/e_mod_main.c:2808 src/modules/pager/e_mod_main.c:2842
 #, fuzzy
 msgid "Popup Desk Left"
 msgstr "To Namizje"
 
-#: src/modules/pager/e_mod_main.c:2814 src/modules/pager/e_mod_main.c:2848
+#: src/modules/pager/e_mod_main.c:2809 src/modules/pager/e_mod_main.c:2843
 #, fuzzy
 msgid "Popup Desk Up"
 msgstr "Vsa Namizja"
 
-#: src/modules/pager/e_mod_main.c:2815 src/modules/pager/e_mod_main.c:2849
+#: src/modules/pager/e_mod_main.c:2810 src/modules/pager/e_mod_main.c:2844
 #, fuzzy
 msgid "Popup Desk Down"
 msgstr "To Namizje"
@@ -6628,7 +6755,7 @@ msgstr "%1.0f F"
 msgid "%1.0f C"
 msgstr "%1.0f C"
 
-#: src/modules/temperature/e_mod_main.c:153
+#: src/modules/temperature/e_mod_main.c:155
 #, fuzzy
 msgid "Temperature"
 msgstr "Nizka temperatura"
@@ -6651,6 +6778,163 @@ msgstr "Osnovno"
 #, fuzzy
 msgid "Choose Language"
 msgstr "Upravitelj"
+
+#: src/modules/mixer/app_mixer.c:166
+msgid "Capture"
+msgstr ""
+
+#: src/modules/mixer/app_mixer.c:168
+msgid "Playback"
+msgstr ""
+
+#: src/modules/mixer/app_mixer.c:288 src/modules/mixer/app_mixer.c:306
+#, fuzzy
+msgid "Input"
+msgstr "Ikone"
+
+#: src/modules/mixer/app_mixer.c:294
+#, fuzzy
+msgid "Output"
+msgstr "Izhodni podatki"
+
+#: src/modules/mixer/app_mixer.c:367
+#, fuzzy
+msgid "Cards"
+msgstr "Zasenči"
+
+#: src/modules/mixer/app_mixer.c:382 src/modules/mixer/conf_gadget.c:285
+#, fuzzy
+msgid "Channels"
+msgstr "Pozabi"
+
+#: src/modules/mixer/app_mixer.c:394
+#, fuzzy
+msgid "Card:"
+msgstr "Zasenči"
+
+#: src/modules/mixer/app_mixer.c:398
+#, fuzzy
+msgid "Channel:"
+msgstr "Pozabi"
+
+#: src/modules/mixer/app_mixer.c:402
+#, fuzzy
+msgid "Type:"
+msgstr "Datoteka:"
+
+#: src/modules/mixer/app_mixer.c:406
+msgid "Left:"
+msgstr ""
+
+#: src/modules/mixer/app_mixer.c:411
+#, fuzzy
+msgid "Right:"
+msgstr "Svetla"
+
+#: src/modules/mixer/app_mixer.c:416 src/modules/mixer/e_mod_main.c:602
+#, fuzzy
+msgid "Mute"
+msgstr "Meni"
+
+#: src/modules/mixer/app_mixer.c:419 src/modules/mixer/conf_gadget.c:200
+#, fuzzy
+msgid "Lock Sliders"
+msgstr "Velikost"
+
+#: src/modules/mixer/app_mixer.c:423
+#, fuzzy
+msgid "Edit"
+msgstr "Počakaj z izhodom"
+
+#: src/modules/mixer/conf_gadget.c:206
+msgid "Show both sliders when locked"
+msgstr ""
+
+#: src/modules/mixer/conf_gadget.c:327
+msgid "Sound Cards"
+msgstr ""
+
+#: src/modules/mixer/conf_gadget.c:383
+#, fuzzy
+msgid "Mixer Configuration"
+msgstr "Nastavitev Namizja"
+
+#: src/modules/mixer/conf_module.c:98
+msgid "Mixer to use for global actions:"
+msgstr ""
+
+#: src/modules/mixer/conf_module.c:152
+msgid "Launch mixer..."
+msgstr ""
+
+#: src/modules/mixer/conf_module.c:187
+#, fuzzy
+msgid "Mixer Module Configuration"
+msgstr "Nastavitve"
+
+#: src/modules/mixer/e_mod_main.c:122
+#, fuzzy
+msgid "Mixer Configuration Updated"
+msgstr "Nastavitve Osvežene"
+
+#: src/modules/mixer/e_mod_main.c:1161
+msgid ""
+"Mixer Module Configuration data changed.<br>Your old configuration has been "
+"replaced with new default.<br>Sorry for the inconvenience."
+msgstr ""
+
+#: src/modules/connman/e_mod_main.c:213
+#, fuzzy
+msgid "Connection Manager"
+msgstr "Ime Okna"
+
+#: src/modules/connman/e_mod_main.c:734
+#, fuzzy
+msgid "Network Connection Settings"
+msgstr "Namestitev izbire"
+
+#: src/modules/connman/e_mod_main.c:740
+msgid "Network Device"
+msgstr ""
+
+#: src/modules/connman/e_mod_main.c:745
+#, fuzzy
+msgid "Wifi"
+msgstr "Širina"
+
+#: src/modules/connman/e_mod_main.c:748
+msgid "LAN"
+msgstr ""
+
+#: src/modules/connman/e_mod_main.c:751
+#, fuzzy
+msgid "Specific Device"
+msgstr "(Ni Programov)"
+
+#: src/modules/connman/e_mod_main.c:775
+msgid "Networks"
+msgstr ""
+
+#: src/modules/connman/e_mod_main.c:1100
+#, fuzzy
+msgid "Settings"
+msgstr "Nastavitve Namizij"
+
+#, fuzzy
+#~ msgid "Enlightenment cannot configure the mouse acceleration settings."
+#~ msgstr "Enlightenment ne more nastaviti shranjevanja nastavitev."
+
+#, fuzzy
+#~ msgid "Mouse Acceleration Settings"
+#~ msgstr "Namestitev izbire"
+
+#, fuzzy
+#~ msgid "Select"
+#~ msgstr "Izbriši"
+
+#, fuzzy
+#~ msgid "Add To Favorites Menu"
+#~ msgstr "Prikaži Ime v Meniju"
 
 #~ msgid ""
 #~ "Battery Running Low<br>Your battery is running low.<br>You may wish to "
@@ -6786,10 +7070,6 @@ msgstr "Upravitelj"
 #, fuzzy
 #~ msgid "Belize"
 #~ msgstr "Velikost"
-
-#, fuzzy
-#~ msgid "Chad"
-#~ msgstr "Zasenči"
 
 #, fuzzy
 #~ msgid "Chile"
@@ -7308,9 +7588,6 @@ msgstr "Upravitelj"
 #~ msgid "Module State"
 #~ msgstr "Stanje Modula"
 
-#~ msgid "Module Actions"
-#~ msgstr "Dejanja Modula"
-
 #, fuzzy
 #~ msgid "Widget"
 #~ msgstr "Širina"
@@ -7340,9 +7617,6 @@ msgstr "Upravitelj"
 
 #~ msgid "Wait Exit"
 #~ msgstr "Počakaj z izhodom"
-
-#~ msgid "Error"
-#~ msgstr "Napaka"
 
 #, fuzzy
 #~ msgid "Could not create directory:<br><hilight>%s</hilight>"
@@ -7464,10 +7738,6 @@ msgstr "Upravitelj"
 #, fuzzy
 #~ msgid "ACPI Temperature"
 #~ msgstr "Nizka temperatura"
-
-#, fuzzy
-#~ msgid "Add application..."
-#~ msgstr "(Ni Programov)"
 
 #, fuzzy
 #~ msgid "Move application up"

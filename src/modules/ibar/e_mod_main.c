@@ -327,8 +327,6 @@ _ibar_cb_empty_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_inf
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
-	e_util_evas_fake_mouse_up_later(b->inst->gcc->gadcon->evas,
-					ev->button);
      }
 }
 
@@ -598,12 +596,12 @@ _ibar_icon_fill(IBar_Icon *ic)
 {
    /* TODO: Correct icon size! */
    if (ic->o_icon) evas_object_del(ic->o_icon);
-   ic->o_icon = e_util_desktop_icon_add(ic->app, "48x48", evas_object_evas_get(ic->ibar->o_box));
+   ic->o_icon = e_util_desktop_icon_add(ic->app, 48, evas_object_evas_get(ic->ibar->o_box));
    edje_object_part_swallow(ic->o_holder, "e.swallow.content", ic->o_icon);
    evas_object_pass_events_set(ic->o_icon, 1);
    evas_object_show(ic->o_icon);
    if (ic->o_icon2) evas_object_del(ic->o_icon2);
-   ic->o_icon2 = e_util_desktop_icon_add(ic->app, "48x48", evas_object_evas_get(ic->ibar->o_box));
+   ic->o_icon2 = e_util_desktop_icon_add(ic->app, 48, evas_object_evas_get(ic->ibar->o_box));
    edje_object_part_swallow(ic->o_holder2, "e.swallow.content", ic->o_icon2);
    evas_object_pass_events_set(ic->o_icon2, 1);
    evas_object_show(ic->o_icon2);
@@ -847,8 +845,6 @@ _ibar_cb_icon_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
-	e_util_evas_fake_mouse_up_later(ic->ibar->inst->gcc->gadcon->evas,
-					ev->button);
      }
 }
 
@@ -905,8 +901,8 @@ _ibar_cb_icon_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_info
 	     E_Drag *d;
 	     Evas_Object *o;
 	     Evas_Coord x, y, w, h;
+	     unsigned int size;
 	     const char *drag_types[] = { "enlightenment/desktop" };
-	     char buf[128];
 
 	     ic->drag.dnd = 1;
 	     ic->drag.start = 0;
@@ -915,14 +911,12 @@ _ibar_cb_icon_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_info
 	     d = e_drag_new(ic->ibar->inst->gcc->gadcon->zone->container,
 			    x, y, drag_types, 1,
 			    ic->app, -1, NULL, NULL);
-	     snprintf(buf, sizeof(buf), "%dx%d", w, h);
-             o = e_util_desktop_icon_add(ic->app, buf, e_drag_evas_get(d));
+	     size = MAX(w, h);
+             o = e_util_desktop_icon_add(ic->app, size, e_drag_evas_get(d));
 	     e_drag_object_set(d, o);
 
 	     e_drag_resize(d, w, h);
 	     e_drag_start(d, ic->drag.x, ic->drag.y);
-	     e_util_evas_fake_mouse_up_later(ic->ibar->inst->gcc->gadcon->evas,
-					     1);
 	     ic->ibar->icons = evas_list_remove(ic->ibar->icons, ic);
 	     _ibar_resize_handle(ic->ibar);
 	     _gc_orient(ic->ibar->inst->gcc);

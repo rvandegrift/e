@@ -134,13 +134,6 @@ EAPI void
 e_widget_sub_object_add(Evas_Object *obj, Evas_Object *sobj)
 {
    API_ENTRY return;
-/* enable if i want to hunt bad things in widgets  
-   if (evas_list_find(sd->subobjs, sobj))
-     {
-	printf("----------EEEEEK! dupe sub obj is a sub obj!\n");
-	abort();
-     }
-  */
    sd->subobjs = evas_list_append(sd->subobjs, sobj);
    if (!sd->child_can_focus)
      {
@@ -149,7 +142,11 @@ e_widget_sub_object_add(Evas_Object *obj, Evas_Object *sobj)
    if (!strcmp(evas_object_type_get(sobj), SMART_NAME))
      {
 	sd = evas_object_smart_data_get(sobj);
-	if (sd) sd->parent_obj = obj;
+	if (sd)
+	  {
+	     if (sd->parent_obj) e_widget_sub_object_del(sd->parent_obj, sobj);
+	     sd->parent_obj = obj;
+	  }
      }
 }
 
@@ -170,7 +167,7 @@ e_widget_resize_object_set(Evas_Object *obj, Evas_Object *sobj)
    API_ENTRY return;
    if (sd->resize_obj) evas_object_smart_member_del(sd->resize_obj);
    sd->resize_obj = sobj;
-   evas_object_smart_member_add(obj, sobj);
+   evas_object_smart_member_add(sobj, obj);
    _e_smart_reconfigure(sd);
 }
 
@@ -462,6 +459,13 @@ e_widget_pointer_get(Evas_Object *obj)
    return NULL;
 }
 
+EAPI void
+e_widget_min_size_resize(Evas_Object *obj)
+{
+   API_ENTRY return;
+   evas_object_resize(obj, sd->minw, sd->minh);
+}
+
 /* local subsystem functions */
 static void
 _e_smart_reconfigure(E_Smart_Data *sd)
@@ -577,6 +581,7 @@ _e_smart_init(void)
 	       _e_smart_color_set,
 	       _e_smart_clip_set,
 	       _e_smart_clip_unset,
+	       NULL,
 	       NULL
 	  };
         _e_smart = evas_smart_class_new(&sc);

@@ -45,6 +45,7 @@ static void _e_exebuf_next(void);
 static void _e_exebuf_prev(void);
 static void _e_exebuf_complete(void);
 static void _e_exebuf_backspace(void);
+static void _e_exebuf_clear(void);
 static void _e_exebuf_matches_update(void);
 static void _e_exebuf_hist_update(void);
 static void _e_exebuf_hist_clear(void);
@@ -418,7 +419,7 @@ _e_exebuf_update(void)
    if (!desktop) desktop = efreet_util_desktop_generic_name_find(cmd_buf);
    if (desktop)
      {
-	o = e_util_desktop_icon_add(desktop, "24x24", exebuf->evas);
+	o = e_util_desktop_icon_add(desktop, 24, exebuf->evas);
 	icon_object = o;
 	edje_object_part_swallow(bg_object, "e.swallow.icons", o);
 	evas_object_show(o);
@@ -830,6 +831,18 @@ _e_exebuf_backspace(void)
      }
 }
 
+static void
+_e_exebuf_clear(void)
+{
+   if (cmd_buf[0] != 0)
+     {
+	cmd_buf[0] = 0;
+	_e_exebuf_update();
+	if (!update_timer)
+	   update_timer = ecore_timer_add(MATCH_LAG, _e_exebuf_update_timer, NULL);
+     }
+}
+
 static int
 _e_exebuf_cb_sort_eap(void *data1, void *data2)
 {
@@ -999,9 +1012,6 @@ _e_exebuf_matches_update(void)
    if (added) evas_hash_free(added);
    added = NULL;
 
-   /* FIXME: sort eap matches with most recently selected matches at the
-    * start and then from shortest to longest string
-    */
    eap_matches = evas_list_sort(eap_matches, evas_list_count(eap_matches), _e_exebuf_cb_sort_eap);
    
    max = e_config->exebuf_max_eap_list;
@@ -1040,7 +1050,7 @@ _e_exebuf_matches_update(void)
 	evas_object_show(o);
 	if (edje_object_part_exists(exe->bg_object, "e.swallow.icons"))
 	  {
-	     o = e_util_desktop_icon_add(exe->desktop, "24x24", exebuf->evas);
+	     o = e_util_desktop_icon_add(exe->desktop, 24, exebuf->evas);
 	     exe->icon_object = o;
 	     edje_object_part_swallow(exe->bg_object, "e.swallow.icons", o);
 	     evas_object_show(o);
@@ -1057,9 +1067,6 @@ _e_exebuf_matches_update(void)
      }
    e_box_thaw(eap_list_object);
    
-   /* FIXME: sort exe matches with most recently selected matches at the
-    * start and then from shortest to longest string
-    */
    exe_matches = evas_list_sort(exe_matches, evas_list_count(exe_matches), _e_exebuf_cb_sort_exe);
    
    max = e_config->exebuf_max_exe_list;
@@ -1090,7 +1097,7 @@ _e_exebuf_matches_update(void)
 	     desktop = efreet_util_desktop_exec_find(exe->file);
 	     if (desktop)
 	       {
-		  o = e_util_desktop_icon_add(desktop, "24x24", exebuf->evas);
+		  o = e_util_desktop_icon_add(desktop, 24, exebuf->evas);
 		  exe->icon_object = o;
 		  edje_object_part_swallow(exe->bg_object, "e.swallow.icons", o);
 		  evas_object_show(o);
@@ -1144,7 +1151,7 @@ _e_exebuf_hist_update(void)
 	     desktop = efreet_util_desktop_exec_find(exe->file);
 	     if (desktop)
 	       {
-		  o = e_util_desktop_icon_add(desktop, "24x24", exebuf->evas);
+		  o = e_util_desktop_icon_add(desktop, 24, exebuf->evas);
 		  exe->icon_object = o;
 		  edje_object_part_swallow(exe->bg_object, "e.swallow.icons", o);
 		  evas_object_show(o);
@@ -1242,7 +1249,7 @@ _e_exebuf_cb_key_down(void *data, int type, void *event)
    ev_last_is_mouse = 0;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
    if      (!strcmp(ev->keysymbol, "Up"))
      _e_exebuf_prev();
    else if (!strcmp(ev->keysymbol, "Down"))
@@ -1265,6 +1272,8 @@ _e_exebuf_cb_key_down(void *data, int type, void *event)
      _e_exebuf_exec_term();
    else if (!strcmp(ev->keysymbol, "KP_Enter"))
      _e_exebuf_exec();
+   else if (!strcmp(ev->keysymbol, "u") && (ev->modifiers & ECORE_X_MODIFIER_CTRL))
+     _e_exebuf_clear();
    else if (!strcmp(ev->keysymbol, "Escape"))
      e_exebuf_hide();
    else if (!strcmp(ev->keysymbol, "BackSpace"))
@@ -1295,7 +1304,7 @@ _e_exebuf_cb_mouse_down(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Button_Down *ev;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
 
    if (ev_last_mouse_exe && (exe_sel != ev_last_mouse_exe))
      {
@@ -1313,7 +1322,7 @@ _e_exebuf_cb_mouse_up(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Button_Up *ev;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
    if (ev->button == 1) 
      _e_exebuf_exec();
    else if (ev->button == 2)
@@ -1328,7 +1337,7 @@ _e_exebuf_cb_mouse_move(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Move *ev;
 
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
 
    if (!ev_last_is_mouse)
      {
@@ -1358,7 +1367,7 @@ _e_exebuf_cb_mouse_wheel(void *data, int type, void *event)
    Ecore_X_Event_Mouse_Wheel *ev;
    
    ev = event;
-   if (ev->win != input_window) return 1;
+   if (ev->event_win != input_window) return 1;
 
    ev_last_is_mouse = 0;
 

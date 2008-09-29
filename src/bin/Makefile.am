@@ -21,7 +21,8 @@ enlightenment_start \
 enlightenment_thumb \
 enlightenment_sys \
 enlightenment_fm \
-enlightenment_init
+enlightenment_init \
+enlightenment_fm_op
 
 ENLIGHTENMENTHEADERS = \
 e.h \
@@ -131,6 +132,7 @@ e_confirm_dialog.h \
 e_int_border_prop.h \
 e_entry_dialog.h \
 e_fm.h \
+e_fm_op.h \
 e_fm_hal.h \
 e_widget_scrollframe.h \
 e_sha1.h \
@@ -162,7 +164,8 @@ e_int_toolbar_config.h \
 e_powersave.h \
 e_slidesel.h \
 e_slidecore.h \
-e_widget_flist.h
+e_widget_flist.h \
+e_scale.h
 
 enlightenment_src = \
 e_user.c \
@@ -298,6 +301,7 @@ e_powersave.c \
 e_slidesel.c \
 e_slidecore.c \
 e_widget_flist.c \
+e_scale.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \
@@ -337,10 +341,17 @@ enlightenment_thumb_LDFLAGS = @e_libs@
 enlightenment_fm_SOURCES = \
 e_fm_main.c \
 e_user.c \
-e_sha1.c
+e_sha1.c \
+e_prefix.c
 
 enlightenment_fm_LDFLAGS = @e_libs@ @dlopen_libs@ @E_DBUS_LIBS@ @E_HAL_LIBS@
 enlightenment_fm_CFLAGS = $(INCLUDES) @E_HAL_CFLAGS@
+
+enlightenment_fm_op_SOURCES = \
+e_fm_op.c 
+
+enlightenment_fm_op_LDFLAGS = @e_libs@
+enlightenment_fm_op_CFLAGS = $(INCLUDES)
 
 enlightenment_sys_SOURCES = \
 e_sys_main.c

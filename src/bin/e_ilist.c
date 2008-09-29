@@ -17,6 +17,14 @@ struct _E_Smart_Data
    unsigned char selector : 1;
    unsigned char multi_select : 1;
    unsigned char on_hold : 1;
+
+   struct
+     {
+	char *buf;
+	unsigned int size;
+	Ecore_Timer *timer;
+     }
+   typebuf;
 };
 
 static void _e_smart_init             (void);
@@ -34,6 +42,13 @@ static void _e_smart_event_mouse_down (void *data, Evas *evas, Evas_Object *obj,
 static void _e_smart_event_mouse_up   (void *data, Evas *evas, Evas_Object *obj, void *event_info);
 static void _e_smart_event_key_down   (void *data, Evas *evas, Evas_Object *obj, void *event_info);
 
+static void _e_typebuf_add          (Evas_Object *obj, const char *s);
+static void _e_typebuf_match        (Evas_Object *obj);
+static int  _e_typebuf_timer_cb     (void *data);
+static void _e_typebuf_timer_update (Evas_Object *obj);
+static void _e_typebuf_timer_delete (Evas_Object *obj);
+static void _e_typebuf_clean        (Evas_Object *obj);
+
 static Evas_Smart *_e_smart = NULL;
 
 EAPI Evas_Object *
@@ -48,21 +63,37 @@ e_ilist_append(Evas_Object *obj, Evas_Object *icon, const char *label, int heade
 {
    E_Ilist_Item *si;
    Evas_Coord mw = 0, mh = 0;
+   int isodd;
+   const char *stacking;
 
    API_ENTRY return;
    si = E_NEW(E_Ilist_Item, 1);
    si->sd = sd;
    si->o_base = edje_object_add(evas_object_evas_get(sd->o_smart));
 
+   isodd = evas_list_count(sd->items) & 0x1;
    if (header) 
-     e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
-			     "e/widgets/ilist_header");
-   else if (evas_list_count(sd->items) & 0x1)
-     e_theme_edje_object_set(si->o_base, "base/theme/widgets",
-			     "e/widgets/ilist_odd");
+     {
+	if (isodd)
+	  {
+	     if (!e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
+					  "e/widgets/ilist_header_odd"))
+	       e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
+				       "e/widgets/ilist_header");
+	  }
+	else
+	  e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
+				  "e/widgets/ilist_header");
+     }
    else
-     e_theme_edje_object_set(si->o_base, "base/theme/widgets",
-			     "e/widgets/ilist");
+     {
+	if (isodd)
+	  e_theme_edje_object_set(si->o_base, "base/theme/widgets",
+				  "e/widgets/ilist_odd");
+	else
+	  e_theme_edje_object_set(si->o_base, "base/theme/widgets",
+				  "e/widgets/ilist");
+     }
    if (label)
      edje_object_part_text_set(si->o_base, "e.text.label", label);
    si->o_icon = icon;
@@ -84,6 +115,12 @@ e_ilist_append(Evas_Object *obj, Evas_Object *icon, const char *label, int heade
    e_box_pack_end(sd->o_box, si->o_base);
    e_box_pack_options_set(si->o_base, 1, 1, 1, 1, 0.5, 0.5, 
 			  mw, mh, 99999, 99999);
+   stacking = edje_object_data_get(si->o_base, "stacking");
+   if (stacking)
+     {
+	if (!strcmp(stacking, "below")) evas_object_lower(si->o_base);
+	else if (!strcmp(stacking, "above")) evas_object_raise(si->o_base);
+     }
    e_box_thaw(sd->o_box);
 
    evas_object_lower(sd->o_box);
@@ -99,21 +136,37 @@ e_ilist_append_relative(Evas_Object *obj, Evas_Object *icon, const char *label, 
 {
    E_Ilist_Item *si, *ri;
    Evas_Coord mw = 0, mh = 0;
+   int isodd;
+   const char *stacking;
 
    API_ENTRY return;
    si = E_NEW(E_Ilist_Item, 1);
    si->sd = sd;
    si->o_base = edje_object_add(evas_object_evas_get(sd->o_smart));
 
+   isodd = evas_list_count(sd->items) & 0x1;
    if (header) 
-     e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
-			     "e/widgets/ilist_header");
-   else if (evas_list_count(sd->items) & 0x1)
-     e_theme_edje_object_set(si->o_base, "base/theme/widgets",
-			     "e/widgets/ilist_odd");
+     {
+	if (isodd)
+	  {
+	     if (!e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
+					  "e/widgets/ilist_header_odd"))
+	       e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
+				       "e/widgets/ilist_header");
+	  }
+	else
+	  e_theme_edje_object_set(si->o_base, "base/theme/widgets", 
+				  "e/widgets/ilist_header");
+     }
    else
-     e_theme_edje_object_set(si->o_base, "base/theme/widgets",
-			     "e/widgets/ilist");
+     {
+	if (isodd)
+	  e_theme_edje_object_set(si->o_base, "base/theme/widgets",
+				  "e/widgets/ilist_odd");
+	else
+	  e_theme_edje_object_set(si->o_base, "base/theme/widgets",
+				  "e/widgets/ilist");
+     }
    if (label)
      edje_object_part_text_set(si->o_base, "e.text.label", label);
    si->o_icon = icon;
@@ -143,6 +196,12 @@ e_ilist_append_relative(Evas_Object *obj, Evas_Object *icon, const char *label, 
      e_box_pack_end(sd->o_box, si->o_base);
    e_box_pack_options_set(si->o_base, 1, 1, 1, 1, 0.5, 0.5, 
 			  mw, mh, 99999, 99999);
+   stacking = edje_object_data_get(si->o_base, "stacking");
+   if (stacking)
+     {
+	if (!strcmp(stacking, "below")) evas_object_lower(si->o_base);
+	else if (!strcmp(stacking, "above")) evas_object_raise(si->o_base);
+     }
    e_box_thaw(sd->o_box);
 
    evas_object_lower(sd->o_box);
@@ -343,6 +402,7 @@ EAPI void
 e_ilist_unselect(Evas_Object *obj) 
 {
    Evas_List *l = NULL;
+   const char *stacking, *selectraise;
 
    API_ENTRY return;
 
@@ -356,6 +416,13 @@ e_ilist_unselect(Evas_Object *obj)
 	if (!si->selected) continue;
 	edje_object_signal_emit(si->o_base, "e,state,unselected", "e");
 	si->selected = 0;
+	stacking = edje_object_data_get(si->o_base, "stacking");
+	selectraise = edje_object_data_get(si->o_base, "selectraise");
+	if ((selectraise) && (!strcmp(selectraise, "on")))
+	  {
+	     if ((stacking) && (!strcmp(stacking, "below")))
+	       evas_object_lower(si->o_base);
+	  }
      }
    sd->selected = -1;
 }
@@ -366,6 +433,7 @@ e_ilist_selected_set(Evas_Object *obj, int n)
    E_Ilist_Item *si = NULL;
    Evas_List *l = NULL;
    int i;
+   const char *stacking, *selectraise;
 
    API_ENTRY return;
    if (!sd->items) return;
@@ -380,6 +448,13 @@ e_ilist_selected_set(Evas_Object *obj, int n)
 	if ((!si->selected) || (si->header)) continue;
 	edje_object_signal_emit(si->o_base, "e,state,unselected", "e");
 	si->selected = 0;
+	stacking = edje_object_data_get(si->o_base, "stacking");
+	selectraise = edje_object_data_get(si->o_base, "selectraise");
+	if ((selectraise) && (!strcmp(selectraise, "on")))
+	  {
+	     if ((stacking) && (!strcmp(stacking, "below")))
+	       evas_object_lower(si->o_base);
+	  }
      }
    sd->selected = -1;
    if (!(si = evas_list_nth(sd->items, n))) return;
@@ -388,9 +463,11 @@ e_ilist_selected_set(Evas_Object *obj, int n)
    if (si->header) return;
 
    si->selected = 1;
-   sd->selected = n;
-   evas_object_raise(si->o_base);
+   selectraise = edje_object_data_get(si->o_base, "selectraise");
+   if ((selectraise) && (!strcmp(selectraise, "on")))
+     evas_object_raise(si->o_base);
    edje_object_signal_emit(si->o_base, "e,state,selected", "e");
+   sd->selected = n;
    if (si->func_hilight) si->func_hilight(si->data, si->data2);
    if (sd->selector) return;
    if (!sd->on_hold)
@@ -647,6 +724,7 @@ e_ilist_multi_select(Evas_Object *obj, int n)
 {
    E_Ilist_Item *si = NULL;
    int i;
+   const char *stacking, *selectraise;
 
    API_ENTRY return;
    if ((!sd->items) || (!sd->multi_select)) return;
@@ -661,6 +739,13 @@ e_ilist_multi_select(Evas_Object *obj, int n)
      {
 	edje_object_signal_emit(si->o_base, "e,state,unselected", "e");
 	si->selected = 0;
+	stacking = edje_object_data_get(si->o_base, "stacking");
+	selectraise = edje_object_data_get(si->o_base, "selectraise");
+	if ((selectraise) && (!strcmp(selectraise, "on")))
+	  {
+	     if ((stacking) && (!strcmp(stacking, "below")))
+	       evas_object_lower(si->o_base);
+	  }
 	if (si->func_hilight) si->func_hilight(si->data, si->data2);
 	if (sd->selector) return;
 	if (!sd->on_hold)
@@ -670,7 +755,8 @@ e_ilist_multi_select(Evas_Object *obj, int n)
 	return;
      }
    si->selected = 1;
-   evas_object_raise(si->o_base);
+   if ((selectraise) && (!strcmp(selectraise, "on")))
+     evas_object_raise(si->o_base);
    edje_object_signal_emit(si->o_base, "e,state,selected", "e");
    if (si->func_hilight) si->func_hilight(si->data, si->data2);
    if (sd->selector) return;
@@ -728,6 +814,7 @@ _e_smart_init(void)
 	       _e_smart_color_set, 
 	       _e_smart_clip_set,
 	       _e_smart_clip_unset,
+	       NULL,
 	       NULL
 	  };
         _e_smart = evas_smart_class_new(&sc);
@@ -749,6 +836,10 @@ _e_smart_add(Evas_Object *obj)
    sd->selected = -1;
    sd->multi_select = 0;
 
+   sd->typebuf.buf = NULL;
+   sd->typebuf.size = 0;
+   sd->typebuf.timer = NULL;
+
    sd->o_box = e_box_add(evas_object_evas_get(obj));
    e_box_align_set(sd->o_box, 0.0, 0.0);
    e_box_homogenous_set(sd->o_box, 0);
@@ -762,6 +853,9 @@ static void
 _e_smart_del(Evas_Object *obj) 
 {
    INTERNAL_ENTRY;
+
+   _e_typebuf_clean(obj);
+
    e_ilist_clear(obj);
    evas_object_del(sd->o_box);
    free(sd);
@@ -1020,7 +1114,7 @@ _e_smart_event_key_down(void *data, Evas *evas, Evas_Object *obj, void *event_in
      }
    else if ((!strcmp(ev->keyname, "Return")) ||
 	    (!strcmp(ev->keyname, "KP_Enter")) ||
-	    (!strcmp(ev->keyname, "space")))
+	    (!strcmp(ev->keyname, "space") && !sd->typebuf.buf))
      {
 	if (!sd->on_hold)
 	  {
@@ -1030,6 +1124,146 @@ _e_smart_event_key_down(void *data, Evas *evas, Evas_Object *obj, void *event_in
 		  if (si->func) si->func(si->data, si->data2);
 	       }
 	  }
-     }   
+     }  
+   else if (!strcmp(ev->keyname, "Escape"))
+     {
+	_e_typebuf_clean(obj);
+     }
+   else if (strcmp(ev->keyname, "BackSpace") && strcmp(ev->keyname, "Tab") && ev->string)
+     {
+	_e_typebuf_add(obj, ev->string);
+     }
+
+
    sd->on_hold = 0;
+}
+
+static void 
+_e_typebuf_add(Evas_Object *obj, const char *s)
+{
+   int len;
+
+   INTERNAL_ENTRY;
+
+   if (!sd->typebuf.buf)
+     {
+	sd->typebuf.buf = malloc(16);
+	if (sd->typebuf.buf)
+	  {
+	     sd->typebuf.size = 16;
+	     sd->typebuf.buf[0] = '\0';
+	  }
+	else
+	  {
+	     _e_typebuf_clean(obj);
+	     return;
+	  }
+
+     }
+
+   len = strlen(sd->typebuf.buf);
+   if (len + strlen(s) + 2 + 1 >= sd->typebuf.size)
+     {
+	sd->typebuf.buf = realloc(sd->typebuf.buf, sd->typebuf.size + strlen(s) + 16);
+	if (sd->typebuf.buf)
+	  sd->typebuf.size = sd->typebuf.size + strlen(s) + 16;
+	else
+	  {
+	     _e_typebuf_clean(obj);
+	     return;
+	  }
+     }
+
+   strcat(sd->typebuf.buf, s);
+
+   _e_typebuf_match(obj);
+   _e_typebuf_timer_update(obj);
+}
+
+static void
+_e_typebuf_match(Evas_Object *obj)
+{
+   char *match;
+   Evas_List *l;
+   int n;
+   E_Ilist_Item *si = NULL;
+
+   INTERNAL_ENTRY;
+
+   match = malloc(strlen(sd->typebuf.buf) + 2 + 1);
+   if (!match) return;
+
+   strcpy(match, "*");
+   strcat(match, sd->typebuf.buf);
+   strcat(match, "*");
+
+   l = sd->items;
+   n = 0;
+
+   while (l)
+     {
+	const char *label = NULL;
+	si = l->data;
+	if (si) 
+	  {
+	     label = edje_object_part_text_get(si->o_base, "e.text.label");
+
+	     if (e_util_glob_case_match(label, match))
+	       {
+		  e_ilist_selected_set(obj, n);
+		  break;
+	       }
+	  }
+
+	l = l->next;
+	n++;
+     }
+
+   free(match);
+}
+
+static int
+_e_typebuf_timer_cb(void *data)
+{
+   Evas_Object *obj = data;
+
+   _e_typebuf_clean(obj);
+
+   return 0;
+}
+
+static void
+_e_typebuf_timer_update(Evas_Object *obj)
+{
+   INTERNAL_ENTRY;
+   
+   if (sd->typebuf.timer)
+     {
+	ecore_timer_del(sd->typebuf.timer);
+     }
+
+   sd->typebuf.timer = ecore_timer_add(3.0, _e_typebuf_timer_cb, obj);
+}
+
+static void
+_e_typebuf_timer_delete(Evas_Object *obj)
+{
+   INTERNAL_ENTRY;
+   
+   if (sd->typebuf.timer)
+     {
+	ecore_timer_del(sd->typebuf.timer);
+	sd->typebuf.timer = NULL;
+     }
+}
+
+static void 
+_e_typebuf_clean(Evas_Object *obj)
+{
+   INTERNAL_ENTRY;
+
+   E_FREE(sd->typebuf.buf);
+   sd->typebuf.size = 0;
+   
+   _e_typebuf_timer_delete(obj);
 }

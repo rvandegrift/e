@@ -322,7 +322,7 @@ _e_table_smart_reconfigure(E_Smart_Data *sd)
 	obj = l->data;
 	ti = evas_object_data_get(obj, "e_table_data");
 	if (ti->expand_w) expandw++;
-	if (ti->expand_w) expandh++;
+	if (ti->expand_h) expandh++;
      }
    if (expandw == 0)
      {
@@ -839,6 +839,7 @@ _e_table_smart_init(void)
 	       _e_table_smart_color_set,
 	       _e_table_smart_clip_set,
 	       _e_table_smart_clip_unset,
+	       NULL,
 	       NULL
 	  };
 	_e_smart = evas_smart_class_new(&sc);

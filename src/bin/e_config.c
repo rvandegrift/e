@@ -51,18 +51,30 @@ e_config_init(void)
    E_EVENT_CONFIG_ICON_THEME = ecore_event_type_new();
 
    _e_config_profile = getenv("E_CONF_PROFILE");
-   if (!_e_config_profile)
+   if (_e_config_profile)
+     /* if environment var set - use this profile name */
+    _e_config_profile = strdup(_e_config_profile);
+   else 
      {
 	Eet_File *ef;
 	char buf[4096];
 	const char *homedir;
 
+	/* try user profile config */
 	homedir = e_user_homedir_get();
 	snprintf(buf, sizeof(buf), "%s/.e/e/config/profile.cfg",
 		 homedir);
 	ef = eet_open(buf, EET_FILE_MODE_READ);
+	if (!ef)
+	  {
+	     /* use system if no user profile config */
+	     snprintf(buf, sizeof(buf), "%s/data/config/profile.cfg",
+		      e_prefix_data_get());
+	     ef = eet_open(buf, EET_FILE_MODE_READ);
+	  }
 	if (ef)
 	  {
+	     /* profile config exists */
 	     char *data;
 	     int data_len = 0;
 
@@ -80,11 +92,25 @@ e_config_init(void)
 	     eet_close(ef);
 	  }
 	else
-	  _e_config_profile = strdup("default");
+	  {
+	     /* no profile config - try other means */
+	     char *link = NULL;
+	     
+	     /* check symlink - if default is a symlink to another dir */
+             snprintf(buf, sizeof(buf), "%s/data/config/default",
+		      e_prefix_data_get());
+	     link = ecore_file_readlink(buf);
+	     /* if so use just the filename as the priofle - must be a local link */
+	     if (link)
+	       {
+		  _e_config_profile = strdup(ecore_file_file_get(link));
+		  free(link);
+	       }
+	     else
+	       _e_config_profile = strdup("default");
+	  }
 	e_util_env_set("E_CONF_PROFILE", _e_config_profile);
      }
-   else 
-     _e_config_profile = strdup(_e_config_profile);
 
    _e_config_gadcon_client_edd = E_CONFIG_DD_NEW("E_Config_Gadcon_Client", E_Config_Gadcon_Client);
 #undef T
@@ -96,6 +122,10 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, geom.pos, INT);
    E_CONFIG_VAL(D, T, geom.size, INT);
    E_CONFIG_VAL(D, T, geom.res, INT);
+   E_CONFIG_VAL(D, T, geom.pos_x, DOUBLE);
+   E_CONFIG_VAL(D, T, geom.pos_y, DOUBLE);
+   E_CONFIG_VAL(D, T, geom.size_w, DOUBLE);
+   E_CONFIG_VAL(D, T, geom.size_h, DOUBLE);
    E_CONFIG_VAL(D, T, state_info.seq, INT);
    E_CONFIG_VAL(D, T, state_info.flags, INT);
    E_CONFIG_VAL(D, T, style, STR);
@@ -188,6 +218,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, name, STR);
    E_CONFIG_VAL(D, T, enabled, UCHAR);
    E_CONFIG_VAL(D, T, delayed, UCHAR);
+   E_CONFIG_VAL(D, T, priority, INT);
 
    _e_config_font_default_edd = E_CONFIG_DD_NEW("E_Font_Default", 
 						E_Font_Default);
@@ -312,6 +343,8 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, prop.sticky, UCHAR);
    E_CONFIG_VAL(D, T, prop.shaded, UCHAR);
    E_CONFIG_VAL(D, T, prop.skip_winlist, UCHAR);
+   E_CONFIG_VAL(D, T, prop.skip_pager, UCHAR);
+   E_CONFIG_VAL(D, T, prop.skip_taskbar, UCHAR);
    E_CONFIG_VAL(D, T, prop.desk_x, INT);
    E_CONFIG_VAL(D, T, prop.desk_y, INT);
    E_CONFIG_VAL(D, T, prop.zone, INT);
@@ -539,6 +572,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, clientlist_limit_caption_len, INT);
    E_CONFIG_VAL(D, T, clientlist_max_caption_len, INT);
    
+   E_CONFIG_VAL(D, T, mouse_hand, INT);
    E_CONFIG_VAL(D, T, mouse_accel_numerator, INT);
    E_CONFIG_VAL(D, T, mouse_accel_denominator, INT);
    E_CONFIG_VAL(D, T, mouse_accel_threshold, INT);
@@ -581,6 +615,23 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, thumbscroll_threshhold, INT);
    E_CONFIG_VAL(D, T, thumbscroll_momentum_threshhold, DOUBLE);
    E_CONFIG_VAL(D, T, thumbscroll_friction, DOUBLE);
+   
+   E_CONFIG_VAL(D, T, hal_desktop, INT);
+
+   E_CONFIG_VAL(D, T, border_keyboard.timeout, DOUBLE);
+   E_CONFIG_VAL(D, T, border_keyboard.move.dx, UCHAR);
+   E_CONFIG_VAL(D, T, border_keyboard.move.dy, UCHAR);
+   E_CONFIG_VAL(D, T, border_keyboard.resize.dx, UCHAR);
+   E_CONFIG_VAL(D, T, border_keyboard.resize.dy, UCHAR);
+
+   E_CONFIG_VAL(D, T, hal_desktop, INT);
+
+   E_CONFIG_VAL(D, T, scale.min, DOUBLE);
+   E_CONFIG_VAL(D, T, scale.max, DOUBLE);
+   E_CONFIG_VAL(D, T, scale.factor, DOUBLE);
+   E_CONFIG_VAL(D, T, scale.base_dpi, INT);
+   E_CONFIG_VAL(D, T, scale.use_dpi, UCHAR);
+   E_CONFIG_VAL(D, T, scale.use_custom, UCHAR);
    
    e_config = e_config_domain_load("e", _e_config_edd);
    if (e_config)
@@ -758,65 +809,75 @@ e_config_init(void)
    e_config->display_res_hz = 0;
    e_config->display_res_rotation = 0;
 
+   e_config->hal_desktop = 1;
+
+   e_config->border_keyboard.timeout = 5.0;
+   e_config->border_keyboard.move.dx = 5;
+   e_config->border_keyboard.move.dy = 5;
+   e_config->border_keyboard.resize.dx = 5;
+   e_config->border_keyboard.resize.dy = 5;
+
      {
 	E_Config_Module *em;
 
-#define CFG_MODULE(_name, _enabled, _delayed) \
+#define CFG_MODULE(_name, _enabled, _delayed, _priority) \
    em = E_NEW(E_Config_Module, 1); \
    em->name = evas_stringshare_add(_name); \
    em->enabled = _enabled; \
    em->delayed = _delayed; \
+   em->priority = _priority; \
    e_config->modules = evas_list_append(e_config->modules, em)
 
-	CFG_MODULE("start", 1, 0);
-	CFG_MODULE("ibar", 1, 0);
-	CFG_MODULE("ibox", 1, 0);
-	CFG_MODULE("dropshadow", 1, 0);
-	CFG_MODULE("clock", 1, 0);
-	CFG_MODULE("battery", 1, 0);
-	CFG_MODULE("cpufreq", 1, 0);
-	CFG_MODULE("temperature", 1, 0);
-	CFG_MODULE("pager", 1, 0);
-	CFG_MODULE("exebuf", 1, 1);
-	CFG_MODULE("winlist", 1, 1);
-	CFG_MODULE("conf", 1, 1);
-	CFG_MODULE("conf_applications", 1, 1);
-	CFG_MODULE("conf_borders", 1, 1);
-	CFG_MODULE("conf_clientlist", 1, 1);
-	CFG_MODULE("conf_colors", 1, 1);
-	CFG_MODULE("conf_desk", 1, 1);
-	CFG_MODULE("conf_desklock", 1, 1);
-	CFG_MODULE("conf_desks", 1, 1);
-	CFG_MODULE("conf_dialogs", 1, 1);
-	CFG_MODULE("conf_display", 1, 1);
-	CFG_MODULE("conf_dpms", 1, 1);
-	CFG_MODULE("conf_exebuf", 1, 1);
-	CFG_MODULE("conf_fonts", 1, 1);
-	CFG_MODULE("conf_icon_theme", 1, 1);
-	CFG_MODULE("conf_imc", 1, 1);
-	CFG_MODULE("conf_intl", 1, 1);
-	CFG_MODULE("conf_keybindings", 1, 1);
-	CFG_MODULE("conf_menus", 1, 1);
-	CFG_MODULE("conf_mime", 1, 1);
-	CFG_MODULE("conf_mouse", 1, 1);
-	CFG_MODULE("conf_mousebindings", 1, 1);
-	CFG_MODULE("conf_mouse_cursor", 1, 1);
-	CFG_MODULE("conf_paths", 1, 1);
-	CFG_MODULE("conf_performance", 1, 1);
-	CFG_MODULE("conf_profiles", 1, 1);
-	CFG_MODULE("conf_screensaver", 1, 1);
-	CFG_MODULE("conf_shelves", 1, 1);
-	CFG_MODULE("conf_startup", 1, 1);
-	CFG_MODULE("conf_theme", 1, 1);
-	CFG_MODULE("conf_transitions", 1, 1);
-	CFG_MODULE("conf_wallpaper", 1, 1);
-	CFG_MODULE("conf_window_display", 1, 1);
-	CFG_MODULE("conf_window_focus", 1, 1);
-	CFG_MODULE("conf_window_manipulation", 1, 1);
-	CFG_MODULE("conf_winlist", 1, 1);
-	CFG_MODULE("conf_engine", 1, 1);
-	CFG_MODULE("fileman", 1, 1);
-	CFG_MODULE("conf_interaction", 1, 1);
+	CFG_MODULE("start", 1, 0, 0);
+	CFG_MODULE("ibar", 1, 0, 0);
+	CFG_MODULE("ibox", 1, 0, 0);
+	CFG_MODULE("dropshadow", 1, 0, 0);
+	CFG_MODULE("clock", 1, 0, 0);
+	CFG_MODULE("battery", 1, 0, 0);
+	CFG_MODULE("cpufreq", 1, 0, 0);
+	CFG_MODULE("temperature", 1, 0, 0);
+	CFG_MODULE("gadman", 1, 0, -100);
+	CFG_MODULE("pager", 1, 0, 0);
+	CFG_MODULE("exebuf", 1, 1, 0);
+	CFG_MODULE("winlist", 1, 1, 0);
+	CFG_MODULE("conf", 1, 1, 0);
+	CFG_MODULE("conf_applications", 1, 1, 0);
+	CFG_MODULE("conf_borders", 1, 1, 0);
+	CFG_MODULE("conf_clientlist", 1, 1, 0);
+	CFG_MODULE("conf_colors", 1, 1, 0);
+	CFG_MODULE("conf_desk", 1, 1, 0);
+	CFG_MODULE("conf_desklock", 1, 1, 0);
+	CFG_MODULE("conf_desks", 1, 1, 0);
+	CFG_MODULE("conf_dialogs", 1, 1, 0);
+	CFG_MODULE("conf_display", 1, 1, 0);
+	CFG_MODULE("conf_dpms", 1, 1, 0);
+	CFG_MODULE("conf_exebuf", 1, 1, 0);
+	CFG_MODULE("conf_fonts", 1, 1, 0);
+	CFG_MODULE("conf_icon_theme", 1, 1, 0);
+	CFG_MODULE("conf_imc", 1, 1, 0);
+	CFG_MODULE("conf_intl", 1, 1, 0);
+	CFG_MODULE("conf_keybindings", 1, 1, 0);
+	CFG_MODULE("conf_menus", 1, 1, 0);
+	CFG_MODULE("conf_mime", 1, 1, 0);
+	CFG_MODULE("conf_mouse", 1, 1, 0);
+	CFG_MODULE("conf_mousebindings", 1, 1, 0);
+	CFG_MODULE("conf_mouse_cursor", 1, 1, 0);
+	CFG_MODULE("conf_paths", 1, 1, 0);
+	CFG_MODULE("conf_performance", 1, 1, 0);
+	CFG_MODULE("conf_profiles", 1, 1, 0);
+	CFG_MODULE("conf_screensaver", 1, 1, 0);
+	CFG_MODULE("conf_shelves", 1, 1, 0);
+	CFG_MODULE("conf_startup", 1, 1, 0);
+	CFG_MODULE("conf_theme", 1, 1, 0);
+	CFG_MODULE("conf_transitions", 1, 1, 0);
+	CFG_MODULE("conf_wallpaper", 1, 1, 0);
+	CFG_MODULE("conf_window_display", 1, 1, 0);
+	CFG_MODULE("conf_window_focus", 1, 1, 0);
+	CFG_MODULE("conf_window_manipulation", 1, 1, 0);
+	CFG_MODULE("conf_winlist", 1, 1, 0);
+	CFG_MODULE("conf_engine", 1, 1, 0);
+	CFG_MODULE("fileman", 1, 1, 0);
+	CFG_MODULE("conf_interaction", 1, 1, 0);
      }
 #if 0
      {
@@ -1420,9 +1481,9 @@ e_config_init(void)
    e_config->dpms_standby_enable = 0;
    e_config->dpms_suspend_enable = 0;
    e_config->dpms_off_enable = 0;
-   e_config->dpms_standby_timeout = 0;
-   e_config->dpms_suspend_timeout = 0;
-   e_config->dpms_off_timeout = 0;
+   e_config->dpms_standby_timeout = 1;
+   e_config->dpms_suspend_timeout = 1;
+   e_config->dpms_off_timeout = 1;
    e_config->screensaver_enable = 0;
    e_config->screensaver_timeout = 0;
    e_config->screensaver_interval = 5;
@@ -1493,6 +1554,27 @@ e_config_init(void)
    e_config->thumbscroll_threshhold = 8;
    e_config->thumbscroll_momentum_threshhold = 100.0;
    e_config->thumbscroll_friction = 1.0;
+   IFCFGEND;
+   
+   IFCFG(0x0125);
+   e_config->mouse_hand = E_MOUSE_HAND_RIGHT;
+   IFCFGEND;
+
+   IFCFG(0x0126);
+   e_config->border_keyboard.timeout = 5.0;
+   e_config->border_keyboard.move.dx = 5;
+   e_config->border_keyboard.move.dy = 5;
+   e_config->border_keyboard.resize.dx = 5;
+   e_config->border_keyboard.resize.dy = 5;
+   IFCFGEND;
+   
+   IFCFG(0x0127);
+   e_config->scale.min = 1.0;
+   e_config->scale.max = 3.0;
+   e_config->scale.factor = 1.0;
+   e_config->scale.base_dpi = 142;
+   e_config->scale.use_dpi = 0;
+   e_config->scale.use_custom = 1;
    IFCFGEND;
    
    e_config->config_version = E_CONFIG_FILE_VERSION;   
@@ -1617,6 +1699,7 @@ e_config_init(void)
    E_CONFIG_LIMIT(e_config->clientlist_sort_by, 0, 3);
    E_CONFIG_LIMIT(e_config->clientlist_separate_iconified_apps, 0, 2);
    E_CONFIG_LIMIT(e_config->clientlist_warp_to_iconified_desktop, 0, 1);
+   E_CONFIG_LIMIT(e_config->mouse_hand, 0, 1);
    E_CONFIG_LIMIT(e_config->clientlist_limit_caption_len, 0, 1);
    E_CONFIG_LIMIT(e_config->clientlist_max_caption_len, 2, E_CLIENTLIST_MAX_CAPTION_LEN);
    
@@ -1794,7 +1877,7 @@ e_config_engine_list(void)
 #endif
    if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_XRENDER_X11))
      l = evas_list_append(l, strdup("XRENDER"));
-   if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_X11_16))
+   if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_16_X11))
      l = evas_list_append(l, strdup("SOFTWARE_16"));
    return l;
 }
@@ -1867,13 +1950,11 @@ e_config_profile_save(void)
 	if (_e_config_eet_close_handle(ef, buf2))
 	  {
 	     int ret;
-	     
-	     ret = rename(buf2, buf);
-	     if (ret < 0) 
+
+	     ret = ecore_file_mv(buf2, buf);
+	     if (!ret)
 	       {
-		  /* FIXME: do we want to trap individual errno
-		   and provide a short blurp to the user? */
-		  perror("rename");
+		  printf("*** Error saving profile. ***");
 	       }
 	  }
 	ecore_file_unlink(buf2);
@@ -1904,8 +1985,11 @@ e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data)
 	ok = eet_data_write(ef, edd, "config", data, 1);
 	if (_e_config_eet_close_handle(ef, buf2))
 	  {
-	     ret = rename(buf2, buf);
-	     if (ret < 0) perror("rename");
+	     ret = ecore_file_mv(buf2, buf);
+	     if (!ret)
+	       {
+		  printf("*** Error saving profile. ***");
+	       }
 	  }
 	ecore_file_unlink(buf2);
      }

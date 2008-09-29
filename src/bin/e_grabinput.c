@@ -100,7 +100,9 @@ e_grabinput_focus(Ecore_X_Window win, E_Focus_Method method)
 	focus_method = method;
      }
    else
-     _e_grabinput_focus(win, method);
+     {
+	_e_grabinput_focus(win, method);
+     }
 }
 
 EAPI double

@@ -40,7 +40,7 @@ e_msgbus_init(void)
 	printf("WARNING: Cannot get DBUS_BUS_SESSION\n");
 	return 0;
      }
-   e_dbus_request_name(_e_msgbus_data->conn, "org.enlighenment.wm.service", 0, _e_msgbus_request_name_cb, NULL);
+   e_dbus_request_name(_e_msgbus_data->conn, "org.enlightenment.wm.service", 0, _e_msgbus_request_name_cb, NULL);
    _e_msgbus_data->obj = e_dbus_object_add(_e_msgbus_data->conn, "/org/enlightenment/wm/RemoteObject", NULL);
 
    iface = e_dbus_interface_new("org.enlightenment.wm.Core");
@@ -110,25 +110,21 @@ e_msgbus_shutdown(void)
    return 1;
 }
 
+#ifdef HAVE_EDBUS
 EAPI void
 e_msgbus_interface_attach(E_DBus_Interface *iface)
 {
-#ifdef HAVE_EDBUS
    if (!_e_msgbus_data->obj) return;
    e_dbus_object_interface_attach(_e_msgbus_data->obj, iface);
-#endif
 }
 
 EAPI void
 e_msgbus_interface_detach(E_DBus_Interface *iface)
 {
-#ifdef HAVE_EDBUS
    if (!_e_msgbus_data->obj) return;
    e_dbus_object_interface_detach(_e_msgbus_data->obj, iface);
-#endif
 }
 
-#ifdef HAVE_EDBUS
 static void
 _e_msgbus_request_name_cb(void *data, DBusMessage *msg, DBusError *err)
 {

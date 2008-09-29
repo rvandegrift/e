@@ -3,17 +3,37 @@
  */
 #include "e.h"
 
-Ecore_X_Atom _QTOPIA_SOFT_MENU = 0;
-Ecore_X_Atom _QTOPIA_SOFT_MENUS = 0;
+EAPI Ecore_X_Atom _QTOPIA_SOFT_MENU = 0;
+EAPI Ecore_X_Atom _QTOPIA_SOFT_MENUS = 0;
+
+static Ecore_X_Atom gnome_atom = 0;
+static Ecore_X_Atom enlightenment_comms = 0;
+static Ecore_X_Atom enlightenment_version = 0;
+static Ecore_X_Atom enlightenment_scale = 0;
 
 EAPI void
 e_hints_init(void)
 {
    Ecore_X_Window *roots = NULL;
    int num;
-
-   _QTOPIA_SOFT_MENU = ecore_x_atom_get("_QTOPIA_SOFT_MENU");
-   _QTOPIA_SOFT_MENUS = ecore_x_atom_get("_QTOPIA_SOFT_MENUS");
+   const char *atom_names[] = {
+      "_QTOPIA_SOFT_MENU",
+	"_QTOPIA_SOFT_MENUS",
+	"GNOME_SM_PROXY",
+	"ENLIGHTENMENT_COMMS",
+	"ENLIGHTENMENT_VERSION",
+	"ENLIGHTENMENT_SCALE"
+   };
+   Ecore_X_Atom atoms[6];
+   
+   ecore_x_atoms_get(atom_names, 6, atoms);
+   _QTOPIA_SOFT_MENU = atoms[0];
+   _QTOPIA_SOFT_MENUS = atoms[1];
+   gnome_atom = atoms[2];
+   enlightenment_comms = atoms[3];
+   enlightenment_version = atoms[4];
+   enlightenment_scale = atoms[5];
+   
    roots = ecore_x_window_root_list(&num);
    if (roots)
      {
@@ -44,7 +64,7 @@ e_hints_init(void)
 	/*ecore_x_netwm_supported(roots[supported_num], ECORE_X_ATOM_NET_RESTACK_WINDOW, 1);*/
 	supported[supported_num++] = ECORE_X_ATOM_NET_REQUEST_FRAME_EXTENTS;
 
-	/* Applsupported_numcatsupported_numon Wsupported_numndow Propertsupported_numes */
+	/* Application Window Properties */
 	supported[supported_num++] = ECORE_X_ATOM_NET_WM_NAME;
 	supported[supported_num++] = ECORE_X_ATOM_NET_WM_VISIBLE_NAME;
 	supported[supported_num++] = ECORE_X_ATOM_NET_WM_ICON_NAME;
@@ -159,6 +179,7 @@ e_hints_init(void)
 	     e_hints_openoffice_gnome_fake(roots[i]);
 
 	     ecore_x_netwm_supported_set(roots[i], supported, supported_num);
+
 	  }
         free(roots);
      }
@@ -173,24 +194,19 @@ EAPI void
 e_hints_e16_comms_pretend(E_Manager *man)
 {
    Ecore_X_Window win;
-   Ecore_X_Atom enlightenment_comms, enlightenment_version, string;
    char buf[256];
-   
-   enlightenment_comms = ecore_x_atom_get("ENLIGHTENMENT_COMMS");
-   enlightenment_version = ecore_x_atom_get("ENLIGHTENMENT_VERSION");
-   string = ecore_x_atom_get("STRING");
    
    win = ecore_x_window_input_new(man->root, -100, -100, 1, 1);
 
    /* to help detect this is NOT e16 */
    snprintf(buf, sizeof(buf), "Enlightenment %s", VERSION);
-   ecore_x_window_prop_property_set(win, enlightenment_version, string, 8, buf, strlen(buf));
-   ecore_x_window_prop_property_set(man->root, enlightenment_version, string, 8, buf, strlen(buf));
+   ecore_x_window_prop_property_set(win, enlightenment_version, ECORE_X_ATOM_STRING, 8, buf, strlen(buf));
+   ecore_x_window_prop_property_set(man->root, enlightenment_version, ECORE_X_ATOM_STRING, 8, buf, strlen(buf));
    
    snprintf(buf, sizeof(buf), "WINID %8x", (int)win);
-   ecore_x_window_prop_property_set(win, enlightenment_comms, string, 8, buf, 14);
+   ecore_x_window_prop_property_set(win, enlightenment_comms, ECORE_X_ATOM_STRING, 8, buf, 14);
    
-   ecore_x_window_prop_property_set(man->root, enlightenment_comms, string, 8, buf, 14);
+   ecore_x_window_prop_property_set(man->root, enlightenment_comms, ECORE_X_ATOM_STRING, 8, buf, 14);
 }
 
 EAPI void
@@ -281,6 +297,7 @@ e_hints_client_list_set(void)
 	for (ml = e_manager_list(); ml; ml = ml->next)
 	  {
 	     m = ml->data;
+	     i = 0;
 	     for (cl = m->containers; cl; cl = cl->next)
 	       {
 		  c = cl->data;
@@ -289,12 +306,16 @@ e_hints_client_list_set(void)
 		    clients[i++] = b->client.win;
 		  e_container_border_list_free(bl);
 	       }
-	  }
-	for (ml = e_manager_list(); ml; ml = ml->next)
-	  {
-	     m = ml->data;
-	     ecore_x_netwm_client_list_set(m->root, clients, num);
-	     ecore_x_netwm_client_list_stacking_set(m->root, clients, num);
+	     if (i > 0)
+	       {
+		  ecore_x_netwm_client_list_stacking_set(m->root, clients, i);
+		  ecore_x_netwm_client_list_set(m->root, clients, i);
+	       }
+	     else
+	       {
+		  ecore_x_netwm_client_list_set(m->root, NULL, 0);
+		  ecore_x_netwm_client_list_stacking_set(m->root, NULL, 0);
+	       }
 	  }
      }
    else
@@ -508,7 +529,7 @@ e_hints_window_init(E_Border *bd)
      }
    if (bd->client.netwm.state.shaded)
      {
-	if (!bd->lock_client_shade)
+if (!bd->lock_client_shade)
 	  e_border_shade(bd, e_hints_window_shade_direction_get(bd));
 	else
 	  e_hints_window_shaded_set(bd, 0);
@@ -662,7 +683,7 @@ EAPI void
 e_hints_window_type_get(E_Border *bd)
 {
    Ecore_X_Window_Type *types = NULL;
-   int num, i;
+   int num, i, j;
    
    num = ecore_x_netwm_window_types_get(bd->client.win, &types);
    if (bd->client.netwm.extra_types)
@@ -672,21 +693,27 @@ e_hints_window_type_get(E_Border *bd)
 	bd->client.netwm.extra_types_num = 0;
      }
    if (num == 0) 
-     {
-	bd->client.netwm.type = ECORE_X_WINDOW_TYPE_UNKNOWN;
-     }
+     bd->client.netwm.type = ECORE_X_WINDOW_TYPE_UNKNOWN;
    else
      {
-	bd->client.netwm.type = types[0];
-	if (num > 1)
+	j = 0;
+	bd->client.netwm.type = types[j];
+	j++;
+	while ((j < num) && 
+	       (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UNKNOWN))
+	  {
+	     j++;
+	     bd->client.netwm.type = types[j];
+	  }
+	if (num > j)
 	  {
 	     bd->client.netwm.extra_types = 
-	       malloc((num - 1) * sizeof(Ecore_X_Window_Type));
+	       malloc((num - j) * sizeof(Ecore_X_Window_Type));
 	     if (bd->client.netwm.extra_types)
 	       {
-		  for (i = 1; i < num; i++)
-		    bd->client.netwm.extra_types[i - 1] = types[i];
-		  bd->client.netwm.extra_types_num = num - 1;
+		  for (i = j + 1; i < num; i++)
+		    bd->client.netwm.extra_types[i - (j + 1)] = types[i];
+		  bd->client.netwm.extra_types_num = num - j;
 	       }
 	  }
 	free(types);
@@ -1362,14 +1389,23 @@ e_hints_window_qtopia_soft_menus_get(E_Border *bd)
 }
 
 EAPI void
+e_hints_window_virtual_keyboard_state_get(E_Border *bd)
+{
+   bd->client.vkbd.state = ecore_x_e_virtual_keyboard_state_get(bd->client.win);
+}
+
+EAPI void
+e_hints_window_virtual_keyboard_get(E_Border *bd)
+{
+   bd->client.vkbd.vkbd = ecore_x_e_virtual_keyboard_get(bd->client.win);
+}
+
+EAPI void
 e_hints_openoffice_gnome_fake(Ecore_X_Window root)
 {
-   Ecore_X_Atom gnome_atom, string_atom;
    const char *string = "GNOME_SM_PROXY";
    
-   gnome_atom = ecore_x_atom_get("GNOME_SM_PROXY");
-   string_atom = ecore_x_atom_get("STRING");
-   ecore_x_window_prop_property_set(root, gnome_atom, string_atom, 
+   ecore_x_window_prop_property_set(root, gnome_atom, ECORE_X_ATOM_STRING, 
 				    8, (void *)string, strlen(string));
 }
 
@@ -1382,3 +1418,18 @@ e_hints_openoffice_kde_fake(Ecore_X_Window root)
    ecore_x_netwm_wm_identify(root, win2, "KWin");
 }
 
+EAPI void e_hints_scale_update(void)
+{
+   Ecore_X_Window *roots = NULL;
+   int i, num;
+   int scale;
+   
+   roots = ecore_x_window_root_list(&num);
+   if (roots)
+     {
+	scale = e_scale * 1000;
+	for (i = 0; i < num; i++)
+	  ecore_x_window_prop_card32_set(roots[i], enlightenment_scale, &scale, 1);
+	free(roots);
+     }
+}

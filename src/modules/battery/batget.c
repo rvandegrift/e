@@ -434,7 +434,7 @@ static Ecore_List *events = NULL;
 static Ecore_Timer *sys_class_delay_check = NULL;
 
 static int
-linux_sys_class_powe_supply_cb_delay_check(void *data)
+linux_sys_class_power_supply_cb_delay_check(void *data)
 {
    linux_sys_class_power_supply_init();
    poll_cb(NULL);
@@ -445,7 +445,7 @@ linux_sys_class_powe_supply_cb_delay_check(void *data)
 static Ecore_Timer *re_init_timer = NULL;
 
 static int
-linux_sys_class_powe_supply_cb_re_init(void *data)
+linux_sys_class_power_supply_cb_re_init(void *data)
 {
    Sys_Class_Power_Supply_Uevent *sysev;
    
@@ -506,12 +506,12 @@ linux_sys_class_power_supply_cb_event_fd_active(void *data, Ecore_Fd_Handler *fd
 	     free(sysev);
 	     
 	     if (re_init_timer) ecore_timer_del(re_init_timer);
-	     re_init_timer = ecore_timer_add(1.0, linux_sys_class_powe_supply_cb_re_init, NULL);
+	     re_init_timer = ecore_timer_add(1.0, linux_sys_class_power_supply_cb_re_init, NULL);
 	  }
 	else
 	  {
 	     if (sys_class_delay_check) ecore_timer_del(sys_class_delay_check);
-	     sys_class_delay_check = ecore_timer_add(0.2, linux_sys_class_powe_supply_cb_delay_check, NULL);
+	     sys_class_delay_check = ecore_timer_add(0.2, linux_sys_class_power_supply_cb_delay_check, NULL);
 	  }
      }
    return 1;
@@ -603,6 +603,31 @@ linux_sys_class_power_supply_sysev_init(Sys_Class_Power_Supply_Uevent *sysev)
      }
 }
 
+static int
+linux_sys_class_power_supply_is_battery(char *name)
+{
+  int fd;
+  int ret = 0;
+  char buf[256];
+
+  snprintf(buf, sizeof(buf), "/sys/class/power_supply/%s/type", name);
+  fd = open(buf, O_RDONLY);
+  if (fd < 0)
+    {
+       ret = 0;
+       goto NO_OPEN;
+    }
+  else if (read(fd, buf, sizeof(buf)) < 1)
+    ret = 0;
+  else if (!strncmp(buf, "Battery", 7))
+    ret = 1;
+  
+  close(fd);
+  
+  NO_OPEN:
+  return ret;
+}
+
 static void
 linux_sys_class_power_supply_init(void)
 {
@@ -627,8 +652,9 @@ linux_sys_class_power_supply_init(void)
 	     while ((name = ecore_list_next(bats)))
 	       {
 		  Sys_Class_Power_Supply_Uevent *sysev;
-	     
-		  if (strncasecmp("bat", name, 3)) continue;
+
+		  if (!(linux_sys_class_power_supply_is_battery(name)))
+		    continue;
 		  sysev = E_NEW(Sys_Class_Power_Supply_Uevent, 1);
 		  sysev->name = strdup(name);
 		  snprintf(buf, sizeof(buf), "/sys/class/power_supply/%s/uevent", name);
@@ -712,6 +738,8 @@ linux_sys_class_power_supply_check(void)
 	       {
 		  full = 0;
 		  if (!strncasecmp("discharging", tmp, 11)) charging = 0;
+		  else if (!strncasecmp("unknown", tmp, 7)) charging = 0;
+		  else if (!strncasecmp("not charging", tmp, 12)) charging = 0;
 		  else if (!strncasecmp("charging", tmp, 8)) charging = 1;
 		  else if (!strncasecmp("full", tmp, 4))
 		    {
@@ -1058,7 +1086,7 @@ linux_acpi_check(void)
 		  tmp = str_get(buf);
 		  if (tmp)
 		    {
-		       if (!strcmp(tmp, "yes")) have_battery = 1;
+		       if (!strcasecmp(tmp, "yes")) have_battery = 1;
 		       free(tmp);
 		    }
 		  /* capacity state: ok/? */
@@ -1070,7 +1098,7 @@ linux_acpi_check(void)
 		    {
 		       if (have_power == 0)
 			 {
-			    if (!strcmp(tmp, "charging")) have_power = 1;
+			    if (!strcasecmp(tmp, "charging")) have_power = 1;
 			 }
 		       free(tmp);
 		    }
@@ -1079,7 +1107,7 @@ linux_acpi_check(void)
                   tmp = str_get(buf);
                   if (tmp)
 		    {
-		       if (strcmp(tmp, "unknown")) rate += atoi(tmp);
+		       if (strcasecmp(tmp, "unknown")) rate += atoi(tmp);
 		       free(tmp);
 		    }
 		  /* remaining capacity: NNN */
@@ -1087,7 +1115,7 @@ linux_acpi_check(void)
                   tmp = str_get(buf);
                   if (tmp)
 		    {
-		       if (strcmp(tmp, "unknown")) capacity += atoi(tmp);
+		       if (strcasecmp(tmp, "unknown")) capacity += atoi(tmp);
 		       free(tmp);
 		    }
 		  fclose(f);
@@ -1354,8 +1382,7 @@ static int
 dir_has_contents(const char *dir)
 {
    Ecore_List *bats;
-   char *name;
-	
+
    bats = ecore_file_ls(dir);
    if (bats)
      {

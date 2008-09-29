@@ -313,9 +313,9 @@ _e_desktop_edit_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    if (cfdata->desktop) efreet_desktop_free(cfdata->desktop);
    if (cfdata->editor->tmp_image_path) 
      {
-	if (!cfdata->desktop || !cfdata->editor->saved || 
-	    !cfdata->desktop->icon ||
-	    strcmp(cfdata->editor->tmp_image_path, cfdata->desktop->icon))
+	if ((!cfdata->desktop) || (!cfdata->editor->saved) || 
+	    (!cfdata->desktop->icon) ||
+	    (strcmp(cfdata->editor->tmp_image_path, cfdata->desktop->icon)))
 	  {
 	     ecore_file_unlink(cfdata->editor->tmp_image_path);
 	  }
@@ -330,6 +330,9 @@ _e_desktop_edit_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    IFFREE(cfdata->categories);
    IFFREE(cfdata->icon);
    IFFREE(cfdata->mimes);
+
+   if (cfdata->editor->icon_fsel_dia) 
+     e_object_del(E_OBJECT(cfdata->editor->icon_fsel_dia));
 
    e_object_del(E_OBJECT(cfdata->editor));
    free(cfdata);
@@ -564,7 +567,7 @@ _e_desktop_editor_cb_icon_select(void *data1, void *data2)
 	if (ecore_file_exists(cfdata->icon))
 	  icon_path = strdup(cfdata->icon);
 	else
-	  icon_path = efreet_icon_path_find(e_config->icon_theme, cfdata->icon, "scalable");
+	  icon_path = efreet_icon_path_find(e_config->icon_theme, cfdata->icon, 64);
 
 	if (icon_path)
 	  {
@@ -718,7 +721,7 @@ _e_desktop_editor_icon_update(E_Config_Dialog_Data *cfdata)
    Evas_Object *o;
 
    if (!cfdata->editor->img_widget) return;
-   o = e_util_icon_theme_icon_add(cfdata->icon, "32x32", cfdata->editor->evas);
+   o = e_util_icon_theme_icon_add(cfdata->icon, 32, cfdata->editor->evas);
 
    /* NB this takes care of freeing any previous icon object */
    e_widget_button_icon_set(cfdata->editor->img_widget, o);
@@ -730,7 +733,8 @@ _e_desktop_edit_cb_exec_select_destroy(void *obj)
    E_Dialog *dia = obj;
    E_Config_Dialog_Data *cfdata = dia->data;
 
-   e_object_unref(E_OBJECT(dia));
+/* guess it should work like _e_desktop_edit_cb_icon_select_destroy */
+/*    e_object_unref(E_OBJECT(dia)); */
    _e_desktop_edit_cb_exec_select_cancel(cfdata, NULL);
 }
 

@@ -5,7 +5,8 @@ includedir=${prefix}/include/enlightenment
 
 Name: enlightenment
 Description: Enlightenmnt Window Manager
-Version: 0.16.999.043
-Libs: ${exec_prefix}/lib/enlightenment/modules
+Requires: evas ecore ecore-x ecore-evas ecore-con ecore-ipc ecore-job ecore-file eet edje efreet efreet-mime edbus
+Version: 0.16.999.050
+Libs: -L${libdir}
 Libs.private: 
-Cflags: -I${includedir}
+Cflags: -I${includedir} -DUSE_E_CONFIG_H -DHAVE_EDBUS 

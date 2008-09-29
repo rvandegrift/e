@@ -290,17 +290,13 @@ _e_exec_cb_exit(void *data, int type, void *event)
    E_Exec_Instance *inst;
 
    ev = event;
-   printf("child exit...\n");
    if (!ev->exe) return 1;
-   if (ecore_exe_tag_get(ev->exe)) printf("  tag %s\n", ecore_exe_tag_get(ev->exe));
+//   if (ecore_exe_tag_get(ev->exe)) printf("  tag %s\n", ecore_exe_tag_get(ev->exe));
    if (!(ecore_exe_tag_get(ev->exe) && 
 	 (!strcmp(ecore_exe_tag_get(ev->exe), "E/exec")))) return 1;
    inst = ecore_exe_data_get(ev->exe);
-   printf("  inst = %p\n", inst);
    if (!inst) return 1;
 
-   printf("  inst exec line -- '%s'\n", ecore_exe_cmd_get(inst->exe));
-   
    /* /bin/sh uses this if cmd not found */
    if ((ev->exited) &&
        ((ev->exit_code == 127) || (ev->exit_code == 255)))
@@ -331,10 +327,20 @@ _e_exec_cb_exit(void *data, int type, void *event)
    /* Let's hope that everything returns this properly. */
    else if (!((ev->exited) && (ev->exit_code == EXIT_SUCCESS))) 
      {
-     	/* Show the error dialog with details from the exe. */
-	_e_exec_error_dialog(inst->desktop, ecore_exe_cmd_get(ev->exe), ev,
-			     ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_ERROR),
-			     ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_READ));
+	/* filter out common exits via signals - int/term/quit. not really
+	 * worth popping up a dialog for */
+	if (!
+	    ((ev->signalled) &&
+	     ((ev->exit_signal == SIGINT) ||
+	      (ev->exit_signal == SIGQUIT) ||
+	      (ev->exit_signal == SIGTERM)))
+	    )
+	  {
+	     /* Show the error dialog with details from the exe. */
+	     _e_exec_error_dialog(inst->desktop, ecore_exe_cmd_get(ev->exe), ev,
+				  ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_ERROR),
+				  ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_READ));
+	  }
      }
    if (inst->desktop)
      {
