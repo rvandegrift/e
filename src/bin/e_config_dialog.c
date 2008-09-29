@@ -39,6 +39,7 @@ e_config_dialog_new(E_Container *con, const char *title, const char *name, const
    cfd->data = data;
    cfd->hide_buttons = 1;
    cfd->cfg_changed = 0;
+   cfd->cfg_changed_auto = 1;
 
    if (cfd->view->override_auto_apply)
      {
@@ -173,6 +174,7 @@ _e_config_dialog_go(E_Config_Dialog *cfd, E_Config_Dialog_CFData_Type type)
    else
      snprintf(buf, sizeof(buf), "%s...%s", cfd->class, "ADVANCED");
    cfd->dia = e_dialog_new(cfd->con, cfd->name, buf);
+   if (cfd->view->normal_win) e_win_dialog_set(cfd->dia->win, 0);
    cfd->dia->data = cfd;
    e_object_del_attach_func_set(E_OBJECT(cfd->dia), _e_config_dialog_cb_dialog_del);
    e_dialog_title_set(cfd->dia, cfd->title);
@@ -226,7 +228,8 @@ _e_config_dialog_go(E_Config_Dialog *cfd, E_Config_Dialog_CFData_Type type)
    e_dialog_button_add(cfd->dia, _("Close"), NULL, _e_config_dialog_cb_close, cfd);
    if (!pdia)
      {
-	e_win_centered_set(cfd->dia->win, 1);
+	if (!cfd->view->normal_win)
+	  e_win_centered_set(cfd->dia->win, 1);
 	e_dialog_show(cfd->dia);
 	if (cfd->icon) e_dialog_border_icon_set(cfd->dia, cfd->icon);
      }
@@ -359,22 +362,59 @@ _e_config_dialog_cb_basic(void *data, void *data2)
 }
 
 static void
-_e_config_dialog_cb_changed(void *data, Evas_Object *obj)
+_e_config_dialog_changed(E_Config_Dialog *cfd)
 {
-   E_Config_Dialog *cfd;
- 
-   cfd = data;
    if (!cfd->hide_buttons)
-      {
-	 cfd->cfg_changed = 1;
-         e_dialog_button_disable_num_set(cfd->dia, 0, 0);
-         e_dialog_button_disable_num_set(cfd->dia, 1, 0);
-      }
+     {
+	cfd->cfg_changed = 1;
+	e_dialog_button_disable_num_set(cfd->dia, 0, 0);
+	e_dialog_button_disable_num_set(cfd->dia, 1, 0);
+     }
    else
      {
-	if (cfd->auto_apply_timer) ecore_timer_del(cfd->auto_apply_timer);
+	if (cfd->auto_apply_timer)
+	  ecore_timer_del(cfd->auto_apply_timer);
 	cfd->auto_apply_timer = ecore_timer_add(0.5, _e_config_dialog_cb_auto_apply_timer, cfd);
-     }   
+     }
+}
+
+static void
+_e_config_dialog_unchanged(E_Config_Dialog *cfd)
+{
+   if (!cfd->hide_buttons)
+     {
+	e_dialog_button_disable_num_set(cfd->dia, 0, 1);
+	e_dialog_button_disable_num_set(cfd->dia, 1, 1);
+     }
+   else
+     {
+	if (cfd->auto_apply_timer)
+	  {
+	     ecore_timer_del(cfd->auto_apply_timer);
+	     cfd->auto_apply_timer = NULL;
+	  }
+     }
+}
+
+static void
+_e_config_dialog_cb_changed(void *data, Evas_Object *obj)
+{
+   E_Config_Dialog *cfd = data;
+   int changed;
+
+   if (!cfd->cfg_changed_auto)
+     return;
+
+   if ((cfd->view_type == E_CONFIG_DIALOG_CFDATA_TYPE_BASIC) &&
+       (cfd->view->basic.check_changed))
+     changed = cfd->view->basic.check_changed(cfd, cfd->cfdata);
+   else if ((cfd->view_type == E_CONFIG_DIALOG_CFDATA_TYPE_ADVANCED) &&
+	    (cfd->view->advanced.check_changed))
+     changed = cfd->view->advanced.check_changed(cfd, cfd->cfdata);
+   else
+     changed = 1;
+
+   e_config_dialog_changed_set(cfd, changed);
 }
 
 static void
@@ -390,4 +430,27 @@ _e_config_dialog_cb_close(void *data, E_Dialog *dia)
 
    if (ok)
      e_util_defer_object_del(E_OBJECT(cfd));
+}
+
+EAPI void
+e_config_dialog_changed_auto_set(E_Config_Dialog *cfd, unsigned char value)
+{
+   if (!cfd)
+     return;
+
+   cfd->cfg_changed_auto = !!value;
+}
+
+EAPI void
+e_config_dialog_changed_set(E_Config_Dialog *cfd, unsigned char value)
+{
+   if (!cfd)
+     return;
+
+   cfd->cfg_changed = !!value;
+
+   if (cfd->cfg_changed)
+     _e_config_dialog_changed(cfd);
+   else
+     _e_config_dialog_unchanged(cfd);
 }

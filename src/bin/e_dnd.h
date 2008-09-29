@@ -38,6 +38,8 @@ struct _E_Drag
    struct {
 	void *(*convert)(E_Drag *drag, const char *type);
 	void  (*finished)(E_Drag *drag, int dropped);
+	void  (*key_down)(E_Drag *drag, Ecore_X_Event_Key_Down *e);
+	void  (*key_up)(E_Drag *drag, Ecore_X_Event_Key_Up *e);
    } cb;
 
    E_Container       *container;
@@ -84,11 +86,13 @@ struct _E_Event_Dnd_Enter
 {
    void *data;
    int x, y;
+   Ecore_X_Atom action;
 };
 
 struct _E_Event_Dnd_Move
 {
    int x, y;
+   Ecore_X_Atom action;
 };
 
 struct _E_Event_Dnd_Leave
@@ -118,6 +122,8 @@ EAPI void    e_drag_object_set(E_Drag *drag, Evas_Object *object);
 EAPI void    e_drag_move(E_Drag *drag, int x, int y);
 EAPI void    e_drag_resize(E_Drag *drag, int w, int h);
 EAPI void    e_drag_idler_before(void);
+EAPI void    e_drag_key_down_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_X_Event_Key_Down *e));
+EAPI void    e_drag_key_up_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_X_Event_Key_Up *e));
 
 /* x and y are the coords where the mouse is when dragging starts */
 EAPI int  e_drag_start(E_Drag *drag, int x, int y);
@@ -135,6 +141,10 @@ EAPI void e_drop_handler_geometry_set(E_Drop_Handler *handler, int x, int y, int
 EAPI int  e_drop_inside(E_Drop_Handler *handler, int x, int y);
 EAPI void e_drop_handler_del(E_Drop_Handler *handler);
 EAPI int  e_drop_xdnd_register_set(Ecore_X_Window win, int reg);
+EAPI void e_drop_handler_responsive_set(E_Drop_Handler *handler);
+EAPI int  e_drop_handler_responsive_get(E_Drop_Handler *handler);
+EAPI void e_drop_handler_action_set(Ecore_X_Atom action);
+EAPI Ecore_X_Atom e_drop_handler_action_get();
 
 #endif
 #endif

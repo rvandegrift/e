@@ -55,6 +55,8 @@ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALL_LINGUAS = @ALL_LINGUAS@
+ALSA_CFLAGS = @ALSA_CFLAGS@
+ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
@@ -82,9 +84,13 @@ ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+ECORE_IMF_CFLAGS = @ECORE_IMF_CFLAGS@
+ECORE_IMF_LIBS = @ECORE_IMF_LIBS@
 ECORE_TXT_CFLAGS = @ECORE_TXT_CFLAGS@
 ECORE_TXT_LIBS = @ECORE_TXT_LIBS@
 EDJE_DEF = @EDJE_DEF@
+EET_CFLAGS = @EET_CFLAGS@
+EET_LIBS = @EET_LIBS@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 E_CFLAGS = @E_CFLAGS@
@@ -97,8 +103,8 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
-HAVE_BATTERY_FALSE = @HAVE_BATTERY_FALSE@
-HAVE_BATTERY_TRUE = @HAVE_BATTERY_TRUE@
+HAVE_ALSA_FALSE = @HAVE_ALSA_FALSE@
+HAVE_ALSA_TRUE = @HAVE_ALSA_TRUE@
 HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
 HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
 HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
@@ -143,6 +149,8 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SOUND_CFLAGS = @SOUND_CFLAGS@
+SOUND_LDFLAGS = @SOUND_LDFLAGS@
 STRIP = @STRIP@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
@@ -182,8 +190,10 @@ dlopen_libs = @dlopen_libs@
 docdir = @docdir@
 dvidir = @dvidir@
 e_cflags = @e_cflags@
+e_configflags = @e_configflags@
 e_libs = @e_libs@
 edje_cc = @edje_cc@
+eet_eet = @eet_eet@
 exec_prefix = @exec_prefix@
 fnmatch_libs = @fnmatch_libs@
 host = @host@
@@ -206,6 +216,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+requirements_e = @requirements_e@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
@@ -503,6 +514,9 @@ e17_fileman_bg_shadow.png \
 e17_fileman_rubberband.png \
 e17_fileman_thumb_bg.png \
 e17_fileman_typebuf.png \
+e17_fileman_ask.png \
+e17_fileman_copy.png \
+e17_fileman_move.png \
 e17_frame_label_over.png \
 e17_frame_label_under.png \
 e17_frame_outline.png \
@@ -530,6 +544,7 @@ e17_ibar_lamp_r.png \
 e17_ibar_lamp_u.png \
 e17_ibar_over_h.png \
 e17_ibar_over_v.png \
+e17_icon_add.png \
 e17_icon_advanced.png \
 e17_icon_appearance.png \
 e17_icon_applications.png \
@@ -537,6 +552,8 @@ e17_icon_background.png \
 e17_icon_behavior.png \
 e17_icon_colors.png \
 e17_icon_configuration.png \
+e17_icon_check.png \
+e17_icon_del.png \
 e17_icon_desklock.png \
 e17_icon_desklock_menu.png \
 e17_icon_desktop.png \
@@ -600,6 +617,7 @@ e17_icon_logout.png \
 e17_icon_lost_windows.png \
 e17_icon_menu_settings.png \
 e17_icon_menus.png \
+e17_icon_mixer.png \
 e17_icon_module.png \
 e17_icon_mouse.png \
 e17_icon_mouse_clean.png \
@@ -608,6 +626,8 @@ e17_icon_mouse_left.png \
 e17_icon_mouse_middle.png \
 e17_icon_mouse_right.png \
 e17_icon_mouse_wheel.png \
+e17_icon_new.png \
+e17_icon_pager.png \
 e17_icon_performance.png \
 e17_icon_reboot.png \
 e17_icon_regenerate_menus.png \
@@ -772,7 +792,16 @@ e17_tl_corner_logo_shadow.png \
 e17_whitev.png \
 e17_wiz_b1.png \
 e17_wiz_b2.png \
-e17_icon_window_remembers.png
+e17_icon_window_remembers.png \
+e17_mixer_base.png \
+e17_mixer_left_high.png \
+e17_mixer_left_low.png \
+e17_mixer_left_medium.png \
+e17_mixer_module_icon.png \
+e17_mixer_mute.png \
+e17_mixer_right_high.png \
+e17_mixer_right_low.png \
+e17_mixer_right_medium.png
 
 all: all-am
 

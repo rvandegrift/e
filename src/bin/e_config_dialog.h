@@ -22,8 +22,9 @@ typedef struct _E_Config_Dialog_Data E_Config_Dialog_Data;
 
 struct _E_Config_Dialog_View
 {
-   int override_auto_apply;
-   int basic_only;
+   unsigned char override_auto_apply : 1;
+   unsigned char basic_only : 1;
+   unsigned char normal_win : 1;
    
    void           *(*create_cfdata)     (E_Config_Dialog *cfd);
    void            (*free_cfdata)       (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
@@ -31,6 +32,7 @@ struct _E_Config_Dialog_View
    struct {
       int          (*apply_cfdata)      (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
       Evas_Object *(*create_widgets)    (E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+      int          (*check_changed)     (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
    } basic, advanced;   
 };
 
@@ -49,14 +51,18 @@ struct _E_Config_Dialog
    int                          icon_size;
    E_Dialog                    *dia;
    void                        *data;
-   int                          cfg_changed;
-   int                          hide_buttons;
    Ecore_Timer                 *auto_apply_timer;
+   unsigned char                hide_buttons : 1;
+   unsigned char                cfg_changed : 1;
+   unsigned char                cfg_changed_auto : 1;
 };
 
 EAPI E_Config_Dialog *e_config_dialog_new(E_Container *con, const char *title, const char *name, const char *class, const char *icon, int icon_size, E_Config_Dialog_View *view, void *data);
 EAPI int e_config_dialog_find(const char *name, const char *class);
 EAPI E_Config_Dialog *e_config_dialog_get(const char *name, const char *class);
+
+EAPI void e_config_dialog_changed_auto_set(E_Config_Dialog *cfd, unsigned char value);
+EAPI void e_config_dialog_changed_set(E_Config_Dialog *cfd, unsigned char value);
 
 #endif
 #endif

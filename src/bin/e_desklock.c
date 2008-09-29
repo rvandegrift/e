@@ -72,6 +72,7 @@ static int _e_desklock_cb_mouse_move(void *data, int type, void *event);
 static int _e_desklock_cb_custom_desklock_exit(void *data, int type, void *event);
 static int _e_desklock_cb_idle_poller(void *data);
 
+static void _e_desklock_null(void);
 static void _e_desklock_passwd_update(void);
 static void _e_desklock_backspace(void);
 static void _e_desklock_delete(void);
@@ -423,6 +424,8 @@ _e_desklock_cb_key_down(void *data, int type, void *event)
      _e_desklock_backspace();
    else if (!strcmp(ev->keysymbol, "Delete"))
      _e_desklock_delete();
+   else if (!strcmp(ev->keysymbol, "u") && (ev->modifiers & ECORE_X_MODIFIER_CTRL))
+     _e_desklock_null();
    else
      {
 	/* here we have to grab a password */
@@ -506,6 +509,13 @@ _e_desklock_passwd_update(void)
 }
 
 static void
+_e_desklock_null(void)
+{
+   memset(edd->passwd, 0, sizeof(char) * PASSWD_LEN);
+   _e_desklock_passwd_update();
+}
+
+static void
 _e_desklock_backspace(void)
 {
    int len, val, pos;
@@ -578,8 +588,7 @@ _e_desklock_check_auth(void)
 #endif
    /* password is definitely wrong */
    _e_desklock_state_set(E_DESKLOCK_STATE_INVALID);
-   memset(edd->passwd, 0, sizeof(char) * PASSWD_LEN);
-   _e_desklock_passwd_update();
+   _e_desklock_null();
    return 0;
 }
 
@@ -647,8 +656,7 @@ _e_desklock_cb_exit(void *data, int type, void *event)
 	  {
 	     _e_desklock_state_set(E_DESKLOCK_STATE_INVALID);
 	     /* security - null out passwd string once we are done with it */
-	     memset(edd->passwd, 0, sizeof(char) * PASSWD_LEN);
-	     _e_desklock_passwd_update();
+	     _e_desklock_null();
 	  }
 	ecore_event_handler_del(_e_desklock_exit_handler);
 	_e_desklock_exit_handler = NULL;
@@ -751,6 +759,12 @@ _desklock_pam_init(E_Desklock_Auth *da)
      pam_prof = "system-auth";
    else if (ecore_file_exists("/etc/pam.d/system")) 
      pam_prof = "system";
+   else if (ecore_file_exists("/etc/pam.d/xdm"))
+     pam_prof = "xdm";
+   else if (ecore_file_exists("/etc/pam.d/gdm"))
+     pam_prof = "gdm";
+   else if (ecore_file_exists("/etc/pam.d/kdm"))
+     pam_prof = "kdm";
    
    if ((pamerr = pam_start(pam_prof, da->user, &(da->pam.conv),
 			   &(da->pam.handle))) != PAM_SUCCESS)

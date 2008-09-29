@@ -289,6 +289,9 @@ e17_fileman_bg_shadow.png \
 e17_fileman_rubberband.png \
 e17_fileman_thumb_bg.png \
 e17_fileman_typebuf.png \
+e17_fileman_ask.png \
+e17_fileman_copy.png \
+e17_fileman_move.png \
 e17_frame_label_over.png \
 e17_frame_label_under.png \
 e17_frame_outline.png \
@@ -316,6 +319,7 @@ e17_ibar_lamp_r.png \
 e17_ibar_lamp_u.png \
 e17_ibar_over_h.png \
 e17_ibar_over_v.png \
+e17_icon_add.png \
 e17_icon_advanced.png \
 e17_icon_appearance.png \
 e17_icon_applications.png \
@@ -323,6 +327,8 @@ e17_icon_background.png \
 e17_icon_behavior.png \
 e17_icon_colors.png \
 e17_icon_configuration.png \
+e17_icon_check.png \
+e17_icon_del.png \
 e17_icon_desklock.png \
 e17_icon_desklock_menu.png \
 e17_icon_desktop.png \
@@ -386,6 +392,7 @@ e17_icon_logout.png \
 e17_icon_lost_windows.png \
 e17_icon_menu_settings.png \
 e17_icon_menus.png \
+e17_icon_mixer.png \
 e17_icon_module.png \
 e17_icon_mouse.png \
 e17_icon_mouse_clean.png \
@@ -394,6 +401,8 @@ e17_icon_mouse_left.png \
 e17_icon_mouse_middle.png \
 e17_icon_mouse_right.png \
 e17_icon_mouse_wheel.png \
+e17_icon_new.png \
+e17_icon_pager.png \
 e17_icon_performance.png \
 e17_icon_reboot.png \
 e17_icon_regenerate_menus.png \
@@ -558,5 +567,14 @@ e17_tl_corner_logo_shadow.png \
 e17_whitev.png \
 e17_wiz_b1.png \
 e17_wiz_b2.png \
-e17_icon_window_remembers.png
+e17_icon_window_remembers.png \
+e17_mixer_base.png \
+e17_mixer_left_high.png \
+e17_mixer_left_low.png \
+e17_mixer_left_medium.png \
+e17_mixer_module_icon.png \
+e17_mixer_mute.png \
+e17_mixer_right_high.png \
+e17_mixer_right_low.png \
+e17_mixer_right_medium.png
 

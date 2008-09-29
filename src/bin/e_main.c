@@ -3,7 +3,9 @@
  */
 #include "e.h"
 
+#ifdef HAVE_ECORE_IMF
 #include <Ecore_IMF.h>
+#endif
 
 EAPI int e_precache_end = 0;
 
@@ -313,8 +315,10 @@ main(int argc, char **argv)
 			       "Perhaps you are out of memory?"));
 	exit(-1);
      }
+#ifdef HAVE_ECORE_IMF
    ecore_imf_init();
    _e_main_shutdown_push(ecore_imf_shutdown);
+#endif
 // FIXME: SEGV's on shutdown if fm2 windows up - disable for now.   
 //   _e_main_shutdown_push(ecore_shutdown);
    ecore_job_init();
@@ -421,9 +425,6 @@ main(int argc, char **argv)
    
    ecore_x_io_error_handler_set(_e_main_cb_x_fatal, NULL);
 
-   TS("configure");
-   e_configure_init();
-   
    TS("x hints");
    /* Init window manager hints */
    e_hints_init();
@@ -476,6 +477,9 @@ main(int argc, char **argv)
    _e_main_shutdown_push(efreet_util_shutdown);
    TS("efreet done");
    
+   TS("configure");
+   e_configure_init();
+   
    TS("dirs");
    /* setup directories we will be using for configurations storage etc. */
    if (!_e_main_dirs_init())
@@ -503,6 +507,15 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_config_shutdown);
+   
+   TS("scale");
+   /* init config system */
+   if (!e_scale_init())
+     {
+	e_error_message_show(_("Enlightenment cannot set up its scale system."));
+	_e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(e_scale_shutdown);
    
    TS("pointer");
    if (!e_pointer_init())
@@ -839,7 +852,7 @@ main(int argc, char **argv)
    /* setup mouse accel */
    if (!e_mouse_init())
      {
-       e_error_message_show(_("Enlightenment cannot configure the mouse acceleration settings."));
+       e_error_message_show(_("Enlightenment cannot configure the mouse settings."));
        _e_main_shutdown(-1);
      }
 

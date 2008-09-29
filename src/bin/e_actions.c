@@ -123,6 +123,19 @@ ACT_FN_END_MOUSE(window_move)
    e_border_act_move_end((E_Border *)obj, ev);
 }
 
+ACT_FN_GO_KEY(window_move)
+{
+   if (!obj) obj = E_OBJECT(e_border_focused_get());
+   if (!obj) return;
+   if (obj->type != E_BORDER_TYPE)
+     {
+	obj = E_OBJECT(e_border_focused_get());
+	if (!obj) return;
+     }
+   if (!((E_Border *)obj)->lock_user_location)
+     e_border_act_move_keyboard((E_Border *)obj);
+}
+
 /***************************************************************************/
 ACT_FN_GO(window_resize)
 {
@@ -172,6 +185,19 @@ ACT_FN_END_MOUSE(window_resize)
    if (!obj) return;
    if (obj->type != E_BORDER_TYPE) return;
    e_border_act_resize_end((E_Border *)obj, ev);
+}
+
+ACT_FN_GO_KEY(window_resize)
+{
+   if (!obj) obj = E_OBJECT(e_border_focused_get());
+   if (!obj) return;
+   if (obj->type != E_BORDER_TYPE)
+     {
+	obj = E_OBJECT(e_border_focused_get());
+	if (!obj) return;
+     }
+   if (!((E_Border *)obj)->lock_user_size)
+     e_border_act_resize_keyboard((E_Border *)obj);
 }
 
 /***************************************************************************/
@@ -984,7 +1010,8 @@ ACT_FN_GO(window_desk_move_by)
 	     e_zone_desk_flip_by(bd->zone, to_x - dx, to_y - dy);
 	     /* send the border to the required desktop. */
 	     e_border_desk_set(bd, desk);
-	     e_border_focus_set(bd, 1, 1);
+	     if (!bd->lock_focus_out)
+	       e_border_focus_set(bd, 1, 1);
 	  }
      }
 }
@@ -1441,7 +1468,6 @@ ACT_FN_GO_MOUSE(menu_show)
 		  e_menu_post_deactivate_callback_set(m, _e_actions_cb_menu_end, NULL);
 		  e_menu_activate_mouse(m, zone, x, y, 1, 1,
 					E_MENU_POP_DIRECTION_DOWN, ev->time);
-		  e_util_container_fake_mouse_up_all_later(zone->container);
 	       }
 	  }
      }
@@ -1579,6 +1605,11 @@ _e_actions_cb_exit_dialog_delete(E_Win *win)
 
 ACT_FN_GO(exit)
 {
+   if ((params) && (!strcmp(params, "now")))
+     {
+	e_sys_action_do(E_SYS_EXIT, NULL);
+	return;
+     }
    if (exit_dialog) e_object_del(E_OBJECT(exit_dialog));
 
    if (e_config->cnfmdlg_disabled)
@@ -1619,6 +1650,12 @@ ACT_FN_GO(exit_now)
 }
 
 /***************************************************************************/
+ACT_FN_GO(halt_now)
+{
+   e_sys_action_do(E_SYS_HALT_NOW, NULL);
+}
+
+/***************************************************************************/
 static E_Dialog *logout_dialog = NULL;
 
 static void
@@ -1650,6 +1687,11 @@ _e_actions_cb_logout_dialog_delete(E_Win *win)
 
 ACT_FN_GO(logout)
 {
+   if ((params) && (!strcmp(params, "now")))
+     {
+	e_sys_action_do(E_SYS_LOGOUT, NULL);
+	return;
+     }
    if (logout_dialog) e_object_del(E_OBJECT(logout_dialog));
    
    if (e_config->cnfmdlg_disabled)
@@ -1709,6 +1751,11 @@ _e_actions_cb_halt_dialog_delete(E_Win *win)
 
 ACT_FN_GO(halt)
 {
+   if ((params) && (!strcmp(params, "now")))
+     {
+	e_sys_action_do(E_SYS_HALT, NULL);
+	return;
+     }
    if (halt_dialog) e_object_del(E_OBJECT(halt_dialog));
 
    if (e_config->cnfmdlg_disabled)
@@ -1768,6 +1815,11 @@ _e_actions_cb_reboot_dialog_delete(E_Win *win)
 
 ACT_FN_GO(reboot)
 {
+   if ((params) && (!strcmp(params, "now")))
+     {
+	e_sys_action_do(E_SYS_REBOOT, NULL);
+	return;
+     }
    if (reboot_dialog) e_object_del(E_OBJECT(reboot_dialog));
 
    if (e_config->cnfmdlg_disabled)
@@ -1827,6 +1879,11 @@ _e_actions_cb_suspend_dialog_delete(E_Win *win)
 
 ACT_FN_GO(suspend)
 {
+   if ((params) && (!strcmp(params, "now")))
+     {
+	e_sys_action_do(E_SYS_SUSPEND, NULL);
+	return;
+     }
    if (suspend_dialog) e_object_del(E_OBJECT(suspend_dialog));
 
    if (e_config->cnfmdlg_disabled)
@@ -1886,6 +1943,11 @@ _e_actions_cb_hibernate_dialog_delete(E_Win *win)
 
 ACT_FN_GO(hibernate)
 {
+   if ((params) && (!strcmp(params, "now")))
+     {
+	e_sys_action_do(E_SYS_HIBERNATE, NULL);
+	return;
+     }
    if (hibernate_dialog) e_object_del(E_OBJECT(hibernate_dialog));
 
    if (e_config->cnfmdlg_disabled)
@@ -1964,6 +2026,238 @@ ACT_FN_GO(desk_lock)
   e_desklock_show();
 }
 
+/***************************************************************************/
+
+typedef struct _Delayed_Action     Delayed_Action;
+
+struct _Delayed_Action
+{
+   int          mouse;
+   int          button;
+   const char  *keyname;
+   E_Object    *obj;
+   Ecore_Timer *timer;
+   struct {
+      const char *action;
+      const char *params;
+   } def, delayed;
+};
+
+static Evas_List *_delayed_actions = NULL;
+
+static void
+_delayed_action_free(Delayed_Action *da)
+{
+   if (da->obj) e_object_unref(da->obj);
+   if (da->keyname) evas_stringshare_del(da->keyname);
+   if (da->timer) ecore_timer_del(da->timer);
+   if (da->def.action) evas_stringshare_del(da->def.action);
+   if (da->def.params) evas_stringshare_del(da->def.params);
+   if (da->delayed.action) evas_stringshare_del(da->delayed.action);
+   if (da->delayed.params) evas_stringshare_del(da->delayed.params);
+   free(da);
+}
+
+static int
+_delayed_action_cb_timer(void *data)
+{
+   Delayed_Action *da;
+   E_Action *act;
+   
+   da = data;
+   da->timer = NULL;
+   act = e_action_find(da->delayed.action);
+   if (act)
+     {
+	if (act->func.go) act->func.go(da->obj, da->delayed.params);
+     }
+   _delayed_actions = evas_list_remove(_delayed_actions, da);
+   _delayed_action_free(da);
+   return 0;
+}
+
+static void
+_delayed_action_do(Delayed_Action *da)
+{
+   E_Action *act;
+   
+   act = e_action_find(da->def.action);
+   if (act)
+     {
+	if (act->func.go) act->func.go(da->obj, da->def.params);
+     }
+}
+
+static void
+_delayed_action_list_parse_action(const char *str, double *delay, const char **action, const char **params)
+{
+   char fbuf[16];
+   char buf[1024];
+   const char *p;
+   
+   buf[0] = 0;
+   sscanf(str, "%10s %1000s", fbuf, buf);
+   *action = evas_stringshare_add(buf);
+   *delay = atof(fbuf);
+   p = strchr(str, ' ');
+   if (p)
+     {
+	p++;
+	p = strchr(p, ' ');
+	if (p)
+	  {
+	     p++;
+	     *params = evas_stringshare_add(p);
+	  }
+     }
+}
+
+static void
+_delayed_action_list_parse(Delayed_Action *da, const char *params)
+{
+   double delay = 2.0;
+   const char *p, 
+     *a1start = NULL, *a1stop = NULL, 
+     *a2start = NULL, *a2stop = NULL;
+   
+   // FORMAT: "[0.0 default_action param1 param2] [x.x action2 param1 param2]"
+   p = params;
+   while (*p)
+     {
+	if ((*p == '[') && ((p == params) || ((p > params) && (p[-1] != '\\')))) {a1start = p + 1; break;}
+	p++;
+     }
+   while (*p)
+     {
+	if ((*p == ']') && ((p == params) || ((p > params) && (p[-1] != '\\')))) {a1stop = p; break;}
+	p++;
+     }
+   while (*p)
+     {
+	if ((*p == '[') && ((p == params) || ((p > params) && (p[-1] != '\\')))) {a2start = p + 1; break;}
+	p++;
+     }
+   while (*p)
+     {
+	if ((*p == ']') && ((p == params) || ((p > params) && (p[-1] != '\\')))) {a2stop = p; break;}
+	p++;
+     }
+   if ((a1start) && (a2start) && (a1stop) && (a2stop))
+     {
+	char *a1, *a2;
+	const char *action, *params;
+	
+	a1 = alloca(a1stop - a1start + 1);
+	strncpy(a1, a1start, a1stop - a1start);
+	a1[a1stop - a1start] = 0;
+	action = NULL;
+	params = NULL;
+	_delayed_action_list_parse_action(a1, &delay, &da->def.action, &da->def.params);
+	
+	a2 = alloca(a1stop - a1start + 1);
+	strncpy(a2, a2start, a2stop - a2start);
+	a2[a2stop - a2start] = 0;
+	_delayed_action_list_parse_action(a2, &delay, &da->delayed.action, &da->delayed.params);
+     }
+   da->timer = ecore_timer_add(delay, _delayed_action_cb_timer, da);
+}
+
+static void
+_delayed_action_key_add(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev)
+{
+   Delayed_Action *da;
+   
+   da = E_NEW(Delayed_Action, 1);
+   if (!da) return;
+   if (obj)
+     {
+	da->obj = obj;
+	e_object_ref(da->obj);
+     }
+   da->mouse = 0;
+   da->keyname = evas_stringshare_add(ev->keyname);
+   if (params) _delayed_action_list_parse(da, params);
+   _delayed_actions = evas_list_append(_delayed_actions, da);
+}
+
+static void
+_delayed_action_key_del(E_Object *obj, const char *params, Ecore_X_Event_Key_Up *ev)
+{
+   Evas_List *l;
+   
+   for (l = _delayed_actions; l; l = l->next)
+     {
+	Delayed_Action *da;
+	
+	da = l->data;
+	if ((da->obj == obj) && (!da->mouse) && 
+	    (!strcmp(da->keyname, ev->keyname)))
+	  {
+	     _delayed_action_do(da);
+	     _delayed_action_free(da);
+	     _delayed_actions = evas_list_remove_list(_delayed_actions, l);
+	     return;
+	  }
+     }
+}
+
+static void
+_delayed_action_mouse_add(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Button_Down *ev)
+{
+   Delayed_Action *da;
+   
+   da = E_NEW(Delayed_Action, 1);
+   if (!da) return;
+   if (obj)
+     {
+	da->obj = obj;
+	e_object_ref(da->obj);
+     }
+   da->mouse = 1;
+   da->button = ev->button;
+   if (params) _delayed_action_list_parse(da, params);
+   _delayed_actions = evas_list_append(_delayed_actions, da);
+}
+
+static void
+_delayed_action_mouse_del(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Button_Up *ev)
+{
+   Evas_List *l;
+   
+   for (l = _delayed_actions; l; l = l->next)
+     {
+	Delayed_Action *da;
+	
+	da = l->data;
+	if ((da->obj == obj) && (da->mouse) && 
+	    (ev->button == da->button))
+	  {
+	     _delayed_action_do(da);
+	     _delayed_action_free(da);
+	     _delayed_actions = evas_list_remove_list(_delayed_actions, l);
+	     return;
+	  }
+     }
+}
+
+// obj , params  , ev
+ACT_FN_GO_KEY(delayed_action)
+{
+   _delayed_action_key_add(obj, params, ev);
+}
+ACT_FN_GO_MOUSE(delayed_action)
+{
+   _delayed_action_mouse_add(obj, params, ev);
+}
+ACT_FN_END_KEY(delayed_action)
+{
+   _delayed_action_key_del(obj, params, ev);
+}
+ACT_FN_END_MOUSE(delayed_action)
+{
+   _delayed_action_mouse_del(obj, params, ev);
+}
+
 /* local subsystem globals */
 static Evas_Hash *actions = NULL;
 static Evas_List *action_list = NULL;
@@ -1985,7 +2279,8 @@ e_actions_init(void)
    ACT_GO_SIGNAL(window_move);
    ACT_END(window_move);
    ACT_END_MOUSE(window_move);
-   
+   ACT_GO_KEY(window_move);
+
    /* window_resize */
    ACT_GO(window_resize);
    e_action_predef_name_set(_("Window : Actions"), _("Resize"), 
@@ -1995,6 +2290,7 @@ e_actions_init(void)
    ACT_GO_SIGNAL(window_resize);
    ACT_END(window_resize);
    ACT_END_MOUSE(window_resize);
+   ACT_GO_KEY(window_resize);
 
    /* window_menu */
    ACT_GO(window_menu);
@@ -2313,6 +2609,10 @@ e_actions_init(void)
    e_action_predef_name_set(_("Enlightenment"), _("Exit Immediately"), 
 			    "exit_now", NULL, NULL, 0);
 
+   ACT_GO(halt_now);
+   e_action_predef_name_set(_("Enlightenment"), _("Shut Down Immediately"), 
+			    "halt_now", NULL, NULL, 0);
+
    ACT_GO(halt);
    e_action_predef_name_set(_("System"), _("Shut Down"), "halt", 
 			    NULL, NULL, 0);
@@ -2342,6 +2642,14 @@ e_actions_init(void)
    e_action_predef_name_set(_("Desktop"), _("Cleanup Windows"), 
 			    "cleanup_windows", NULL, NULL, 0);
    
+   /* delayed_action */
+   ACT_GO_KEY(delayed_action);
+   e_action_predef_name_set(_("Generic : Actions"), _("Delayed Action"), 
+			    "delayed_action", NULL, "[0.0 exec xterm] [0.3 exec xev]", 1);
+   ACT_GO_MOUSE(delayed_action);
+   ACT_END_KEY(delayed_action);
+   ACT_END_MOUSE(delayed_action);
+
    return 1;
 }
 

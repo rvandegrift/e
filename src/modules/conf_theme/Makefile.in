@@ -62,7 +62,7 @@ am__installdirs = "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(filesdir)"
 pkgLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(pkg_LTLIBRARIES)
 am_module_la_OBJECTS = e_mod_main.lo e_int_config_theme.lo \
-	e_int_config_theme_import.lo
+	e_int_config_theme_import.lo e_int_config_theme_web.lo
 module_la_OBJECTS = $(am_module_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -85,6 +85,8 @@ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALL_LINGUAS = @ALL_LINGUAS@
+ALSA_CFLAGS = @ALSA_CFLAGS@
+ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
@@ -112,9 +114,13 @@ ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+ECORE_IMF_CFLAGS = @ECORE_IMF_CFLAGS@
+ECORE_IMF_LIBS = @ECORE_IMF_LIBS@
 ECORE_TXT_CFLAGS = @ECORE_TXT_CFLAGS@
 ECORE_TXT_LIBS = @ECORE_TXT_LIBS@
 EDJE_DEF = @EDJE_DEF@
+EET_CFLAGS = @EET_CFLAGS@
+EET_LIBS = @EET_LIBS@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 E_CFLAGS = @E_CFLAGS@
@@ -127,8 +133,8 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
-HAVE_BATTERY_FALSE = @HAVE_BATTERY_FALSE@
-HAVE_BATTERY_TRUE = @HAVE_BATTERY_TRUE@
+HAVE_ALSA_FALSE = @HAVE_ALSA_FALSE@
+HAVE_ALSA_TRUE = @HAVE_ALSA_TRUE@
 HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
 HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
 HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
@@ -173,6 +179,8 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SOUND_CFLAGS = @SOUND_CFLAGS@
+SOUND_LDFLAGS = @SOUND_LDFLAGS@
 STRIP = @STRIP@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
@@ -212,8 +220,10 @@ dlopen_libs = @dlopen_libs@
 docdir = @docdir@
 dvidir = @dvidir@
 e_cflags = @e_cflags@
+e_configflags = @e_configflags@
 e_libs = @e_libs@
 edje_cc = @edje_cc@
+eet_eet = @eet_eet@
 exec_prefix = @exec_prefix@
 fnmatch_libs = @fnmatch_libs@
 host = @host@
@@ -236,6 +246,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+requirements_e = @requirements_e@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
@@ -268,7 +279,9 @@ module_la_SOURCES = e_mod_main.c \
 			 e_int_config_theme.c \
 			 e_int_config_theme.h \
 			 e_int_config_theme_import.c \
-			 e_int_config_theme_import.h
+			 e_int_config_theme_import.h \
+			 e_int_config_theme_web.c \
+			 e_int_config_theme_web.h			 
 
 module_la_LIBADD = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS = -module -avoid-version
@@ -346,6 +359,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_int_config_theme.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_int_config_theme_import.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_int_config_theme_web.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_mod_main.Plo@am__quote@
 
 .c.o:

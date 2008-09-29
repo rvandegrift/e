@@ -25,6 +25,9 @@
    */
 #undef HAVE_ALLOCA_H
 
+/* Define if the ALSA output plugin should be built */
+#undef HAVE_ALSA
+
 /* Define to 1 if you have the <CFBase.h> header file. */
 #undef HAVE_CFBASE_H
 
@@ -34,6 +37,9 @@
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
+
+/* Ecore IMF support */
+#undef HAVE_ECORE_IMF
 
 /* E_Dbus support */
 #undef HAVE_EDBUS

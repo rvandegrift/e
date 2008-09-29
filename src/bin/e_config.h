@@ -33,7 +33,7 @@ typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 0x0124
+#define E_CONFIG_FILE_GENERATION 0x0127
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH << 16) | E_CONFIG_FILE_GENERATION)
 
 #define E_EVAS_ENGINE_DEFAULT         0
@@ -243,6 +243,7 @@ struct _E_Config
    int         clientlist_limit_caption_len; // GUI
    int         clientlist_max_caption_len; // GUI
 
+   int         mouse_hand; //GUI
    int         mouse_accel_numerator; // GUI
    int         mouse_accel_denominator; // GUI
    int         mouse_accel_threshold; // GUI
@@ -286,6 +287,29 @@ struct _E_Config
    int thumbscroll_threshhold;
    double thumbscroll_momentum_threshhold;
    double thumbscroll_friction;
+
+   int hal_desktop;
+
+   struct {
+      double timeout;
+      struct {
+	 unsigned char dx;
+	 unsigned char dy;
+      } move;
+      struct {
+	 unsigned char dx;
+	 unsigned char dy;
+      } resize;
+   } border_keyboard;
+   
+   struct {
+      double min;
+      double max;
+      double factor;
+      int base_dpi;
+      unsigned char use_dpi;
+      unsigned char use_custom;
+   } scale;
 };
 
 struct _E_Config_Module
@@ -293,6 +317,7 @@ struct _E_Config_Module
    const char    *name;
    unsigned char  enabled;
    unsigned char  delayed;
+   int            priority;
 };
 
 struct _E_Config_Theme
@@ -373,7 +398,8 @@ struct _E_Config_Gadcon_Client
    const char    *name;
    const char    *id;
    struct {
-      int pos, size, res;
+      int pos, size, res;                   //gadcon
+      double pos_x, pos_y, size_w, size_h;  //gadman
    } geom;
    struct {
       int seq, flags;

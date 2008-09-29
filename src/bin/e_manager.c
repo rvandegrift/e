@@ -13,10 +13,12 @@ static int _e_manager_cb_key_down(void *data, int ev_type, void *ev);
 static int _e_manager_cb_frame_extents_request(void *data, int ev_type, void *ev);
 static int _e_manager_cb_ping(void *data, int ev_type, void *ev);
 static int _e_manager_cb_screensaver_notify(void *data, int ev_type, void *ev);
+static int _e_manager_cb_client_message(void *data, int ev_type, void *ev);
 
 static Evas_Bool _e_manager_frame_extents_free_cb(const Evas_Hash *hash __UNUSED__,
 						  const char *key __UNUSED__,
 						  void *data, void *fdata __UNUSED__);
+static E_Manager *_e_manager_get_for_root(Ecore_X_Window root);
 #if 0 /* use later - maybe */
 static int _e_manager_cb_window_destroy(void *data, int ev_type, void *ev);
 static int _e_manager_cb_window_hide(void *data, int ev_type, void *ev);
@@ -141,6 +143,8 @@ e_manager_new(Ecore_X_Window root, int num)
    if (h) man->handlers = evas_list_append(man->handlers, h);
    h = ecore_event_handler_add(ECORE_X_EVENT_SCREENSAVER_NOTIFY, _e_manager_cb_screensaver_notify, man);
    if (h) man->handlers = evas_list_append(man->handlers, h);
+   h = ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE, _e_manager_cb_client_message, man);
+   if (h) man->handlers = evas_list_append(man->handlers, h);
 
    man->pointer = e_pointer_window_new(man->root, 1);
 
@@ -159,15 +163,23 @@ e_manager_manage_windows(E_Manager *man)
    if (windows)
      {
 	int i;
+	const char *atom_names[] =
+	  {
+	     "_XEMBED_INFO",
+	       "_KDE_NET_WM_SYSTEM_TRAY_WINDOW_FOR",
+	       "KWM_DOCKWINDOW"
+	  };
+	Ecore_X_Atom atoms[3];
         Ecore_X_Atom atom_xmbed, atom_kde_netwm_systray, atom_kwm_dockwindow,
 	  atom_window;
 	unsigned char *data = NULL;
 	int count;
 	
-	atom_window = ecore_x_atom_get("WINDOW");
-	atom_xmbed = ecore_x_atom_get("_XEMBED_INFO");
-	atom_kde_netwm_systray = ecore_x_atom_get("_KDE_NET_WM_SYSTEM_TRAY_WINDOW_FOR");
-	atom_kwm_dockwindow = ecore_x_atom_get("KWM_DOCKWINDOW");
+	atom_window = ECORE_X_ATOM_WINDOW;
+	ecore_x_atoms_get(atom_names, 3, atoms);
+	atom_xmbed = atoms[0];
+	atom_kde_netwm_systray = atoms[1];
+	atom_kwm_dockwindow = atoms[2];
 	for (i = 0; i < wnum; i++)
 	  {
 	     Ecore_X_Window_Attributes att;
@@ -456,6 +468,8 @@ e_manager_current_get(void)
      {
 	man = l->data;
 	ecore_x_pointer_xy_get(man->win, &x, &y);
+	if (x == -1 && y == -1)
+	  continue;
 	if (E_INSIDE(x, y, man->x, man->y, man->w, man->h))
 	  return man;
      }
@@ -584,7 +598,9 @@ _e_manager_cb_key_down(void *data, int ev_type __UNUSED__, void *ev)
    
    man = data;
    e = ev;
+
    if (e->event_win != man->root) return 1;
+   if (e->root_win != man->root) man = _e_manager_get_for_root(e->root_win);
    if (e_bindings_key_down_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(man), ev))
      return 0;
    return 1;
@@ -598,6 +614,11 @@ _e_manager_cb_key_up(void *data, int ev_type __UNUSED__, void *ev)
    
    man = data;
    e = ev;
+
+   if (e->event_win != man->root) return 1;
+   if (e->root_win != man->root) man = _e_manager_get_for_root(e->root_win);
+   if (e_bindings_key_up_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(man), ev))
+     return 0;
    return 1;
 }
 
@@ -775,6 +796,65 @@ _e_manager_cb_screensaver_notify(void *data, int ev_type __UNUSED__, void *ev)
    return 1;
 }
 
+static int
+_e_manager_cb_client_message(void *data, int ev_type, void *ev)
+{
+   E_Manager *man;
+   Ecore_X_Event_Client_Message *e;
+   E_Border *bd;
+   
+   man = data;
+   e = ev;
+   
+   if (e->message_type == ECORE_X_ATOM_NET_ACTIVE_WINDOW)
+     {
+	bd = e_border_find_by_client_window(e->win);
+	if ((bd) && (!bd->focused))
+	  {
+#if 0 /* notes */	     
+	     if (e->data.l[0] == 0 /* 0 == old, 1 == client, 2 == pager */)
+	       {
+		  // FIXME: need config for the below - what to do given each
+		  //  request (either do nothng, make app look urgent/want
+		  //  attention or actiually flip to app as below is the
+		  //  current default)
+		  // if 0 == just make app demand attention somehow
+		  // if 1 == just make app demand attention somehow
+		  // if 2 == activate window as below
+	       }
+	     timestamp = e->data.l[1];
+	     requestor_id e->data.l[2];
+#endif
+             if ((e_config->focus_setting == E_FOCUS_NEW_WINDOW) ||
+		 ((bd->parent) && 
+		  ((e_config->focus_setting == E_FOCUS_NEW_DIALOG) ||
+		   ((bd->parent->focused) && 
+		    (e_config->focus_setting == E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED)))))
+	       {
+		  if (bd->iconic)
+		    {
+		       if (e_config->clientlist_warp_to_iconified_desktop == 1)
+			 e_desk_show(bd->desk);
+		       
+		       if (!bd->lock_user_iconify)
+			 e_border_uniconify(bd);
+		    }
+		  if (!bd->iconic) e_desk_show(bd->desk);
+		  if (!bd->lock_user_stacking) e_border_raise(bd);
+		  if (!bd->lock_focus_out)
+		    {  
+		       if (e_config->focus_policy != E_FOCUS_CLICK)
+			 ecore_x_pointer_warp(bd->zone->container->win,
+					      bd->x + (bd->w / 2), bd->y + (bd->h / 2));
+		       e_border_focus_set(bd, 1, 1);
+		    }
+	       }
+	  }
+     }
+   
+   return 1;
+}
+
 static Evas_Bool
 _e_manager_frame_extents_free_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__,
 				 void *data, void *fdata __UNUSED__)
@@ -782,6 +862,23 @@ _e_manager_frame_extents_free_cb(const Evas_Hash *hash __UNUSED__, const char *k
    free(data);
    return 1;
 }
+
+static E_Manager *
+_e_manager_get_for_root(Ecore_X_Window root)
+{
+   Evas_List *l;
+   E_Manager *man;
+
+   if (!managers) return NULL;
+   for (l = managers; l; l = l->next)
+     {
+	man = l->data;
+	if (man->root == root)
+	  return man;
+     }
+   return managers->data;
+}
+
 
 #if 0 /* use later - maybe */
 static int _e_manager_cb_window_destroy(void *data, int ev_type, void *ev){return 1;}
@@ -796,5 +893,4 @@ static int _e_manager_cb_window_stack_request(void *data, int ev_type, void *ev)
 static int _e_manager_cb_window_property(void *data, int ev_type, void *ev){return 1;}
 static int _e_manager_cb_window_colormap(void *data, int ev_type, void *ev){return 1;}
 static int _e_manager_cb_window_shape(void *data, int ev_type, void *ev){return 1;}
-static int _e_manager_cb_client_message(void *data, int ev_type, void *ev){return 1;}
 #endif

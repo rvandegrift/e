@@ -19,16 +19,19 @@ static void _e_drag_show(E_Drag *drag);
 static void _e_drag_hide(E_Drag *drag);
 static void _e_drag_move(E_Drag *drag, int x, int y);
 static void _e_drag_coords_update(E_Drop_Handler *h, int *dx, int *dy, int *dw, int *dh);
-static int  _e_drag_win_matches(E_Drop_Handler *h, Ecore_X_Window win);
+static Ecore_X_Window _e_drag_win_get(E_Drop_Handler *h, int xdnd);
+static int  _e_drag_win_matches(E_Drop_Handler *h, Ecore_X_Window win, int xdnd);
 static void _e_drag_win_show(E_Drop_Handler *h);
 static void _e_drag_win_hide(E_Drop_Handler *h);
-static void _e_drag_update(Ecore_X_Window root, int x, int y);
+static int _e_drag_update(Ecore_X_Window root, int x, int y, Ecore_X_Atom action);
 static void _e_drag_end(Ecore_X_Window root, int x, int y);
 static void _e_drag_xdnd_end(Ecore_X_Window root, int x, int y);
 static void _e_drag_free(E_Drag *drag);
 
 static int  _e_dnd_cb_window_shape(void *data, int type, void *event);
 
+static int  _e_dnd_cb_key_down(void *data, int type, void *event);
+static int  _e_dnd_cb_key_up(void *data, int type, void *event);
 static int  _e_dnd_cb_mouse_up(void *data, int type, void *event);
 static int  _e_dnd_cb_mouse_move(void *data, int type, void *event);
 static int  _e_dnd_cb_event_dnd_enter(void *data, int type, void *event);
@@ -61,6 +64,9 @@ static Evas_List *_drag_list = NULL;
 static E_Drag    *_drag_current = NULL;
 
 static XDnd *_xdnd = NULL;
+
+static Evas_Hash *_drop_handlers_responsives;
+static Ecore_X_Atom _action;
 
 /* externally accessible functions */
 
@@ -98,6 +104,14 @@ e_dnd_init(void)
    _event_handlers = evas_list_append(_event_handlers,
 				      ecore_event_handler_add(ECORE_X_EVENT_SELECTION_NOTIFY,
 							      _e_dnd_cb_event_dnd_selection, NULL));
+   _event_handlers = evas_list_append(_event_handlers,
+                                      ecore_event_handler_add(ECORE_X_EVENT_KEY_DOWN,
+                                                              _e_dnd_cb_key_down, NULL));
+   _event_handlers = evas_list_append(_event_handlers,
+                                      ecore_event_handler_add(ECORE_X_EVENT_KEY_UP,
+                                                              _e_dnd_cb_key_up, NULL));
+
+   _action = ECORE_X_ATOM_XDND_ACTION_PRIVATE;
    return 1;
 }
 
@@ -127,6 +141,8 @@ e_dnd_shutdown(void)
    evas_hash_free(_drop_win_hash);
    evas_list_free(_drop_handlers);
    _drop_handlers = NULL;
+
+   evas_hash_free(_drop_handlers_responsives);
 
    return 1;
 }
@@ -197,6 +213,9 @@ e_drag_new(E_Container *container, int x, int y,
    ecore_x_window_shadow_tree_flush();
    
    _drag_win_root = drag->container->manager->root;
+
+   drag->cb.key_down = NULL;
+   drag->cb.key_up = NULL;
    
    return drag;
 }
@@ -222,7 +241,6 @@ e_drag_move(E_Drag *drag, int x, int y)
    drag->x = x;
    drag->y = y;
    drag->xy_update = 1;
-//   printf("DND MOVE %i %i\n", x, y);
 }
 
 EAPI void
@@ -251,7 +269,7 @@ e_drag_start(E_Drag *drag, int x, int y)
    _drag_win = ecore_x_window_input_new(drag->container->win, 
 					drag->container->x, drag->container->y,
 					drag->container->w, drag->container->h);
-   _drag_win_root= drag->container->manager->root;
+   _drag_win_root = drag->container->manager->root;
    ecore_x_window_show(_drag_win);
    if (!e_grabinput_get(_drag_win, 1, _drag_win))
      {
@@ -316,7 +334,7 @@ e_drag_xdnd_start(E_Drag *drag, int x, int y)
 
    drag->dx = x - drag->x;
    drag->dy = y - drag->y;
-
+   
    ecore_x_dnd_aware_set(_drag_win, 1);
    ecore_x_dnd_types_set(_drag_win, drag->types, drag->num_types);
    ecore_x_dnd_actions_set(_drag_win, actions, 5);
@@ -483,12 +501,53 @@ e_drag_idler_before(void)
 	  }
         if (drag->xy_update)
 	  {
-//	     printf("DND REAL MOVE\n");
 	     ecore_evas_move(drag->ecore_evas, drag->x, drag->y);
 	     e_container_shape_move(drag->shape, drag->x, drag->y);
 	     drag->xy_update = 0;
 	  }
      }
+}
+
+EAPI void
+e_drop_handler_responsive_set(E_Drop_Handler *handler)
+{
+   Ecore_X_Window hwin = _e_drag_win_get(handler, 1);
+   const char *wid = e_util_winid_str_get(hwin);
+
+   _drop_handlers_responsives = evas_hash_add(_drop_handlers_responsives, wid, (void *)handler);
+}
+
+EAPI int
+e_drop_handler_responsive_get(E_Drop_Handler *handler)
+{
+   Ecore_X_Window hwin = _e_drag_win_get(handler, 1);
+   const char *wid = e_util_winid_str_get(hwin);
+
+   return evas_hash_find(_drop_handlers_responsives, wid) == (void *)handler;
+}
+
+EAPI void
+e_drop_handler_action_set(Ecore_X_Atom action)
+{
+   _action = action;
+}
+
+EAPI Ecore_X_Atom
+e_drop_handler_action_get()
+{
+   return _action;
+}
+
+EAPI void
+e_drag_key_down_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_X_Event_Key_Down *e))
+{
+   drag->cb.key_down = func;
+}
+
+EAPI void
+e_drag_key_up_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_X_Event_Key_Up *e))
+{
+   drag->cb.key_up = func;
 }
 
 /* local subsystem functions */
@@ -526,7 +585,6 @@ _e_drag_move(E_Drag *drag, int x, int y)
    drag->x = x - drag->dx;
    drag->y = y - drag->dy;
    drag->xy_update = 1;
-//   printf("DND MOVE 2 %i %i\n", x, y);
 }
 
 static void
@@ -554,8 +612,10 @@ _e_drag_coords_update(E_Drop_Handler *h, int *dx, int *dy, int *dw, int *dh)
 	     py = ((E_Win *)(h->obj))->y;
 	     break;
 	   case E_ZONE_TYPE:
-	     px = ((E_Zone *)(h->obj))->x;
-	     py = ((E_Zone *)(h->obj))->y;
+// zone based drag targets are in a container thus their coords should be
+// screen-relative as containers just cover the screen
+//	     px = ((E_Zone *)(h->obj))->x;
+//	     py = ((E_Zone *)(h->obj))->y;
 	     break;
 	   case E_BORDER_TYPE:
 	     px = ((E_Border *)(h->obj))->x + ((E_Border *)(h->obj))->fx.x;
@@ -574,8 +634,8 @@ _e_drag_coords_update(E_Drop_Handler *h, int *dx, int *dy, int *dw, int *dh)
    *dy += py;
 }
 
-static int
-_e_drag_win_matches(E_Drop_Handler *h, Ecore_X_Window win)
+static Ecore_X_Window
+_e_drag_win_get(E_Drop_Handler *h, int xdnd)
 {
    Ecore_X_Window hwin = 0;
    
@@ -584,16 +644,21 @@ _e_drag_win_matches(E_Drop_Handler *h, Ecore_X_Window win)
 	switch (h->obj->type)
 	  {
 	   case E_GADCON_TYPE:
-	     hwin = e_gadcon_dnd_window_get((E_Gadcon *)(h->obj));
+	     if (xdnd) hwin = e_gadcon_xdnd_window_get((E_Gadcon *)(h->obj));
+	     else hwin = e_gadcon_dnd_window_get((E_Gadcon *)(h->obj));
 	     break;
 	   case E_GADCON_CLIENT_TYPE:
-	     hwin = e_gadcon_dnd_window_get(((E_Gadcon_Client *)(h->obj))->gadcon);
+	     if (xdnd) hwin = e_gadcon_xdnd_window_get(((E_Gadcon_Client *)(h->obj))->gadcon);
+	     else hwin = e_gadcon_dnd_window_get(((E_Gadcon_Client *)(h->obj))->gadcon);
 	     break;
 	   case E_WIN_TYPE:
 	     hwin = ((E_Win *)(h->obj))->evas_win;
 	     break;
 	   case E_ZONE_TYPE:
-	     hwin = ((E_Zone *)(h->obj))->container->event_win;
+	     /* Not quite sure about this, probably need to set up 
+	      * E_Container to pass DND events from event_win to bg_win. */
+	     // hwin = ((E_Zone *)(h->obj))->container->event_win;
+	     hwin = ((E_Zone *)(h->obj))->container->bg_win;
 	     break;
 	   case E_BORDER_TYPE:
 	     hwin = ((E_Border *)(h->obj))->event_win;
@@ -606,6 +671,15 @@ _e_drag_win_matches(E_Drop_Handler *h, Ecore_X_Window win)
 	     break;
 	  }
      }
+
+   return hwin;
+}
+
+static int
+_e_drag_win_matches(E_Drop_Handler *h, Ecore_X_Window win, int xdnd)
+{
+   Ecore_X_Window hwin = _e_drag_win_get(h, xdnd);
+
    if (win == hwin) return 1;
    return 0;
 }
@@ -637,15 +711,19 @@ _e_drag_win_show(E_Drop_Handler *h)
 static void
 _e_drag_win_hide(E_Drop_Handler *h)
 {
+   E_Shelf *shelf;
+
    if (h->obj)
      {
 	switch (h->obj->type)
 	  {
 	   case E_GADCON_TYPE:
-	      e_shelf_toggle(e_gadcon_shelf_get((E_Gadcon *)(h->obj)), 0);
+	      shelf = e_gadcon_shelf_get((E_Gadcon *)(h->obj));
+	      if (shelf) e_shelf_toggle(shelf, 0);
 	      break;
 	   case E_GADCON_CLIENT_TYPE:
-	      e_shelf_toggle(e_gadcon_shelf_get(((E_Gadcon_Client *)(h->obj))->gadcon), 0);
+	      shelf = e_gadcon_shelf_get(((E_Gadcon_Client *)(h->obj))->gadcon);
+	      if (shelf) e_shelf_toggle(shelf, 0);
 	      break;
 	     /* FIXME: add more types as needed */
 	   default:
@@ -654,8 +732,8 @@ _e_drag_win_hide(E_Drop_Handler *h)
      }
 }
 
-static void
-_e_drag_update(Ecore_X_Window root, int x, int y)
+static int
+_e_drag_update(Ecore_X_Window root, int x, int y, Ecore_X_Atom action)
 {
    Evas_List *l;
    E_Event_Dnd_Enter enter_ev;
@@ -663,25 +741,32 @@ _e_drag_update(Ecore_X_Window root, int x, int y)
    E_Event_Dnd_Leave leave_ev;
    int dx, dy, dw, dh;
    Ecore_X_Window win, ignore_win[2];
+   int responsive = 0;
+   static struct 
+     {
+	Ecore_X_Window root, win;
+     } cache = {0, 0};
 
 //   double t1 = ecore_time_get(); ////
-   if (_drag_current)
+   if (_drag_current && !_xdnd)
      {
 	ignore_win[0] = _drag_current->evas_win;
 	ignore_win[1] = _drag_win;
 	/* FIXME: this is nasty. every x mouse event we go back to x and do
 	 * a whole bunch of round-trips narrowing down the toplevel window
 	 * which contains the mouse */
-	win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, ignore_win, 2);
+	if (cache.win != root)
+	  {
+	     /* A little bit of caching to avoid trips to X. */
+	     cache.win = root;
+	     cache.root = ecore_x_window_root_get(root);
+	  }
+	win = ecore_x_window_shadow_tree_at_xy_with_skip_get(cache.root, x, y, ignore_win, 2);
 //	win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
      }
    else
-     /* FIXME: this is nasty. every x mouse event we go back to x and do
-      * a whole bunch of round-trips narrowing down the toplevel window
-      * which contains the mouse */
-     win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, NULL, 0);
-//     win = ecore_x_window_at_xy_with_skip_get(x, y, NULL, 0);
-   
+     win = root;
+
    if (_drag_current)
      {
 	_e_drag_show(_drag_current);
@@ -700,12 +785,18 @@ _e_drag_update(Ecore_X_Window root, int x, int y)
 	     enter_ev.x = x - dx;
 	     enter_ev.y = y - dy;
 	     enter_ev.data = NULL;
+	     enter_ev.action = action;
 	     move_ev.x = x - dx;
 	     move_ev.y = y - dy;
+	     move_ev.action = action;
 	     leave_ev.x = x - dx;
 	     leave_ev.y = y - dy;
-	     if (E_INSIDE(x, y, dx, dy, dw, dh) && _e_drag_win_matches(h, win))
+	     
+	     if (E_INSIDE(x, y, dx, dy, dw, dh) && 
+		 _e_drag_win_matches(h, win, 0))
 	       {
+		  if (e_drop_handler_responsive_get(h)) responsive = 1;
+
 		  if (!h->entered)
 		    {
 		       _e_drag_win_show(h);
@@ -748,12 +839,16 @@ _e_drag_update(Ecore_X_Window root, int x, int y)
 	     _e_drag_coords_update(h, &dx, &dy, &dw, &dh);
 	     enter_ev.x = x - dx;
 	     enter_ev.y = y - dy;
+	     enter_ev.action = action;
 	     move_ev.x = x - dx;
 	     move_ev.y = y - dy;
+	     move_ev.action = action;
 	     leave_ev.x = x - dx;
 	     leave_ev.y = y - dy;
-	     if (E_INSIDE(x, y, dx, dy, dw, dh) && _e_drag_win_matches(h, win))
+	     if (E_INSIDE(x, y, dx, dy, dw, dh) && _e_drag_win_matches(h, win, 1))
 	       {
+		  if(e_drop_handler_responsive_get(h)) responsive = 1;
+
 		  if (!h->entered)
 		    {
 		       if (h->cb.enter)
@@ -774,6 +869,8 @@ _e_drag_update(Ecore_X_Window root, int x, int y)
 	       }
 	  }
      }
+
+   return responsive;
 //   double t2 = ecore_time_get() - t1; ////
 //   printf("DND UPDATE %3.7f\n", t2); ////
 }
@@ -837,7 +934,7 @@ _e_drag_end(Ecore_X_Window root, int x, int y)
 	     _e_drag_coords_update(h, &dx, &dy, &dw, &dh);
 	     ev.x = x - dx;
 	     ev.y = y - dy;
-	     if ((_e_drag_win_matches(h, win)) &&
+	     if ((_e_drag_win_matches(h, win, 0)) &&
 		 ((h->cb.drop) &&
 		  (E_INSIDE(x, y, dx, dy, dw, dh))))
 	       {
@@ -886,24 +983,13 @@ _e_drag_end(Ecore_X_Window root, int x, int y)
 }
 
 static void
-_e_drag_xdnd_end(Ecore_X_Window root, int x, int y)
+_e_drag_xdnd_end(Ecore_X_Window win, int x, int y)
 {
    Evas_List *l;
    E_Event_Dnd_Drop ev;
    int dx, dy, dw, dh;
-   Ecore_X_Window win, ignore_win[2];
 
    if (!_xdnd) return;
-   if (_drag_current)
-     {
-	ignore_win[0] = _drag_current->evas_win;
-	ignore_win[1] = _drag_win;
-	win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, ignore_win, 2);
-//	win = ecore_x_window_at_xy_with_skip_get(x, y, ignore_win, 2);
-     }
-   else
-     win = ecore_x_window_shadow_tree_at_xy_with_skip_get(root, x, y, NULL, 0);
-//     win = ecore_x_window_at_xy_with_skip_get(x, y, NULL, 0);
 
    ev.data = _xdnd->data;
 
@@ -921,7 +1007,7 @@ _e_drag_xdnd_end(Ecore_X_Window root, int x, int y)
 	     _e_drag_coords_update(h, &dx, &dy, &dw, &dh);
 	     ev.x = x - dx;
 	     ev.y = y - dy;
-	     if (_e_drag_win_matches(h, win) && h->cb.drop 
+	     if (_e_drag_win_matches(h, win, 1) && h->cb.drop 
 		 && E_INSIDE(x, y, dx, dy, dw, dh))
 	       {
 		  h->cb.drop(h->cb.data, h->active_type, &ev);
@@ -998,6 +1084,38 @@ _e_dnd_cb_window_shape(void *data, int ev_type, void *ev)
 }
 
 static int
+_e_dnd_cb_key_down(void *data, int type, void *event)
+{
+   Ecore_X_Event_Key_Down *ev;
+
+   ev = event;
+   if (ev->win != _drag_win) return 1;
+
+   if (!_drag_current) return 1;
+
+   if (_drag_current->cb.key_down)
+     _drag_current->cb.key_down(_drag_current, ev);
+   
+   return 1;
+}
+
+static int
+_e_dnd_cb_key_up(void *data, int type, void *event)
+{
+   Ecore_X_Event_Key_Up *ev;
+
+   ev = event;
+   if (ev->win != _drag_win) return 1;
+
+   if (!_drag_current) return 1;
+
+   if (_drag_current->cb.key_up)
+     _drag_current->cb.key_up(_drag_current, ev);
+   
+   return 1;
+}
+
+static int
 _e_dnd_cb_mouse_up(void *data, int type, void *event)
 {
    Ecore_X_Event_Mouse_Button_Up *ev;
@@ -1018,7 +1136,7 @@ _e_dnd_cb_mouse_move(void *data, int type, void *event)
    ev = event;
    if (ev->win != _drag_win) return 1;
 
-   _e_drag_update(_drag_win_root, ev->x, ev->y);
+   if(!_xdnd) _e_drag_update(_drag_win_root, ev->x, ev->y, ECORE_X_ATOM_XDND_ACTION_PRIVATE);
    
    return 1;
 }
@@ -1098,7 +1216,7 @@ static int
 _e_dnd_cb_event_dnd_leave(void *data, int type, void *event)
 {
    Ecore_X_Event_Xdnd_Leave *ev;
-   E_Event_Dnd_Leave *leave_ev;
+   E_Event_Dnd_Leave leave_ev;
    const char *id;
    Evas_List *l;
 
@@ -1106,12 +1224,9 @@ _e_dnd_cb_event_dnd_leave(void *data, int type, void *event)
 
    id = e_util_winid_str_get(ev->win);
    if (!evas_hash_find(_drop_win_hash, id)) return 1;
-   printf("Xdnd leave\n");
 
-   leave_ev = E_NEW(E_Event_Dnd_Leave, 1);
-   /* FIXME: We don't need x and y in leave */
-   leave_ev->x = 0;
-   leave_ev->y = 0;
+   leave_ev.x = 0;
+   leave_ev.y = 0;
 
    if (_xdnd)
      {
@@ -1127,7 +1242,7 @@ _e_dnd_cb_event_dnd_leave(void *data, int type, void *event)
 	     if (h->entered)
 	       {
 		  if (h->cb.leave)
-		    h->cb.leave(h->cb.data, h->active_type, leave_ev);
+		    h->cb.leave(h->cb.data, h->active_type, &leave_ev);
 		  h->entered = 0;
 	       }
 	  }
@@ -1136,7 +1251,6 @@ _e_dnd_cb_event_dnd_leave(void *data, int type, void *event)
 	free(_xdnd);
 	_xdnd = NULL;
      }
-   free(leave_ev);
    return 1;
 }
 
@@ -1145,10 +1259,12 @@ _e_dnd_cb_event_dnd_position(void *data, int type, void *event)
 {
    Ecore_X_Event_Xdnd_Position *ev;
    Ecore_X_Rectangle rect;
+   Ecore_X_Action action;
    const char *id;
    Evas_List *l;
 
    int active;
+   int responsive;
 
    ev = event;
 //   double t1 = ecore_time_get(); ////
@@ -1165,6 +1281,8 @@ _e_dnd_cb_event_dnd_position(void *data, int type, void *event)
    rect.width = 0;
    rect.height = 0;
 
+   action = ev->action;
+
    active = 0;
    for (l = _drop_handlers; l; l = l->next)
      {
@@ -1172,7 +1290,10 @@ _e_dnd_cb_event_dnd_position(void *data, int type, void *event)
 
 	h = l->data;
 	if (h->active)
-	  active = 1;
+	  {
+	     active = 1;
+	     break;
+	  }
      }
    if (!active)
      {
@@ -1180,8 +1301,15 @@ _e_dnd_cb_event_dnd_position(void *data, int type, void *event)
      }
    else
      {
-	_e_drag_update(_drag_win_root, ev->position.x, ev->position.y);
-	ecore_x_dnd_send_status(1, 0, rect, ECORE_X_DND_ACTION_PRIVATE);
+	responsive = _e_drag_update(ev->win, ev->position.x, ev->position.y, ev->action);
+	if(responsive)
+	  {
+	     ecore_x_dnd_send_status(1, 0, rect, _action);
+	  }
+	else
+	  {
+	     ecore_x_dnd_send_status(1, 0, rect, ECORE_X_ATOM_XDND_ACTION_PRIVATE);
+	  }
      }
 //   double t2 = ecore_time_get() - t1; ////
 //   printf("DND POS EV 2 %3.7f\n", t2); ////
@@ -1205,7 +1333,6 @@ _e_dnd_cb_event_dnd_finished(void *data, int type, void *event)
    Ecore_X_Event_Xdnd_Finished *ev;
 
    ev = event;
-   printf("Xdnd finished\n");
 
    if (!ev->completed)
      return 1;
@@ -1232,7 +1359,6 @@ _e_dnd_cb_event_dnd_drop(void *data, int type, void *event)
    ev = event;
    id = e_util_winid_str_get(ev->win);
    if (!evas_hash_find(_drop_win_hash, id)) return 1;
-   printf("Xdnd drop %x %s\n", ev->win, _xdnd->type);
 
    ecore_x_selection_xdnd_request(ev->win, _xdnd->type);
 
@@ -1253,7 +1379,6 @@ _e_dnd_cb_event_dnd_selection(void *data, int type, void *event)
    id = e_util_winid_str_get(ev->win);
    if (!evas_hash_find(_drop_win_hash, id)) return 1;
    if (ev->selection != ECORE_X_SELECTION_XDND) return 1;
-   printf("Xdnd selection\n");
 
    if (!strcmp("text/uri-list", _xdnd->type))
      {
@@ -1262,10 +1387,9 @@ _e_dnd_cb_event_dnd_selection(void *data, int type, void *event)
 
 	files = ev->data;
 	for (i = 0; i < files->num_files; i++)
-	  l = evas_list_append(l, files->files[i]), printf("file: %s\n", files->files[i]);
+	  l = evas_list_append(l, files->files[i]);
 	_xdnd->data = l;
-	printf("_drag_win_root = %x\n", _drag_win_root);
-	_e_drag_xdnd_end(_drag_win_root, _xdnd->x, _xdnd->y);
+	_e_drag_xdnd_end(ev->win, _xdnd->x, _xdnd->y);
 	evas_list_free(l);
      }
    else if (!strcmp("text/x-moz-url", _xdnd->type))
@@ -1298,18 +1422,18 @@ _e_dnd_cb_event_dnd_selection(void *data, int type, void *event)
 	       }
 	       */
 	  }
-	printf("\n");
+//	printf("\n");
 	file[i] = '\0';
-	printf("file: %d \"%s\"\n", i, file);
+//	printf("file: %d \"%s\"\n", i, file);
 	l = evas_list_append(l, file);
 
 	_xdnd->data = l;
-	_e_drag_xdnd_end(_drag_win_root, _xdnd->x, _xdnd->y);
+	_e_drag_xdnd_end(ev->win, _xdnd->x, _xdnd->y);
 	evas_list_free(l);
      }
    else
      {
-	_e_drag_xdnd_end(_drag_win_root, _xdnd->x, _xdnd->y);
+	_e_drag_xdnd_end(ev->win, _xdnd->x, _xdnd->y);
      }
    /* FIXME: When to execute this? It could be executed in ecore_x after getting
     * the drop property... */

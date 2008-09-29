@@ -59,7 +59,6 @@ e_bindings_init(void)
 	  {
 	     char params[32];
 	     snprintf(params, sizeof(params), "resize_%s", eb->params);
-	     printf("########## ADD mouse,in + mouse,out\n");
 	     e_bindings_signal_add(eb->context, "mouse,in", eb->source, eb->modifiers,
 				   eb->any_mod, "pointer_resize_push", params);
 	     e_bindings_signal_add(eb->context, "mouse,out", eb->source, eb->modifiers,
@@ -322,6 +321,22 @@ e_bindings_key_add(E_Binding_Context ctxt, const char *key, E_Binding_Modifier m
    if (action) bind->action = evas_stringshare_add(action);
    if (params) bind->params = evas_stringshare_add(params);
    key_bindings = evas_list_append(key_bindings, bind);
+}
+
+EAPI E_Binding_Key *
+e_bindings_key_get(const char *action)
+{
+   Evas_List *l;
+   
+   for (l = key_bindings; l; l = l->next)
+     {
+	E_Binding_Key *bind;
+	
+	bind = l->data;
+	if (bind->action && action && !strcmp(action, bind->action))
+	  return bind;
+     }
+   return NULL;
 }
 
 EAPI void

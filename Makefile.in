@@ -98,6 +98,8 @@ distcleancheck_listfiles = find . -type f -print
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALL_LINGUAS = @ALL_LINGUAS@
+ALSA_CFLAGS = @ALSA_CFLAGS@
+ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
@@ -125,9 +127,13 @@ ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+ECORE_IMF_CFLAGS = @ECORE_IMF_CFLAGS@
+ECORE_IMF_LIBS = @ECORE_IMF_LIBS@
 ECORE_TXT_CFLAGS = @ECORE_TXT_CFLAGS@
 ECORE_TXT_LIBS = @ECORE_TXT_LIBS@
 EDJE_DEF = @EDJE_DEF@
+EET_CFLAGS = @EET_CFLAGS@
+EET_LIBS = @EET_LIBS@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 E_CFLAGS = @E_CFLAGS@
@@ -140,8 +146,8 @@ F77 = @F77@
 FFLAGS = @FFLAGS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
-HAVE_BATTERY_FALSE = @HAVE_BATTERY_FALSE@
-HAVE_BATTERY_TRUE = @HAVE_BATTERY_TRUE@
+HAVE_ALSA_FALSE = @HAVE_ALSA_FALSE@
+HAVE_ALSA_TRUE = @HAVE_ALSA_TRUE@
 HAVE_EDBUS_FALSE = @HAVE_EDBUS_FALSE@
 HAVE_EDBUS_TRUE = @HAVE_EDBUS_TRUE@
 HAVE_TEMPERATURE_FALSE = @HAVE_TEMPERATURE_FALSE@
@@ -186,6 +192,8 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SOUND_CFLAGS = @SOUND_CFLAGS@
+SOUND_LDFLAGS = @SOUND_LDFLAGS@
 STRIP = @STRIP@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
@@ -225,8 +233,10 @@ dlopen_libs = @dlopen_libs@
 docdir = @docdir@
 dvidir = @dvidir@
 e_cflags = @e_cflags@
+e_configflags = @e_configflags@
 e_libs = @e_libs@
 edje_cc = @edje_cc@
+eet_eet = @eet_eet@
 exec_prefix = @exec_prefix@
 fnmatch_libs = @fnmatch_libs@
 host = @host@
@@ -249,13 +259,14 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+requirements_e = @requirements_e@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 x_cflags = @x_cflags@
 x_libs = @x_libs@
-SUBDIRS = src data doc po
+SUBDIRS = src data doc po config
 MAINTAINERCLEANFILES = Makefile.in aclocal.m4 config.guess \
                        config.h.in config.sub configure install-sh \
 		       ltconfig ltmain.sh missing mkinstalldirs \
@@ -530,7 +541,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/data/xsession $(distdir)/m4 $(distdir)/po $(distdir)/src/modules/battery $(distdir)/src/modules/clock $(distdir)/src/modules/conf $(distdir)/src/modules/conf_applications $(distdir)/src/modules/conf_borders $(distdir)/src/modules/conf_clientlist $(distdir)/src/modules/conf_colors $(distdir)/src/modules/conf_desk $(distdir)/src/modules/conf_desklock $(distdir)/src/modules/conf_desks $(distdir)/src/modules/conf_dialogs $(distdir)/src/modules/conf_display $(distdir)/src/modules/conf_dpms $(distdir)/src/modules/conf_engine $(distdir)/src/modules/conf_exebuf $(distdir)/src/modules/conf_fonts $(distdir)/src/modules/conf_icon_theme $(distdir)/src/modules/conf_imc $(distdir)/src/modules/conf_interaction $(distdir)/src/modules/conf_intl $(distdir)/src/modules/conf_keybindings $(distdir)/src/modules/conf_menus $(distdir)/src/modules/conf_mime $(distdir)/src/modules/conf_mouse $(distdir)/src/modules/conf_mouse_cursor $(distdir)/src/modules/conf_mousebindings $(distdir)/src/modules/conf_paths $(distdir)/src/modules/conf_performance $(distdir)/src/modules/conf_profiles $(distdir)/src/modules/conf_screensaver $(distdir)/src/modules/conf_shelves $(distdir)/src/modules/conf_startup $(distdir)/src/modules/conf_theme $(distdir)/src/modules/conf_transitions $(distdir)/src/modules/conf_wallpaper $(distdir)/src/modules/conf_window_display $(distdir)/src/modules/conf_window_focus $(distdir)/src/modules/conf_window_manipulation $(distdir)/src/modules/conf_window_remembers $(distdir)/src/modules/conf_winlist $(distdir)/src/modules/cpufreq $(distdir)/src/modules/dropshadow $(distdir)/src/modules/exebuf $(distdir)/src/modules/fileman $(distdir)/src/modules/ibar $(distdir)/src/modules/ibox $(distdir)/src/modules/msgbus_lang $(distdir)/src/modules/pager $(distdir)/src/modules/start $(distdir)/src/modules/temperature $(distdir)/src/modules/winlist $(distdir)/src/modules/wizard
+	$(mkdir_p) $(distdir)/. $(distdir)/data/xsession $(distdir)/m4 $(distdir)/po $(distdir)/src/modules/battery $(distdir)/src/modules/clock $(distdir)/src/modules/conf $(distdir)/src/modules/conf_applications $(distdir)/src/modules/conf_borders $(distdir)/src/modules/conf_clientlist $(distdir)/src/modules/conf_colors $(distdir)/src/modules/conf_desk $(distdir)/src/modules/conf_desklock $(distdir)/src/modules/conf_desks $(distdir)/src/modules/conf_dialogs $(distdir)/src/modules/conf_display $(distdir)/src/modules/conf_dpms $(distdir)/src/modules/conf_engine $(distdir)/src/modules/conf_exebuf $(distdir)/src/modules/conf_fonts $(distdir)/src/modules/conf_icon_theme $(distdir)/src/modules/conf_imc $(distdir)/src/modules/conf_interaction $(distdir)/src/modules/conf_intl $(distdir)/src/modules/conf_keybindings $(distdir)/src/modules/conf_menus $(distdir)/src/modules/conf_mime $(distdir)/src/modules/conf_mouse $(distdir)/src/modules/conf_mouse_cursor $(distdir)/src/modules/conf_mousebindings $(distdir)/src/modules/conf_paths $(distdir)/src/modules/conf_performance $(distdir)/src/modules/conf_profiles $(distdir)/src/modules/conf_scale $(distdir)/src/modules/conf_screensaver $(distdir)/src/modules/conf_shelves $(distdir)/src/modules/conf_startup $(distdir)/src/modules/conf_theme $(distdir)/src/modules/conf_transitions $(distdir)/src/modules/conf_wallpaper $(distdir)/src/modules/conf_window_display $(distdir)/src/modules/conf_window_focus $(distdir)/src/modules/conf_window_manipulation $(distdir)/src/modules/conf_window_remembers $(distdir)/src/modules/conf_winlist $(distdir)/src/modules/connman $(distdir)/src/modules/cpufreq $(distdir)/src/modules/dropshadow $(distdir)/src/modules/exebuf $(distdir)/src/modules/fileman $(distdir)/src/modules/gadman $(distdir)/src/modules/ibar $(distdir)/src/modules/ibox $(distdir)/src/modules/mixer $(distdir)/src/modules/msgbus_lang $(distdir)/src/modules/pager $(distdir)/src/modules/start $(distdir)/src/modules/temperature $(distdir)/src/modules/winlist $(distdir)/src/modules/wizard
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

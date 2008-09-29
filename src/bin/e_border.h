@@ -81,6 +81,7 @@ typedef enum _E_Window_Placement
 typedef enum _E_Border_Hook_Point
 {
    E_BORDER_HOOK_EVAL_PRE_FETCH,
+   E_BORDER_HOOK_EVAL_PRE_POST_FETCH,
    E_BORDER_HOOK_EVAL_POST_FETCH,
    E_BORDER_HOOK_EVAL_PRE_BORDER_ASSIGN,
    E_BORDER_HOOK_EVAL_POST_BORDER_ASSIGN,
@@ -347,6 +348,14 @@ struct _E_Border
 	 unsigned char soft_menu : 1;
 	 unsigned char soft_menus : 1;
       } qtopia;
+      struct {
+	 struct {
+	    unsigned char state : 1;
+	    unsigned char vkbd : 1;
+	 } fetch;
+	 Ecore_X_Virtual_Keyboard_State state;
+	 unsigned char vkbd : 1;
+      } vkbd;
 
       Ecore_X_Window_Attributes initial_attributes;
    } client;
@@ -407,7 +416,10 @@ struct _E_Border
    unsigned int    lock_focus_in : 1; /*DONE*/
    unsigned int    lock_focus_out : 1; /*DONE*/
    unsigned int    lock_life : 1; /*DONE*/
+
    unsigned int    internal : 1;
+   unsigned int    internal_no_remember : 1;
+   unsigned int    stolen : 1;
    
    Ecore_Evas     *internal_ecore_evas;
    
@@ -452,8 +464,6 @@ struct _E_Border
    E_Config_Dialog *border_remember_dialog;
    E_Config_Dialog *border_border_dialog;
    E_Dialog *border_prop_dialog;
-   E_Menu *border_stacking_menu;
-   E_Menu *border_maximize_menu;
    Evas_List *pending_move_resize;
    
    struct {
@@ -579,6 +589,7 @@ EAPI void      e_border_unstick(E_Border *bd);
 EAPI void      e_border_pinned_set(E_Border *bd, int set);
 
 EAPI E_Border *e_border_find_by_client_window(Ecore_X_Window win);
+EAPI E_Border *e_border_find_all_by_client_window(Ecore_X_Window win);
 EAPI E_Border *e_border_find_by_frame_window(Ecore_X_Window win);
 EAPI E_Border *e_border_find_by_window(Ecore_X_Window win);
 EAPI E_Border *e_border_find_by_alarm(Ecore_X_Sync_Alarm alarm);
@@ -587,6 +598,9 @@ EAPI E_Border *e_border_focused_get(void);
 EAPI void      e_border_idler_before(void);
 
 EAPI Evas_List *e_border_client_list(void);
+
+EAPI void e_border_act_move_keyboard(E_Border *bd);
+EAPI void e_border_act_resize_keyboard(E_Border *bd);
 
 EAPI void e_border_act_move_begin(E_Border *bd, Ecore_X_Event_Mouse_Button_Down *ev);
 EAPI void e_border_act_move_end(E_Border *bd, Ecore_X_Event_Mouse_Button_Up *ev);
