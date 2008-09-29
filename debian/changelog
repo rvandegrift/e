@@ -1,3 +1,18 @@
+e17 (0.16.999.050-1) UNRELEASED; urgency=low
+
+  * New upstream version
+  * Bump Standards-Version to 3.8.0
+  * patch 01_install_internal-use_binaries_in_usr_lib_enlightenment.diff :
+    - actually introduced in the initial revision, installs some binaries which
+     are only for internal use in usr/lib/enligthenment instead of /usr/bin
+  * Version B-D on libecore, libevas, libedje and libeet as e17 is using
+    symbols from the new versions.
+  * Bump B-D on debhelper to 6.0.7 to be sure to get dh_lintian
+  * Build-Depend on libeet-bin, now necessary
+  * Fix typo in README.Debian. (Closes: #495185)
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Mon, 29 Sep 2008 22:02:51 +0200
+
 e17 (0.16.999.043-1) experimental; urgency=low
 
   [ Jan Lübbe ]

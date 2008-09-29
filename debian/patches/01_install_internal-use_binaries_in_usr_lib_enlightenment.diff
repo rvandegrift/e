@@ -13,13 +13,13 @@ diff --git a/src/bin/e_fm.c b/src/bin/e_fm.c
 diff --git a/src/bin/e_init.c b/src/bin/e_init.c
 --- a/src/bin/e_init.c
 +++ b/src/bin/e_init.c
-@@ -79,8 +79,8 @@ e_init_show(void)
+@@ -79,8 +79,8 @@
     if (version) ver = strdup(e_util_filename_escape(version));
     else ver = strdup("XvX");
  
--   snprintf(buf, sizeof(buf), "%s/enlightenment_init %s %i %i %s %s",
+-   snprintf(buf, sizeof(buf), "%s/enlightenment_init \'%s\' \'%i\' \'%i\' \'%s\' \'%s\'",
 -	    e_prefix_bin_get(),
-+   snprintf(buf, sizeof(buf), "%s/enlightenment/enlightenment_init %s %i %i %s %s",
++   snprintf(buf, sizeof(buf), "%s/enlightenment/enlightenment_init \'%s\' \'%i\' \'%i\' \'%s\' \'%s\'",
 +	    e_prefix_lib_get(),
  	    theme,
  	    e_canvas_engine_decide(e_config->evas_engine_init),
