@@ -16,13 +16,13 @@ struct _CFModule
 
 struct _CFType 
 {
-   const char *key, *name;
+   const char *key, *name, *icon;
    Evas_Hash *modules;
 };
 
 struct _CFTypes 
 {
-   const char *key, *name;
+   const char *key, *name, *icon;
 };
 
 struct _E_Config_Dialog_Data 
@@ -38,12 +38,12 @@ struct _E_Config_Dialog_Data
 */
 const CFTypes _types[] = 
 {
-     {"appearance", N_("Appearance")},
-     {"config",     N_("Configuration")},
-     {"fileman",    N_("File Manager")},
-     {"shelf",      N_("Shelf")},
-     {"system",     N_("System")},
-     {NULL, NULL}
+     {"appearance", N_("Appearance"),    "enlightenment/appearance"},
+     {"config",     N_("Settings"),      "enlightenment/configuration"},
+     {"fileman",    N_("File Manager"),  "enlightenment/fileman"},
+     {"shelf",      N_("Shelf"),         "enlightenment/shelf"},
+     {"system",     N_("System"),        "enlightenment/system"},
+     {NULL, NULL, NULL}
 };
 
 /* local function protos */
@@ -56,36 +56,50 @@ static Evas_Object *_basic_create         (E_Config_Dialog *cfd, Evas *evas,
 static void         _fill_type_hash       (void);
 static void         _load_modules         (const char *dir);
 static void         _fill_list            (Evas_Object *obj, int enabled);
+static Evas_Bool    _fill_list_types_avail(const Evas_Hash *hash __UNUSED__,
+					   const void *key __UNUSED__,
+					   void *data, void *fdata);
+static Evas_Bool    _fill_list_types_load (const Evas_Hash *hash __UNUSED__,
+					   const void *key __UNUSED__,
+					   void *data, void *fdata);
+static Evas_Bool    _fill_list_types           (Evas_Object *obj, CFType *cft,
+					   int enabled);
 static Evas_Bool    _types_hash_cb_free   (const Evas_Hash *hash __UNUSED__, 
-					   const char *key __UNUSED__, 
+					   const void *key __UNUSED__, 
 					   void *data, void *fdata __UNUSED__);
 static Evas_Bool    _mod_hash_cb_free     (const Evas_Hash *hash __UNUSED__, 
-					   const char *key __UNUSED__, 
+					   const void *key __UNUSED__, 
 					   void *data, void *fdata __UNUSED__);
 static Evas_Bool    _mod_hash_avail_list  (const Evas_Hash *hash __UNUSED__, 
-					   const char *key __UNUSED__, 
+					   const void *key __UNUSED__, 
 					   void *data, void *fdata);
 static Evas_Bool    _mod_hash_load_list   (const Evas_Hash *hash __UNUSED__, 
-					   const char *key __UNUSED__, 
+					   const void *key __UNUSED__, 
 					   void *data, void *fdata);
-static int          _mod_list_sort        (void *data1, void *data2);
-static void         _list_widget_load     (Evas_Object *obj, Evas_List *list);
+static int          _mod_list_sort        (const void *data1, const void *data2);
+static void         _list_widget_load     (Evas_Object *obj, Eina_List *list);
 static void         _avail_list_cb_change (void *data, Evas_Object *obj);
 static void         _load_list_cb_change  (void *data, Evas_Object *obj);
 static void         _unselect_all_modules (void);
 static Evas_Bool    _mod_hash_unselect    (const Evas_Hash *hash __UNUSED__, 
-					   const char *key __UNUSED__, 
+					   const void *key __UNUSED__, 
 					   void *data, void *fdata __UNUSED__);
 static void         _select_all_modules   (Evas_Object *obj, void *data);
 static void         _btn_cb_unload        (void *data, void *data2);
 static void         _btn_cb_load          (void *data, void *data2);
 static Evas_Bool    _mod_hash_load        (const Evas_Hash *hash __UNUSED__, 
-					   const char *key __UNUSED__, 
+					   const void *key __UNUSED__, 
 					   void *data, void *fdata __UNUSED__);
 static Evas_Bool    _mod_hash_unload      (const Evas_Hash *hash __UNUSED__, 
-					   const char *key __UNUSED__, 
+					   const void *key __UNUSED__, 
 					   void *data, void *fdata __UNUSED__);
 static void         _enable_modules       (int enable);
+static Evas_Bool    _enable_modules_types_enable (const Evas_Hash *hash __UNUSED__,
+						  const void *key __UNUSED__,
+						  void *data, void *fdata);
+static Evas_Bool    _enable_modules_types_disable (const Evas_Hash *hash __UNUSED__,
+						   const void *key __UNUSED__,
+						   void *data, void *fdata);
 
 /* local variables */
 static Evas_Hash *types_hash = NULL;
@@ -128,7 +142,7 @@ _create_data(E_Config_Dialog *cfd)
 static void 
 _fill_data(E_Config_Dialog_Data *cfdata) 
 {
-   Evas_List *mdirs = NULL, *l = NULL;
+   Eina_List *mdirs = NULL, *l = NULL;
 
    if (!cfdata) return;
 
@@ -171,7 +185,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_on_change_hook_set(ol, _avail_list_cb_change, cfdata);
    _fill_list(ol, 0);
    e_widget_frametable_object_append(of, ol, 0, 0, 1, 1, 1, 1, 1, 1);
-   ol = e_widget_button_add(evas, _("Load Module"), NULL, 
+   ol = e_widget_button_add(evas, _("Load Module"), "widget/add", 
 			    _btn_cb_load, cfdata, NULL);
    cfdata->b_load = ol;
    e_widget_disabled_set(ol, 1);
@@ -185,7 +199,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_on_change_hook_set(ol, _load_list_cb_change, cfdata);
    _fill_list(ol, 1);
    e_widget_frametable_object_append(of, ol, 0, 0, 1, 1, 1, 1, 1, 1);
-   ol = e_widget_button_add(evas, _("Unload Module"), NULL, 
+   ol = e_widget_button_add(evas, _("Unload Module"), "widget/del", 
 			    _btn_cb_unload, cfdata, NULL);
    cfdata->b_unload = ol;
    e_widget_disabled_set(ol, 1);
@@ -216,8 +230,9 @@ _fill_type_hash(void)
 
 	cft = E_NEW(CFType, 1);
 	if (!cft) continue;
-	cft->key = evas_stringshare_add(_types[i].key);
-	cft->name = evas_stringshare_add(_types[i].name);
+	cft->key = eina_stringshare_add(_types[i].key);
+	cft->name = eina_stringshare_add(_types[i].name);
+	cft->icon = eina_stringshare_add(_types[i].icon);
 	types_hash = evas_hash_direct_add(types_hash, cft->key, cft);
      }
 }
@@ -249,30 +264,45 @@ _load_modules(const char *dir)
 	/* does the ModuleType exist in desktop? */
 	if (desk->x) 
 	  type = ecore_hash_get(desk->x, "X-Enlightenment-ModuleType");
-	if (!type) type = evas_stringshare_add("shelf");
+	if (!type) type = eina_stringshare_add("shelf");
 
 	/* do we have this module already in it's type hash ? */
 	cft = evas_hash_find(types_hash, type);
-	if ((cft) && (cft->modules))
+	if (cft)
 	  {
-	     if (evas_hash_find(cft->modules, mod)) 
+	     if (cft->modules && evas_hash_find(cft->modules, mod)) 
 	       {
-		  if ((!desk->x) && (type)) evas_stringshare_del(type);
+		  if ((!desk->x) && (type)) eina_stringshare_del(type);
 		  if (desk) efreet_desktop_free(desk);
 		  continue;
 	       }
+	  }
+	else
+	  {
+	     char buf[1024];
+
+	     cft = E_NEW(CFType, 1);
+	     if (!cft) continue;
+	     cft->key = eina_stringshare_add(type);
+	     snprintf(buf, sizeof(buf), "%s", type);
+	     *buf = toupper(*buf);
+	     cft->name = eina_stringshare_add(buf);
+	     snprintf(buf, sizeof(buf), "enlightenment/%s", type);
+	     if (e_util_edje_icon_check(buf))
+	       cft->icon = eina_stringshare_add(buf);
+	     types_hash = evas_hash_direct_add(types_hash, cft->key, cft);
 	  }
 
 	/* module not in it's type hash, add */
 	cfm = E_NEW(CFModule, 1);
 	if (!cfm) continue;
-	cfm->short_name = evas_stringshare_add(mod);
-	if (desk->name) cfm->name = evas_stringshare_add(desk->name);
-	if (desk->icon) cfm->icon = evas_stringshare_add(desk->icon);
-	if (desk->comment) cfm->comment = evas_stringshare_add(desk->comment);
+	cfm->short_name = eina_stringshare_add(mod);
+	if (desk->name) cfm->name = eina_stringshare_add(desk->name);
+	if (desk->icon) cfm->icon = eina_stringshare_add(desk->icon);
+	if (desk->comment) cfm->comment = eina_stringshare_add(desk->comment);
 	if (desk->orig_path) 
-	  cfm->orig_path = evas_stringshare_add(desk->orig_path);
-	if ((!desk->x) && (type)) evas_stringshare_del(type);
+	  cfm->orig_path = eina_stringshare_add(desk->orig_path);
+	if ((!desk->x) && (type)) eina_stringshare_del(type);
 	efreet_desktop_free(desk);
 
 	if (e_module_find(mod)) cfm->enabled = 1;
@@ -287,7 +317,6 @@ _fill_list(Evas_Object *obj, int enabled)
 {
    Evas *evas;
    Evas_Coord w;
-   int i = 0;
 
    /* freeze evas, edje, and list widget */
    evas = evas_object_evas_get(obj);
@@ -298,41 +327,10 @@ _fill_list(Evas_Object *obj, int enabled)
 
    if (types_hash) 
      {
-	/* loop types, getting available modules (ie: not loaded) */
-	for (i = 0; _types[i].name; i++) 
-	  {
-	     CFType *cft = NULL;
-	     Evas_List *l = NULL;
-	     int count = 0;
-
-	     if (!_types[i].key) continue;
-	     if (!(cft = evas_hash_find(types_hash, _types[i].key))) continue;
-	     if (cft->modules)
-	       {
-		  if (!enabled)
-		    evas_hash_foreach(cft->modules, _mod_hash_avail_list, &l);
-		  else
-		    evas_hash_foreach(cft->modules, _mod_hash_load_list, &l);
-	       }
-
-	     if (l) count = evas_list_count(l);
-	     else continue;
-	    
-	     /* We have at least one, append header */
-	     e_widget_ilist_header_append(obj, NULL, cft->name);
-
-	     /* sort the list if we have more than one */
-	     if (count > 1)
-	       l = evas_list_sort(l, -1, _mod_list_sort);
-
-	     _list_widget_load(obj, l);
-
-	     if (l)
-	       {
-		  evas_list_free(l);
-		  l = NULL;
-	       }
-	  }
+	if (!enabled)
+	  evas_hash_foreach(types_hash, _fill_list_types_avail, obj);
+	else
+	  evas_hash_foreach(types_hash, _fill_list_types_load, obj);
      }
 
    e_widget_ilist_go(obj);
@@ -343,15 +341,86 @@ _fill_list(Evas_Object *obj, int enabled)
    evas_event_thaw(evas);
 }
 
+static Evas_Bool
+_fill_list_types_avail(const Evas_Hash *hash __UNUSED__,
+		       const void *key __UNUSED__, void *data, void *fdata)
+{
+   CFType *cft;
+   Evas_Object *obj;
+
+   cft = data;
+   obj = fdata;
+
+   return _fill_list_types(obj, cft, 0);
+}
+
+static Evas_Bool
+_fill_list_types_load(const Evas_Hash *hash __UNUSED__,
+		      const void *key __UNUSED__, void *data, void *fdata)
+{
+   CFType *cft;
+   Evas_Object *obj;
+
+   cft = data;
+   obj = fdata;
+
+   return _fill_list_types(obj, cft, 1);
+}
+
+static Evas_Bool
+_fill_list_types(Evas_Object *obj, CFType *cft, int enabled)
+{
+   Evas *evas;
+   Eina_List *l = NULL;
+   Evas_Object *ic = NULL;
+   int count;
+
+   evas = evas_object_evas_get(obj);
+
+   if (cft->modules)
+     {
+	if (!enabled)
+	  evas_hash_foreach(cft->modules, _mod_hash_avail_list, &l);
+	else
+	  evas_hash_foreach(cft->modules, _mod_hash_load_list, &l);
+     }
+
+   if (l) count = eina_list_count(l);
+   else return 1;
+
+   /* We have at least one, append header */
+   if (cft->icon)
+     {
+	ic = edje_object_add(evas);
+	e_util_edje_icon_set(ic, cft->icon);
+     }
+   e_widget_ilist_header_append(obj, ic, cft->name);
+
+   /* sort the list if we have more than one */
+   if (count > 1)
+     l = eina_list_sort(l, -1, _mod_list_sort);
+
+   _list_widget_load(obj, l);
+
+   if (l)
+     {
+	eina_list_free(l);
+	l = NULL;
+     }
+
+   return 1;
+}
+
 static Evas_Bool 
-_types_hash_cb_free(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_types_hash_cb_free(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 		    void *data, void *fdata __UNUSED__) 
 {
    CFType *type = NULL;
 
    if (!(type = data)) return 1;
-   if (type->key) evas_stringshare_del(type->key);
-   if (type->name) evas_stringshare_del(type->name);
+   if (type->key) eina_stringshare_del(type->key);
+   if (type->name) eina_stringshare_del(type->name);
+   if (type->icon) eina_stringshare_del(type->icon);
    if (type->modules) 
      {
 	evas_hash_foreach(type->modules, _mod_hash_cb_free, NULL);
@@ -363,53 +432,53 @@ _types_hash_cb_free(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__
 }
 
 static Evas_Bool 
-_mod_hash_cb_free(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_mod_hash_cb_free(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 		  void *data, void *fdata __UNUSED__) 
 {
    CFModule *mod = NULL;
 
    if (!(mod = data)) return 1;
-   if (mod->short_name) evas_stringshare_del(mod->short_name);
-   if (mod->name) evas_stringshare_del(mod->name);
-   if (mod->icon) evas_stringshare_del(mod->icon);
-   if (mod->comment) evas_stringshare_del(mod->comment);
-   if (mod->orig_path) evas_stringshare_del(mod->orig_path);
+   if (mod->short_name) eina_stringshare_del(mod->short_name);
+   if (mod->name) eina_stringshare_del(mod->name);
+   if (mod->icon) eina_stringshare_del(mod->icon);
+   if (mod->comment) eina_stringshare_del(mod->comment);
+   if (mod->orig_path) eina_stringshare_del(mod->orig_path);
    E_FREE(mod);
    return 1;
 }
 
 static Evas_Bool 
-_mod_hash_avail_list(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_mod_hash_avail_list(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 		     void *data, void *fdata) 
 {
-   Evas_List **l;
+   Eina_List **l;
    CFModule *mod = NULL;
 
    mod = data;
    if ((!mod) || (mod->enabled)) return 1;
    l = fdata;
-   *l = evas_list_append(*l, mod);
+   *l = eina_list_append(*l, mod);
    return 1;
 }
 
 static Evas_Bool 
-_mod_hash_load_list(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_mod_hash_load_list(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 		    void *data, void *fdata) 
 {
-   Evas_List **l;
+   Eina_List **l;
    CFModule *mod = NULL;
 
    mod = data;
    if ((!mod) || (!mod->enabled)) return 1;
    l = fdata;
-   *l = evas_list_append(*l, mod);
+   *l = eina_list_append(*l, mod);
    return 1;
 }
 
 static int 
-_mod_list_sort(void *data1, void *data2) 
+_mod_list_sort(const void *data1, const void *data2) 
 {
-   CFModule *m1, *m2;
+   const CFModule *m1, *m2;
 
    if (!(m1 = data1)) return 1;
    if (!(m2 = data2)) return -1;
@@ -418,10 +487,10 @@ _mod_list_sort(void *data1, void *data2)
 
 /* nice generic function to load an ilist with items */
 static void 
-_list_widget_load(Evas_Object *obj, Evas_List *list) 
+_list_widget_load(Evas_Object *obj, Eina_List *list) 
 {
    Evas *evas;
-   Evas_List *ml = NULL;
+   Eina_List *ml = NULL;
 
    if ((!obj) || (!list)) return;
    evas = evas_object_evas_get(obj);
@@ -517,7 +586,7 @@ _unselect_all_modules(void)
 }
 
 static Evas_Bool 
-_mod_hash_unselect(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_mod_hash_unselect(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 		   void *data, void *fdata __UNUSED__) 
 {
    CFModule *mod = NULL;
@@ -530,7 +599,7 @@ _mod_hash_unselect(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__,
 static void 
 _select_all_modules(Evas_Object *obj, void *data) 
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    E_Config_Dialog_Data *cfdata = NULL;
    int i = 0;
 
@@ -605,27 +674,42 @@ _btn_cb_load(void *data, void *data2)
 static void 
 _enable_modules(int enable) 
 {
-   int i = 0;
-
    if (!types_hash) return;
 
-   /* loop types, getting all modules */
-   for (i = 0; _types[i].name; i++) 
-     {
-	CFType *cft = NULL;
+   if (enable)
+     evas_hash_foreach(types_hash, _enable_modules_types_enable, NULL);
+   else
+     evas_hash_foreach(types_hash, _enable_modules_types_disable, NULL);
+}
 
-	if (!_types[i].key) continue;
-	cft = evas_hash_find(types_hash, _types[i].key);
-	if ((!cft) || (!cft->modules)) continue;
-	if (enable)
-	  evas_hash_foreach(cft->modules, _mod_hash_load, NULL);
-	else
-	  evas_hash_foreach(cft->modules, _mod_hash_unload, NULL);
-     }
+static Evas_Bool
+_enable_modules_types_enable(const Evas_Hash *hash __UNUSED__,
+			     const void *key __UNUSED__, void *data,
+			     void *fdata)
+{
+   CFType *cft;
+
+   cft = data;
+   if (cft && cft->modules)
+     evas_hash_foreach(cft->modules, _mod_hash_load, NULL);
+   return 1;
+}
+
+static Evas_Bool
+_enable_modules_types_disable(const Evas_Hash *hash __UNUSED__,
+			      const void *key __UNUSED__, void *data,
+			      void *fdata)
+{
+   CFType *cft;
+
+   cft = data;
+   if (cft && cft->modules)
+     evas_hash_foreach(cft->modules, _mod_hash_unload, NULL);
+   return 1;
 }
 
 static Evas_Bool 
-_mod_hash_load(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_mod_hash_load(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 	       void *data, void *fdata __UNUSED__) 
 {
    CFModule *mod = NULL;
@@ -642,7 +726,7 @@ _mod_hash_load(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__,
 }
 
 static Evas_Bool 
-_mod_hash_unload(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_mod_hash_unload(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 		 void *data, void *fdata __UNUSED__) 
 {
    CFModule *mod = NULL;

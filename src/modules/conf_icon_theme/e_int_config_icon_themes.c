@@ -10,17 +10,18 @@ typedef struct _CFIconTheme CFIconTheme;
 
 static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static int _basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 //static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 
 static void _ilist_cb_change(void *data, Evas_Object *obj);
-static int _sort_icon_themes(void *data1, void *data2);
+static int _sort_icon_themes(const void *data1, const void *data2);
 
 struct _E_Config_Dialog_Data
 {
    E_Config_Dialog *cfd;
-   Evas_List *icon_themes;
+   Eina_List *icon_themes;
    int state;
    char *themename;
    struct {
@@ -45,6 +46,7 @@ e_int_config_icon_themes(E_Container *con, const char *params __UNUSED__)
    v->free_cfdata             = _free_data;
    v->basic.create_widgets    = _basic_create_widgets;
    v->basic.apply_cfdata      = _basic_apply_data;
+   v->basic.check_changed     = _basic_check_changed;
    /*
    v->advanced.create_widgets = _advanced_create_widgets;
    v->advanced.apply_cfdata   = _basic_apply_data;
@@ -69,9 +71,9 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 
 	ecore_list_first_goto(icon_themes);
 	while ((theme = ecore_list_next(icon_themes)))
-	  cfdata->icon_themes = evas_list_append(cfdata->icon_themes, theme);
-	cfdata->icon_themes = evas_list_sort(cfdata->icon_themes,
-					     evas_list_count(cfdata->icon_themes),
+	  cfdata->icon_themes = eina_list_append(cfdata->icon_themes, theme);
+	cfdata->icon_themes = eina_list_sort(cfdata->icon_themes,
+					     eina_list_count(cfdata->icon_themes),
 					     _sort_icon_themes);
 	ecore_list_destroy(icon_themes);
      }
@@ -94,9 +96,15 @@ _create_data(E_Config_Dialog *cfd)
 static void
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   evas_list_free(cfdata->icon_themes);
+   eina_list_free(cfdata->icon_themes);
    E_FREE(cfdata->themename);
    E_FREE(cfdata);
+}
+
+static int
+_basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+{
+   return strcmp(cfdata->themename, e_config->icon_theme);
 }
 
 static int
@@ -105,7 +113,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    E_Event_Config_Icon_Theme *ev;
    
    /* Actually take our cfdata settings and apply them in real life */
-   e_config->icon_theme = evas_stringshare_add(cfdata->themename);
+   e_config->icon_theme = eina_stringshare_add(cfdata->themename);
    e_config_save_queue();
 
    ev = E_NEW(E_Event_Config_Icon_Theme, 1);
@@ -155,7 +163,7 @@ static Evas_Object *
 _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *of, *ob, *ot, *ilist, *mt;
-   Evas_List *l;
+   Eina_List *l;
    E_Fm2_Config fmc;
    int i;
 
@@ -272,7 +280,7 @@ static Evas_Object *
 _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *ilist, *of;
-   Evas_List *l;
+   Eina_List *l;
    int i;
 
    o = e_widget_list_add(evas, 0, 0);
@@ -433,9 +441,9 @@ _ilist_cb_change(void *data, Evas_Object *obj)
 }
 
 static int
-_sort_icon_themes(void *data1, void *data2)
+_sort_icon_themes(const void *data1, const void *data2)
 {
-   Efreet_Icon_Theme *m1, *m2;
+   const Efreet_Icon_Theme *m1, *m2;
 
    if (!data2) return -1;
 

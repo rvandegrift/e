@@ -5,7 +5,6 @@
 #define E_MOD_MAIN_H
 
 typedef struct _Config       Config;
-typedef struct _Status       Status;
 
 #define CHECK_NONE      0
 #define CHECK_ACPI      1
@@ -23,15 +22,24 @@ struct _Config
    /* just config state */
    E_Module        *module;
    E_Config_Dialog *config_dialog;
-   Evas_List       *instances;
+   Eina_List       *instances;
    E_Menu          *menu;
    Ecore_Exe           *batget_exe;
    Ecore_Event_Handler *batget_data_handler;
    Ecore_Event_Handler *batget_del_handler;
+   int                  have_hal;
    int                  full;
    int                  time_left;
    int                  have_battery;
    int                  have_power;
+   struct {
+      // FIXME: on bat_conf del dbus_pending_call_cancel(hal.have);
+      //        then set hal.have to NULL
+      DBusPendingCall       *have;
+      // FIXME: on bat_conf del e_dbus_signal_handler_del() these
+      E_DBus_Signal_Handler *dev_add;
+      E_DBus_Signal_Handler *dev_del;
+   } hal;
 };
 
 EAPI extern E_Module_Api e_modapi;

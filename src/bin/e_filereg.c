@@ -18,7 +18,7 @@ struct _Filereg_Item
 };
 
 static Evas_Bool _filereg_hash_cb_free(const Evas_Hash *hash __UNUSED__, 
-				       const char *key __UNUSED__, 
+				       const void *key __UNUSED__, 
 				       void *data, void *fdata __UNUSED__);
 
 /* Externally accessible functions */
@@ -50,7 +50,7 @@ e_filereg_register(const char *path)
      }
    fi = E_NEW(Filereg_Item, 1);
    if (!fi) return 0;
-   fi->path = evas_stringshare_add(path);
+   fi->path = eina_stringshare_add(path);
    fi->ref_count = 1;
    _e_filereg = evas_hash_add(_e_filereg, path, fi);
    return 1;
@@ -68,7 +68,7 @@ e_filereg_deregister(const char *path)
 	if (fi->ref_count == 0) 
 	  {
 	     _e_filereg = evas_hash_del(_e_filereg, path, fi);
-	     if (fi->path) evas_stringshare_del(fi->path);
+	     if (fi->path) eina_stringshare_del(fi->path);
 	     E_FREE(fi);
 	  }
      }
@@ -86,14 +86,14 @@ e_filereg_file_protected(const char *path)
 
 /* Private Functions */
 static Evas_Bool 
-_filereg_hash_cb_free(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, 
+_filereg_hash_cb_free(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, 
 		      void *data, void *fdata __UNUSED__) 
 {
    Filereg_Item *fi;
    
    fi = data;
    if (!fi) return 1;
-   if (fi->path) evas_stringshare_del(fi->path);
+   if (fi->path) eina_stringshare_del(fi->path);
    E_FREE(fi);
    return 1;
 }

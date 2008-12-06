@@ -23,7 +23,7 @@ struct _E_Config_Dialog_Data
      {
 	Ecore_X_Window bind_win;
 	E_Dialog *dia;
-	Evas_List *hdls;
+	Eina_List *hdls;
 	int btn;
      } grab;
    struct 
@@ -66,7 +66,7 @@ _config_pager_module(Config_Item *ci)
    v->advanced.apply_cfdata = _adv_apply;
 
    con = e_container_current_get(e_manager_current_get());
-   cfd = e_config_dialog_new(con, _("Pager Configuration"), "E", 
+   cfd = e_config_dialog_new(con, _("Pager Settings"), "E", 
 			     "_e_mod_pager_config_dialog", buf, 0, v, ci);
    pager_config->config_dialog = cfd;
 }
@@ -289,10 +289,10 @@ _grab_wnd_show(void *data1, void *data2)
      }
    hdl = ecore_event_handler_add(ECORE_X_EVENT_KEY_DOWN, 
 				 _grab_cb_key_down, cfdata);
-   cfdata->grab.hdls = evas_list_append(cfdata->grab.hdls, hdl);
+   cfdata->grab.hdls = eina_list_append(cfdata->grab.hdls, hdl);
    hdl = ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_DOWN, 
 				 _grab_cb_mouse_down, cfdata);
-   cfdata->grab.hdls = evas_list_append(cfdata->grab.hdls, hdl);
+   cfdata->grab.hdls = eina_list_append(cfdata->grab.hdls, hdl);
 
    e_dialog_show(cfdata->grab.dia);
    ecore_x_icccm_transient_for_set(cfdata->grab.dia->win->evas_win, 
@@ -364,7 +364,7 @@ _grab_wnd_hide(E_Config_Dialog_Data *cfdata)
    while (cfdata->grab.hdls) 
      {
 	ecore_event_handler_del(cfdata->grab.hdls->data);
-	cfdata->grab.hdls = evas_list_remove_list(cfdata->grab.hdls, cfdata->grab.hdls);
+	cfdata->grab.hdls = eina_list_remove_list(cfdata->grab.hdls, cfdata->grab.hdls);
      }
    cfdata->grab.hdls = NULL;
    e_grabinput_release(cfdata->grab.bind_win, cfdata->grab.bind_win);

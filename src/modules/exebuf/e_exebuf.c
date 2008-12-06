@@ -27,13 +27,13 @@ struct _E_Exe
 
 struct _E_Exe_List
 {
-   Evas_List *list;
+   Eina_List *list;
 };
 
 static void _e_exebuf_exe_free(E_Exebuf_Exe *exe);
 static void _e_exebuf_matches_clear(void);
-static int _e_exebuf_cb_sort_eap(void *data1, void *data2);
-static int _e_exebuf_cb_sort_exe(void *data1, void *data2);
+static int _e_exebuf_cb_sort_eap(const void *data1, const void *data2);
+static int _e_exebuf_cb_sort_exe(const void *data1, const void *data2);
 static void _e_exebuf_update(void);
 static void _e_exebuf_exec(void);
 static void _e_exebuf_exec_term(void);
@@ -45,6 +45,7 @@ static void _e_exebuf_next(void);
 static void _e_exebuf_prev(void);
 static void _e_exebuf_complete(void);
 static void _e_exebuf_backspace(void);
+static void _e_exebuf_delete(void);
 static void _e_exebuf_clear(void);
 static void _e_exebuf_matches_update(void);
 static void _e_exebuf_hist_update(void);
@@ -72,18 +73,18 @@ static Evas_Object *bg_object = NULL;
 static Evas_Object *icon_object = NULL;
 static Evas_Object *exe_list_object = NULL;
 static Evas_Object *eap_list_object = NULL;
-static Evas_List *handlers = NULL;
+static Eina_List *handlers = NULL;
 static Ecore_X_Window input_window = 0;
 static char *cmd_buf = NULL;
-static Evas_List *eap_matches = NULL;
-static Evas_List *exe_matches = NULL;
-static Evas_List *exe_path = NULL;
+static Eina_List *eap_matches = NULL;
+static Eina_List *exe_matches = NULL;
+static Eina_List *exe_path = NULL;
 static DIR       *exe_dir = NULL;
-static Evas_List *exe_list = NULL;
-static Evas_List *exe_list2 = NULL;
+static Eina_List *exe_list = NULL;
+static Eina_List *exe_list2 = NULL;
 static Ecore_Idler *exe_list_idler = NULL;
-static Evas_List *exes = NULL;
-static Evas_List *eaps = NULL;
+static Eina_List *exes = NULL;
+static Eina_List *eaps = NULL;
 #define NO_LIST 0
 #define EAP_LIST 1
 #define EXE_LIST 2
@@ -228,19 +229,19 @@ e_exebuf_show(E_Zone *zone)
 
    evas_event_thaw(exebuf->evas);
 
-   handlers = evas_list_append
+   handlers = eina_list_append
      (handlers, ecore_event_handler_add
       (ECORE_X_EVENT_KEY_DOWN, _e_exebuf_cb_key_down, NULL));
-   handlers = evas_list_append
+   handlers = eina_list_append
      (handlers, ecore_event_handler_add
       (ECORE_X_EVENT_MOUSE_BUTTON_DOWN, _e_exebuf_cb_mouse_down, NULL));
-   handlers = evas_list_append
+   handlers = eina_list_append
      (handlers, ecore_event_handler_add
       (ECORE_X_EVENT_MOUSE_BUTTON_UP, _e_exebuf_cb_mouse_up, NULL));
-   handlers = evas_list_append
+   handlers = eina_list_append
      (handlers, ecore_event_handler_add
       (ECORE_X_EVENT_MOUSE_MOVE, _e_exebuf_cb_mouse_move, NULL));
-   handlers = evas_list_append
+   handlers = eina_list_append
      (handlers, ecore_event_handler_add
       (ECORE_X_EVENT_MOUSE_WHEEL, _e_exebuf_cb_mouse_wheel, NULL));
 
@@ -252,10 +253,10 @@ e_exebuf_show(E_Zone *zone)
 	     E_Exe *ee;
 	     
 	     ee = el->list->data;
-	     exe_list = evas_list_append(exe_list, strdup(ee->path));
-	     evas_stringshare_del(ee->path);
+	     exe_list = eina_list_append(exe_list, strdup(ee->path));
+	     eina_stringshare_del(ee->path);
 	     free(ee);
-	     el->list = evas_list_remove_list(el->list, el->list);
+	     el->list = eina_list_remove_list(el->list, el->list);
 	  }
 	free(el);
      }
@@ -269,12 +270,12 @@ e_exebuf_show(E_Zone *zone)
 	     if (p[0] == ':') p[0] = '\0';
 	     if (p[0] == 0)
 	       {
-		  exe_path = evas_list_append(exe_path, strdup(last));
+		  exe_path = eina_list_append(exe_path, strdup(last));
 		  last = p + 1;
 	       }
 	  }
 	if (p > last)
-	  exe_path = evas_list_append(exe_path, strdup(last));
+	  exe_path = eina_list_append(exe_path, strdup(last));
 	free(path);
      }
    exe_list_idler = ecore_idler_add(_e_exebuf_idler, NULL);
@@ -319,7 +320,7 @@ e_exebuf_hide(void)
    while (handlers)
      {
 	ecore_event_handler_del(handlers->data);
-	handlers = evas_list_remove_list(handlers, handlers);
+	handlers = eina_list_remove_list(handlers, handlers);
      }
    ecore_x_window_del(input_window);
    e_grabinput_release(input_window, input_window);
@@ -334,7 +335,7 @@ e_exebuf_hide(void)
    while (exe_path)
      {
 	free(exe_path->data);
-	exe_path = evas_list_remove_list(exe_path, exe_path);
+	exe_path = eina_list_remove_list(exe_path, exe_path);
      }
    if (exe_list_idler)
      {
@@ -344,12 +345,12 @@ e_exebuf_hide(void)
    while (exe_list)
      {
 	free(exe_list->data);
-	exe_list = evas_list_remove_list(exe_list, exe_list);
+	exe_list = eina_list_remove_list(exe_list, exe_list);
      }
    while (exe_list2)
      {
 	free(exe_list2->data);
-	exe_list2 = evas_list_remove_list(exe_list2, exe_list2);
+	exe_list2 = eina_list_remove_list(exe_list2, exe_list2);
      }
    which_list = NO_LIST;
    exe_sel = NULL;
@@ -374,12 +375,12 @@ _e_exebuf_matches_clear(void)
    while (eap_matches)
      {
 	e_object_unref(E_OBJECT(eap_matches->data));
-	eap_matches = evas_list_remove_list(eap_matches, eap_matches);
+	eap_matches = eina_list_remove_list(eap_matches, eap_matches);
      }
    while (exe_matches)
      {
 	free(exe_matches->data);
-	exe_matches = evas_list_remove_list(exe_matches, exe_matches);
+	exe_matches = eina_list_remove_list(exe_matches, exe_matches);
      }
    
    evas_event_freeze(exebuf->evas);
@@ -388,12 +389,12 @@ _e_exebuf_matches_clear(void)
    while (exes)
      {
 	_e_exebuf_exe_free((E_Exebuf_Exe *)(exes->data));
-	exes = evas_list_remove_list(exes, exes);
+	exes = eina_list_remove_list(exes, exes);
      }
    while (eaps)
      {
 	_e_exebuf_exe_free((E_Exebuf_Exe *)(eaps->data));
-	eaps = evas_list_remove_list(eaps, eaps);
+	eaps = eina_list_remove_list(eaps, eaps);
      }
    e_box_thaw(exe_list_object);
    e_box_thaw(eap_list_object);
@@ -414,6 +415,9 @@ _e_exebuf_update(void)
    edje_object_part_text_set(bg_object, "e.text.label", cmd_buf);
    if (icon_object) evas_object_del(icon_object);
    icon_object = NULL;
+
+   if (!cmd_buf[0]) return;
+
    desktop = efreet_util_desktop_exec_find(cmd_buf);
    if (!desktop) desktop = efreet_util_desktop_name_find(cmd_buf);
    if (!desktop) desktop = efreet_util_desktop_generic_name_find(cmd_buf);
@@ -490,7 +494,7 @@ _e_exebuf_exe_scroll_to(int i)
 {
    int n;
    
-   n = evas_list_count(exes);
+   n = eina_list_count(exes);
    if (n > 1)
      {
 	exe_scroll_align_to = (double)i / (double)(n - 1);
@@ -517,7 +521,7 @@ _e_exebuf_eap_scroll_to(int i)
 {
    int n;
    
-   n = evas_list_count(eaps);
+   n = eina_list_count(eaps);
    if (n > 1)
      {
 	eap_scroll_align_to = (double)i / (double)(n - 1);
@@ -542,7 +546,7 @@ _e_exebuf_eap_scroll_to(int i)
 static void
 _e_exebuf_next(void)
 {
-   Evas_List *l;
+   Eina_List *l;
    int i;
    
    if (which_list == NO_LIST)
@@ -637,7 +641,7 @@ _e_exebuf_next(void)
 static void
 _e_exebuf_prev(void)
 {
-   Evas_List *l;
+   Eina_List *l;
    int i;
 
    if (which_list == NO_LIST)
@@ -655,13 +659,16 @@ _e_exebuf_prev(void)
 	else
 	  {
 	     _e_exebuf_hist_update();
-	     which_list = HIST_LIST;
-             ev_last_which_list = HIST_LIST;
-	     exe_sel = eaps->data;
-	     if (exe_sel)
-	       {
-		  _e_exebuf_exe_sel(exe_sel);
-		  _e_exebuf_eap_scroll_to(0);
+	     if (eaps)
+	       {     
+		  which_list = HIST_LIST;
+		  ev_last_which_list = HIST_LIST;
+		  exe_sel = eaps->data;
+		  if (exe_sel)
+		    {
+		       _e_exebuf_exe_sel(exe_sel);
+		       _e_exebuf_eap_scroll_to(0);
+		    }
 	       }
 	  }
      }
@@ -739,7 +746,7 @@ static void
 _e_exebuf_complete(void)
 {
    char common[EXEBUFLEN], *exe = NULL;
-   Evas_List *l;
+   Eina_List *l;
    int orig_len = 0, common_len = 0, exe_len, next_char, val, pos, matches;
    int clear_hist = 0;
    
@@ -754,15 +761,13 @@ _e_exebuf_complete(void)
 	     exe = ecore_file_app_exe_get(exe_sel->desktop->exec);
 	     if (exe)
 	       {
-		  strncpy(cmd_buf, exe, EXEBUFLEN - 1);
-		  cmd_buf[EXEBUFLEN - 1] = 0;
+		  ecore_strlcpy(cmd_buf, exe, EXEBUFLEN);
 		  free(exe);
 	       }
 	  }
 	else if (exe_sel->file)
 	  {
-	     strncpy(cmd_buf, exe_sel->file, EXEBUFLEN - 1);
-	     cmd_buf[EXEBUFLEN - 1] = 0;
+	     ecore_strlcpy(cmd_buf, exe_sel->file, EXEBUFLEN);
 	  }
      }
    else
@@ -802,8 +807,7 @@ _e_exebuf_complete(void)
      }
    if ((exe) && (orig_len < common_len) && (common_len < (EXEBUFLEN - 1)))
      {
-	strncpy(cmd_buf, exe, common_len);
-	cmd_buf[common_len] = 0;
+	ecore_strlcpy(cmd_buf, exe, common_len + 1);
      }
    if (clear_hist)
      _e_exebuf_hist_clear();
@@ -832,6 +836,104 @@ _e_exebuf_backspace(void)
 }
 
 static void
+_e_exebuf_delete(void)
+{
+   E_Exebuf_Exe *exe_del, *exe_l = NULL, *exe_p = NULL;
+   Eina_List *list = NULL, *l = NULL;
+   int i;
+
+   if ((which_list != HIST_LIST) || !exe_sel) return;
+
+   exe_del = exe_sel;
+   e_exehist_del(exe_del->file);
+
+   list = e_exehist_list_get();
+   if (!list)
+     {
+	_e_exebuf_hist_clear();
+	return;
+     }
+
+   l = eina_list_last(eaps);
+   if (l)
+     {
+	exe_l = l->data;
+	l = l->prev;
+	if (l) exe_p = l->data;
+     }
+   l = eina_list_last(list);
+
+   if ((!exe_l) || (strcmp(exe_l->file, l->data) &&
+		   ((!exe_p) || strcmp(exe_p->file, l->data))))
+     {
+	E_Exebuf_Exe *exe;
+	Evas_Coord mw, mh;
+	Evas_Object *o;
+	
+	exe = calloc(1, sizeof(E_Exebuf_Exe));
+	exe->file = l->data;
+        eaps = eina_list_append(eaps, exe);
+	o = edje_object_add(exebuf->evas);
+        exe->bg_object = o;
+	e_theme_edje_object_set(o, "base/theme/exebuf",
+				"e/widgets/exebuf/item");
+	edje_object_part_text_set(o, "e.text.title", exe->file);
+	evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_IN,
+				       _e_exebuf_cb_exe_item_mouse_in, exe);
+	evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_OUT,
+				       _e_exebuf_cb_exe_item_mouse_out, exe);
+	evas_object_show(o);
+	if (edje_object_part_exists(exe->bg_object, "e.swallow.icons"))
+	  {
+	     Efreet_Desktop *desktop;
+
+	     desktop = efreet_util_desktop_exec_find(exe->file);
+	     if (desktop)
+	       {
+		  o = e_util_desktop_icon_add(desktop, 24, exebuf->evas);
+		  exe->icon_object = o;
+		  edje_object_part_swallow(exe->bg_object, "e.swallow.icons",
+					   o);
+		  evas_object_show(o);
+		  exe->desktop = desktop;
+	       }
+	  }
+	edje_object_size_min_calc(exe->bg_object, &mw, &mh);
+	e_box_pack_start(eap_list_object, exe->bg_object);
+	e_box_pack_options_set(exe->bg_object,
+			       1, 1, /* fill */
+			       1, 0, /* expand */
+			       0.5, 0.5, /* align */
+			       mw, mh, /* min */
+			       9999, mh /* max */
+			       );
+     }
+   eina_list_free(list);
+
+   _e_exebuf_prev();
+   if (exe_sel == exe_del) _e_exebuf_next();
+   if (exe_sel)
+     {
+	evas_event_freeze(exebuf->evas);
+	e_box_freeze(eap_list_object);
+	e_box_freeze(exe_list_object);
+	_e_exebuf_exe_free(exe_del);
+	eaps = eina_list_remove(eaps, exe_del);
+	e_box_thaw(exe_list_object);
+	e_box_thaw(eap_list_object);
+	evas_event_thaw(exebuf->evas);
+	for (l = eaps, i = 0; l; l = l->next, i++)
+	  {
+	     if (l->data == exe_sel)
+	       {
+		  _e_exebuf_eap_scroll_to(i);
+		  break;
+	       }
+	  }
+     }
+}
+
+static void
 _e_exebuf_clear(void)
 {
    if (cmd_buf[0] != 0)
@@ -844,9 +946,9 @@ _e_exebuf_clear(void)
 }
 
 static int
-_e_exebuf_cb_sort_eap(void *data1, void *data2)
+_e_exebuf_cb_sort_eap(const void *data1, const void *data2)
 {
-   Efreet_Desktop *a1, *a2;
+   const Efreet_Desktop *a1, *a2;
    const char *e1, *e2;
    double t1, t2;
    
@@ -860,9 +962,9 @@ _e_exebuf_cb_sort_eap(void *data1, void *data2)
 }
 
 static int
-_e_exebuf_cb_sort_exe(void *data1, void *data2)
+_e_exebuf_cb_sort_exe(const void *data1, const void *data2)
 {
-   char *e1, *e2;
+   const char *e1, *e2;
    double t1, t2;
    
    e1 = data1;
@@ -878,7 +980,7 @@ _e_exebuf_matches_update(void)
    char *path, *file, buf[4096];
    Evas_Hash *added = NULL;
    Ecore_List *list;
-   Evas_List *l;
+   Eina_List *l;
    int i, max;
    
    _e_exebuf_matches_clear();
@@ -900,7 +1002,7 @@ _e_exebuf_matches_update(void)
 	       {
 		  if (!evas_hash_find(added, exe))
 		    {
-		       eap_matches = evas_list_append(eap_matches, desktop);
+		       eap_matches = eina_list_append(eap_matches, desktop);
 		       added = evas_hash_add(added, exe, desktop);
 		    }
 		  free(exe);
@@ -925,7 +1027,7 @@ _e_exebuf_matches_update(void)
 	       {
 		  if (!evas_hash_find(added, exe))
 		    {
-		       eap_matches = evas_list_append(eap_matches, desktop);
+		       eap_matches = eina_list_append(eap_matches, desktop);
 		       added = evas_hash_add(added, exe, desktop);
 		    }
 		  free(exe);
@@ -950,7 +1052,7 @@ _e_exebuf_matches_update(void)
 	       {
 		  if (!evas_hash_find(added, exe))
 		    {
-		       eap_matches = evas_list_append(eap_matches, desktop);
+		       eap_matches = eina_list_append(eap_matches, desktop);
 		       added = evas_hash_add(added, exe, desktop);
 		    }
 		  free(exe);
@@ -975,7 +1077,7 @@ _e_exebuf_matches_update(void)
 	       {
 		  if (!evas_hash_find(added, exe))
 		    {
-		       eap_matches = evas_list_append(eap_matches, desktop);
+		       eap_matches = eina_list_append(eap_matches, desktop);
 		       added = evas_hash_add(added, exe, desktop);
 		    }
 		  free(exe);
@@ -990,7 +1092,7 @@ _e_exebuf_matches_update(void)
    snprintf(buf, sizeof(buf), "%s*", cmd_buf);
    if (exe_list)
      {
-	Evas_List *l;
+	Eina_List *l;
 
 	for (l = exe_list; l; l = l->next)
 	  {
@@ -1002,7 +1104,7 @@ _e_exebuf_matches_update(void)
 		    {
 		       if (!evas_hash_find(added, file))
 			 {
-			    exe_matches = evas_list_append(exe_matches, strdup(file));
+			    exe_matches = eina_list_append(exe_matches, strdup(file));
 			    added = evas_hash_direct_add(added, file, file);
 			 }
 		    }
@@ -1012,7 +1114,7 @@ _e_exebuf_matches_update(void)
    if (added) evas_hash_free(added);
    added = NULL;
 
-   eap_matches = evas_list_sort(eap_matches, evas_list_count(eap_matches), _e_exebuf_cb_sort_eap);
+   eap_matches = eina_list_sort(eap_matches, eina_list_count(eap_matches), _e_exebuf_cb_sort_eap);
    
    max = e_config->exebuf_max_eap_list;
    evas_event_thaw(exebuf->evas);
@@ -1025,7 +1127,7 @@ _e_exebuf_matches_update(void)
 	int opt = 0;
 	
 	exe = calloc(1, sizeof(E_Exebuf_Exe));
-        eaps = evas_list_append(eaps, exe);
+        eaps = eina_list_append(eaps, exe);
 	exe->desktop = l->data;
 	o = edje_object_add(exebuf->evas);
         exe->bg_object = o;
@@ -1067,7 +1169,7 @@ _e_exebuf_matches_update(void)
      }
    e_box_thaw(eap_list_object);
    
-   exe_matches = evas_list_sort(exe_matches, evas_list_count(exe_matches), _e_exebuf_cb_sort_exe);
+   exe_matches = eina_list_sort(exe_matches, eina_list_count(exe_matches), _e_exebuf_cb_sort_exe);
    
    max = e_config->exebuf_max_exe_list;
    e_box_freeze(exe_list_object);
@@ -1079,7 +1181,7 @@ _e_exebuf_matches_update(void)
 	
 	exe = calloc(1, sizeof(E_Exebuf_Exe));
 	exe->file = l->data;
-        exes = evas_list_append(exes, exe);
+        exes = eina_list_append(exes, exe);
 	o = edje_object_add(exebuf->evas);
         exe->bg_object = o;
 	e_theme_edje_object_set(o, "base/theme/exebuf",
@@ -1121,10 +1223,10 @@ _e_exebuf_matches_update(void)
 static void
 _e_exebuf_hist_update(void)
 {
-   Evas_List *list = NULL, *l = NULL;
+   Eina_List *list = NULL, *l = NULL;
 
    edje_object_signal_emit(bg_object, "e,action,show,history", "e");
-   list = evas_list_reverse(e_exehist_list_get());
+   list = eina_list_reverse(e_exehist_list_get());
    for (l = list; l; l = l->next)
      {
 	E_Exebuf_Exe *exe;
@@ -1133,7 +1235,7 @@ _e_exebuf_hist_update(void)
 	
 	exe = calloc(1, sizeof(E_Exebuf_Exe));
 	exe->file = l->data;
-        eaps = evas_list_prepend(eaps, exe);
+        eaps = eina_list_prepend(eaps, exe);
 	o = edje_object_add(exebuf->evas);
         exe->bg_object = o;
 	e_theme_edje_object_set(o, "base/theme/exebuf",
@@ -1168,7 +1270,7 @@ _e_exebuf_hist_update(void)
 			       9999, mh /* max */
 			       );
      }
-   evas_list_free(list);
+   eina_list_free(list);
 }
 
 static void
@@ -1181,7 +1283,7 @@ _e_exebuf_hist_clear(void)
    while (eaps)
      {
 	_e_exebuf_exe_free((E_Exebuf_Exe *)(eaps->data));
-	eaps = evas_list_remove_list(eaps, eaps);
+	eaps = eina_list_remove_list(eaps, eaps);
      }
    e_box_thaw(exe_list_object);
    e_box_thaw(eap_list_object);
@@ -1279,7 +1381,7 @@ _e_exebuf_cb_key_down(void *data, int type, void *event)
    else if (!strcmp(ev->keysymbol, "BackSpace"))
      _e_exebuf_backspace();
    else if (!strcmp(ev->keysymbol, "Delete"))
-     _e_exebuf_backspace();
+     _e_exebuf_delete();
    else
      {
 	if (ev->key_compose)
@@ -1355,8 +1457,8 @@ _e_exebuf_cb_mouse_move(void *data, int type, void *event)
           }
      }
 
-   evas_event_feed_mouse_move(exebuf->evas, ev->x - exebuf->x +
-        exebuf->zone->x, ev->y - exebuf->y + exebuf->zone->y, ev->time, NULL);
+   evas_event_feed_mouse_move(exebuf->evas, ev->x - exebuf->x,
+			      ev->y - exebuf->y, ev->time, NULL);
 
    return 1;
 }
@@ -1461,7 +1563,7 @@ _e_exebuf_idler(void *data)
    /* no more path items left - stop scanning */
    if (!exe_path)
      {
-	Evas_List *l, *l2;
+	Eina_List *l, *l2;
 	E_Exe_List *el;
 	E_Exe *ee;
 	int different = 0;
@@ -1481,7 +1583,7 @@ _e_exebuf_idler(void *data)
 	     while (exe_list)
 	       {
 		  free(exe_list->data);
-		  exe_list = evas_list_remove_list(exe_list, exe_list);
+		  exe_list = eina_list_remove_list(exe_list, exe_list);
 	       }
 	     exe_list = exe_list2;
 	     exe_list2 = NULL;
@@ -1497,17 +1599,17 @@ _e_exebuf_idler(void *data)
 		       ee = malloc(sizeof(E_Exe));
 		       if (ee)
 			 {
-			    ee->path = evas_stringshare_add(l->data);
-			    el->list = evas_list_append(el->list, ee);
+			    ee->path = eina_stringshare_add(l->data);
+			    el->list = eina_list_append(el->list, ee);
 			 }
 		    }
 		  e_config_domain_save("exebuf_exelist_cache", exelist_edd, el);
 		  while (el->list)
 		    {
 		       ee = el->list->data;
-		       evas_stringshare_del(ee->path);
+		       eina_stringshare_del(ee->path);
 		       free(ee);
-		       el->list = evas_list_remove_list(el->list, el->list);
+		       el->list = eina_list_remove_list(el->list, el->list);
 		    }
 		  free(el);
 	       }
@@ -1537,9 +1639,9 @@ _e_exebuf_idler(void *data)
 		       (!access(buf, X_OK))))
 		    {
 		       if (!exe_list)
-			 exe_list = evas_list_append(exe_list, strdup(buf));
+			 exe_list = eina_list_append(exe_list, strdup(buf));
 		       else
-			 exe_list2 = evas_list_append(exe_list2, strdup(buf));
+			 exe_list2 = eina_list_append(exe_list2, strdup(buf));
 		    }
 	       }
 	  }
@@ -1552,14 +1654,14 @@ _e_exebuf_idler(void *data)
 	     closedir(exe_dir);
 	     exe_dir = NULL;
 	     free(exe_path->data);
-	     exe_path = evas_list_remove_list(exe_path, exe_path);
+	     exe_path = eina_list_remove_list(exe_path, exe_path);
 	  }
      }
    /* obviously the dir open failed - so remove the first path item */
    else
      {
 	free(exe_path->data);
-	exe_path = evas_list_remove_list(exe_path, exe_path);
+	exe_path = eina_list_remove_list(exe_path, exe_path);
      }
    /* we have mroe scannign to do */
    return 1;

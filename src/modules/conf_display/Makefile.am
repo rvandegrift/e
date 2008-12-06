@@ -22,7 +22,7 @@ module_la_SOURCES      = e_mod_main.c \
                          e_mod_main.h \
 			 e_int_config_display.c \
                          e_int_config_display.h
-			 
+
 module_la_LIBADD       = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version
 module_la_DEPENDENCIES = $(top_builddir)/config.h

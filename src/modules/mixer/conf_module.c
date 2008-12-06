@@ -19,7 +19,7 @@ struct _E_Config_Dialog_Data
 static int
 _find_default_instance_index(E_Mixer_Module_Context *ctxt)
 {
-   Evas_List *l;
+   Eina_List *l;
    int i;
 
    for (i = 0, l = ctxt->instances; l != NULL; l = l->next, i++)
@@ -63,7 +63,7 @@ _basic_apply(E_Config_Dialog *dialog, E_Config_Dialog_Data *cfdata)
    E_Mixer_Module_Context *ctxt;
 
    ctxt = dialog->data;
-   ctxt->default_instance = evas_list_nth(ctxt->instances,
+   ctxt->default_instance = eina_list_nth(ctxt->instances,
 					  cfdata->default_instance);
    if (ctxt->default_instance)
      {
@@ -72,10 +72,10 @@ _basic_apply(E_Config_Dialog *dialog, E_Config_Dialog_Data *cfdata)
 
 	conf = ctxt->conf;
 	if (conf->default_gc_id)
-	  evas_stringshare_del(conf->default_gc_id);
+	  eina_stringshare_del(conf->default_gc_id);
 
 	id = ctxt->default_instance->gcc->cf->id;
-	conf->default_gc_id = evas_stringshare_add(id);
+	conf->default_gc_id = eina_stringshare_add(id);
      }
 
    return 1;
@@ -87,7 +87,7 @@ _basic_create_general(E_Config_Dialog *dialog, Evas *evas, E_Config_Dialog_Data 
    struct mixer_config_ui_general *ui;
    E_Mixer_Module_Context *ctxt;
    Evas_Object *label;
-   Evas_List *l;
+   Eina_List *l;
    int i;
 
    ui = &cfdata->ui.general;
@@ -184,7 +184,7 @@ e_mixer_config_module_dialog_new(E_Container *con, E_Mixer_Module_Context *ctxt)
    view->basic.create_widgets = _basic_create;
    view->basic.apply_cfdata = _basic_apply;
 
-   dialog = e_config_dialog_new(con, _("Mixer Module Configuration"),
+   dialog = e_config_dialog_new(con, _("Mixer Module Settings"),
                                 _Name, "e_mixer_config_module_dialog_new",
                                 e_mixer_theme_path(), 0, view, ctxt);
 

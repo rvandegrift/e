@@ -39,7 +39,7 @@ static void _auto_apply_changes(E_Config_Dialog_Data *cfdata);
 static void _find_key_binding_action(const char *action, const char *params, int *g, int *a, int *n);
 
 /********* Sorting ************************/
-static int _key_binding_sort_cb(void *d1, void *d2);
+static int _key_binding_sort_cb(const void *d1, const void *d2);
 
 /**************** grab window *******/
 static void _grab_wnd_show(E_Config_Dialog_Data *cfdata);
@@ -51,7 +51,7 @@ struct _E_Config_Dialog_Data
    Evas *evas;
    struct
      {
-	Evas_List *key;
+	Eina_List *key;
      } binding;
    struct
      {
@@ -60,7 +60,7 @@ struct _E_Config_Dialog_Data
 
 	E_Dialog *dia;
 	Ecore_X_Window bind_win;
-	Evas_List *handlers;
+	Eina_List *handlers;
      } locals;
    struct
      {
@@ -103,7 +103,7 @@ e_int_config_keybindings(E_Container *con, const char *params)
 static void
 _fill_data(E_Config_Dialog_Data *cfdata)
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    E_Config_Binding_Key *bi, *bi2;
 
    cfdata->locals.binding = strdup("");
@@ -122,13 +122,13 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 
 	bi2 = E_NEW(E_Config_Binding_Key, 1);
 	bi2->context = bi->context;
-	bi2->key = bi->key == NULL ? NULL : evas_stringshare_add(bi->key);
+	bi2->key = bi->key == NULL ? NULL : eina_stringshare_add(bi->key);
 	bi2->modifiers = bi->modifiers;
 	bi2->any_mod = bi->any_mod;
-	bi2->action = bi->action == NULL ? NULL : evas_stringshare_add(bi->action);
-	bi2->params = bi->params == NULL ? NULL : evas_stringshare_add(bi->params);
+	bi2->action = bi->action == NULL ? NULL : eina_stringshare_add(bi->action);
+	bi2->params = bi->params == NULL ? NULL : eina_stringshare_add(bi->params);
 
-	cfdata->binding.key = evas_list_append(cfdata->binding.key, bi2);
+	cfdata->binding.key = eina_list_append(cfdata->binding.key, bi2);
      }
 }
 
@@ -152,11 +152,11 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    while (cfdata->binding.key)
      {
 	bi = cfdata->binding.key->data;
-	if (bi->key) evas_stringshare_del(bi->key);
-	if (bi->action) evas_stringshare_del(bi->action);
-	if (bi->params) evas_stringshare_del(bi->params);
+	if (bi->key) eina_stringshare_del(bi->key);
+	if (bi->action) eina_stringshare_del(bi->action);
+	if (bi->params) eina_stringshare_del(bi->params);
 	E_FREE(bi);
-	cfdata->binding.key = evas_list_remove_list(cfdata->binding.key, cfdata->binding.key);
+	cfdata->binding.key = eina_list_remove_list(cfdata->binding.key, cfdata->binding.key);
      }
 
    if (cfdata->locals.cur) free(cfdata->locals.cur);
@@ -170,7 +170,7 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 static int
 _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    E_Config_Binding_Key *bi, *bi2;
 
    _auto_apply_changes(cfdata);
@@ -182,11 +182,11 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	e_bindings_key_del(bi->context, bi->key, bi->modifiers, bi->any_mod, 
 			   bi->action, bi->params);
 	e_config->key_bindings =
-	   evas_list_remove_list(e_config->key_bindings, e_config->key_bindings);
+	   eina_list_remove_list(e_config->key_bindings, e_config->key_bindings);
 
-	if (bi->key) evas_stringshare_del(bi->key);
-	if (bi->action) evas_stringshare_del(bi->action);
-	if (bi->params) evas_stringshare_del(bi->params);
+	if (bi->key) eina_stringshare_del(bi->key);
+	if (bi->action) eina_stringshare_del(bi->action);
+	if (bi->params) eina_stringshare_del(bi->params);
 	E_FREE(bi);
      }
 
@@ -198,15 +198,15 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
 	bi = E_NEW(E_Config_Binding_Key, 1);
 	bi->context = bi2->context;
-	bi->key = evas_stringshare_add(bi2->key);
+	bi->key = eina_stringshare_add(bi2->key);
 	bi->modifiers = bi2->modifiers;
 	bi->any_mod = bi2->any_mod;
 	bi->action =
-	   ((!bi2->action) || (!bi2->action[0])) ? NULL : evas_stringshare_add(bi2->action);
+	   ((!bi2->action) || (!bi2->action[0])) ? NULL : eina_stringshare_add(bi2->action);
 	bi->params =
-	   ((!bi2->params) || (!bi2->params[0])) ? NULL : evas_stringshare_add(bi2->params);
+	   ((!bi2->params) || (!bi2->params[0])) ? NULL : eina_stringshare_add(bi2->params);
 
-	e_config->key_bindings = evas_list_append(e_config->key_bindings, bi);
+	e_config->key_bindings = eina_list_append(e_config->key_bindings, bi);
 	e_bindings_key_add(bi->context, bi->key, bi->modifiers, bi->any_mod,
 			   bi->action, bi->params);
      }
@@ -275,7 +275,7 @@ static void
 _fill_actions_list(E_Config_Dialog_Data *cfdata)
 {
    char buf[1024];
-   Evas_List *l, *l2;
+   Eina_List *l, *l2;
    E_Action_Group *actg;
    E_Action_Description *actd;
    int g, a;
@@ -377,12 +377,12 @@ _delete_all_key_binding_cb(void *data, void *data2)
    while (cfdata->binding.key)
      {
 	bi = cfdata->binding.key->data;
-	if (bi->key) evas_stringshare_del(bi->key);
-	if (bi->action) evas_stringshare_del(bi->action);
-	if (bi->params) evas_stringshare_del(bi->params);
+	if (bi->key) eina_stringshare_del(bi->key);
+	if (bi->action) eina_stringshare_del(bi->action);
+	if (bi->params) eina_stringshare_del(bi->params);
 	E_FREE(bi);
 
-	cfdata->binding.key = evas_list_remove_list(cfdata->binding.key, cfdata->binding.key);
+	cfdata->binding.key = eina_list_remove_list(cfdata->binding.key, cfdata->binding.key);
      }
 
    if (cfdata->locals.cur) free(cfdata->locals.cur);
@@ -400,7 +400,7 @@ _delete_all_key_binding_cb(void *data, void *data2)
 static void
 _delete_key_binding_cb(void *data, void *data2)
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    char *n;
    int sel;
    E_Config_Dialog_Data *cfdata;
@@ -412,17 +412,17 @@ _delete_key_binding_cb(void *data, void *data2)
    if (cfdata->locals.binding[0] == 'k')
      {
 	n = cfdata->locals.binding;
-	l = evas_list_nth_list(cfdata->binding.key, atoi(++n));
+	l = eina_list_nth_list(cfdata->binding.key, atoi(++n));
 
 	/* FIXME: need confirmation dialog */
 	if (l)
 	  {
 	     bi = l->data;
-	     if (bi->key) evas_stringshare_del(bi->key);
-	     if (bi->action) evas_stringshare_del(bi->action);
-	     if (bi->params) evas_stringshare_del(bi->params);
+	     if (bi->key) eina_stringshare_del(bi->key);
+	     if (bi->action) eina_stringshare_del(bi->action);
+	     if (bi->params) eina_stringshare_del(bi->params);
 	     E_FREE(bi);
-	     cfdata->binding.key = evas_list_remove_list(cfdata->binding.key, l);
+	     cfdata->binding.key = eina_list_remove_list(cfdata->binding.key, l);
 	  }
      }
 
@@ -454,22 +454,22 @@ _restore_key_binding_defaults_cb(void *data, void *data2)
    while (cfdata->binding.key)
      {
 	bi = cfdata->binding.key->data;
-	if (bi->key) evas_stringshare_del(bi->key);
-	if (bi->action) evas_stringshare_del(bi->action);
-	if (bi->params) evas_stringshare_del(bi->params);
+	if (bi->key) eina_stringshare_del(bi->key);
+	if (bi->action) eina_stringshare_del(bi->action);
+	if (bi->params) eina_stringshare_del(bi->params);
 	E_FREE(bi);
-	cfdata->binding.key = evas_list_remove_list(cfdata->binding.key, cfdata->binding.key);
+	cfdata->binding.key = eina_list_remove_list(cfdata->binding.key, cfdata->binding.key);
      }
 
 #define CFG_KEYBIND_DFLT(_context, _key, _modifiers, _anymod, _action, _params) \
    bi = E_NEW(E_Config_Binding_Key, 1); \
    bi->context = _context; \
-   bi->key = evas_stringshare_add(_key); \
+   bi->key = eina_stringshare_add(_key); \
    bi->modifiers = _modifiers; \
    bi->any_mod = _anymod; \
-   bi->action = _action == NULL ? NULL : evas_stringshare_add(_action); \
-   bi->params = _params == NULL ? NULL : evas_stringshare_add(_params); \
-   cfdata->binding.key = evas_list_append(cfdata->binding.key, bi)
+   bi->action = _action == NULL ? NULL : eina_stringshare_add(_action); \
+   bi->params = _params == NULL ? NULL : eina_stringshare_add(_params); \
+   cfdata->binding.key = eina_list_append(cfdata->binding.key, bi)
 
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Left",
       	 E_BINDING_MODIFIER_SHIFT | E_BINDING_MODIFIER_ALT, 0,
@@ -640,7 +640,7 @@ _update_action_list(E_Config_Dialog_Data *cfdata)
    if (cfdata->locals.cur[0] == 'k')
      {
 	sscanf(cfdata->locals.cur, "k%d", &n);
-	bi = evas_list_nth(cfdata->binding.key, n);
+	bi = eina_list_nth(cfdata->binding.key, n);
 	if (!bi)
 	  {
 	     e_widget_ilist_unselect(cfdata->gui.o_action_list);
@@ -683,7 +683,7 @@ _update_action_list(E_Config_Dialog_Data *cfdata)
    /*if (cfdata->locals.cur[0] == 'k')
      {
 	sscanf(cfdata->locals.cur, "k%d", &n);
-	bi = evas_list_nth(cfdata->binding.key, n);
+	bi = eina_list_nth(cfdata->binding.key, n);
 	if (!bi)
 	  {
 	     e_widget_ilist_unselect(cfdata->gui.o_action_list);
@@ -743,9 +743,9 @@ _update_action_params(E_Config_Dialog_Data *cfdata)
      }
    sscanf(cfdata->locals.action, "%d %d", &g, &a);
 
-   actg = evas_list_nth(e_action_groups_get(), g);
+   actg = eina_list_nth(e_action_groups_get(), g);
    if (!actg) return;
-   actd = evas_list_nth(actg->acts, a);
+   actd = eina_list_nth(actg->acts, a);
    if (!actd) return;
 
    if (actd->act_params)
@@ -770,7 +770,7 @@ _update_action_params(E_Config_Dialog_Data *cfdata)
    if (cfdata->locals.cur[0] == 'k')
      {
 	sscanf(cfdata->locals.cur, "k%d", &b);
-	bi = evas_list_nth(cfdata->binding.key, b);
+	bi = eina_list_nth(cfdata->binding.key, b);
 	if (!bi)
 	  {
 	     e_widget_disabled_set(cfdata->gui.o_params, 1);
@@ -808,7 +808,7 @@ _update_key_binding_list(E_Config_Dialog_Data *cfdata)
 {
    int i;
    char *b, b2[64];
-   Evas_List *l;
+   Eina_List *l;
    E_Config_Binding_Key *bi;
 
    evas_event_freeze(evas_object_evas_get(cfdata->gui.o_binding_list));
@@ -820,8 +820,8 @@ _update_key_binding_list(E_Config_Dialog_Data *cfdata)
 
    if (cfdata->binding.key)
      {
-	cfdata->binding.key = evas_list_sort(cfdata->binding.key,
-	      evas_list_count(cfdata->binding.key), _key_binding_sort_cb);
+	cfdata->binding.key = eina_list_sort(cfdata->binding.key,
+	      eina_list_count(cfdata->binding.key), _key_binding_sort_cb);
      }
 
    for (l = cfdata->binding.key, i = 0; l; l = l->next, i++)
@@ -847,7 +847,7 @@ _update_key_binding_list(E_Config_Dialog_Data *cfdata)
    edje_thaw();
    evas_event_thaw(evas_object_evas_get(cfdata->gui.o_binding_list));
    
-   if (evas_list_count(cfdata->binding.key))
+   if (eina_list_count(cfdata->binding.key))
      e_widget_disabled_set(cfdata->gui.o_del_all, 0);
    else
      e_widget_disabled_set(cfdata->gui.o_del_all, 1);
@@ -873,10 +873,10 @@ _update_buttons(E_Config_Dialog_Data *cfdata)
 
 /*************** Sorting *****************************/
 static int
-_key_binding_sort_cb(void *d1, void *d2)
+_key_binding_sort_cb(const void *d1, const void *d2)
 {
    int i, j;
-   E_Config_Binding_Key *bi, *bi2;
+   const E_Config_Binding_Key *bi, *bi2;
 
    bi = d1;
    bi2 = d2;
@@ -934,19 +934,19 @@ _grab_wnd_show(E_Config_Dialog_Data *cfdata)
    ecore_x_window_show(cfdata->locals.bind_win);
    e_grabinput_get(cfdata->locals.bind_win, 0, cfdata->locals.bind_win);
    
-   cfdata->locals.handlers = evas_list_append(cfdata->locals.handlers,
+   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
 			      ecore_event_handler_add(ECORE_X_EVENT_KEY_DOWN,
 				 _grab_key_down_cb, cfdata));
 
-   cfdata->locals.handlers = evas_list_append(cfdata->locals.handlers,
+   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
 			      ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_DOWN,
 				 _grab_mouse_dumb_cb, NULL));
 
-   cfdata->locals.handlers = evas_list_append(cfdata->locals.handlers,
+   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
 			      ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_UP,
 				 _grab_mouse_dumb_cb, NULL));
 
-   cfdata->locals.handlers = evas_list_append(cfdata->locals.handlers,
+   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
 			      ecore_event_handler_add(ECORE_X_EVENT_MOUSE_WHEEL,
 				 _grab_mouse_dumb_cb, NULL));
 
@@ -961,7 +961,7 @@ _grab_wnd_hide(E_Config_Dialog_Data *cfdata)
      {
 	ecore_event_handler_del(cfdata->locals.handlers->data);
 	cfdata->locals.handlers =
-	   evas_list_remove_list(cfdata->locals.handlers, cfdata->locals.handlers);
+	   eina_list_remove_list(cfdata->locals.handlers, cfdata->locals.handlers);
      }
    cfdata->locals.handlers = NULL;
    e_grabinput_release(cfdata->locals.bind_win, cfdata->locals.bind_win);
@@ -1009,7 +1009,7 @@ _grab_key_down_cb(void *data, int type, void *event)
 	else
 	  {
 	     E_Config_Binding_Key *bi = NULL, *bi2 = NULL;
-	     Evas_List *l = NULL;
+	     Eina_List *l = NULL;
 	     int mod = E_BINDING_MODIFIER_NONE; 
 	     int found = 0, n;
 
@@ -1041,7 +1041,7 @@ _grab_key_down_cb(void *data, int type, void *event)
 		    { 
 		       found = 0; 
 		       sscanf(cfdata->locals.cur, "k%d", &n);
-		       bi = evas_list_nth(cfdata->binding.key, n);
+		       bi = eina_list_nth(cfdata->binding.key, n);
 
 		       for (l = cfdata->binding.key; l && !found; l = l->next)
 			 {
@@ -1061,23 +1061,23 @@ _grab_key_down_cb(void *data, int type, void *event)
 
 		       bi->context = E_BINDING_CONTEXT_ANY;
 		       bi->modifiers = mod;
-		       bi->key = evas_stringshare_add(ev->keyname);
+		       bi->key = eina_stringshare_add(ev->keyname);
 		       bi->action = NULL;
 		       bi->params = NULL;
 		       bi->any_mod = 0;
 
-		       cfdata->binding.key = evas_list_append(cfdata->binding.key, bi);
+		       cfdata->binding.key = eina_list_append(cfdata->binding.key, bi);
 		    }
 		  else
 		    {
 		       if (cfdata->locals.cur && cfdata->locals.cur[0])
 			 {
 			    sscanf(cfdata->locals.cur, "k%d", &n);
-			    bi = evas_list_nth(cfdata->binding.key, n);
+			    bi = eina_list_nth(cfdata->binding.key, n);
 
 			    bi->modifiers = mod;
-			    if (bi->key) evas_stringshare_del(bi->key);
-			    bi->key = evas_stringshare_add(ev->keyname);
+			    if (bi->key) eina_stringshare_del(bi->key);
+			    bi->key = eina_stringshare_add(ev->keyname);
 			 }
 		    } 
 
@@ -1123,7 +1123,6 @@ _grab_key_down_cb(void *data, int type, void *event)
 	     else
 	       { 
 		  int g, a, j;
-		  char buf[1024]; 
 		  const char *label = NULL;
 		  E_Action_Group *actg = NULL;
 		  E_Action_Description *actd = NULL;
@@ -1133,18 +1132,17 @@ _grab_key_down_cb(void *data, int type, void *event)
 		  else
 		    _find_key_binding_action(bi2->action, bi2->params, &g, &a, &j);
 
-		  actg = evas_list_nth(e_action_groups_get(), g);
-		  if (actg) actd = evas_list_nth(actg->acts, a);
+		  actg = eina_list_nth(e_action_groups_get(), g);
+		  if (actg) actd = eina_list_nth(actg->acts, a);
 
 		  if (actd) label = actd->act_name;
 
-		  snprintf(buf, sizeof(buf),
-			   _("The binding key sequence, that you choose,"
-			     " is already used by <br>" 
-			     "<hilight>%s</hilight> action.<br>" 
-			     "Please choose another binding key sequence."), 
-			   label ? label : _("Unknown")); 
-		  e_util_dialog_show(_("Binding Key Error"), buf);
+		  e_util_dialog_show(_("Binding Key Error"), 
+				     _("The binding key sequence, that you choose,"
+				       " is already used by <br>" 
+				       "<hilight>%s</hilight> action.<br>" 
+				       "Please choose another binding key sequence."), 
+				     label ? label : _("Unknown")); 
 	       }
 	     _grab_wnd_hide(cfdata);
 	  }
@@ -1173,24 +1171,24 @@ _auto_apply_changes(E_Config_Dialog_Data *cfdata)
    sscanf(cfdata->locals.cur, "k%d", &n);
    sscanf(cfdata->locals.action, "%d %d", &g, &a);
 
-   bi = evas_list_nth(cfdata->binding.key, n);
+   bi = eina_list_nth(cfdata->binding.key, n);
    if (!bi) return;
 
-   actg = evas_list_nth(e_action_groups_get(), g);
+   actg = eina_list_nth(e_action_groups_get(), g);
    if (!actg) return;
-   actd = evas_list_nth(actg->acts, a);
+   actd = eina_list_nth(actg->acts, a);
    if (!actd) return;
 
-   if (bi->action) evas_stringshare_del(bi->action);
+   if (bi->action) eina_stringshare_del(bi->action);
    bi->action = NULL;
 
-   if (actd->act_cmd) bi->action = evas_stringshare_add(actd->act_cmd);
+   if (actd->act_cmd) bi->action = eina_stringshare_add(actd->act_cmd);
 
-   if (bi->params) evas_stringshare_del(bi->params);
+   if (bi->params) eina_stringshare_del(bi->params);
    bi->params = NULL;
 
    if (actd->act_params) 
-     bi->params = evas_stringshare_add(actd->act_params);
+     bi->params = eina_stringshare_add(actd->act_params);
    else
      {
 	ok = 1;
@@ -1206,14 +1204,14 @@ _auto_apply_changes(E_Config_Dialog_Data *cfdata)
 	  ok = 0;
 
 	if (ok)
-	  bi->params = evas_stringshare_add(cfdata->locals.params);
+	  bi->params = eina_stringshare_add(cfdata->locals.params);
      }
 }
 
 static void
 _find_key_binding_action(const char *action, const char *params, int *g, int *a, int *n)
 {
-   Evas_List *l, *l2;
+   Eina_List *l, *l2;
    int gg = -1, aa = -1, nn = -1, found;
    E_Action_Group *actg;
    E_Action_Description *actd;

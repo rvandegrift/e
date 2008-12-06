@@ -18,7 +18,7 @@ EAPI void         e_widget_ilist_selector_set(Evas_Object *obj, int selector);
 EAPI void         e_widget_ilist_go(Evas_Object *obj);
 EAPI void         e_widget_ilist_clear(Evas_Object *obj);
 EAPI int          e_widget_ilist_count(Evas_Object *obj);
-EAPI Evas_List   *e_widget_ilist_items_get(Evas_Object *obj);
+EAPI Eina_List   *e_widget_ilist_items_get(Evas_Object *obj);
 EAPI int          e_widget_ilist_nth_is_header(Evas_Object *obj, int n);
 EAPI void         e_widget_ilist_nth_label_set(Evas_Object *obj, int n, const char *label);
 EAPI const char  *e_widget_ilist_nth_label_get(Evas_Object *obj, int n);
@@ -37,6 +37,6 @@ EAPI void         e_widget_ilist_multi_select_set(Evas_Object *obj, int multi);
 EAPI int          e_widget_ilist_multi_select_get(Evas_Object *obj);
 EAPI void         e_widget_ilist_multi_select(Evas_Object *obj, int n);
 EAPI void         e_widget_ilist_range_select(Evas_Object *obj, int n);
-
+EAPI void         e_widget_ilist_preferred_size_get(Evas_Object *obj, Evas_Coord *w, Evas_Coord *h);
 #endif
 #endif

@@ -25,13 +25,13 @@ static E_Module *conf_module = NULL;
 EAPI E_Module_Api e_modapi =
 {
    E_MODULE_API_VERSION,
-     "Configuration - Applications"
+     "Settings - Applications"
 };
 
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("applications", 20, _("Applications"), NULL, "enlightenment/applications");
+   e_configure_registry_category_add("applications", 20, _("Apps"), NULL, "enlightenment/applications");
    e_configure_registry_item_add("applications/new_application", 10, _("New Application"), NULL, "enlightenment/add_application", e_int_config_apps_add);
    e_configure_registry_item_add("applications/ibar_applications", 20, _("IBar Applications"), NULL, "enlightenment/ibar_applications", e_int_config_apps_ibar);
    e_configure_registry_item_add("applications/restart_applications", 30, _("Restart Applications"), NULL, "enlightenment/restart_applications", e_int_config_apps_restart);

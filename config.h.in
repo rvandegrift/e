@@ -1,4 +1,4 @@
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
@@ -40,9 +40,6 @@
 
 /* Ecore IMF support */
 #undef HAVE_ECORE_IMF
-
-/* E_Dbus support */
-#undef HAVE_EDBUS
 
 /* Define to 1 if you have the `fnmatch' function. */
 #undef HAVE_FNMATCH

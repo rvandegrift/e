@@ -4,6 +4,7 @@
 #include <Ecore.h>
 #include <E_DBus.h>
 #include <Evas.h>
+#include <eina_stringshare.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,11 +81,11 @@ struct _Interface
    Interface_Properties prop;
    Interface_IPv4 ipv4;
    Interface_Network_Selection network_selection;
-   Evas_List *networks;
+   Eina_List *networks;
    int signal_strength;
-   
+
    /* private - don't touch */
-   Evas_List *callbacks;
+   Eina_List *callbacks;
    struct {
       E_DBus_Signal_Handler *network_found;
       E_DBus_Signal_Handler *signal_changed;

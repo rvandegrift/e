@@ -16,7 +16,7 @@ static void _e_config_dialog_cb_changed(void *data, Evas_Object *obj);
 static void _e_config_dialog_cb_close(void *data, E_Dialog *dia);
 
 /* local subsystem globals */
-static Evas_List *_e_config_dialog_list = NULL;
+static Eina_List *_e_config_dialog_list = NULL;
 
 /* externally accessible functions */
 
@@ -28,12 +28,12 @@ e_config_dialog_new(E_Container *con, const char *title, const char *name, const
    cfd = E_OBJECT_ALLOC(E_Config_Dialog, E_CONFIG_DIALOG_TYPE, _e_config_dialog_free);
    cfd->view = view;
    cfd->con = con;
-   cfd->title = evas_stringshare_add(title);
-   cfd->name = evas_stringshare_add(name);
-   cfd->class = evas_stringshare_add(class);
+   cfd->title = eina_stringshare_add(title);
+   cfd->name = eina_stringshare_add(name);
+   cfd->class = eina_stringshare_add(class);
    if (icon)
      {
-	cfd->icon = evas_stringshare_add(icon);
+	cfd->icon = eina_stringshare_add(icon);
 	cfd->icon_size = icon_size;
      }
    cfd->data = data;
@@ -72,7 +72,7 @@ e_config_dialog_new(E_Container *con, const char *title, const char *name, const
 	  _e_config_dialog_go(cfd, E_CONFIG_DIALOG_CFDATA_TYPE_BASIC);	
 	break;
      }
-   _e_config_dialog_list = evas_list_append(_e_config_dialog_list, cfd);
+   _e_config_dialog_list = eina_list_append(_e_config_dialog_list, cfd);
    
    return cfd;
 }
@@ -80,7 +80,7 @@ e_config_dialog_new(E_Container *con, const char *title, const char *name, const
 EAPI int
 e_config_dialog_find(const char *name, const char *class)
 {
-   Evas_List *l;
+   Eina_List *l;
    E_Config_Dialog *cfd;
    
    for (l = _e_config_dialog_list; l; l = l->next)
@@ -116,7 +116,7 @@ e_config_dialog_find(const char *name, const char *class)
 EAPI E_Config_Dialog *
 e_config_dialog_get(const char *name, const char *class) 
 {
-   Evas_List *l;
+   Eina_List *l;
    
    for (l = _e_config_dialog_list; l; l = l->next)
      {
@@ -138,12 +138,12 @@ e_config_dialog_get(const char *name, const char *class)
 static void
 _e_config_dialog_free(E_Config_Dialog *cfd)
 {
-   _e_config_dialog_list = evas_list_remove(_e_config_dialog_list, cfd);
+   _e_config_dialog_list = eina_list_remove(_e_config_dialog_list, cfd);
    if (cfd->auto_apply_timer) _e_config_dialog_cb_auto_apply_timer(cfd);
-   if (cfd->title) evas_stringshare_del(cfd->title);
-   if (cfd->name) evas_stringshare_del(cfd->name);
-   if (cfd->class) evas_stringshare_del(cfd->class);
-   if (cfd->icon) evas_stringshare_del(cfd->icon);
+   if (cfd->title) eina_stringshare_del(cfd->title);
+   if (cfd->name) eina_stringshare_del(cfd->name);
+   if (cfd->class) eina_stringshare_del(cfd->class);
+   if (cfd->icon) eina_stringshare_del(cfd->icon);
    if (cfd->cfdata)
      {
 	cfd->view->free_cfdata(cfd, cfd->cfdata);
@@ -163,7 +163,7 @@ static void
 _e_config_dialog_go(E_Config_Dialog *cfd, E_Config_Dialog_CFData_Type type)
 {
    E_Dialog *pdia;
-   Evas_Object *o, *ob;
+   Evas_Object *o, *ob, *sf;
    Evas_Coord mw = 0, mh = 0;
    char buf[256];
    
@@ -173,8 +173,10 @@ _e_config_dialog_go(E_Config_Dialog *cfd, E_Config_Dialog_CFData_Type type)
      snprintf(buf, sizeof(buf), "%s...%s", cfd->class, "BASIC");
    else
      snprintf(buf, sizeof(buf), "%s...%s", cfd->class, "ADVANCED");
-   cfd->dia = e_dialog_new(cfd->con, cfd->name, buf);
-   if (cfd->view->normal_win) e_win_dialog_set(cfd->dia->win, 0);
+   if ((cfd->view->normal_win) || (e_config->cfgdlg_normal_wins))
+     cfd->dia = e_dialog_normal_win_new(cfd->con, cfd->name, buf);
+   else
+     cfd->dia = e_dialog_new(cfd->con, cfd->name, buf);
    cfd->dia->data = cfd;
    e_object_del_attach_func_set(E_OBJECT(cfd->dia), _e_config_dialog_cb_dialog_del);
    e_dialog_title_set(cfd->dia, cfd->title);
@@ -186,14 +188,28 @@ _e_config_dialog_go(E_Config_Dialog *cfd, E_Config_Dialog_CFData_Type type)
 	  {
 	     o = e_widget_list_add(e_win_evas_get(cfd->dia->win), 0, 0);
 	     ob = cfd->view->basic.create_widgets(cfd, e_win_evas_get(cfd->dia->win), cfd->cfdata);
-	     e_widget_list_object_append(o, ob, 1, 1, 0.0);
+	     if (cfd->view->scroll)
+	       {
+		  e_widget_min_size_resize(ob);
+		  sf = e_widget_scrollframe_simple_add(e_win_evas_get(cfd->dia->win), ob);
+		  e_widget_list_object_append(o, sf, 1, 1, 0.0);
+	       }
+	     else
+	       e_widget_list_object_append(o, ob, 1, 1, 0.0);
 	     ob = e_widget_button_add(e_win_evas_get(cfd->dia->win),
 				      _("Advanced"), "widget/new_dialog",
 				      _e_config_dialog_cb_advanced, cfd, NULL);
 	     e_widget_list_object_append(o, ob, 0, 0, 1.0);
 	  }
 	else
-	  o = cfd->view->basic.create_widgets(cfd, e_win_evas_get(cfd->dia->win), cfd->cfdata);
+	  {
+	     o = cfd->view->basic.create_widgets(cfd, e_win_evas_get(cfd->dia->win), cfd->cfdata);
+	     if (cfd->view->scroll)
+	       {
+		  e_widget_min_size_resize(o);
+		  o = e_widget_scrollframe_simple_add(e_win_evas_get(cfd->dia->win), o);
+	       }
+	  }
      }
    else
      {
@@ -201,14 +217,28 @@ _e_config_dialog_go(E_Config_Dialog *cfd, E_Config_Dialog_CFData_Type type)
 	  {
 	     o = e_widget_list_add(e_win_evas_get(cfd->dia->win), 0, 0);
 	     ob = cfd->view->advanced.create_widgets(cfd, e_win_evas_get(cfd->dia->win), cfd->cfdata);
-	     e_widget_list_object_append(o, ob, 1, 1, 0.0);
+	     if (cfd->view->scroll)
+	       {
+		  e_widget_min_size_resize(ob);
+		  sf = e_widget_scrollframe_simple_add(e_win_evas_get(cfd->dia->win), ob);
+		  e_widget_list_object_append(o, sf, 1, 1, 0.0);
+	       }
+	     else
+	       e_widget_list_object_append(o, ob, 1, 1, 0.0);
 	     ob = e_widget_button_add(e_win_evas_get(cfd->dia->win), 
 				      _("Basic"), "widget/new_dialog",
 				      _e_config_dialog_cb_basic, cfd, NULL);
 	     e_widget_list_object_append(o, ob, 0, 0, 1.0);
 	  }
 	else
-	  o = cfd->view->advanced.create_widgets(cfd, e_win_evas_get(cfd->dia->win), cfd->cfdata);
+	  {
+	     o = cfd->view->advanced.create_widgets(cfd, e_win_evas_get(cfd->dia->win), cfd->cfdata);
+	     if (cfd->view->scroll)
+	       {
+		  e_widget_min_size_resize(o);
+		  o = e_widget_scrollframe_simple_add(e_win_evas_get(cfd->dia->win), o);
+	       }
+	  }
      }
    
    e_widget_min_size_get(o, &mw, &mh);

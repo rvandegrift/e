@@ -34,8 +34,9 @@ struct _E_Config_Dialog_Data
    int use_xscreensaver;
    int fmdir;
    int zone_count;
-   
+
    /* Basic props */
+   int start_locked;
    int auto_lock;
    int screensaver_lock;
    double idle_time;
@@ -101,6 +102,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    if (e_config->desklock_custom_desklock_cmd) 
      cfdata->custom_lock_cmd = strdup(e_config->desklock_custom_desklock_cmd);
 
+   cfdata->start_locked = e_config->desklock_start_locked;
    cfdata->auto_lock = e_config->desklock_autolock_idle;
    cfdata->screensaver_lock = e_config->desklock_autolock_screensaver;
    cfdata->idle_time = e_config->desklock_autolock_idle_timeout / 60;
@@ -142,6 +144,10 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    o = e_widget_list_add(evas, 0, 0);
    of = e_widget_framelist_add(evas, _("Automatic Locking"), 0);
    e_widget_disabled_set(of, !cfdata->use_xscreensaver);
+   ow = e_widget_check_add(evas, _("Lock when Enlightenment starts"),
+			   &cfdata->start_locked);
+   e_widget_disabled_set(ow, !cfdata->use_xscreensaver);
+   e_widget_framelist_object_append(of, ow);
    ow = e_widget_check_add(evas, _("Lock when X screensaver activates"), 
 			   &cfdata->screensaver_lock);
    e_widget_disabled_set(ow, !cfdata->use_xscreensaver);
@@ -163,6 +169,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 static int
 _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
 {
+   e_config->desklock_start_locked = cfdata->start_locked;
    e_config->desklock_autolock_idle = cfdata->auto_lock;
    e_config->desklock_autolock_screensaver = cfdata->screensaver_lock;
    e_config->desklock_autolock_idle_timeout = cfdata->idle_time * 60;
@@ -197,7 +204,7 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_table_object_append(rt, ow, 1, 0, 1, 1, 1, 1, 0, 0);
    e_widget_table_object_append(ft, rt, 0, 0, 1, 1, 0, 0, 0, 0);
    cfdata->o_btn = e_widget_button_add(evas, _("Go up a Directory"), 
-				       "widgets/up_dir", _cb_button_up, 
+				       "widget/up_dir", _cb_button_up, 
 				       cfdata, NULL);
    e_widget_table_object_append(ft, cfdata->o_btn, 0, 1, 1, 1, 0, 0, 0, 0);
 
@@ -333,6 +340,7 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 static int
 _adv_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
 {
+   e_config->desklock_start_locked = cfdata->start_locked;
    e_config->desklock_autolock_idle = cfdata->auto_lock;
    e_config->desklock_autolock_screensaver = cfdata->screensaver_lock;
    e_config->desklock_autolock_idle_timeout = cfdata->idle_time * 60;
@@ -342,28 +350,26 @@ _adv_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	if (e_config->desklock_background) 
 	  {
 	     e_filereg_deregister(e_config->desklock_background);
-	     evas_stringshare_del(e_config->desklock_background);
+	     eina_stringshare_del(e_config->desklock_background);
 	  }
-	e_config->desklock_background = evas_stringshare_add(cfdata->bg);
+	e_config->desklock_background = eina_stringshare_add(cfdata->bg);
 	e_filereg_register(e_config->desklock_background);
      }
 
-   e_config->desklock_login_box_zone = -1;
-   if (cfdata->zone_count > 1) 
+   if (cfdata->login_zone < 0)
      {
-	if (cfdata->login_zone >= 0) 
-	  e_config->desklock_login_box_zone = cfdata->zone;
-	else
-	  e_config->desklock_login_box_zone = cfdata->login_zone;
+	e_config->desklock_login_box_zone = cfdata->login_zone;
      }
+   else
+     e_config->desklock_login_box_zone = cfdata->zone;
 
    e_config->desklock_use_custom_desklock = cfdata->custom_lock;
    if (cfdata->custom_lock_cmd) 
      {
 	if (e_config->desklock_custom_desklock_cmd)
-	  evas_stringshare_del(e_config->desklock_custom_desklock_cmd);
+	  eina_stringshare_del(e_config->desklock_custom_desklock_cmd);
 	e_config->desklock_custom_desklock_cmd = 
-	  evas_stringshare_add(cfdata->custom_lock_cmd);
+	  eina_stringshare_add(cfdata->custom_lock_cmd);
      }
    
    e_config_save_queue();
@@ -374,7 +380,7 @@ static void
 _cb_method_change(void *data, Evas_Object *obj, void *event_info) 
 {
    E_Config_Dialog_Data *cfdata;
-   Evas_List *sel;
+   Eina_List *sel;
    E_Fm2_Icon_Info *ic;
    char path[PATH_MAX];
    const char *f;
@@ -401,8 +407,8 @@ _cb_method_change(void *data, Evas_Object *obj, void *event_info)
 	sel = e_fm2_selected_list_get(cfdata->o_fm);
 	if (!sel) sel = e_fm2_all_list_get(cfdata->o_fm);
 	if (!sel) return;
-	ic = evas_list_nth(sel, 0);
-	evas_list_free(sel);
+	ic = eina_list_nth(sel, 0);
+	eina_list_free(sel);
 	if (!ic) return;
 	e_fm2_select_set(cfdata->o_fm, ic->file, 1);
 	if (cfdata->fmdir == 0)
@@ -475,7 +481,7 @@ static void
 _cb_fm_sel_change(void *data, Evas_Object *obj, void *event_info) 
 {
    E_Config_Dialog_Data *cfdata;
-   Evas_List *sel;
+   Eina_List *sel;
    E_Fm2_Icon_Info *ic;
    char path[PATH_MAX];
    
@@ -484,7 +490,7 @@ _cb_fm_sel_change(void *data, Evas_Object *obj, void *event_info)
    sel = e_fm2_selected_list_get(cfdata->o_fm);
    if (!sel) return;
    ic = sel->data;
-   evas_list_free(sel);
+   eina_list_free(sel);
    
    if (cfdata->fmdir == 0) 
      {
@@ -542,7 +548,7 @@ static int
 _zone_count_get(void) 
 {
    int num = 0;
-   Evas_List *m, *c;
+   Eina_List *m, *c;
    
    for (m = e_manager_list(); m; m = m->next) 
      {
@@ -556,7 +562,7 @@ _zone_count_get(void)
 	     
 	     con = c->data;
 	     if (!con) continue;
-	     num += evas_list_count(con->zones);
+	     num += eina_list_count(con->zones);
 	  }
      }
    return num;

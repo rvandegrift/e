@@ -48,10 +48,10 @@ e_int_config_apps_favs(E_Container *con, const char *params __UNUSED__)
    snprintf(buf, sizeof(buf), "%s/.e/e/applications/menu/favorite.menu", 
 	    e_user_homedir_get());
    data = E_NEW(E_Config_Data, 1);
-   data->title = evas_stringshare_add(_("Favorites Menu"));
-   data->dialog = evas_stringshare_add("_config_apps_favs_dialog");
-   data->icon = evas_stringshare_add("enlightenment/favorites");
-   data->filename = evas_stringshare_add(buf);
+   data->title = eina_stringshare_add(_("Favorites Menu"));
+   data->dialog = eina_stringshare_add("_config_apps_favs_dialog");
+   data->icon = eina_stringshare_add("enlightenment/favorites");
+   data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
 }
@@ -103,10 +103,10 @@ e_int_config_apps_ibar(E_Container *con, const char *params __UNUSED__)
    snprintf(buf, sizeof(buf), "%s/.e/e/applications/bar/default/.order", 
 	    e_user_homedir_get());
    data = E_NEW(E_Config_Data, 1);
-   data->title = evas_stringshare_add(_("IBar Applications"));
-   data->dialog = evas_stringshare_add("_config_apps_ibar_dialog");
-   data->icon = evas_stringshare_add("enlightenment/ibar_applications");
-   data->filename = evas_stringshare_add(buf);
+   data->title = eina_stringshare_add(_("IBar Applications"));
+   data->dialog = eina_stringshare_add("_config_apps_ibar_dialog");
+   data->icon = eina_stringshare_add("enlightenment/ibar_applications");
+   data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
 }
@@ -118,10 +118,10 @@ e_int_config_apps_ibar_other(E_Container *con, const char *path)
 
    if (!path) return NULL;
    data = E_NEW(E_Config_Data, 1);
-   data->title = evas_stringshare_add(_("IBar Applications"));
-   data->dialog = evas_stringshare_add("_config_apps_ibar_dialog");
-   data->icon = evas_stringshare_add("enlightenment/ibar_applications");
-   data->filename = evas_stringshare_add(path);
+   data->title = eina_stringshare_add(_("IBar Applications"));
+   data->dialog = eina_stringshare_add("_config_apps_ibar_dialog");
+   data->icon = eina_stringshare_add("enlightenment/ibar_applications");
+   data->filename = eina_stringshare_add(path);
 
    return _create_dialog(con, data);
 }
@@ -135,10 +135,10 @@ e_int_config_apps_startup(E_Container *con, const char *params __UNUSED__)
    snprintf(buf, sizeof(buf), "%s/.e/e/applications/startup/.order", 
 	    e_user_homedir_get());
    data = E_NEW(E_Config_Data, 1);
-   data->title = evas_stringshare_add(_("Startup Applications"));
-   data->dialog = evas_stringshare_add("_config_apps_startup_dialog");
-   data->icon = evas_stringshare_add("enlightenment/startup_applications");
-   data->filename = evas_stringshare_add(buf);
+   data->title = eina_stringshare_add(_("Startup Applications"));
+   data->dialog = eina_stringshare_add("_config_apps_startup_dialog");
+   data->icon = eina_stringshare_add("enlightenment/startup_applications");
+   data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
 }
@@ -152,10 +152,10 @@ e_int_config_apps_restart(E_Container *con, const char *params __UNUSED__)
    snprintf(buf, sizeof(buf), "%s/.e/e/applications/restart/.order", 
 	    e_user_homedir_get());
    data = E_NEW(E_Config_Data, 1);
-   data->title = evas_stringshare_add(_("Restart Applications"));
-   data->dialog = evas_stringshare_add("_config_apps_restart_dialog");
-   data->icon = evas_stringshare_add("enlightenment/restart_applications");
-   data->filename = evas_stringshare_add(buf);
+   data->title = eina_stringshare_add(_("Restart Applications"));
+   data->dialog = eina_stringshare_add("_config_apps_restart_dialog");
+   data->icon = eina_stringshare_add("enlightenment/restart_applications");
+   data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
 }
@@ -169,10 +169,10 @@ _create_dialog(E_Container *con, E_Config_Data *data)
 
    if (e_config_dialog_find("E", data->dialog)) 
      {
-	if (data->title) evas_stringshare_del(data->title);
-	if (data->dialog) evas_stringshare_del(data->dialog);
-	if (data->icon) evas_stringshare_del(data->icon);
-	if (data->filename) evas_stringshare_del(data->filename);
+	if (data->title) eina_stringshare_del(data->title);
+	if (data->dialog) eina_stringshare_del(data->dialog);
+	if (data->icon) eina_stringshare_del(data->icon);
+	if (data->filename) eina_stringshare_del(data->filename);
 	E_FREE(data);
 	return NULL;
      }
@@ -219,10 +219,10 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    data = cfdata->data;
    if (data) 
      {
-	if (data->title) evas_stringshare_del(data->title);
-	if (data->dialog) evas_stringshare_del(data->dialog);
-	if (data->icon) evas_stringshare_del(data->icon);
-	if (data->filename) evas_stringshare_del(data->filename);
+	if (data->title) eina_stringshare_del(data->title);
+	if (data->dialog) eina_stringshare_del(data->dialog);
+	if (data->icon) eina_stringshare_del(data->icon);
+	if (data->filename) eina_stringshare_del(data->filename);
 	E_FREE(data);
      }
    if (cfdata->apps) ecore_list_destroy(cfdata->apps);
@@ -320,7 +320,7 @@ static Ecore_List *
 _load_order(const char *path) 
 {
    E_Order *order = NULL;
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    Ecore_List *apps = NULL;
 
    apps = ecore_list_new();
@@ -333,7 +333,7 @@ _load_order(const char *path)
 	efreet_desktop_ref(l->data);
 	ecore_list_append(apps, l->data);
      }
-   if (l) evas_list_free(l);
+   if (l) eina_list_free(l);
    e_object_del(E_OBJECT(order));
    return apps;
 }
@@ -502,7 +502,7 @@ static void
 _cb_add(void *data, void *data2) 
 {
    E_Config_Dialog_Data *cfdata = NULL;
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    Evas *evas;
    int w, i;
 
@@ -543,7 +543,7 @@ static void
 _cb_del(void *data, void *data2) 
 {
    E_Config_Dialog_Data *cfdata = NULL;
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    Evas *evas;
    int w;
 
@@ -652,7 +652,7 @@ _cb_down(void *data, void *data2)
 static int 
 _save_menu(E_Config_Dialog_Data *cfdata) 
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    Efreet_Menu *menu = NULL;
    int i, ret;
 
@@ -678,7 +678,7 @@ _save_menu(E_Config_Dialog_Data *cfdata)
 static int 
 _save_order(E_Config_Dialog_Data *cfdata) 
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    E_Order *order = NULL;
    int i;
 

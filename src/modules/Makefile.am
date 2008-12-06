@@ -54,7 +54,9 @@ gadman \
 mixer \
 conf_window_remembers \
 conf_scale \
-connman
+connman \
+illume \
+syscon
 
 if HAVE_TEMPERATURE
 SUBDIRS += temperature

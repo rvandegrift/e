@@ -15,8 +15,8 @@ static void _e_dialog_cb_wid_on_focus(void *data, Evas_Object *obj);
 
 /* externally accessible functions */
 
-EAPI E_Dialog *
-e_dialog_new(E_Container *con, const char *name, const char *class)
+static E_Dialog *
+_e_dialog_internal_new(E_Container *con, const char *name, const char *class, int dialog)
 {
    E_Dialog *dia;
    E_Manager *man;
@@ -42,7 +42,7 @@ e_dialog_new(E_Container *con, const char *name, const char *class)
    e_win_delete_callback_set(dia->win, _e_dialog_cb_delete);
    e_win_resize_callback_set(dia->win, _e_dialog_cb_resize);
    dia->win->data = dia;
-   e_win_dialog_set(dia->win, 1);
+   if (dialog) e_win_dialog_set(dia->win, 1);
    e_win_name_class_set(dia->win, name, class);
    o = edje_object_add(e_win_evas_get(dia->win));
    dia->bg_object = o;
@@ -66,10 +66,24 @@ e_dialog_new(E_Container *con, const char *name, const char *class)
    evas_object_key_grab(o, "Return", mask, ~mask, 0);
    mask = 0;
    evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   mask = 0;
+   evas_object_key_grab(o, "space", mask, ~mask, 0);
  
    evas_object_event_callback_add(o, EVAS_CALLBACK_KEY_DOWN, _e_dialog_cb_key_down, dia);
 
    return dia;
+}
+
+EAPI E_Dialog *
+e_dialog_new(E_Container *con, const char *name, const char *class)
+{
+   return _e_dialog_internal_new(con, name, class, 1);
+}
+
+EAPI E_Dialog *
+e_dialog_normal_win_new(E_Container *con, const char *name, const char *class)
+{
+   return _e_dialog_internal_new(con, name, class, 0);
 }
 
 EAPI void
@@ -80,7 +94,7 @@ e_dialog_button_add(E_Dialog *dia, const char *label, const char *icon, void (*f
    if (!func) func = _e_dialog_del_func_cb;
    o = e_widget_button_add(e_win_evas_get(dia->win), label, icon, (void (*) (void*, void*)) func, data, dia);
    e_widget_list_object_append(dia->box_object, o, 1, 0, 0.5);
-   dia->buttons = evas_list_append(dia->buttons, o);
+   dia->buttons = eina_list_append(dia->buttons, o);
 }
 
 EAPI int
@@ -88,7 +102,7 @@ e_dialog_button_focus_num(E_Dialog *dia, int button)
 {
    Evas_Object *o;
    
-   o = evas_list_nth(dia->buttons, button);
+   o = eina_list_nth(dia->buttons, button);
    if (o) e_widget_focus_steal(o);
    return 1;
 }
@@ -98,7 +112,7 @@ e_dialog_button_disable_num_set(E_Dialog *dia, int button, int disabled)
 {
    Evas_Object *o;
    
-   o = evas_list_nth(dia->buttons, button);
+   o = eina_list_nth(dia->buttons, button);
    if (o) e_widget_disabled_set(o, disabled);
    return 1;
 }
@@ -109,7 +123,7 @@ e_dialog_button_disable_num_get(E_Dialog *dia, int button)
    Evas_Object *o;
    int ret = 0;
    
-   o = evas_list_nth(dia->buttons, button);
+   o = eina_list_nth(dia->buttons, button);
    if (o) ret = e_widget_disabled_get(o);
    return ret;
 }
@@ -158,11 +172,11 @@ e_dialog_border_icon_set(E_Dialog *dia, const char *icon)
    if (!border) return;
    if (border->internal_icon)
      {
-	evas_stringshare_del(border->internal_icon);
+	eina_stringshare_del(border->internal_icon);
 	border->internal_icon = NULL;
      }
    if (icon)
-     border->internal_icon = evas_stringshare_add(icon);
+     border->internal_icon = eina_stringshare_add(icon);
 }
 
 EAPI void
@@ -184,6 +198,7 @@ e_dialog_resizable_set(E_Dialog *dia, int resizable)
 	if (resizable)
 	  {
 	     e_win_size_max_set(dia->win, 99999, 99999);
+             e_util_win_auto_resize_fill(dia->win);
 	  }
 	else
 	  {
@@ -219,7 +234,11 @@ e_dialog_show(E_Dialog *dia)
    dia->min_w = mw;
    dia->min_h = mh;
    if (!dia->resizable) e_win_size_max_set(dia->win, mw, mh);
-   else e_win_size_max_set(dia->win, 99999, 99999);
+   else
+     {
+        e_win_size_max_set(dia->win, 99999, 99999);
+        e_util_win_auto_resize_fill(dia->win);
+     }
    e_win_show(dia->win);
    
    if (!e_widget_focus_get(dia->box_object))
@@ -230,7 +249,7 @@ e_dialog_show(E_Dialog *dia)
 static void
 _e_dialog_free(E_Dialog *dia)
 {
-   if (dia->buttons) evas_list_free(dia->buttons);
+   if (dia->buttons) eina_list_free(dia->buttons);
    if (dia->text_object) evas_object_del(dia->text_object);
    if (dia->icon_object) evas_object_del(dia->icon_object);
    if (dia->box_object) evas_object_del(dia->box_object);

@@ -13,7 +13,7 @@ static void _e_win_cb_resize(Ecore_Evas *ee);
 static void _e_win_cb_delete(Ecore_Evas *ee);
 
 /* local subsystem globals */
-static Evas_List *wins = NULL;
+static Eina_List *wins = NULL;
 
 /* externally accessible functions */
 EAPI int
@@ -74,7 +74,7 @@ e_win_new(E_Container *con)
    win->step_y = 1;
    win->min_aspect = 0.0;
    win->max_aspect = 0.0;
-   wins = evas_list_append(wins, win);
+   wins = eina_list_append(wins, win);
    
    win->pointer = e_pointer_window_new(win->evas_win, 0);
    return win;
@@ -383,11 +383,11 @@ e_win_border_icon_set(E_Win *win, const char *icon)
    if (!border) return;
    if (border->internal_icon)
      {
-	evas_stringshare_del(border->internal_icon);
+	eina_stringshare_del(border->internal_icon);
 	border->internal_icon = NULL;
      }
    if (icon)
-     border->internal_icon = evas_stringshare_add(icon);
+     border->internal_icon = eina_stringshare_add(icon);
 }
 
 EAPI void 
@@ -399,11 +399,11 @@ e_win_border_icon_key_set(E_Win *win, const char *key)
    if (!border) return;
    if (border->internal_icon_key) 
      {
-	evas_stringshare_del(border->internal_icon_key);
+	eina_stringshare_del(border->internal_icon_key);
 	border->internal_icon_key = NULL;
      }
    if (key)
-     border->internal_icon_key = evas_stringshare_add(key);
+     border->internal_icon_key = eina_stringshare_add(key);
 }
 
 /* local subsystem functions */
@@ -418,7 +418,7 @@ _e_win_free(E_Win *win)
 	e_border_hide(win->border, 1);
 	e_object_del(E_OBJECT(win->border));
      }
-   wins = evas_list_remove(wins, win);
+   wins = eina_list_remove(wins, win);
    free(win);
 }
 

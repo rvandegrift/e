@@ -4,6 +4,7 @@
 #include "e.h"
 #include "e_mod_main.h"
 #include "e_mod_config.h"
+#include "e_mod_dbus.h"
 
 /* actual module specifics */
 static void  _e_mod_action_fileman_cb(E_Object *obj, const char *params);
@@ -32,15 +33,17 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   Evas_List *l, *ll, *lll;
+   Eina_List *l, *ll, *lll;
    E_Manager *man;
    E_Container *con;
    E_Zone *zone;
    
    conf_module = m;
 
+   eina_stringshare_init();
+
    /* Setup Entry in Config Panel */
-   e_configure_registry_category_add("fileman", 100, _("File Manager"), 
+   e_configure_registry_category_add("fileman", 100, _("Files"), 
 				     NULL, "enlightenment/fileman");
    e_configure_registry_item_add("fileman/fileman", 10, _("File Manager"), 
 				 NULL, "enlightenment/fileman", 
@@ -94,16 +97,21 @@ e_modapi_init(E_Module *m)
    
    /* FIXME: add system event for new zone creation, and on creation, add an fwin to the zone */
    
+
+   e_fileman_dbus_init();
+
    return m;
 }
 
 EAPI int
 e_modapi_shutdown(E_Module *m)
 {
-   Evas_List *l, *ll, *lll;
+   Eina_List *l, *ll, *lll;
    E_Manager *man;
    E_Container *con;
    E_Zone *zone;
+
+   e_fileman_dbus_shutdown();
 
    ecore_event_handler_del(zone_add_handler);
    zone_add_handler = NULL;
@@ -143,6 +151,9 @@ e_modapi_shutdown(E_Module *m)
    
    _e_mod_fileman_config_free();
    E_CONFIG_DD_FREE(conf_edd);
+
+   eina_stringshare_shutdown();
+
    conf_module = NULL;
    return 1;
 }
@@ -262,7 +273,7 @@ _e_mod_fileman_config_load(void)
 	  {
 	     _e_mod_fileman_config_free();
 	     ecore_timer_add(1.0, _e_mod_cb_config_timer,
-			     _("Fileman Module Configuration data needed upgrading. Your old configuration<br>"
+			     _("Fileman Module Settings data needed upgrading. Your old configuration<br>"
 			       "has been wiped and a new set of defaults initialized. This<br>"
 			       "will happen regularly during development, so don't report a<br>"
 			       "bug. This simply means Fileman module needs new configuration<br>"
@@ -333,18 +344,18 @@ static void
 _e_mod_fileman_config_free(void) 
 {
    if (fileman_config->theme.background)
-     evas_stringshare_del(fileman_config->theme.background);
+     eina_stringshare_del(fileman_config->theme.background);
    if (fileman_config->theme.frame)
-     evas_stringshare_del(fileman_config->theme.frame);
+     eina_stringshare_del(fileman_config->theme.frame);
    if (fileman_config->theme.icons)
-     evas_stringshare_del(fileman_config->theme.icons);
+     eina_stringshare_del(fileman_config->theme.icons);
    E_FREE(fileman_config);   
 }
 
 static int 
 _e_mod_cb_config_timer(void *data) 
 {
-   e_util_dialog_show(_("Fileman Configuration Updated"), data);
+   e_util_dialog_show(_("Fileman Settings Updated"), "%s", (char *)data);
    return 0;
 }
 

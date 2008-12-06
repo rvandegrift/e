@@ -20,39 +20,26 @@ static E_Module *conf_module = NULL;
  * These are the currently planned wizard pages:
  * 
  * o == interactive
- * . == automatic (no gui)
+ * . == automatic (no gui - none implemented currently)
+ * 
+ * * = done
+ * - = code here, but disabled in build
  * 
  * --- THE LIST
- * .  look for system global profile - if it exists just copy it and exit
- *    wizard now.
- * .  find fonts like sans and other known fonts that have full intl. support
- *    and use them if found.
- * o  ask for language (default selection is current locale).
- * o  ask for font size to use.
- * o  xrender/engine speed test and detect and suggest best engine.
- * o  ask for one of N default config profiles to be set up. if profile is
- *    marked as "final" end wizard now.
- * o  find XDG app menus/repositories and list them let user choose which
+ * o *ask for language (default selection is current locale).
+ * o *ask for initial profile
+ * o *find XDG app menus/repositories and list them let user choose which
  *    one(s) are to be used.
- * o  find other secondary menus - like ubuntu's settings menu and build
- *    more app menus for this.
- * .  look for battery, cpufreq and temperature support - if there, enable the
- *    appropriate modules.
- * o  ask what apps you want in ibar by default (or none - no ibar).
- * o  ask if user wants desktop icons or not (enable fwin module but seed it
- *    with default config).
- * o  ask if the user wants virtual desktops (if so have 4x1 and page module
- *    loaded).
- * o  ask about what kind of default key and mouse bindings a user wants
- *    (current e defaults, windows-style or mac-style?).
- * o  ask for what default wallpaper to use.
- * o  ask if the user wants gnome or kde support
- *    (for gnome run gnome-settings-daemon, unknown for kde).
+ * o -ask for ibar initial app set
+ * o -ask if user wants desktop icons or not (enable fwin module but seed it
+ *    with default config icons on desktop and favorites).
+ * o -ask click to focus or sloppy
+ * . *take some of current config (language, fileman, profile) and load
+ *    load profile, apply language to it and save, restart e.
  * 
- * --- THINGS TO ADD?
- * o  choose one of n available default themes (if we have any).
- * o  do you want a taskbar or not.
-
+ * why are some disabled? profiels take care of this and do a better job
+ * at collecting all the things together. for example illume makes no sense
+ * with pointer focus and ibar icons/desktop makes no sense.
  */
 
 /**/
@@ -67,6 +54,11 @@ EAPI E_Module_Api e_modapi =
      "Wizard"
 };
 
+
+static int _cb_sort_files(char *f1, char *f2)
+{
+   return strcmp(f1, f2);
+}
 
 EAPI void *
 e_modapi_init(E_Module *m)
@@ -84,6 +76,7 @@ e_modapi_init(E_Module *m)
 	char *file;
 	
 	ecore_list_first_goto(files);
+	ecore_list_sort(files, ECORE_COMPARE_CB(_cb_sort_files), ECORE_SORT_MIN);
 	while ((file = ecore_list_current(files)))
 	  {
 	     if (!strncmp(file, "page_", 5))

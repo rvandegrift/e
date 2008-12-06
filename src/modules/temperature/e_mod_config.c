@@ -60,7 +60,7 @@ config_temperature_module(Config_Face *inst)
 
    snprintf(buf, sizeof(buf), "%s/e-module-temperature.edj", e_module_dir_get(inst->module));
    cfd = e_config_dialog_new(e_container_current_get(e_manager_current_get()),
-			     _("Temperature Configuration"),
+			     _("Temperature Settings"),
 			     "E", "_e_mod_temperature_config_dialog",
 			     buf, 0, v, inst);
    inst->config_dialog = cfd;
@@ -444,9 +444,9 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    cfdata->inst->low = cfdata->low_temp;
    cfdata->inst->high = cfdata->high_temp;
    if (cfdata->inst->sensor_name)
-     evas_stringshare_del(cfdata->inst->sensor_name);
+     eina_stringshare_del(cfdata->inst->sensor_name);
    cfdata->inst->sensor_name =
-     evas_stringshare_add(ecore_list_index_goto(cfdata->sensors, cfdata->sensor));
+     eina_stringshare_add(ecore_list_index_goto(cfdata->sensors, cfdata->sensor));
 
    temperature_face_update_config(cfdata->inst);
    e_config_save_queue();
