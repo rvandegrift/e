@@ -1,3 +1,28 @@
+e17 (0.16.999.050+svn20081207-1) experimental; urgency=low
+
+  * Upstream SVN snapshot
+    - build-depend and make efl-dev depend on libeina-0.0.1a-dev
+  * Update {build,}dependencies to match the new EFL packages name
+  * Ship enlightenment.pc instead of enlightenment-config, as the latter is
+    now deprecated (Closes: #504293)
+  * Build-Depend on libasound2-dev to get the mixer module working
+    - Closes: #506847
+  * Make e17 depend on libedje-bin as this is necessary for e.g. changing the
+    background.
+  * No longer remove the wizard module from the package, as it is now usable
+  * Add debian/patches/02_fix_default_config_for_upgrades.diff:
+    - Add buttons for halt/shutdown/etc to the syscon module for the default
+      profile. Without that, users upgrading from older versions would have an
+      empty 'system' menu
+  * debian/patches/01_install_internal-use_binaries_in_usr_lib_enlightenment.diff:
+    - update, as a new binary going in /usr/lib/enlightenment was introduced
+  * lintian fixes:
+    - add ${misc:Depends} to dependencies
+    - remove e17-data.lintian-overrides, no longer needed
+    - Add overrides about setuid root programs to e17.lintian-overrides
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 27 Dec 2008 14:30:42 +0100
+
 e17 (0.16.999.050-1) experimental; urgency=low
 
   * New upstream version (Closes: #504057)
