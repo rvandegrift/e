@@ -45,7 +45,7 @@ EAPI E_Desk *
 e_desk_new(E_Zone *zone, int x, int y)
 {
    E_Desk *desk;
-   Evas_List *l;
+   Eina_List *l;
    char name[40];
    int ok;
 
@@ -72,7 +72,7 @@ e_desk_new(E_Zone *zone, int x, int y)
 	    (zone->num != cfname->zone)) continue;
 	if ((cfname->desk_x != desk->x) || (cfname->desk_y != desk->y)) 
           continue;
-	desk->name = evas_stringshare_add(cfname->name);
+	desk->name = eina_stringshare_add(cfname->name);
 	ok = 1;
 	break;
      }
@@ -80,7 +80,7 @@ e_desk_new(E_Zone *zone, int x, int y)
    if (!ok)
      {
    	snprintf(name, sizeof(name), _(e_config->desktop_default_name), x, y);
-   	desk->name = evas_stringshare_add(name);
+   	desk->name = eina_stringshare_add(name);
      }
 
    return desk;
@@ -93,8 +93,8 @@ e_desk_name_set(E_Desk *desk, const char *name)
 
    E_OBJECT_CHECK(desk);
    E_OBJECT_TYPE_CHECK(desk, E_DESK_TYPE);
-   if (desk->name) evas_stringshare_del(desk->name);
-   desk->name = evas_stringshare_add(name);
+   if (desk->name) eina_stringshare_del(desk->name);
+   desk->name = eina_stringshare_add(name);
 
    ev = E_NEW(E_Event_Desk_Name_Change, 1);
    ev->desk = desk;
@@ -114,14 +114,14 @@ e_desk_name_add(int container, int zone, int desk_x, int desk_y, const char *nam
    cfname->zone = zone;
    cfname->desk_x = desk_x;
    cfname->desk_y = desk_y;
-   if (name) cfname->name = evas_stringshare_add(name);
-   e_config->desktop_names = evas_list_append(e_config->desktop_names, cfname);
+   if (name) cfname->name = eina_stringshare_add(name);
+   e_config->desktop_names = eina_list_append(e_config->desktop_names, cfname);
 }
 
 EAPI void
 e_desk_name_del(int container, int zone, int desk_x, int desk_y)
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
 
    for (l = e_config->desktop_names; l; l = l->next)
      {
@@ -132,8 +132,8 @@ e_desk_name_del(int container, int zone, int desk_x, int desk_y)
 	    (cfname->desk_x == desk_x) && (cfname->desk_y == desk_y))
 	  {
 	     e_config->desktop_names = 
-	       evas_list_remove_list(e_config->desktop_names, l);
-	     if (cfname->name) evas_stringshare_del(cfname->name);
+	       eina_list_remove_list(e_config->desktop_names, l);
+	     if (cfname->name) eina_stringshare_del(cfname->name);
 	     free(cfname);
 	     break;
 	  }
@@ -143,7 +143,7 @@ e_desk_name_del(int container, int zone, int desk_x, int desk_y)
 EAPI void
 e_desk_name_update(void)
 {
-   Evas_List *m, *c, *z, *l;
+   Eina_List *m, *c, *z, *l;
    E_Manager *man;
    E_Container *con;
    E_Zone *zone;
@@ -204,7 +204,7 @@ e_desk_show(E_Desk *desk)
    E_Border *bd;
    E_Event_Desk_Show *ev;
    E_Event_Desk_Before_Show *eev;
-   Evas_List *l;
+   Eina_List *l;
    int was_zone = 0, x, y, dx = 0, dy = 0;
 
    E_OBJECT_CHECK(desk);
@@ -279,7 +279,7 @@ e_desk_show(E_Desk *desk)
 
    for (l = e_shelf_list(); l; l = l->next)
      {
-	Evas_List *ll;
+	Eina_List *ll;
 	E_Shelf *es;
 	E_Config_Shelf *cf_es;
 	E_Zone *zone;
@@ -358,7 +358,7 @@ e_desk_deskshow(E_Zone *zone)
 EAPI void
 e_desk_last_focused_focus(E_Desk *desk)
 {
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    E_Border *bd;
    
    for (l = e_border_focus_stack_get(); l; l = l->next)
@@ -507,7 +507,7 @@ e_desk_prev(E_Zone *zone)
 static void
 _e_desk_free(E_Desk *desk)
 {
-   if (desk->name) evas_stringshare_del(desk->name);
+   if (desk->name) eina_stringshare_del(desk->name);
    if (desk->animator) ecore_animator_del(desk->animator);
    free(desk);
 }
@@ -559,7 +559,7 @@ _e_desk_show_begin(E_Desk *desk, int mode, int dx, int dy)
    E_Border *bd;
    double t;
 
-   t = ecore_time_get();
+   t = ecore_loop_time_get();
    bl = e_container_border_list_first(desk->zone->container);
    while ((bd = e_container_border_list_next(bl)))
      {
@@ -655,7 +655,7 @@ _e_desk_show_animator(void *data)
    double t, dt, spd;
 
    desk = data;
-   t = ecore_time_get();
+   t = ecore_loop_time_get();
    dt = -1.0;
    spd = e_config->desk_flip_animate_time;
    bl = e_container_border_list_first(desk->zone->container);
@@ -695,7 +695,7 @@ _e_desk_hide_begin(E_Desk *desk, int mode, int dx, int dy)
    E_Border *bd;
    double t;
 
-   t = ecore_time_get();
+   t = ecore_loop_time_get();
    bl = e_container_border_list_first(desk->zone->container);
    while ((bd = e_container_border_list_next(bl)))
      {
@@ -791,7 +791,7 @@ _e_desk_hide_animator(void *data)
    double t, dt, spd;
 
    desk = data;
-   t = ecore_time_get();
+   t = ecore_loop_time_get();
    dt = -1.0;
    spd = e_config->desk_flip_animate_time;
    bl = e_container_border_list_first(desk->zone->container);

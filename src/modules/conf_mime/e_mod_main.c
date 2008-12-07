@@ -25,13 +25,13 @@ static E_Module *conf_module = NULL;
 EAPI E_Module_Api e_modapi =
 {
    E_MODULE_API_VERSION,
-     "Configuration - File Icons"
+     "Settings - File Icons"
 };
 
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("fileman", 100, _("File Manager"), NULL, "enlightenment/fileman");
+   e_configure_registry_category_add("fileman", 100, _("Files"), NULL, "enlightenment/fileman");
    e_configure_registry_item_add("fileman/file_icons", 20, _("File Icons"), NULL, "enlightenment/file_icons", e_int_config_mime);
    conf_module = m;
    e_module_delayed_set(m, 1);

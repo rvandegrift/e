@@ -16,12 +16,12 @@ static void _e_module_dialog_disable_show(const char *title, const char *body, E
 static void _e_module_cb_dialog_disable(void *data, E_Dialog *dia);
 static void _e_module_event_update_free(void *data, void *event);
 static int _e_module_cb_idler(void *data);
-static int _e_module_sort_priority(void *d1, void *d2);
+static int _e_module_sort_priority(const void *d1, const void *d2);
 
 /* local subsystem globals */
-static Evas_List *_e_modules = NULL;
+static Eina_List *_e_modules = NULL;
 static Ecore_Idler *_e_module_idler = NULL;
-static Evas_List *_e_modules_delayed = NULL;
+static Eina_List *_e_modules_delayed = NULL;
 
 EAPI int E_EVENT_MODULE_UPDATE = 0;
 
@@ -36,7 +36,7 @@ e_module_init(void)
 EAPI int
 e_module_shutdown(void)
 {
-   Evas_List *l;
+   Eina_List *l;
 
 #ifdef HAVE_VALGRIND
    /* do a leak check now before we dlclose() all those plugins, cause
@@ -45,7 +45,7 @@ e_module_shutdown(void)
    VALGRIND_DO_LEAK_CHECK
 #endif
 
-   _e_modules = evas_list_reverse(_e_modules);
+   _e_modules = eina_list_reverse(_e_modules);
    for (l = _e_modules; l; l = l->next)
      {
 	E_Module *m;
@@ -63,7 +63,7 @@ e_module_shutdown(void)
    while (l)
      {
 	e_object_del(E_OBJECT(l->data));
-	l = evas_list_remove_list(l, l);
+	l = eina_list_remove_list(l, l);
      }
    return 1;
 }
@@ -71,9 +71,9 @@ e_module_shutdown(void)
 EAPI void
 e_module_all_load(void)
 {
-   Evas_List *l;
-   e_config->modules = evas_list_sort(e_config->modules,
-                                      evas_list_count(e_config->modules),
+   Eina_List *l;
+   e_config->modules = eina_list_sort(e_config->modules,
+                                      eina_list_count(e_config->modules),
                                       _e_module_sort_priority);
    for (l = e_config->modules; l; l = l->next)
      {
@@ -87,8 +87,8 @@ e_module_all_load(void)
 	     if (!_e_module_idler)
 	       _e_module_idler = ecore_idler_add(_e_module_cb_idler, NULL);
 	     _e_modules_delayed = 
-	       evas_list_append(_e_modules_delayed,
-				evas_stringshare_add(em->name));
+	       eina_list_append(_e_modules_delayed,
+				eina_stringshare_add(em->name));
 	  }
 	else if (em->enabled)
 	  {
@@ -107,7 +107,7 @@ e_module_new(const char *name)
    char body[4096], title[1024];
    const char *modpath;
    char *s;
-   Evas_List *l;
+   Eina_List *l;
    int in_list = 0;
 
    if (!name) return NULL;
@@ -118,7 +118,7 @@ e_module_new(const char *name)
 	modpath = e_path_find(path_modules, buf);
      }
    else
-     modpath = evas_stringshare_add(name);
+     modpath = eina_stringshare_add(name);
    if (!modpath)
      {
 	snprintf(body, sizeof(body), _("There was an error loading module named: %s<br>"
@@ -192,8 +192,8 @@ e_module_new(const char *name)
 
 init_done:
 
-   _e_modules = evas_list_append(_e_modules, m);
-   m->name = evas_stringshare_add(name);
+   _e_modules = eina_list_append(_e_modules, m);
+   m->name = eina_stringshare_add(name);
    if (modpath)
      {
 	s =  ecore_file_dir_get(modpath);
@@ -205,7 +205,7 @@ init_done:
 	     free(s);
 	     if (s2)
 	       {
-		  m->dir = evas_stringshare_add(s2);
+		  m->dir = eina_stringshare_add(s2);
 		  free(s2);
 	       }
 	  }
@@ -227,12 +227,12 @@ init_done:
 	E_Config_Module *em;
 	
 	em = E_NEW(E_Config_Module, 1);
-	em->name = evas_stringshare_add(m->name);
+	em->name = eina_stringshare_add(m->name);
 	em->enabled = 0;
-	e_config->modules = evas_list_append(e_config->modules, em);
+	e_config->modules = eina_list_append(e_config->modules, em);
 	e_config_save_queue();
      }
-   if (modpath) evas_stringshare_del(modpath);
+   if (modpath) eina_stringshare_del(modpath);
    return m;
 }
 
@@ -256,7 +256,7 @@ e_module_dir_get(E_Module *m)
 EAPI int
 e_module_enable(E_Module *m)
 {
-   Evas_List *l;
+   Eina_List *l;
    E_Event_Module_Update *ev;
    
    E_OBJECT_CHECK_RETURN(m, 0);
@@ -294,7 +294,7 @@ EAPI int
 e_module_disable(E_Module *m)
 {
    E_Event_Module_Update *ev;
-   Evas_List *l;
+   Eina_List *l;
    int ret;
    
    E_OBJECT_CHECK_RETURN(m, 0);
@@ -336,7 +336,7 @@ e_module_enabled_get(E_Module *m)
 EAPI int
 e_module_save_all(void)
 {
-   Evas_List *l;
+   Eina_List *l;
    int ret = 1;
    
    for (l = _e_modules; l; l = l->next) e_object_ref(E_OBJECT(l->data));
@@ -357,7 +357,7 @@ e_module_save_all(void)
 EAPI E_Module *
 e_module_find(const char *name)
 {
-   Evas_List *l;
+   Eina_List *l;
    
    if (!name) return NULL;
    for (l = _e_modules; l; l = l->next)
@@ -370,7 +370,7 @@ e_module_find(const char *name)
    return NULL;
 }
 
-EAPI Evas_List *
+EAPI Eina_List *
 e_module_list(void)
 {
    return _e_modules;
@@ -422,14 +422,14 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
    if (!m) return;
    bd = dia->win->border;
    if (!bd) return;
-   bd->internal_icon = evas_stringshare_add(icon);
+   bd->internal_icon = eina_stringshare_add(icon);
    free(icon);
 }
 
 EAPI void
 e_module_delayed_set(E_Module *m, int delayed)
 {
-   Evas_List *l;
+   Eina_List *l;
    
    for (l = e_config->modules; l; l = l->next)
      {
@@ -454,7 +454,7 @@ e_module_priority_set(E_Module *m, int priority)
 {
    /* Set the loading order for a module.
       More priority means load earlier */
-   Evas_List *l;
+   Eina_List *l;
    
    for (l = e_config->modules; l; l = l->next)
      {
@@ -479,7 +479,7 @@ e_module_priority_set(E_Module *m, int priority)
 static void
 _e_module_free(E_Module *m)
 {
-   Evas_List *l;
+   Eina_List *l;
    
    for (l = e_config->modules; l; l = l->next)
      {
@@ -489,8 +489,8 @@ _e_module_free(E_Module *m)
 	if (!em) continue;
 	if (!e_util_strcmp(em->name, m->name))
 	  {
-	     e_config->modules = evas_list_remove(e_config->modules, em);
-	     if (em->name) evas_stringshare_del(em->name);
+	     e_config->modules = eina_list_remove(e_config->modules, em);
+	     if (em->name) eina_stringshare_del(em->name);
 	     E_FREE(em);
 	     break;
 	  }
@@ -501,10 +501,10 @@ _e_module_free(E_Module *m)
 	m->func.save(m);
 	m->func.shutdown(m);
      }
-   if (m->name) evas_stringshare_del(m->name);
-   if (m->dir) evas_stringshare_del(m->dir);
+   if (m->name) eina_stringshare_del(m->name);
+   if (m->dir) eina_stringshare_del(m->dir);
    if (m->handle) dlclose(m->handle);
-   _e_modules = evas_list_remove(_e_modules, m);
+   _e_modules = eina_list_remove(_e_modules, m);
    free(m);
 }
 
@@ -514,6 +514,7 @@ _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m)
    E_Dialog *dia;
    char buf[4096];
 
+   printf("MODULE ERR:\n%s\n", body);
    dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_module_unload_dialog");
    if (!dia) return;
 
@@ -561,11 +562,11 @@ _e_module_cb_idler(void *data)
 	E_Module *m;
 	
 	name = _e_modules_delayed->data;
-	_e_modules_delayed = evas_list_remove_list(_e_modules_delayed, _e_modules_delayed);
+	_e_modules_delayed = eina_list_remove_list(_e_modules_delayed, _e_modules_delayed);
 	m = NULL;
 	if (name) m = e_module_new(name);
 	if (m) e_module_enable(m);
-	evas_stringshare_del(name);
+	eina_stringshare_del(name);
      }
    if (_e_modules_delayed) return 1;
    _e_module_idler = NULL;
@@ -573,9 +574,9 @@ _e_module_cb_idler(void *data)
 }
 
 static int
-_e_module_sort_priority(void *d1, void *d2)
+_e_module_sort_priority(const void *d1, const void *d2)
 {
-   E_Config_Module *m1, *m2;
+   const E_Config_Module *m1, *m2;
 
    m1 = d1;
    m2 = d2;

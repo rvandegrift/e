@@ -24,7 +24,7 @@ module_la_SOURCES      = e_mod_main.c \
 			 e_int_config_imc_import.h \
 			 e_int_config_imc.c \
 			 e_int_config_imc.h
-			 
+
 module_la_LIBADD       = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version
 module_la_DEPENDENCIES = $(top_builddir)/config.h

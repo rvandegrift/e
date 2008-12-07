@@ -188,7 +188,7 @@ static void
 _load_avail_gadgets(void *data) 
 {
    E_Config_Dialog_Data *cfdata = NULL;
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    Evas *evas;
    int w;
 
@@ -199,7 +199,7 @@ _load_avail_gadgets(void *data)
    e_widget_ilist_freeze(cfdata->o_avail);
    e_widget_ilist_clear(cfdata->o_avail);
 //   l = e_gadcon_provider_list();
-//   if (l) l = evas_list_sort(l, -1, _gad_list_sort);
+//   if (l) l = eina_list_sort(l, -1, _gad_list_sort);
    for (l = e_gadcon_provider_list(); l; l = l->next) 
      {
         E_Gadcon_Client_Class *cc;
@@ -207,9 +207,9 @@ _load_avail_gadgets(void *data)
         const char *lbl = NULL;
 
         if (!(cc = l->data)) continue;
-        if (cc->func.label) lbl = cc->func.label();
+        if (cc->func.label) lbl = cc->func.label(cc);
         if (!lbl) lbl = cc->name;
-        if (cc->func.icon) icon = cc->func.icon(evas);
+        if (cc->func.icon) icon = cc->func.icon(cc, evas);
         e_widget_ilist_append(cfdata->o_avail, icon, lbl, NULL, 
                               (void *)cc->name, NULL);
      }
@@ -226,7 +226,7 @@ static void
 _load_sel_gadgets(void *data) 
 {
    E_Config_Dialog_Data *cfdata = NULL;
-   Evas_List *l = NULL, *l2 = NULL;
+   Eina_List *l = NULL, *l2 = NULL;
    Evas *evas;
    int w;
 
@@ -251,9 +251,9 @@ _load_sel_gadgets(void *data)
              if ((cgc->name) && (gcc->name) && 
                  (!strcmp(cgc->name, gcc->name))) 
                {
-                  if (gcc->func.label) lbl = gcc->func.label();
+                  if (gcc->func.label) lbl = gcc->func.label(gcc);
                   if (!lbl) lbl = gcc->name;
-                  if (gcc->func.icon) icon = gcc->func.icon(evas);
+                  if (gcc->func.icon) icon = gcc->func.icon(gcc, evas);
                   e_widget_ilist_append(cfdata->o_sel, icon, lbl, NULL, 
                                         (void *)gcc->name, NULL);
                }
@@ -272,7 +272,7 @@ static void
 _cb_add(void *data, void *data2) 
 {
    E_Config_Dialog_Data *cfdata = NULL;
-   Evas_List *l = NULL;
+   Eina_List *l = NULL;
    int i = 0, update = 0;
 
    if (!(cfdata = data)) return;
@@ -303,7 +303,7 @@ static void
 _cb_del(void *data, void *data2) 
 {
    E_Config_Dialog_Data *cfdata = NULL;
-   Evas_List *l = NULL, *g = NULL;
+   Eina_List *l = NULL, *g = NULL;
    int i = 0, update = 0;
 
    if (!(cfdata = data)) return;
@@ -370,10 +370,10 @@ _gad_list_sort(void *data1, void *data2)
    if (!(cc = data1)) return 1;
    if (!(cc2 = data2)) return -1;
 
-   if (cc->func.label) lbl1 = cc->func.label();
+   if (cc->func.label) lbl1 = cc->func.label(cc);
    if (!lbl1) lbl1 = cc->name;
    
-   if (cc2->func.label) lbl2 = cc2->func.label();
+   if (cc2->func.label) lbl2 = cc2->func.label(cc2);
    if (!lbl2) lbl2 = cc2->name;
 
    return (strcmp(lbl1, lbl2));

@@ -25,13 +25,13 @@ static E_Module *conf_module = NULL;
 EAPI E_Module_Api e_modapi =
 {
    E_MODULE_API_VERSION,
-     "Configuration - Mouse Bindings"
+     "Settings - Mouse Bindings"
 };
 
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("keyboard_and_mouse", 40, _("Keyboard & Mouse"), NULL, "enlightenment/behavior");
+   e_configure_registry_category_add("keyboard_and_mouse", 40, _("Input"), NULL, "enlightenment/behavior");
    e_configure_registry_item_add("keyboard_and_mouse/mouse_bindings", 20, _("Mouse Bindings"), NULL, "enlightenment/mouse_clean", e_int_config_mousebindings);
    conf_module = m;
    e_module_delayed_set(m, 1);

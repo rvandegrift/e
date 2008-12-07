@@ -17,8 +17,8 @@ struct _E_Pointer_Stack
    const char    *type;
 };
 
-static Evas_List *_e_pointers = NULL;
-static Evas_List *handlers = NULL;
+static Eina_List *_e_pointers = NULL;
+static Eina_List *handlers = NULL;
 
 static void _e_pointer_canvas_add(E_Pointer *p);
 static void _e_pointer_canvas_del(E_Pointer *p);
@@ -40,10 +40,10 @@ static int _e_pointer_cb_idle_poller(void *data);
 EAPI int
 e_pointer_init(void)
 {
-   handlers = evas_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_DOWN, _e_pointer_cb_mouse_down, NULL));
-   handlers = evas_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_UP, _e_pointer_cb_mouse_up, NULL));
-   handlers = evas_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_MOVE, _e_pointer_cb_mouse_move, NULL));
-   handlers = evas_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_WHEEL, _e_pointer_cb_mouse_wheel, NULL));
+   handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_DOWN, _e_pointer_cb_mouse_down, NULL));
+   handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_UP, _e_pointer_cb_mouse_up, NULL));
+   handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_MOVE, _e_pointer_cb_mouse_move, NULL));
+   handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_MOUSE_WHEEL, _e_pointer_cb_mouse_wheel, NULL));
    return 1;
 }
 
@@ -55,7 +55,7 @@ e_pointer_shutdown(void)
 	Ecore_Event_Handler *h;
 	
 	h = handlers->data;
-	handlers = evas_list_remove_list(handlers, handlers);
+	handlers = eina_list_remove_list(handlers, handlers);
 	ecore_event_handler_del(h);
      }
    
@@ -85,14 +85,16 @@ e_pointer_window_new(Ecore_X_Window win, int filled)
      }
    ecore_x_cursor_size_set(e_config->cursor_size * 3 / 4);
    if (filled) e_pointer_type_push(p, p, "default");
-   _e_pointers = evas_list_append(_e_pointers, p); 
+   _e_pointers = eina_list_append(_e_pointers, p); 
    return p;
 }
 
 EAPI void
 e_pointers_size_set(int size)
 {
-   Evas_List *l;
+   Eina_List *l;
+
+   if (!e_config->show_cursor) return;
 
    for (l = _e_pointers; l; l = l->next)
      {
@@ -129,10 +131,17 @@ e_pointers_size_set(int size)
 	       {
 		  p->type = NULL;
 		  _e_pointer_type_set(p, type);
-		  evas_stringshare_del(type);
+		  eina_stringshare_del(type);
 	       }
 	  }
      }
+}
+
+EAPI void
+e_pointer_hide(E_Pointer *p)
+{
+    if (p->win) ecore_x_window_cursor_set(p->win, 0);
+    if (p->evas) _e_pointer_canvas_del(p);
 }
 
 EAPI void
@@ -149,9 +158,9 @@ e_pointer_type_push(E_Pointer *p, void *obj, const char *type)
    stack = E_NEW(E_Pointer_Stack, 1);
    if (stack)
      {
-	stack->type = evas_stringshare_add(p->type);
+	stack->type = eina_stringshare_add(p->type);
 	stack->obj = p->obj;
-	p->stack = evas_list_prepend(p->stack, stack);
+	p->stack = eina_list_prepend(p->stack, stack);
      }
 
 }
@@ -159,7 +168,7 @@ e_pointer_type_push(E_Pointer *p, void *obj, const char *type)
 EAPI void
 e_pointer_type_pop(E_Pointer *p, void *obj, const char *type)
 {
-   Evas_List *l;
+   Eina_List *l;
    E_Pointer_Stack *stack;
 
    for (l = p->stack; l; l = l->next)
@@ -170,7 +179,7 @@ e_pointer_type_pop(E_Pointer *p, void *obj, const char *type)
 	    ((!type) || (!strcmp(stack->type, type))))
 	  {
 	     _e_pointer_stack_free(stack);
-	     p->stack = evas_list_remove_list(p->stack, l);
+	     p->stack = eina_list_remove_list(p->stack, l);
 	     if (type) break;
 	  }
      }
@@ -179,7 +188,7 @@ e_pointer_type_pop(E_Pointer *p, void *obj, const char *type)
      {
 	if (p->evas) _e_pointer_canvas_del(p);
 	ecore_x_window_cursor_set(p->win, 0);
-	if (p->type) evas_stringshare_del(p->type);
+	if (p->type) eina_stringshare_del(p->type);
 	p->type = NULL;
 	return;
      }
@@ -187,8 +196,8 @@ e_pointer_type_pop(E_Pointer *p, void *obj, const char *type)
    stack = p->stack->data;
    _e_pointer_type_set(p, stack->type);
 
-   if (p->type) evas_stringshare_del(p->type);
-   p->type = evas_stringshare_add(stack->type);
+   if (p->type) eina_stringshare_del(p->type);
+   p->type = eina_stringshare_add(stack->type);
    p->obj = stack->obj;
 
    /* try the default cursor next time */
@@ -198,12 +207,13 @@ e_pointer_type_pop(E_Pointer *p, void *obj, const char *type)
 EAPI void
 e_pointer_idler_before(void)
 {
-   Evas_List *l;
+   Eina_List *l;
+   if (!e_config->show_cursor) return;
 
    for (l = _e_pointers; l; l = l->next)
      {
 	E_Pointer *p;
-	Evas_List *updates;
+	Eina_List *updates;
 
 	p = l->data;
 	if (!p->e_cursor) continue;
@@ -305,6 +315,8 @@ _e_pointer_cb_move(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event
    E_Pointer *p;
    Evas_Coord x, y;
 
+   if (!e_config->show_cursor) return;
+
    p = data;
    if (!p->e_cursor) return;
    edje_object_part_geometry_get(p->pointer_object, "e.swallow.hotspot",
@@ -320,17 +332,17 @@ _e_pointer_cb_move(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event
 static void
 _e_pointer_free(E_Pointer *p)
 {
-   _e_pointers = evas_list_remove(_e_pointers, p);
+   _e_pointers = eina_list_remove(_e_pointers, p);
 
    _e_pointer_canvas_del(p);
    
    while (p->stack)
      {
 	_e_pointer_stack_free(p->stack->data);
-	p->stack = evas_list_remove_list(p->stack, p->stack);
+	p->stack = eina_list_remove_list(p->stack, p->stack);
      }
 
-   if (p->type) evas_stringshare_del(p->type);
+   if (p->type) eina_stringshare_del(p->type);
    
    if (p->idle_timer) ecore_timer_del(p->idle_timer);
    if (p->idle_poller) ecore_poller_del(p->idle_poller);
@@ -344,7 +356,7 @@ _e_pointer_free(E_Pointer *p)
 static void
 _e_pointer_stack_free(E_Pointer_Stack *elem)
 {
-   if (elem->type) evas_stringshare_del(elem->type);
+   if (elem->type) eina_stringshare_del(elem->type);
    free(elem);
 }
 
@@ -354,9 +366,16 @@ _e_pointer_type_set(E_Pointer *p, const char *type)
    /* Check if this pointer is already set */
    if ((p->type) && (!strcmp(p->type, type))) return 1;
 
-   if (p->type) evas_stringshare_del(p->type);
-   p->type = evas_stringshare_add(type);
+   if (p->type) eina_stringshare_del(p->type);
+   p->type = eina_stringshare_add(type);
    
+   /* Do not set type if in "hidden mode" */
+   if (!e_config->show_cursor)
+     {
+	ecore_x_window_cursor_set(p->win, 0);
+	return 1;
+     }
+
    if (p->e_cursor)
      {
 	Evas_Object *o;
@@ -508,6 +527,7 @@ _e_pointer_active_handle(E_Pointer *p)
      }
    if (e_powersave_mode_get() >= E_POWERSAVE_MODE_MEDIUM) return;
    /* and scedule a pre-idle check in 1 second if no more events happen */
+   if (!e_config->idle_cursor) return;
    p->idle_timer = ecore_timer_add(1.0, _e_pointer_cb_idle_timer_pre, p);
 }
 
@@ -515,7 +535,7 @@ static int
 _e_pointer_cb_mouse_down(void *data, int type, void *event)
 {
    Ecore_X_Event_Mouse_Button_Down *ev;
-   Evas_List *l;
+   Eina_List *l;
    E_Pointer *p;
                                      
    ev = event;
@@ -536,7 +556,7 @@ static int
 _e_pointer_cb_mouse_up(void *data, int type, void *event)
 {
    Ecore_X_Event_Mouse_Button_Up *ev;
-   Evas_List *l;
+   Eina_List *l;
    E_Pointer *p;
                                      
    ev = event;
@@ -557,7 +577,7 @@ static int
 _e_pointer_cb_mouse_move(void *data, int type, void *event)
 {
    Ecore_X_Event_Mouse_Move *ev;
-   Evas_List *l;
+   Eina_List *l;
    E_Pointer *p;
                                      
    ev = event;
@@ -578,7 +598,7 @@ static int
 _e_pointer_cb_mouse_wheel(void *data, int type, void *event)
 {
    Ecore_X_Event_Mouse_Wheel *ev;
-   Evas_List *l;
+   Eina_List *l;
    E_Pointer *p;
                                      
    ev = event;
@@ -615,7 +635,8 @@ _e_pointer_cb_idle_timer_wait(void *data)
    E_Pointer *p;
 
    p = data;
-   if (e_powersave_mode_get() >= E_POWERSAVE_MODE_MEDIUM)
+   if ((e_powersave_mode_get() >= E_POWERSAVE_MODE_MEDIUM) ||
+       (!e_config->idle_cursor))
      {
 	if (p->idle_poller)
 	  ecore_poller_del(p->idle_poller);
@@ -637,7 +658,8 @@ _e_pointer_cb_idle_poller(void *data)
    int x, y;
    
    p = data;
-   if (e_powersave_mode_get() >= E_POWERSAVE_MODE_MEDIUM)
+   if ((e_powersave_mode_get() >= E_POWERSAVE_MODE_MEDIUM) ||
+       (!e_config->idle_cursor))
      {
 	p->idle_poller = NULL;
 	return 0;

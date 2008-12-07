@@ -51,8 +51,8 @@ _mixer_gadget_configuration_defaults(E_Mixer_Gadget_Config *conf)
 	return 0;
      }
 
-   conf->card = evas_stringshare_add(card);
-   conf->channel_name = evas_stringshare_add(channel);
+   conf->card = eina_stringshare_add(card);
+   conf->channel_name = eina_stringshare_add(channel);
    conf->lock_sliders = 1;
    conf->show_locked = 0;
 
@@ -77,7 +77,7 @@ _mixer_gadget_configuration_new(E_Mixer_Module_Config *mod_conf, const char *id)
 	return NULL;
      }
 
-   conf->id = evas_stringshare_add(id);
+   conf->id = eina_stringshare_add(id);
    mod_conf->gadgets = evas_hash_direct_add(mod_conf->gadgets, conf->id, conf);
 
    return conf;
@@ -90,11 +90,11 @@ _mixer_gadget_configuration_free_int(E_Mixer_Gadget_Config *conf)
      e_object_del(E_OBJECT(conf->dialog));
 
    if (conf->card)
-     evas_stringshare_del(conf->card);
+     eina_stringshare_del(conf->card);
    if (conf->channel_name)
-     evas_stringshare_del(conf->channel_name);
+     eina_stringshare_del(conf->channel_name);
 
-   evas_stringshare_del(conf->id);
+   eina_stringshare_del(conf->id);
    free(conf);
 }
 
@@ -110,7 +110,7 @@ _mixer_gadget_configuration_free(E_Mixer_Module_Config *mod_conf, E_Mixer_Gadget
 }
 
 static Evas_Bool
-_mixer_gadget_configuration_free_foreach(const Evas_Hash *hash, const char *key, void *hdata, void *fdata)
+_mixer_gadget_configuration_free_foreach(const Evas_Hash *hash, const void *key, void *hdata, void *fdata)
 {
    _mixer_gadget_configuration_free_int(hdata);
    return 1;
@@ -119,7 +119,7 @@ _mixer_gadget_configuration_free_foreach(const Evas_Hash *hash, const char *key,
 static int
 _mixer_module_configuration_alert(void *data)
 {
-   e_util_dialog_show(_("Mixer Configuration Updated"), data);
+   e_util_dialog_show(_("Mixer Settings Updated"), "%s", (char *)data);
    return 0;
 }
 
@@ -391,8 +391,8 @@ _mixer_popup_cb_resize(Evas_Object *obj, int *w, int *h)
    e_widget_min_size_get(obj, &mw, &mh);
    if (mh < 200) mh = 200;
    if (mw < 60) mw = 60;
-   if (*w) *w = (mw + 8);
-   if (*h) *h = (mh + 8);
+   if (w) *w = (mw + 8);
+   if (h) *h = (mh + 8);
 }
 
 static Evas_Object *
@@ -664,8 +664,8 @@ _mixer_menu_new(E_Mixer_Instance *inst, Evas_Event_Mouse_Down *ev)
    inst->menu = mn;
 
    mi = e_menu_item_new(mn);
-   e_menu_item_label_set(mi, _("Configuration"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/configuration");
+   e_menu_item_label_set(mi, _("Settings"));
+   e_util_menu_item_edje_icon_set(mi, "widget/config");
    e_menu_item_callback_set(mi, _mixer_menu_cb_cfg, inst);
 
    e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
@@ -785,7 +785,7 @@ _mixer_sys_setup_default_card(E_Mixer_Instance *inst)
 
    conf = inst->conf;
    if (conf->card)
-     evas_stringshare_del(conf->card);
+     eina_stringshare_del(conf->card);
 
    card = e_mixer_system_get_default_card();
    if (!card)
@@ -795,7 +795,7 @@ _mixer_sys_setup_default_card(E_Mixer_Instance *inst)
    if (!inst->sys)
      goto system_error;
 
-   conf->card = evas_stringshare_add(card);
+   conf->card = eina_stringshare_add(card);
    free(card);
    return 1;
 
@@ -815,7 +815,7 @@ _mixer_sys_setup_default_channel(E_Mixer_Instance *inst)
 
    conf = inst->conf;
    if (conf->channel_name)
-     evas_stringshare_del(conf->channel_name);
+     eina_stringshare_del(conf->channel_name);
 
    channel_name = e_mixer_system_get_default_channel_name(inst->sys);
    if (!channel_name)
@@ -825,7 +825,7 @@ _mixer_sys_setup_default_channel(E_Mixer_Instance *inst)
    if (!inst->channel)
      goto system_error;
 
-   conf->channel_name = evas_stringshare_add(channel_name);
+   conf->channel_name = eina_stringshare_add(channel_name);
    free(channel_name);
    return 1;
 
@@ -904,14 +904,14 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 
    if (!ctxt->conf->default_gc_id)
      {
-	ctxt->conf->default_gc_id = evas_stringshare_add(id);
+	ctxt->conf->default_gc_id = eina_stringshare_add(id);
 	ctxt->default_instance = inst;
      }
    else if ((!ctxt->default_instance) ||
 	    (strcmp(id, ctxt->conf->default_gc_id) == 0))
      ctxt->default_instance = inst;
 
-   ctxt->instances = evas_list_append(ctxt->instances, inst);
+   ctxt->instances = eina_list_append(ctxt->instances, inst);
 
    return inst->gcc;
 }
@@ -943,26 +943,26 @@ _gc_shutdown(E_Gadcon_Client *gcc)
    e_mixer_system_del(inst->sys);
 
    inst->conf->instance = NULL;
-   ctxt->instances = evas_list_remove(ctxt->instances, inst);
+   ctxt->instances = eina_list_remove(ctxt->instances, inst);
 
    E_FREE(inst);
 }
 
 static void
-_gc_orient(E_Gadcon_Client *gcc)
+_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
 {
    e_gadcon_client_aspect_set(gcc, 16, 16);
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
 
 static char *
-_gc_label(void)
+_gc_label(E_Gadcon_Client_Class *client_class)
 {
    return _(_Name);
 }
 
 static Evas_Object *
-_gc_icon(Evas *evas)
+_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas)
 {
    Evas_Object *o;
 
@@ -972,10 +972,10 @@ _gc_icon(Evas *evas)
 }
 
 static const char *
-_gc_id_new(void)
+_gc_id_new(E_Gadcon_Client_Class *client_class)
 {
    E_Mixer_Module_Context *ctxt;
-   Evas_List *instances;
+   Eina_List *instances;
 
    if (!mixer_mod)
      return NULL;
@@ -985,7 +985,7 @@ _gc_id_new(void)
      return NULL;
 
    instances = ctxt->instances;
-   snprintf(tmpbuf, sizeof(tmpbuf), "mixer.%d", evas_list_count(instances));
+   snprintf(tmpbuf, sizeof(tmpbuf), "mixer.%d", eina_list_count(instances));
    return tmpbuf;
 }
 
@@ -1158,7 +1158,7 @@ _mixer_module_configuration_load(E_Config_DD *module_conf_edd)
 	  return NULL;
 
 	ecore_timer_add(1.0, _mixer_module_configuration_alert,
-			_("Mixer Module Configuration data changed.<br>"
+			_("Mixer Module Settings data changed.<br>"
 			   "Your old configuration has been replaced with "
 			   "new default.<br>Sorry for the inconvenience."));
 	return conf;

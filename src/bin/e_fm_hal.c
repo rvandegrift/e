@@ -12,8 +12,8 @@ static void _e_fm2_volume_erase(E_Volume *v);
 static void _e_fm2_hal_mount_ok(E_Fm2_Mount *m);
 static int  _e_fm2_hal_mount_timeout(E_Fm2_Mount *m);
 
-static Evas_List *_e_stores = NULL;
-static Evas_List *_e_vols   = NULL;
+static Eina_List *_e_stores = NULL;
+static Eina_List *_e_vols   = NULL;
 
 EAPI void
 e_fm2_hal_storage_add(E_Storage *s)
@@ -21,7 +21,7 @@ e_fm2_hal_storage_add(E_Storage *s)
    if (e_fm2_hal_storage_find(s->udi)) return;
 
    s->validated = 1;
-   _e_stores = evas_list_append(_e_stores, s);
+   _e_stores = eina_list_append(_e_stores, s);
 /*   
    printf("STO+\n"
 	  "  udi: %s\n"
@@ -73,14 +73,14 @@ EAPI void
 e_fm2_hal_storage_del(E_Storage *s)
 {
 //   printf("STO- %s\n", s->udi);
-   _e_stores = evas_list_remove(_e_stores, s);
+   _e_stores = eina_list_remove(_e_stores, s);
    _e_storage_free(s);
 }
 
 EAPI E_Storage *
 e_fm2_hal_storage_find(const char *udi)
 {
-   Evas_List *l;
+   Eina_List *l;
 
    if (!udi) return NULL;
    
@@ -102,7 +102,7 @@ e_fm2_hal_volume_add(E_Volume *v)
    if (e_fm2_hal_volume_find(v->udi)) return;
 
    v->validated = 1;
-   _e_vols = evas_list_append(_e_vols, v);
+   _e_vols = eina_list_append(_e_vols, v);
 /*   
    printf("VOL+\n"
 	  "  udi: %s\n"
@@ -158,7 +158,7 @@ e_fm2_hal_volume_add(E_Volume *v)
    if ((s = e_fm2_hal_storage_find(v->parent)))
      {
 	v->storage = s;
-	s->volumes = evas_list_append(s->volumes, v);
+	s->volumes = eina_list_append(s->volumes, v);
      }
 
    if ((v->storage) &&
@@ -176,8 +176,8 @@ e_fm2_hal_volume_del(E_Volume *v)
 {
 //   printf("VOL- %s\n", v->udi);
    if (v->storage) 
-     v->storage->volumes = evas_list_remove(v->storage->volumes, v);
-   _e_vols = evas_list_remove(_e_vols, v);
+     v->storage->volumes = eina_list_remove(v->storage->volumes, v);
+   _e_vols = eina_list_remove(_e_vols, v);
    _e_fm2_volume_erase(v);
    _e_volume_free(v);
 }
@@ -294,7 +294,7 @@ _e_fm2_volume_write(E_Volume *v)
 		v->udi);
 	fclose(f);
 
-	if(e_config->hal_desktop)
+	if (e_config->hal_desktop)
 	  {
 	     snprintf(buf2, sizeof(buf2) - 1, "%s/Desktop/|%s_%d.desktop",
 		   e_user_homedir_get(), id, v->partition_number);
@@ -304,7 +304,6 @@ _e_fm2_volume_write(E_Volume *v)
 	/* FIXME: manipulate icon directly */
 	_e_fm2_file_force_update(buf);
 	//_e_fm2_file_force_update(buf2);
-	e_config;
      }
 }
 
@@ -326,7 +325,7 @@ _e_fm2_volume_erase(E_Volume *v)
    ecore_file_unlink(buf);
    _e_fm2_file_force_update(buf);
 
-   if(e_config->hal_desktop)
+   if (e_config->hal_desktop)
      {
 	snprintf(buf, sizeof(buf) - 1, "%s/.e/e/fileman/favorites/|%s_%d.desktop",
 	      e_user_homedir_get(), id, v->partition_number);
@@ -338,7 +337,7 @@ _e_fm2_volume_erase(E_Volume *v)
 EAPI E_Volume *
 e_fm2_hal_volume_find(const char *udi)
 {
-   Evas_List *l;
+   Eina_List *l;
    
    if (!udi) return NULL;
 
@@ -382,7 +381,7 @@ e_fm2_hal_volume_mountpoint_get(E_Volume *v)
 EAPI void
 e_fm2_hal_mount_add(E_Volume *v, const char *mountpoint)
 {
-   Evas_List *l;
+   Eina_List *l;
 
    v->mounted = 1;
    v->mount_point = strdup(mountpoint);
@@ -398,8 +397,8 @@ e_fm2_hal_mount_del(E_Fm2_Mount *m)
 {
    if (!m) return;
 
-   if (m->udi) evas_stringshare_del(m->udi);
-   if (m->mount_point) evas_stringshare_del(m->mount_point);
+   if (m->udi) eina_stringshare_del(m->udi);
+   if (m->mount_point) eina_stringshare_del(m->mount_point);
 
    if (m->timeout) 
      {
@@ -412,7 +411,7 @@ e_fm2_hal_mount_del(E_Fm2_Mount *m)
 EAPI E_Fm2_Mount *
 e_fm2_hal_mount_find(const char *path)
 {
-   Evas_List *l;
+   Eina_List *l;
 
    for (l = _e_vols; l; l = l->next)
      {
@@ -439,7 +438,7 @@ e_fm2_hal_mount(E_Volume *v,
 
    m = calloc(1, sizeof(E_Fm2_Mount));
    if (!m) return NULL;
-   m->udi          = evas_stringshare_add(v->udi);
+   m->udi          = eina_stringshare_add(v->udi);
    m->mount_ok     = mount_ok;
    m->mount_fail   = mount_fail;
    m->unmount_ok   = unmount_ok;
@@ -448,7 +447,7 @@ e_fm2_hal_mount(E_Volume *v,
    m->volume       = v;
    m->mounted      = v->mounted;
 
-   v->mounts = evas_list_prepend(v->mounts, m);
+   v->mounts = eina_list_prepend(v->mounts, m);
 
 //   printf("BEGIN MOUNT %p '%s'\n", m, v->mount_point);
    
@@ -467,10 +466,10 @@ e_fm2_hal_unmount(E_Fm2_Mount *m)
    E_Volume *v;
 
    if (!(v = m->volume)) return;
-   v->mounts = evas_list_remove(v->mounts, m);
+   v->mounts = eina_list_remove(v->mounts, m);
    e_fm2_hal_mount_del(m);
 
-   if (!evas_list_count(v->mounts))
+   if (!eina_list_count(v->mounts))
      _e_fm2_client_unmount(v->udi);
 }
 
@@ -480,7 +479,7 @@ _e_fm2_hal_mount_ok(E_Fm2_Mount *m)
    if (!m) return;
 
    m->mounted = 1;
-   if (m->volume) m->mount_point = evas_stringshare_add(m->volume->mount_point);
+   if (m->volume) m->mount_point = eina_stringshare_add(m->volume->mount_point);
    if (m->timeout)
      {
 	ecore_timer_del(m->timeout);
@@ -501,17 +500,17 @@ _e_fm2_hal_mount_timeout(E_Fm2_Mount *m)
 EAPI void
 e_fm2_hal_show_desktop_icons(void)
 {
-   Evas_List *l;
+   Eina_List *l;
    E_Volume *v;
    char buf[PATH_MAX] = {0};
    char buf2[PATH_MAX] = {0};
    const char *id;
 
-   for(l = _e_vols; l; l = evas_list_next(l))
+   for (l = _e_vols; l; l = eina_list_next(l))
      {
-	v = evas_list_data(l);
+	v = eina_list_data_get(l);
 
-	if(!v) continue;	
+	if (!v) continue;	
 	if (!v->storage) continue;
 
 	id = ecore_file_file_get(v->storage->udi);
@@ -522,7 +521,7 @@ e_fm2_hal_show_desktop_icons(void)
 	snprintf(buf2, sizeof(buf2) - 1, "%s/Desktop/|%s_%d.desktop",
 	      e_user_homedir_get(), id, v->partition_number);
 
-	if(ecore_file_exists(buf) && !ecore_file_exists(buf2))
+	if (ecore_file_exists(buf) && !ecore_file_exists(buf2))
 	  {
 	     ecore_file_symlink(buf, buf2);
 	     _e_fm2_file_force_update(buf2);
@@ -533,16 +532,16 @@ e_fm2_hal_show_desktop_icons(void)
 EAPI void
 e_fm2_hal_hide_desktop_icons(void)
 {
-   Evas_List *l;
+   Eina_List *l;
    E_Volume *v;
    char buf[PATH_MAX] = {0};
    const char *id;
 
-   for(l = _e_vols; l; l = evas_list_next(l))
+   for (l = _e_vols; l; l = eina_list_next(l))
      {
-	v = evas_list_data(l);
+	v = eina_list_data_get(l);
 
-	if(!v) continue;	
+	if (!v) continue;	
 	if (!v->storage) continue;
 
 	id = ecore_file_file_get(v->storage->udi);
@@ -550,7 +549,7 @@ e_fm2_hal_hide_desktop_icons(void)
 	snprintf(buf, sizeof(buf) - 1, "%s/Desktop/|%s_%d.desktop",
 	      e_user_homedir_get(), id, v->partition_number);
 
-	if(ecore_file_exists(buf))
+	if (ecore_file_exists(buf))
 	  {
 	     ecore_file_unlink(buf);
 	     _e_fm2_file_force_update(buf);

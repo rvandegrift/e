@@ -19,7 +19,7 @@ static void _e_shelf_cb_menu_items_append(void *data, E_Gadcon_Client *gcc, E_Me
 static void _e_shelf_cb_mouse_down(void *data, Evas *evas, Evas_Object *obj, void *event_info);
 static int  _e_shelf_cb_mouse_in(void *data, int type, void *event);
 static int  _e_shelf_cb_mouse_out(void *data, int type, void *event);
-static int  _e_shelf_cb_id_sort(void *data1, void *data2);
+static int  _e_shelf_cb_id_sort(const void *data1, const void *data2);
 static int  _e_shelf_cb_hide_animator(void *data);
 static int  _e_shelf_cb_hide_animator_timer(void *data);
 static int  _e_shelf_cb_instant_hide_timer(void *data);
@@ -28,7 +28,7 @@ static void _e_shelf_menu_pre_cb(void *data, E_Menu *m);
 
 static void _e_shelf_edge_event_register(E_Shelf *es, int reg);
 
-static Evas_List *shelves = NULL;
+static Eina_List *shelves = NULL;
 static Evas_Hash *winid_shelves = NULL;
 
 /* externally accessible functions */
@@ -55,7 +55,7 @@ e_shelf_shutdown(void)
 EAPI void
 e_shelf_config_init(void)
 {
-   Evas_List *l;
+   Eina_List *l;
    int id = 0;
 
    while (shelves)
@@ -82,10 +82,10 @@ e_shelf_config_init(void)
      }
 }
 
-EAPI Evas_List *
+EAPI Eina_List *
 e_shelf_list(void)
 {
-   shelves = evas_list_sort(shelves, -1, _e_shelf_cb_id_sort);
+   shelves = eina_list_sort(shelves, -1, _e_shelf_cb_id_sort);
    return shelves;
 }
 
@@ -119,7 +119,7 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, int popup, i
      }
    es->fit_along = 1;
    es->layer = layer;
-   es->style = evas_stringshare_add(style);
+   es->style = eina_stringshare_add(style);
 
    es->o_event = evas_object_rectangle_add(es->evas);
    evas_object_color_set(es->o_event, 0, 0, 0, 0);
@@ -127,17 +127,17 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, int popup, i
    evas_object_event_callback_add(es->o_event, EVAS_CALLBACK_MOUSE_DOWN, _e_shelf_cb_mouse_down, es);
 
    /* TODO: We should have a mouse out on the evas object if we are on the desktop */
-   es->handlers = evas_list_append(es->handlers,
+   es->handlers = eina_list_append(es->handlers,
 	 ecore_event_handler_add(E_EVENT_ZONE_EDGE_IN, _e_shelf_cb_mouse_in, es));
-   es->handlers = evas_list_append(es->handlers,
+   es->handlers = eina_list_append(es->handlers,
 	 ecore_event_handler_add(E_EVENT_ZONE_EDGE_MOVE, _e_shelf_cb_mouse_in, es));
-   es->handlers = evas_list_append(es->handlers,
+   es->handlers = eina_list_append(es->handlers,
 	 ecore_event_handler_add(ECORE_X_EVENT_MOUSE_IN, _e_shelf_cb_mouse_in, es));
-   es->handlers = evas_list_append(es->handlers,
+   es->handlers = eina_list_append(es->handlers,
 	 ecore_event_handler_add(ECORE_X_EVENT_MOUSE_OUT, _e_shelf_cb_mouse_out, es));
  
    es->o_base = edje_object_add(es->evas);
-   es->name = evas_stringshare_add(name);
+   es->name = eina_stringshare_add(name);
    snprintf(buf, sizeof(buf), "e/shelf/%s/base", es->style);
    evas_object_resize(es->o_base, es->w, es->h);
    if (!e_theme_edje_object_set(es->o_base, "base/theme/shelf", buf))
@@ -158,6 +158,8 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, int popup, i
      }
 
    es->gadcon = e_gadcon_swallowed_new(es->name, es->id, es->o_base, "e.swallow.content");
+// hmm dnd in ibar and ibox kill this. ok. need to look into this more   
+//   es->gadcon->instant_edit = 1;
    e_gadcon_min_size_request_callback_set(es->gadcon,
 					  _e_shelf_gadcon_min_size_request, es);
 
@@ -184,12 +186,12 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, int popup, i
      {
 	e_drop_xdnd_register_set(es->zone->container->bg_win, 1);
 	e_gadcon_xdnd_window_set(es->gadcon, es->zone->container->bg_win);
-	e_gadcon_dnd_window_set(es->gadcon, es->zone->container->bg_win);
+	e_gadcon_dnd_window_set(es->gadcon, es->zone->container->event_win);
      }
    e_gadcon_util_menu_attach_func_set(es->gadcon,
 				      _e_shelf_cb_menu_items_append, es);
    
-   shelves = evas_list_append(shelves, es);
+   shelves = eina_list_append(shelves, es);
    
    es->hidden = 0;
    es->hide_step = 0;
@@ -213,7 +215,7 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, int popup, i
 EAPI void
 e_shelf_zone_move_resize_handle(E_Zone *zone)
 {
-   Evas_List *l;
+   Eina_List *l;
    E_Shelf *es;
    
    for (l = shelves; l; l = l->next)
@@ -396,22 +398,22 @@ e_shelf_save(E_Shelf *es)
    if (es->cfg)
      {
 	es->cfg->orient = es->gadcon->orient;
-	if (es->cfg->style) evas_stringshare_del(es->cfg->style);
-	es->cfg->style = evas_stringshare_add(es->style);
+	if (es->cfg->style) eina_stringshare_del(es->cfg->style);
+	es->cfg->style = eina_stringshare_add(es->style);
      }
    else
      {
 	E_Config_Shelf *cf_es;
 	
 	cf_es = E_NEW(E_Config_Shelf, 1);
-	cf_es->name = evas_stringshare_add(es->name);
+	cf_es->name = eina_stringshare_add(es->name);
 	cf_es->container = es->zone->container->num;
 	cf_es->zone = es->zone->num;
 	if (es->popup) cf_es->popup = 1;
 	cf_es->layer = es->layer;
-	e_config->shelves = evas_list_append(e_config->shelves, cf_es);
+	e_config->shelves = eina_list_append(e_config->shelves, cf_es);
 	cf_es->orient = es->gadcon->orient;
-	cf_es->style = evas_stringshare_add(es->style);
+	cf_es->style = eina_stringshare_add(es->style);
 	cf_es->fit_along = es->fit_along;
 	cf_es->fit_size = es->fit_size;
 	cf_es->overlap = 0;
@@ -430,9 +432,9 @@ e_shelf_unsave(E_Shelf *es)
    E_OBJECT_TYPE_CHECK(es, E_SHELF_TYPE);
    if (es->cfg)
      {
-	e_config->shelves = evas_list_remove(e_config->shelves, es->cfg);
-	evas_stringshare_del(es->cfg->name);
-	if (es->cfg->style) evas_stringshare_del(es->cfg->style);
+	e_config->shelves = eina_list_remove(e_config->shelves, es->cfg);
+	eina_stringshare_del(es->cfg->name);
+	if (es->cfg->style) eina_stringshare_del(es->cfg->style);
 	free(es->cfg);
      }
 }
@@ -571,8 +573,8 @@ e_shelf_style_set(E_Shelf *es, const char *style)
    if (!es->o_base) return;
 
    if (es->style)
-     evas_stringshare_del(es->style);
-   es->style = evas_stringshare_add(style);
+     eina_stringshare_del(es->style);
+   es->style = eina_stringshare_add(style);
    
    if (style)
      snprintf(buf, sizeof(buf), "e/shelf/%s/base", style);
@@ -668,7 +670,7 @@ e_shelf_config_new(E_Zone *zone, E_Config_Shelf *cf_es)
    if (cf_es->desk_show_mode)
      {
 	E_Desk *desk;
-	Evas_List *ll;
+	Eina_List *ll;
 
 	desk = e_desk_current_get(zone);
 	for (ll = cf_es->desk_list; ll; ll = ll->next)
@@ -697,6 +699,13 @@ static void
 _e_shelf_free(E_Shelf *es)
 {
    E_FREE_LIST(es->handlers, ecore_event_handler_del);
+
+   e_object_del(E_OBJECT(es->gadcon));
+   if (es->hide_timer)
+     {
+	ecore_timer_del(es->hide_timer);
+	es->hide_timer  = NULL;
+     }
    if (es->hide_animator)
      {
 	ecore_animator_del(es->hide_animator);
@@ -715,10 +724,9 @@ _e_shelf_free(E_Shelf *es)
 	es->menu = NULL;
      }
    if (es->config_dialog) e_object_del(E_OBJECT(es->config_dialog));
-   shelves = evas_list_remove(shelves, es);
-   e_object_del(E_OBJECT(es->gadcon));
-   evas_stringshare_del(es->name);
-   evas_stringshare_del(es->style);
+   shelves = eina_list_remove(shelves, es);
+   eina_stringshare_del(es->name);
+   eina_stringshare_del(es->style);
    evas_object_del(es->o_event);
    evas_object_del(es->o_base);
    if (es->popup)
@@ -993,7 +1001,7 @@ _e_shelf_gadcon_frame_request(void *data, E_Gadcon_Client *gcc, const char *styl
 static void
 _e_shelf_toggle_border_fix(E_Shelf *es)
 {
-   Evas_List *l;
+   Eina_List *l;
 
    if (es->cfg->overlap || !e_config->border_fix_on_shelf_toggle)
      return;
@@ -1155,9 +1163,9 @@ _e_shelf_cb_confirm_dialog_yes(void *data)
    cfg = es->cfg;
    if (e_object_is_del(E_OBJECT(es))) return;
    e_object_del(E_OBJECT(es));
-   e_config->shelves = evas_list_remove(e_config->shelves, cfg);
-   if (cfg->name) evas_stringshare_del(cfg->name);
-   if (cfg->style) evas_stringshare_del(cfg->style);
+   e_config->shelves = eina_list_remove(e_config->shelves, cfg);
+   if (cfg->name) eina_stringshare_del(cfg->name);
+   if (cfg->style) eina_stringshare_del(cfg->style);
    E_FREE(cfg);
 
    e_config_save_queue();
@@ -1177,9 +1185,9 @@ _e_shelf_cb_menu_delete(void *data, E_Menu *m, E_Menu_Item *mi)
 	cfg = es->cfg;
 	if (e_object_is_del(E_OBJECT(es))) return;
 	e_object_del(E_OBJECT(es));
-	e_config->shelves = evas_list_remove(e_config->shelves, cfg);
-	if (cfg->name) evas_stringshare_del(cfg->name);
-	if (cfg->style) evas_stringshare_del(cfg->style);
+	e_config->shelves = eina_list_remove(e_config->shelves, cfg);
+	if (cfg->name) eina_stringshare_del(cfg->name);
+	if (cfg->style) eina_stringshare_del(cfg->style);
 	E_FREE(cfg);
 	
 	e_config_save_queue();
@@ -1346,9 +1354,9 @@ _e_shelf_cb_mouse_out(void *data, int type, void *event)
 }
 
 static int
-_e_shelf_cb_id_sort(void *data1, void *data2)
+_e_shelf_cb_id_sort(const void *data1, const void *data2)
 {
-   E_Shelf *es1, *es2;
+   const E_Shelf *es1, *es2;
 
    es1 = data1;
    es2 = data2;
@@ -1620,7 +1628,7 @@ static void
 _e_shelf_menu_del_hook(void *data) 
 {
    E_Menu *m;
-   Evas_List *l;
+   Eina_List *l;
    
    m = data;
    for (l = m->items; l; l = l->next) 
@@ -1646,15 +1654,15 @@ _e_shelf_menu_pre_cb(void *data, E_Menu *m)
      e_menu_item_label_set(mi, _("Stop Moving/Resizing Items"));
    else
      e_menu_item_label_set(mi, _("Begin Moving/Resizing Items"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/edit");
+   e_util_menu_item_edje_icon_set(mi, "widget/resize");
    e_menu_item_callback_set(mi, _e_shelf_cb_menu_edit, es);
 
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
 
    mi = e_menu_item_new(m);
-   e_menu_item_label_set(mi, _("Shelf Configuration"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/shelf");
+   e_menu_item_label_set(mi, _("Shelf Settings"));
+   e_util_menu_item_edje_icon_set(mi, "widget/config");
    e_menu_item_callback_set(mi, _e_shelf_cb_menu_config, es);
    
    mi = e_menu_item_new(m);
@@ -1664,7 +1672,7 @@ _e_shelf_menu_pre_cb(void *data, E_Menu *m)
    
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Delete this Shelf"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/delete");
+   e_util_menu_item_edje_icon_set(mi, "widget/del");
    e_menu_item_callback_set(mi, _e_shelf_cb_menu_delete, es);   
 }
 

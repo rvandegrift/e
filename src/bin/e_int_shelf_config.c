@@ -41,7 +41,7 @@ struct _E_Config_Dialog_Data
    double hide_duration;
 
    int desk_show_mode;
-   Evas_List *desk_list; 
+   Eina_List *desk_list; 
 
    Evas_Object *desk_sel_list;
 };
@@ -68,7 +68,7 @@ e_int_shelf_config(E_Shelf *es)
 	
 	/* create config diaolg for bd object/data */
 	cfd = e_config_dialog_new(es->zone->container, 
-				  _("Shelf Configuration"),
+				  _("Shelf Settings"),
 				  "E", "_shelf_config_dialog",
 				  "enlightenment/shelf", 0, v, es);
 	es->config_dialog = cfd;
@@ -171,7 +171,7 @@ _desk_sel_list_load(E_Config_Dialog_Data *cfdata)
    for (x = 0; x < e_config->zone_desks_x_count; x++)
      {
 	E_Desk *desk;
-	Evas_List *l = NULL;
+	Eina_List *l = NULL;
 
 	desk = e_desk_at_xy_get(cfdata->es->zone, x, y);
 	e_widget_ilist_append(cfdata->desk_sel_list, NULL, desk->name, NULL, NULL, NULL);
@@ -229,40 +229,40 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
      {
       case MODE_BOTTOM_MIDDLE:
 	cfdata->escfg->orient = E_GADCON_ORIENT_BOTTOM;
-	if (cfdata->escfg->style) evas_stringshare_del(cfdata->escfg->style);
-	cfdata->escfg->style = evas_stringshare_add("default");
+	if (cfdata->escfg->style) eina_stringshare_del(cfdata->escfg->style);
+	cfdata->escfg->style = eina_stringshare_add("default");
 	cfdata->escfg->fit_along = 1;
 	cfdata->escfg->popup = 1;
 	cfdata->escfg->layer = 200;
 	break;
       case MODE_BOTTOM_ALL:
 	cfdata->escfg->orient = E_GADCON_ORIENT_BOTTOM;
-	if (cfdata->escfg->style) evas_stringshare_del(cfdata->escfg->style);
-	cfdata->escfg->style = evas_stringshare_add("default");
+	if (cfdata->escfg->style) eina_stringshare_del(cfdata->escfg->style);
+	cfdata->escfg->style = eina_stringshare_add("default");
 	cfdata->escfg->fit_along = 0;
 	cfdata->escfg->popup = 1;
 	cfdata->escfg->layer = 200;
 	break;
       case MODE_BOTTOM_DESKTOP:
 	cfdata->escfg->orient = E_GADCON_ORIENT_BOTTOM;
-	if (cfdata->escfg->style) evas_stringshare_del(cfdata->escfg->style);
-	cfdata->escfg->style = evas_stringshare_add("invisible");
+	if (cfdata->escfg->style) eina_stringshare_del(cfdata->escfg->style);
+	cfdata->escfg->style = eina_stringshare_add("invisible");
 	cfdata->escfg->fit_along = 0;
 	cfdata->escfg->popup = 0;
 	cfdata->escfg->layer = 1;
 	break;
       case MODE_TOP_ALL:
 	cfdata->escfg->orient = E_GADCON_ORIENT_TOP;
-	if (cfdata->escfg->style) evas_stringshare_del(cfdata->escfg->style);
-	cfdata->escfg->style = evas_stringshare_add("default");
+	if (cfdata->escfg->style) eina_stringshare_del(cfdata->escfg->style);
+	cfdata->escfg->style = eina_stringshare_add("default");
 	cfdata->escfg->fit_along = 0;
 	cfdata->escfg->popup = 1;
 	cfdata->escfg->layer = 200;
 	break;
       case MODE_TOP_DESKTOP:
 	cfdata->escfg->orient = E_GADCON_ORIENT_TOP;
-	if (cfdata->escfg->style) evas_stringshare_del(cfdata->escfg->style);
-	cfdata->escfg->style = evas_stringshare_add("invisible");
+	if (cfdata->escfg->style) eina_stringshare_del(cfdata->escfg->style);
+	cfdata->escfg->style = eina_stringshare_add("invisible");
 	cfdata->escfg->fit_along = 0;
 	cfdata->escfg->popup = 0;
 	cfdata->escfg->layer = 1;
@@ -305,14 +305,14 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    /* Only change style is we need to */
    if (!cfdata->escfg->style) 
      {
-	cfdata->escfg->style = evas_stringshare_add(cfdata->style);
+	cfdata->escfg->style = eina_stringshare_add(cfdata->style);
 	e_shelf_style_set(cfdata->es, cfdata->style);
      }
    else if ((cfdata->escfg->style) && 
 	    (strcmp(cfdata->escfg->style, cfdata->style))) 
      {
-	if (cfdata->escfg->style) evas_stringshare_del(cfdata->escfg->style);
-	cfdata->escfg->style = evas_stringshare_add(cfdata->style);
+	if (cfdata->escfg->style) eina_stringshare_del(cfdata->escfg->style);
+	cfdata->escfg->style = eina_stringshare_add(cfdata->style);
 	e_shelf_style_set(cfdata->es, cfdata->style);
      }
 
@@ -405,8 +405,8 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    cfdata->escfg->desk_list = NULL;
    if (cfdata->desk_show_mode)
      {
-	Evas_List *l;
-	Evas_List *desk_list = NULL;
+	Eina_List *l;
+	Eina_List *desk_list = NULL;
 	for (idx = 0, l = e_widget_ilist_items_get(cfdata->desk_sel_list); l; l = l->next, idx++)
 	  {
 	     E_Ilist_Item *item;
@@ -422,7 +422,7 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	     sd = E_NEW(E_Config_Shelf_Desk, 1);
 	     sd->x = desk->x;
 	     sd->y = desk->y;
-	     desk_list = evas_list_append(desk_list, sd);
+	     desk_list = eina_list_append(desk_list, sd);
 	  }
 	cfdata->escfg->desk_list = desk_list;
      }
@@ -448,7 +448,7 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    if (cfdata->escfg->desk_show_mode)
      {
 	E_Desk *desk;
-	Evas_List *l;
+	Eina_List *l;
 	int show_shelf=0;
 
 	desk = e_desk_current_get(cfdata->es->zone);
@@ -542,7 +542,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    Evas_Object *o, *o2, *of, *ob, *oi, *oj;
    E_Radio_Group *rg;
    Evas_Coord wmw, wmh;
-   Evas_List *styles, *l;
+   Eina_List *styles, *l;
    int sel, n;
    
    /* FIXME: this is just raw config now - it needs UI improvments */
