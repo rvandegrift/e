@@ -6,6 +6,7 @@ static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+static int _basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static void _fill_data(E_Config_Dialog_Data *cfdata);
 static void _basic_apply_border(E_Config_Dialog_Data *cfdata);
 
@@ -33,7 +34,7 @@ e_int_config_borders(E_Container *con, const char *params __UNUSED__)
 }
 
 EAPI E_Config_Dialog *
-e_int_config_borders_border(E_Container *con, const char *params) 
+e_int_config_borders_border(E_Container *con __UNUSED__, const char *params) 
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -64,6 +65,7 @@ _config_view_new(void)
    v->free_cfdata = _free_data;
    v->basic.create_widgets = _basic_create_widgets;
    v->basic.apply_cfdata = _basic_apply_data;
+   v->basic.check_changed = _basic_check_changed;
    v->override_auto_apply = 1;
    return v;
 }
@@ -102,7 +104,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 }
 
 static void 
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata) 
 {
    if (cfdata->border) 
      cfdata->border->border_border_dialog = NULL;
@@ -111,16 +113,27 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    E_FREE(cfdata);
 }
 
+static int
+_basic_check_changed(E_Config_Dialog *cfd __UNUSED__,
+		     E_Config_Dialog_Data *cfdata) 
+{
+   if (cfdata->border)
+     return strcmp(cfdata->bordername, cfdata->border->client.border.name);
+   else
+     return strcmp(cfdata->bordername, e_config->theme_default_border_style);
+}
+
 static int 
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_basic_apply_data(E_Config_Dialog *cfd __UNUSED__,
+		  E_Config_Dialog_Data *cfdata) 
 {
    if (cfdata->border) 
      _basic_apply_border(cfdata);
    else if (cfdata->container)
      {
 	if (e_config->theme_default_border_style)
-	  evas_stringshare_del(e_config->theme_default_border_style);
-	e_config->theme_default_border_style = evas_stringshare_add(cfdata->bordername);
+	  eina_stringshare_del(e_config->theme_default_border_style);
+	e_config->theme_default_border_style = eina_stringshare_add(cfdata->bordername);
 	/* FIXME: Should this trigger an E Restart to reset all borders ? */
      }
    e_config_save_queue();
@@ -132,8 +145,8 @@ _basic_apply_border(E_Config_Dialog_Data *cfdata)
 {
    if ((!cfdata->border->lock_border) && (!cfdata->border->shaded)) 
      {
-	if (cfdata->border->bordername) evas_stringshare_del(cfdata->border->bordername);
-	cfdata->border->bordername = evas_stringshare_add(cfdata->bordername);
+	if (cfdata->border->bordername) eina_stringshare_del(cfdata->border->bordername);
+	cfdata->border->bordername = eina_stringshare_add(cfdata->bordername);
 	cfdata->border->client.border.changed = 1;
 	cfdata->border->changed = 1;
      }
@@ -172,7 +185,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 {
    Evas_Object *o, *ol, *ob, *oj, *orect, *of;
    Evas_Coord w, h;
-   Evas_List *borders, *l;
+   Eina_List *borders, *l;
    int n, sel = 0;
    char *tmp;
    

@@ -60,9 +60,11 @@
 #endif
 #endif
 
+#include <Eina.h>
 #include <Evas.h>
 #include <Evas_Engine_Buffer.h>
 #include <Ecore.h>
+#include <Ecore_Str.h>
 #include <Ecore_X.h>
 #include <Ecore_X_Atoms.h>
 #include <Ecore_X_Cursor.h>
@@ -75,15 +77,8 @@
 #include <Edje.h>
 #include <Efreet.h>
 #include <Efreet_Mime.h>
-#ifdef HAVE_EDBUS
 #include <E_DBus.h>
-#endif
-
-#if HAVE___ATTRIBUTE__
-#define __UNUSED__ __attribute__((unused))
-#else
-#define __UNUSED__
-#endif
+#include <E_Hal.h>
 
 #ifdef EAPI
 #undef EAPI
@@ -128,13 +123,13 @@ typedef struct _E_Rect E_Rect;
     { \
        if (list) \
 	 { \
-	    Evas_List *tmp; \
+	    Eina_List *tmp; \
 	    tmp = list; \
 	    list = NULL; \
 	    while (tmp) \
 	      { \
 		 free(tmp->data); \
-		 tmp = evas_list_remove_list(tmp, tmp); \
+		 tmp = eina_list_remove_list(tmp, tmp); \
 	      } \
 	 } \
     } \
@@ -202,7 +197,6 @@ extern EAPI E_Path *path_images;
 extern EAPI E_Path *path_fonts;
 extern EAPI E_Path *path_themes;
 extern EAPI E_Path *path_icons;
-extern EAPI E_Path *path_init;
 extern EAPI E_Path *path_modules;
 extern EAPI E_Path *path_backgrounds;
 extern EAPI E_Path *path_messages;

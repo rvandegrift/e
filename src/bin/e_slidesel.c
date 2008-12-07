@@ -17,7 +17,7 @@ struct _E_Smart_Data
    Evas_Object *edje_obj;
    Evas_Object *event_obj;
    Evas_Object *slide_obj;
-   Evas_List *items;
+   Eina_List *items;
    Evas_Coord down_x, down_y;
    E_Smart_Item *cur;
    double down_time;
@@ -89,11 +89,11 @@ e_slidesel_item_add(Evas_Object *obj, const char *label, const char *icon, void 
    it = calloc(1, sizeof(E_Smart_Item));
    if (!it) return;
    it->sd = sd;
-   if (label) it->label = evas_stringshare_add(label);
-   if (icon) it->icon = evas_stringshare_add(icon);
+   if (label) it->label = eina_stringshare_add(label);
+   if (icon) it->icon = eina_stringshare_add(icon);
    it->func = func;
    it->data = data;
-   sd->items = evas_list_append(sd->items, it);
+   sd->items = eina_list_append(sd->items, it);
    e_slidecore_item_add(sd->slide_obj, label, icon, _e_smart_label_change, it);
 }
 
@@ -125,7 +125,7 @@ _e_smart_event_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_inf
    ev = event_info;
    if (ev->button == 1)
      {
-	sd->down_time = ecore_time_get();
+	sd->down_time = ecore_loop_time_get();
 	sd->down = 1;
 	sd->down_cancel = 0;
 	sd->down_x = ev->canvas.x;
@@ -146,7 +146,7 @@ _e_smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
      {
 	double t;
 	
-	t = ecore_time_get();
+	t = ecore_loop_time_get();
 	if (!sd->down_cancel)
 	  {
 	     edje_object_signal_emit(sd->edje_obj, "e,state,slide,hint,off", "e");
@@ -179,7 +179,6 @@ _e_smart_event_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_inf
      {
 	Evas_Coord d1, d2, d;
 	
-	printf("DRAG @ %3.3f\n", ecore_time_get());
 	d1 = ev->cur.canvas.x - sd->down_x;
 	d2 = ev->cur.canvas.y - sd->down_y;
 	d = (d1 * d1) + (d2 * d2);
@@ -366,6 +365,8 @@ _e_smart_init(void)
 	       _e_smart_color_set,
 	       _e_smart_clip_set,
 	       _e_smart_clip_unset,
+	       NULL,
+	       NULL,
 	       NULL,
 	       NULL
 	  };

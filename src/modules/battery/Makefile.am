@@ -16,7 +16,7 @@ INCLUDES               = -I. \
                          -I$(top_srcdir)/src/lib \
                          -I$(top_srcdir)/src/modules \
                          @e_cflags@ \
-			 @cf_cflags@
+                         @cf_cflags@
 pkgdir                 = $(libdir)/enlightenment/modules/$(MODULE)/$(MODULE_ARCH)
 pkg_LTLIBRARIES        = module.la
 module_la_SOURCES      = e_mod_main.c \

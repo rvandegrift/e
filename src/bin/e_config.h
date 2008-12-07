@@ -19,6 +19,7 @@ typedef struct _E_Config_Gadcon_Client      E_Config_Gadcon_Client;
 typedef struct _E_Config_Shelf              E_Config_Shelf;
 typedef struct _E_Config_Shelf_Desk         E_Config_Shelf_Desk;
 typedef struct _E_Config_Mime_Icon          E_Config_Mime_Icon;
+typedef struct _E_Config_Syscon_Action      E_Config_Syscon_Action;
 
 typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 
@@ -33,7 +34,7 @@ typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 0x0127
+#define E_CONFIG_FILE_GENERATION 0x012c
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH << 16) | E_CONFIG_FILE_GENERATION)
 
 #define E_EVAS_ENGINE_DEFAULT         0
@@ -61,9 +62,9 @@ struct _E_Config
    int         show_splash; // GUI
    const char *init_default_theme; // GUI
    const char *desktop_default_background; // GUI
-   Evas_List  *desktop_backgrounds; // GUI
+   Eina_List  *desktop_backgrounds; // GUI
    const char *desktop_default_name;
-   Evas_List  *desktop_names; // GUI
+   Eina_List  *desktop_names; // GUI
    double      menus_scroll_speed; // GUI
    double      menus_fast_mouse_move_threshhold; // GUI
    double      menus_click_drag_timeout; // GUI
@@ -94,23 +95,23 @@ struct _E_Config
    int         evas_engine_zone; // NO GUI - maybe remove?
    int	       use_composite; // GUI
    const char *language; // GUI
-   Evas_List  *modules; // GUI
-   Evas_List  *font_fallbacks; // GUI
-   Evas_List  *font_defaults; // GUI
-   Evas_List  *themes; // GUI
-   Evas_List  *mouse_bindings; // GUI
-   Evas_List  *key_bindings; // GUI
-   Evas_List  *signal_bindings;
-   Evas_List  *wheel_bindings; // GUI
-   Evas_List  *path_append_data; // GUI
-   Evas_List  *path_append_images; // GUI
-   Evas_List  *path_append_fonts; // GUI
-   Evas_List  *path_append_themes; // GUI
-   Evas_List  *path_append_init; // GUI
-   Evas_List  *path_append_icons; // GUI
-   Evas_List  *path_append_modules; // GUI
-   Evas_List  *path_append_backgrounds; // GUI
-   Evas_List  *path_append_messages; // GUI
+   Eina_List  *modules; // GUI
+   Eina_List  *font_fallbacks; // GUI
+   Eina_List  *font_defaults; // GUI
+   Eina_List  *themes; // GUI
+   Eina_List  *mouse_bindings; // GUI
+   Eina_List  *key_bindings; // GUI
+   Eina_List  *signal_bindings;
+   Eina_List  *wheel_bindings; // GUI
+   Eina_List  *path_append_data; // GUI
+   Eina_List  *path_append_images; // GUI
+   Eina_List  *path_append_fonts; // GUI
+   Eina_List  *path_append_themes; // GUI
+   Eina_List  *path_append_init; // GUI
+   Eina_List  *path_append_icons; // GUI
+   Eina_List  *path_append_modules; // GUI
+   Eina_List  *path_append_backgrounds; // GUI
+   Eina_List  *path_append_messages; // GUI
    int         window_placement_policy; // GUI
    int         focus_policy; // GUI
    int         focus_setting; // GUI
@@ -157,7 +158,7 @@ struct _E_Config
    const char *transition_start; // GUI
    const char *transition_desk; // GUI
    const char *transition_change; // GUI
-   Evas_List  *remembers;
+   Eina_List  *remembers;
    int         remember_internal_windows; // GUI
    int         move_info_follows; // GUI
    int         resize_info_follows; // GUI
@@ -201,19 +202,20 @@ struct _E_Config
    int         exebuf_pos_max_w; // GUI
    int         exebuf_pos_max_h; // GUI
    const char *exebuf_term_cmd; // GUI
-   Evas_List  *color_classes; // GUI
+   Eina_List  *color_classes; // GUI
    int         use_app_icon; // GUI
    int         cnfmdlg_disabled; // GUI
    int         cfgdlg_auto_apply; // GUI
    int         cfgdlg_default_mode; // GUI   
-   Evas_List  *gadcons; // GUI
-   Evas_List  *shelves; // GUI
+   Eina_List  *gadcons; // GUI
+   Eina_List  *shelves; // GUI
    int         font_hinting; // GUI
 
    const char *desklock_personal_passwd; // GUI
    const char *desklock_background; // GUI
    int         desklock_auth_method; // GUI
    int         desklock_login_box_zone; // GUI
+   int         desklock_start_locked; // GUI
    int         desklock_autolock_screensaver; // GUI
    int         desklock_autolock_idle; // GUI
    double      desklock_autolock_idle_timeout; // GUI
@@ -275,7 +277,7 @@ struct _E_Config
 
    const char *theme_default_border_style; // GUI
    
-   Evas_List *mime_icons; // GUI
+   Eina_List *mime_icons; // GUI
    int desk_auto_switch; // GUI;
 
    int thumb_nice;
@@ -283,10 +285,10 @@ struct _E_Config
    int ping_clients_interval;
    int cache_flush_poll_interval; // GUI
    
-   int thumbscroll_enable;
-   int thumbscroll_threshhold;
-   double thumbscroll_momentum_threshhold;
-   double thumbscroll_friction;
+   int thumbscroll_enable; // GUI
+   int thumbscroll_threshhold; // GUI
+   double thumbscroll_momentum_threshhold; // GUI
+   double thumbscroll_friction; // GUI
 
    int hal_desktop;
 
@@ -303,13 +305,38 @@ struct _E_Config
    } border_keyboard;
    
    struct {
-      double min;
-      double max;
-      double factor;
-      int base_dpi;
-      unsigned char use_dpi;
-      unsigned char use_custom;
+      double min; // GUI
+      double max; // GUI
+      double factor; // GUI
+      int base_dpi; // GUI
+      unsigned char use_dpi; // GUI
+      unsigned char use_custom; // GUI
    } scale;
+
+   unsigned char show_cursor; // GUI
+   unsigned char idle_cursor; // GUI
+   
+   const char *default_system_menu;
+
+   unsigned char cfgdlg_normal_wins; // GUI
+   
+   struct {
+      struct {
+         int icon_size;
+      } main, secondary, extra;
+      double timeout;
+      unsigned char do_input;
+      Eina_List *actions;
+   } syscon;
+};
+
+struct _E_Config_Syscon_Action
+{
+   const char *action;
+   const char *params;
+   const char *button;
+   const char *icon;
+   int         is_main;
 };
 
 struct _E_Config_Module
@@ -390,7 +417,7 @@ struct _E_Config_Gadcon
 {
    const char *name;
    int         id;
-   Evas_List  *clients;
+   Eina_List  *clients;
 };
 
 struct _E_Config_Gadcon_Client
@@ -405,6 +432,7 @@ struct _E_Config_Gadcon_Client
       int seq, flags;
    } state_info;
    const char    *style;
+   int            orient;
    unsigned char  autoscroll;
    unsigned char  resizable;
 };
@@ -427,7 +455,7 @@ struct _E_Config_Shelf
    float	 hide_timeout;
    float	 hide_duration;
    int		 desk_show_mode;
-   Evas_List    *desk_list;
+   Eina_List    *desk_list;
 };
 
 struct _E_Config_Shelf_Desk
@@ -449,22 +477,26 @@ struct _E_Event_Config_Icon_Theme
 EAPI int        e_config_init(void);
 EAPI int        e_config_shutdown(void);
 
+EAPI void       e_config_load(void);
+    
 EAPI int        e_config_save(void);
 EAPI void       e_config_save_flush(void);
 EAPI void       e_config_save_queue(void);
 
-EAPI const char *e_config_profile_get(void);
+EAPI const char*e_config_profile_get(void);
+EAPI char      *e_config_profile_dir_get(const char *prof);
 EAPI void       e_config_profile_set(const char *prof);
-EAPI Evas_List *e_config_profile_list(void);
+EAPI Eina_List *e_config_profile_list(void);
 EAPI void       e_config_profile_add(const char *prof);
 EAPI void       e_config_profile_del(const char *prof);
 
-EAPI Evas_List *e_config_engine_list(void);
+EAPI Eina_List *e_config_engine_list(void);
 
 EAPI void       e_config_save_block_set(int block);
 EAPI int        e_config_save_block_get(void);
     
 EAPI void      *e_config_domain_load(const char *domain, E_Config_DD *edd);
+EAPI void      *e_config_domain_system_load(const char *domain, E_Config_DD *edd);
 EAPI int        e_config_profile_save(void);
 EAPI int        e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data);
 

@@ -4,8 +4,8 @@ INCLUDES               = -I. \
                          -I$(top_srcdir) \
                          -I$(top_srcdir)src/preload \
                          @x_cflags@ \
-			 @e_cflags@
-			 
+                         @e_cflags@
+
 pkgdir                 = $(libdir)/enlightenment/preload
 
 #pkg_LTLIBRARIES        = e_hack.la e_precache.la

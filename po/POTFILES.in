@@ -97,7 +97,6 @@ src/bin/e_theme_about.c
 src/bin/e_theme.c
 src/bin/e_thumb.c
 src/bin/e_thumb_main.c
-src/bin/e_tlist.c
 src/bin/e_toolbar.c
 src/bin/e_user.c
 src/bin/e_utils.c
@@ -126,7 +125,6 @@ src/bin/e_widget_slider.c
 src/bin/e_widget_spectrum.c
 src/bin/e_widget_table.c
 src/bin/e_widget_textblock.c
-src/bin/e_widget_tlist.c
 src/bin/e_win.c
 src/bin/e_xinerama.c
 src/bin/e_zone.c
@@ -189,6 +187,8 @@ src/modules/conf_performance/e_int_config_performance.c
 src/modules/conf_performance/e_mod_main.c
 src/modules/conf_profiles/e_int_config_profiles.c
 src/modules/conf_profiles/e_mod_main.c
+src/modules/conf_scale/e_int_config_scale.c
+src/modules/conf_scale/e_mod_main.c
 src/modules/conf_screensaver/e_int_config_screensaver.c
 src/modules/conf_screensaver/e_mod_main.c
 src/modules/conf_shelves/e_int_config_shelf.c
@@ -197,6 +197,7 @@ src/modules/conf_startup/e_int_config_startup.c
 src/modules/conf_startup/e_mod_main.c
 src/modules/conf_theme/e_int_config_theme.c
 src/modules/conf_theme/e_int_config_theme_import.c
+src/modules/conf_theme/e_int_config_theme_web.c
 src/modules/conf_theme/e_mod_main.c
 src/modules/conf_transitions/e_int_config_transitions.c
 src/modules/conf_transitions/e_mod_main.c
@@ -209,7 +210,9 @@ src/modules/conf_window_display/e_int_config_window_display.c
 src/modules/conf_window_display/e_mod_main.c
 src/modules/conf_window_focus/e_int_config_focus.c
 src/modules/conf_window_focus/e_mod_main.c
-src/modules/conf_window_manipulation/e_int_config_window_manipulation.c
+src/modules/conf_window_manipulation/e_int_config_window_geometry.c
+src/modules/conf_window_manipulation/e_int_config_window_maxpolicy.c
+src/modules/conf_window_manipulation/e_int_config_window_stacking.c
 src/modules/conf_window_manipulation/e_mod_main.c
 src/modules/conf_window_remembers/e_int_config_remembers.c
 src/modules/conf_window_remembers/e_mod_main.c
@@ -236,11 +239,20 @@ src/modules/ibox/e_mod_main.c
 src/modules/pager/e_mod_config.c
 src/modules/pager/e_mod_main.c
 src/modules/start/e_mod_main.c
+src/modules/syscon/e_mod_main.c
+src/modules/syscon/e_syscon.c
 src/modules/temperature/e_mod_config.c
 src/modules/temperature/e_mod_main.c
 src/modules/wizard/e_mod_main.c
 src/modules/wizard/e_wizard.c
+src/modules/wizard/page_000.c
 src/modules/wizard/page_010.c
+src/modules/wizard/page_020.c
+src/modules/wizard/page_030.c
+src/modules/wizard/page_040.c
+src/modules/wizard/page_050.c
+src/modules/wizard/page_060.c
+src/modules/wizard/page_070.c
 src/modules/mixer/app_mixer.c
 src/modules/mixer/conf_gadget.c
 src/modules/mixer/conf_module.c

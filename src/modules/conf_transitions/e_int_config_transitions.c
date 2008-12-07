@@ -81,30 +81,30 @@ static int
 _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
 {
    if (e_config->transition_start)
-     evas_stringshare_del(e_config->transition_start);
+     eina_stringshare_del(e_config->transition_start);
    e_config->transition_start = NULL;
    if (cfdata->transition_start) 
      {
 	if (e_theme_transition_find(cfdata->transition_start)) 
-	  e_config->transition_start = evas_stringshare_add(cfdata->transition_start);
+	  e_config->transition_start = eina_stringshare_add(cfdata->transition_start);
      }
 
    if (e_config->transition_desk)
-     evas_stringshare_del(e_config->transition_desk);
+     eina_stringshare_del(e_config->transition_desk);
    e_config->transition_desk = NULL;
    if (cfdata->transition_desk) 
      {
 	if (e_theme_transition_find(cfdata->transition_desk)) 
-	  e_config->transition_desk = evas_stringshare_add(cfdata->transition_desk);
+	  e_config->transition_desk = eina_stringshare_add(cfdata->transition_desk);
      }
 
    if (e_config->transition_change)
-     evas_stringshare_del(e_config->transition_change);
+     eina_stringshare_del(e_config->transition_change);
    e_config->transition_change = NULL;
    if (cfdata->transition_change) 
      {   
 	if (e_theme_transition_find(cfdata->transition_change)) 
-	  e_config->transition_change = evas_stringshare_add(cfdata->transition_change);
+	  e_config->transition_change = eina_stringshare_add(cfdata->transition_change);
      }
 
    e_config_save_queue();
@@ -116,7 +116,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 {
    E_Zone *zone;
    Evas_Object *o, *of, *il;
-   Evas_List *l;
+   Eina_List *l;
    char *t;
 
    zone = e_zone_current_get(cfd->con);

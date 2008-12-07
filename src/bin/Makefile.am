@@ -22,7 +22,8 @@ enlightenment_thumb \
 enlightenment_sys \
 enlightenment_fm \
 enlightenment_init \
-enlightenment_fm_op
+enlightenment_fm_op \
+enlightenment_fm_open
 
 ENLIGHTENMENTHEADERS = \
 e.h \
@@ -108,10 +109,8 @@ e_eap_editor.h \
 e_scrollframe.h \
 e_int_border_menu.h \
 e_ilist.h \
-e_tlist.h \
 e_livethumb.h \
 e_widget_ilist.h \
-e_widget_tlist.h \
 e_widget_config_list.h \
 e_slider.h \
 e_widget_slider.h \
@@ -165,7 +164,8 @@ e_powersave.h \
 e_slidesel.h \
 e_slidecore.h \
 e_widget_flist.h \
-e_scale.h
+e_scale.h \
+e_widget_toolbar.h
 
 enlightenment_src = \
 e_user.c \
@@ -248,10 +248,8 @@ e_eap_editor.c \
 e_scrollframe.c \
 e_int_border_menu.c \
 e_ilist.c \
-e_tlist.c \
 e_livethumb.c \
 e_widget_ilist.c \
-e_widget_tlist.c \
 e_widget_config_list.c \
 e_slider.c \
 e_widget_slider.c \
@@ -302,13 +300,14 @@ e_slidesel.c \
 e_slidecore.c \
 e_widget_flist.c \
 e_scale.c \
+e_widget_toolbar.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \
 e_main.c \
 $(enlightenment_src)
 
-enlightenment_LDFLAGS = -export-dynamic @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ @E_DBUS_LIBS@
+enlightenment_LDFLAGS = -export-dynamic @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@
 
 enlightenment_remote_SOURCES = \
 e.h \
@@ -344,14 +343,21 @@ e_user.c \
 e_sha1.c \
 e_prefix.c
 
-enlightenment_fm_LDFLAGS = @e_libs@ @dlopen_libs@ @E_DBUS_LIBS@ @E_HAL_LIBS@
-enlightenment_fm_CFLAGS = $(INCLUDES) @E_HAL_CFLAGS@
+enlightenment_fm_LDFLAGS = @e_libs@ @dlopen_libs@
+enlightenment_fm_CFLAGS = $(INCLUDES)
 
 enlightenment_fm_op_SOURCES = \
-e_fm_op.c 
+e_fm_op.c
 
 enlightenment_fm_op_LDFLAGS = @e_libs@
 enlightenment_fm_op_CFLAGS = $(INCLUDES)
+
+enlightenment_fm_open_SOURCES = \
+e_fm_open.c \
+e_ipc_codec.c
+
+enlightenment_fm_open_LDFLAGS = @e_libs@
+enlightenment_fm_open_CFLAGS = $(INCLUDES)
 
 enlightenment_sys_SOURCES = \
 e_sys_main.c

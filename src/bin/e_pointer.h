@@ -31,7 +31,7 @@ struct _E_Pointer
 
    const char       *type;
    void             *obj;
-   Evas_List        *stack;
+   Eina_List        *stack;
 
    struct {
       int            x, y;
@@ -42,6 +42,7 @@ struct _E_Pointer
 EAPI int        e_pointer_init(void);
 EAPI int        e_pointer_shutdown(void);    
 EAPI E_Pointer *e_pointer_window_new(Ecore_X_Window win, int filled);
+EAPI void	e_pointer_hide(E_Pointer *p);
 EAPI void       e_pointer_type_push(E_Pointer *p, void *obj, const char *type);
 EAPI void       e_pointer_type_pop(E_Pointer *p, void *obj, const char *type);
 EAPI void       e_pointers_size_set(int size);

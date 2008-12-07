@@ -7,6 +7,53 @@
 #include <Ecore_IMF.h>
 #endif
 
+/*
+ * i need to make more use of these when i'm baffled as to when something is
+ * up. other hooks:
+ * 
+ *      void *(*__malloc_hook)(size_t size, const void *caller);
+ * 
+ *      void *(*__realloc_hook)(void *ptr, size_t size, const void *caller);
+ *
+ *      void *(*__memalign_hook)(size_t alignment, size_t size,
+ *                               const void *caller);
+ *
+ *      void (*__free_hook)(void *ptr, const void *caller);
+ *
+ *      void (*__malloc_initialize_hook)(void);
+ *
+ *      void (*__after_morecore_hook)(void);
+ *
+
+static void my_init_hook(void);
+static void my_free_hook(void *p, const void *caller);
+
+static void (*old_free_hook)(void *ptr, const void *caller) = NULL;
+void (*__free_hook)(void *ptr, const void *caller);
+
+void (*__malloc_initialize_hook) (void) = my_init_hook;
+static void
+my_init_hook(void)
+{
+   old_free_hook = __free_hook;
+   __free_hook = my_free_hook;
+}
+
+//void *magicfree = NULL;
+
+static void my_free_hook(void *p, const void *caller)
+{
+   __free_hook = old_free_hook;
+//   if ((p) && (p == magicfree))
+//     {
+//	printf("CAUGHT!!!!! %p ...\n", p);
+//	abort();
+//     }
+   free(p);
+   __free_hook = my_free_hook;
+}
+*/
+
 EAPI int e_precache_end = 0;
 
 /* local subsystem functions */
@@ -18,6 +65,7 @@ static int  _e_main_dirs_init(void);
 static int  _e_main_dirs_shutdown(void);
 static int  _e_main_screens_init(void);
 static int  _e_main_screens_shutdown(void);
+static void _e_main_manage_all(void);
 static int  _e_main_path_init(void);
 static int  _e_main_path_shutdown(void);
 
@@ -39,8 +87,9 @@ static void _e_main_desk_restore(E_Manager *man, E_Container *con);
 static int (*_e_main_shutdown_func[MAX_LEVEL]) (void);
 static int _e_main_level = 0;
 static int _e_cacheburst = 0;
+static Evas_Bool locked = 0;
 
-static Evas_List *_e_main_idler_before_list = NULL;
+static Eina_List *_e_main_idler_before_list = NULL;
 
 static Ecore_Idle_Enterer *_e_main_idle_enterer_before  = NULL;
 static Ecore_Idle_Enterer *_e_main_idle_enterer_after   = NULL;
@@ -59,7 +108,14 @@ static double t0, t1, t2;
 #else
 #define TS(x)
 #endif
-   
+
+static int stdbg(void *data __UNUSED__)
+{
+// enable to debug eina stringshare usage   
+//   eina_stringshare_dump();
+   return 0;
+}
+
 /* externally accessible functions */
 int
 main(int argc, char **argv)
@@ -267,9 +323,16 @@ main(int argc, char **argv)
 		  "\t\tBe evil.\n"
 		  "\t-psychotic\n"
 		  "\t\tBe psychotic.\n"
+		  "\t-locked\n"
+		  "\t\tstart with desklock on, so password will be asked.\n"
 		  )
 		);
 	     exit(0);
+	  }
+	else if (!strcmp(argv[i], "-locked"))
+	  {
+	     locked = 1;
+	     puts("enlightenment will start with desklock on.");
 	  }
      }
 
@@ -507,6 +570,11 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_config_shutdown);
+
+   locked |= e_config->desklock_start_locked;
+
+   /* set all execced stuff to pri 1 - nice. make this config later? */
+   ecore_exe_run_priority_set(1);
    
    TS("scale");
    /* init config system */
@@ -562,6 +630,16 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_theme_shutdown);
+
+   e_init_status_set(_("Starting International Support"));
+   TS("intl post");
+   /* init intl system */
+   if (!e_intl_post_init())
+     {
+	e_error_message_show(_("Enlightenment cannot set up its intl system."));
+	_e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(e_intl_post_shutdown);
    
    TS("splash");
    if (!((!e_config->show_splash) || (after_restart)))
@@ -584,8 +662,9 @@ main(int argc, char **argv)
    TS("test file format support");   
      {
 	Ecore_Evas *ee;
-	Evas_Object *im;
+	Evas_Object *im, *txt;
 	char buf[4096];
+        Evas_Coord tw, th;
 	
 	ee = ecore_evas_buffer_new(1, 1);
 	if (!ee)
@@ -594,6 +673,7 @@ main(int argc, char **argv)
 				    "Evas has Software Buffer engine support.\n"));
 	     _e_main_shutdown(-1);
 	  }
+        e_canvas_add(ee);
 	im = evas_object_image_add(ecore_evas_get(ee));
 
 	snprintf(buf, sizeof(buf), "%s/data/images/test.png", e_prefix_data_get());
@@ -623,23 +703,58 @@ main(int argc, char **argv)
 	     _e_main_shutdown(-1);
 	  }
 	evas_object_del(im);
+        txt = evas_object_text_add(ecore_evas_get(ee));
+        evas_object_text_font_set(txt, "Sans", 10);
+        evas_object_text_text_set(txt, "Hello");
+        evas_object_geometry_get(txt, NULL, NULL, &tw, &th);
+        if ((tw <= 0) && (th <= 0))
+          {
+	     e_error_message_show(_("Enlightenment found Evas can't load the 'Sans' font. Check Evas has fontconfig\n"
+				    "support and system fontconfig defines a 'Sans' font.\n"));
+	     _e_main_shutdown(-1);
+          }
+        evas_object_del(txt);
+        e_canvas_del(ee);
 	ecore_evas_free(ee);
      }
    
+   e_init_status_set(_("Setup Screens"));
+   TS("screens");
+   /* manage the root window */
+   if (!_e_main_screens_init())
+     {
+	e_error_message_show(_("Enlightenment set up window management for all the screens on your system\n"
+			       "failed. Perhaps another window manager is running?\n"));
+	_e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(_e_main_screens_shutdown);
+
+   e_init_status_set(_("Setup Screensaver"));
+   TS("screensaver");
+   /* setup screensaver */
+   if (!e_screensaver_init())
+     {
+       e_error_message_show(_("Enlightenment cannot configure the X screensaver."));
+       _e_main_shutdown(-1);
+     }
+
+   e_init_status_set(_("Setup Desklock"));
+   TS("desklock");
+   /* setup desklock */
+   if (!e_desklock_init())
+     {
+       e_error_message_show(_("Enlightenment cannot set up its desk locking system."));
+       _e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(e_desklock_shutdown);
+
+   if (locked && ((!e_config->show_splash) && (!after_restart)))
+     e_desklock_show();
+
    TS("msgbus");
    /* setup e msgbus (DBUS) service */
    if (e_msgbus_init())
      _e_main_shutdown_push(e_msgbus_shutdown);
-
-   e_init_status_set(_("Starting International Support"));
-   TS("intl post");
-   /* init intl system */
-   if (!e_intl_post_init())
-     {
-	e_error_message_show(_("Enlightenment cannot set up its intl system."));
-	_e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_intl_post_shutdown);
 
    e_init_status_set(_("Setting up Paths"));
    TS("efreet paths");
@@ -650,24 +765,14 @@ main(int argc, char **argv)
 	if (list)
 	  {
 	     snprintf(buf, sizeof(buf), "%s/.e/e/icons", e_user_homedir_get());
-	     ecore_list_prepend(list, (void *)ecore_string_instance(buf));
+	     ecore_list_prepend(list, (void *)eina_stringshare_add(buf));
 	     snprintf(buf, sizeof(buf), "%s/data/icons", e_prefix_data_get());
-	     ecore_list_prepend(list, (void *)ecore_string_instance(buf));
+	     ecore_list_prepend(list, (void *)eina_stringshare_add(buf));
 	  }
      }
    efreet_icon_extension_add(".edj");
    TS("efreet paths done");
 
-   e_init_status_set(_("Setup Thumbnailer"));
-   TS("thumb init");
-   /* init the enlightenment thumbnailing system */
-   if (!e_thumb_init())
-    {
-       e_error_message_show(_("Enlightenment cannot initialize the Thumbnailing system.\n"));
-       _e_main_shutdown(-1);
-    }
-   _e_main_shutdown_push(e_thumb_shutdown);
-   
    e_init_status_set(_("Setup System Controls"));
    TS("sys init");
    /* init the enlightenment sys command system */
@@ -686,45 +791,7 @@ main(int argc, char **argv)
 	e_error_message_show(_("Enlightenment cannot set up its actions system."));
 	_e_main_shutdown(-1);
      }
-   _e_main_shutdown_push(e_actions_shutdown);
-   e_init_status_set(_("Setup Bindings"));
-   TS("bindings");
-   /* init bindings system */
-   if (!e_bindings_init())
-     {
-	e_error_message_show(_("Enlightenment cannot set up its bindings system."));
-	_e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_bindings_shutdown);
-   e_init_status_set(_("Setup Popups"));
-   TS("popup");
-   /* init popup system */
-   if (!e_popup_init())
-     {
-	e_error_message_show(_("Enlightenment cannot set up its popup system."));
-	_e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_popup_shutdown);
-   
-   e_init_status_set(_("Setup Wallpaper"));
-   TS("bg");
-   /* init desktop background system */
-   if (!e_bg_init())
-     {
-	e_error_message_show(_("Enlightenment cannot set up its desktop background system."));
-	_e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_bg_init);
-   e_init_status_set(_("Setup Screens"));
-   TS("screens");
-   /* manage the root window */
-   if (!_e_main_screens_init())
-     {
-	e_error_message_show(_("Enlightenment set up window management for all the screens on your system\n"
-			       "failed. Perhaps another window manager is running?\n"));
-	_e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(_e_main_screens_shutdown);
+
    e_init_status_set(_("Setup Execution System"));
    TS("exec");
    /* init app system */
@@ -783,7 +850,7 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_dnd_shutdown);
-   e_init_status_set(_("Setup Grab Input HAnding"));
+   e_init_status_set(_("Setup Grab Input Handing"));
    TS("grabinput");
    /* setup input grabbing co-operation system */
    if (!e_grabinput_init())
@@ -819,6 +886,64 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_gadcon_shutdown);
+
+   e_init_status_set(_("Setup DPMS"));
+   TS("dpms");     
+   /* setup dpms */
+   if (!e_dpms_init())
+     {
+       e_error_message_show(_("Enlightenment cannot configure the DPMS settings."));
+       _e_main_shutdown(-1);
+     }
+
+   e_init_status_set(_("Set Up Powersave modes"));
+   TS("powersave");
+   if (!e_powersave_init())
+     {
+       e_error_message_show(_("Enlightenment cannot set up its powersave modes."));
+       _e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(e_powersave_shutdown);
+
+   e_init_status_set(_("Setup Wallpaper"));
+   TS("bg");
+   /* init desktop background system */
+   if (!e_bg_init())
+     {
+	e_error_message_show(_("Enlightenment cannot set up its desktop background system."));
+	_e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(e_bg_shutdown);
+
+   e_init_status_set(_("Setup Mouse"));
+   TS("mouse");     
+   /* setup mouse accel */
+   if (!e_mouse_init())
+     {
+       e_error_message_show(_("Enlightenment cannot configure the mouse settings."));
+       _e_main_shutdown(-1);
+     }
+
+   _e_main_shutdown_push(e_actions_shutdown);
+   e_init_status_set(_("Setup Bindings"));
+   TS("bindings");
+   /* init bindings system */
+   if (!e_bindings_init())
+     {
+	e_error_message_show(_("Enlightenment cannot set up its bindings system."));
+	_e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(e_bindings_shutdown);
+   e_init_status_set(_("Setup Popups"));
+   TS("popup");
+   /* init popup system */
+   if (!e_popup_init())
+     {
+	e_error_message_show(_("Enlightenment cannot set up its popup system."));
+	_e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(e_popup_shutdown);
+
    e_init_status_set(_("Setup Shelves"));
    TS("shelves");
    /* setup shelves */
@@ -829,42 +954,15 @@ main(int argc, char **argv)
      }
    _e_main_shutdown_push(e_shelf_shutdown);
 
-   e_init_status_set(_("Setup DPMS"));
-   TS("dpms");     
-   /* setup dpms */
-   if (!e_dpms_init())
-     {
-       e_error_message_show(_("Enlightenment cannot configure the DPMS settings."));
+   e_init_status_set(_("Setup Thumbnailer"));
+   TS("thumb init");
+   /* init the enlightenment thumbnailing system */
+   if (!e_thumb_init())
+    {
+       e_error_message_show(_("Enlightenment cannot initialize the Thumbnailing system.\n"));
        _e_main_shutdown(-1);
-     }
-    
-   e_init_status_set(_("Setup Screensaver"));
-   TS("screensaver");
-   /* setup screensaver */
-   if (!e_screensaver_init())
-     {
-       e_error_message_show(_("Enlightenment cannot configure the X screensaver."));
-       _e_main_shutdown(-1);
-     }
-     
-   e_init_status_set(_("Setup Mouse"));
-   TS("mouse");     
-   /* setup mouse accel */
-   if (!e_mouse_init())
-     {
-       e_error_message_show(_("Enlightenment cannot configure the mouse settings."));
-       _e_main_shutdown(-1);
-     }
-
-   e_init_status_set(_("Setup Desklock"));
-   TS("desklock");
-   /* setup desklock */
-   if (!e_desklock_init())
-     {
-       e_error_message_show(_("Enlightenment cannot set up its desk locking system."));
-       _e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_desklock_shutdown);
+    }
+   _e_main_shutdown_push(e_thumb_shutdown);
 
    e_init_status_set(_("Set Up File Ordering"));
    TS("order");
@@ -874,15 +972,6 @@ main(int argc, char **argv)
        _e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_order_shutdown);
-
-   e_init_status_set(_("Set Up Powersave modes"));
-   TS("powersave");
-   if (!e_powersave_init())
-     {
-       e_error_message_show(_("Enlightenment cannot set up its powersave modes."));
-       _e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(e_powersave_shutdown);
 
    TS("add idle enterers");
    /* add in a handler that just before we go idle we flush x - will happen after ecore_evas's idle rendering as it's after ecore_evas_init() */
@@ -902,6 +991,9 @@ main(int argc, char **argv)
    if (!((!e_config->show_splash) || (after_restart)))
      {
 	ecore_timer_add(16.0, _e_main_cb_startup_fake_end, NULL);
+
+	if (locked)
+	  e_desklock_show();
      }
    
    e_container_all_thaw();
@@ -939,6 +1031,9 @@ main(int argc, char **argv)
    TS("shelf config init");
    e_shelf_config_init();
 
+   TS("manage all windows");
+   _e_main_manage_all();
+   
    /* an idle enterer to be called after all others */
    _e_main_idle_enterer_after = ecore_idle_enterer_add(_e_main_cb_idler_after, NULL);
 
@@ -947,6 +1042,9 @@ main(int argc, char **argv)
    /* no longer starting up */
    starting = 0;
    /* start our main loop */
+   
+   ecore_timer_add(5.0, stdbg, NULL);
+   
    ecore_main_loop_begin();
 
    e_canvas_idle_flush();
@@ -986,7 +1084,7 @@ e_main_idler_before_add(int (*func) (void *data), void *data, int once)
    eb->func = func;
    eb->data = data;
    eb->once = once;
-   _e_main_idler_before_list = evas_list_append(_e_main_idler_before_list, eb);
+   _e_main_idler_before_list = eina_list_append(_e_main_idler_before_list, eb);
    return eb;
 }
 
@@ -1060,7 +1158,6 @@ _e_main_dirs_init(void)
 	"%s/.e/e/images",
 	"%s/.e/e/fonts",
 	"%s/.e/e/themes",
-	"%s/.e/e/init",
 	"%s/.e/e/icons",
 	"%s/.e/e/backgrounds",
 	"%s/.e/e/applications",
@@ -1093,50 +1190,6 @@ _e_main_dirs_init(void)
 		  return 0;
 	       }
 	  }
-     }
-   
-   snprintf(buf, sizeof(buf), "%s/applications", efreet_data_home_get());
-   if (!ecore_file_mkpath(buf))
-     {
-	if (!ecore_file_is_dir(buf))
-	  {
-	     e_error_message_show("Error creating directory:\n"
-				  "%s",
-				  buf);
-	     return 0;
-	  }
-     }
-   
-   /* FIXME: THIS is a hack to get people started!!! */
-   /* err dont just disable it - replace it with a proper wizard tool */
-   /* outside e's main source to populate these directories from gnome/kde */
-   /* app menu data etc. */
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/bar/default/.order", homedir);
-   if (!ecore_file_exists(buf))
-     {
-	snprintf(buf, sizeof(buf), 
-		 "gzip -d -c < %s/data/other/desktop_files.tar.gz | "
-		 "(cd %s/applications/ ; tar -xkf -)", 
-		 e_prefix_data_get(),
-		 efreet_data_home_get());
-	system(buf);
-	snprintf(buf, sizeof(buf), 
-		 "gzip -d -c < %s/data/other/desktop_order.tar.gz | "
-		 "(cd %s/.e/e/ ; tar -xkf -)", 
-		 e_prefix_data_get(),
-		 homedir);
-	system(buf);
-     }
-   /* FIXME: THIS is to get people started - shoudl be in a wizard */
-   snprintf(buf, sizeof(buf), "%s/.e/e/fileman/favorites", homedir);
-   if (!ecore_file_exists(buf))
-     {
-	snprintf(buf, sizeof(buf), 
-		 "gzip -d -c < %s/data/other/efm_favorites.tar.gz | "
-		 "(cd %s/.e/e/ ; tar -xkf -)", 
-		 e_prefix_data_get(),
-		 homedir);
-	system(buf);
      }
 
    return 1;
@@ -1207,7 +1260,7 @@ _e_main_screens_init(void)
 	     e_grabinput_focus(con->bg_win, E_FOCUS_METHOD_PASSIVE);
 	     e_hints_manager_init(man);
 	     _e_main_desk_restore(man, con);
-	     e_manager_manage_windows(man);
+//	     e_manager_manage_windows(man);
 	  }
 	else
 	  {
@@ -1241,6 +1294,15 @@ _e_main_screens_shutdown(void)
 //   e_manager_shutdown();
    e_atoms_shutdown();
    return 1;
+}
+
+static void
+_e_main_manage_all(void)
+{
+   Eina_List *l;
+   
+   for (l = e_manager_list(); l; l = l->next)
+     e_manager_manage_windows(l->data);
 }
 
 static int
@@ -1307,18 +1369,6 @@ _e_main_path_init(void)
    e_path_default_path_append(path_icons, buf);
    e_path_user_path_set(path_icons, &(e_config->path_append_icons));
 
-   /* setup init paths */
-   path_init = e_path_new();
-   if (!path_init)
-     {
-	e_error_message_show("Cannot allocate path for path_init\n");
-	return 0;
-     }
-   e_path_default_path_append(path_init, "~/.e/e/init");
-   snprintf(buf, sizeof(buf), "%s/data/init", e_prefix_data_get());
-   e_path_default_path_append(path_init, buf);
-   e_path_user_path_set(path_init, &(e_config->path_append_init));
-
    /* setup module paths */
    path_modules = e_path_new();
    if (!path_modules) 
@@ -1345,6 +1395,8 @@ _e_main_path_init(void)
 	return 0;
      }
    e_path_default_path_append(path_backgrounds, "~/.e/e/backgrounds");
+   snprintf(buf, sizeof(buf), "%s/data/backgrounds", e_prefix_data_get());
+   e_path_default_path_append(path_backgrounds, buf);
    e_path_user_path_set(path_backgrounds, &(e_config->path_append_backgrounds));
 
    path_messages = e_path_new();
@@ -1387,11 +1439,6 @@ _e_main_path_shutdown(void)
      {
 	e_object_del(E_OBJECT(path_icons));
 	path_icons = NULL;
-     }
-   if (path_init)
-     {
-	e_object_del(E_OBJECT(path_init));
-	path_init = NULL;
      }
    if (path_modules)
      {
@@ -1446,7 +1493,7 @@ _e_main_cb_x_flusher(void *data __UNUSED__)
 static int
 _e_main_cb_idler_before(void *data __UNUSED__)
 {
-   Evas_List *l, *pl;
+   Eina_List *l, *pl;
    
    e_menu_idler_before();
    e_focus_idler_before();
@@ -1474,7 +1521,7 @@ _e_main_cb_idler_before(void *data __UNUSED__)
 	if ((eb->once) || (eb->delete_me))
 	  {
 	     _e_main_idler_before_list =
-	       evas_list_remove_list(_e_main_idler_before_list, pl);
+	       eina_list_remove_list(_e_main_idler_before_list, pl);
 	     free(eb);
 	  }
      }
@@ -1521,21 +1568,21 @@ _e_main_cb_startup_fake_end(void *data __UNUSED__)
 static void
 _e_main_desk_save(void)
 {
-   Evas_List *ml;
+   Eina_List *ml;
    char env[1024];
    char name[1024];
 
    for (ml = e_manager_list(); ml; ml = ml->next)
      {
 	E_Manager *man;
-	Evas_List *cl;
+	Eina_List *cl;
 
 	man = ml->data;
 
 	for (cl = man->containers; cl; cl = cl->next)
 	  {
 	     E_Container *con;
-	     Evas_List *zl;
+	     Eina_List *zl;
 
 	     con = cl->data;
 	     
@@ -1556,7 +1603,7 @@ _e_main_desk_save(void)
 static void
 _e_main_desk_restore(E_Manager *man, E_Container *con)
 {
-   Evas_List *zl;
+   Eina_List *zl;
    char *env;
    char name[1024];
 

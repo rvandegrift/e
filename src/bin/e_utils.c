@@ -7,7 +7,6 @@ EAPI E_Path *path_data    = NULL;
 EAPI E_Path *path_images  = NULL;
 EAPI E_Path *path_fonts   = NULL;
 EAPI E_Path *path_themes  = NULL;
-EAPI E_Path *path_init    = NULL;
 EAPI E_Path *path_icons   = NULL;
 EAPI E_Path *path_modules = NULL;
 EAPI E_Path *path_backgrounds = NULL;
@@ -28,7 +27,6 @@ struct _E_Util_Fake_Mouse_Up_Info
 
 /* local subsystem functions */
 static int _e_util_cb_delayed_del(void *data);
-static void _e_util_container_fake_mouse_up_cb(void *data);
 static int _e_util_wakeup_cb(void *data);
 
 /* local subsystem globals */
@@ -127,7 +125,7 @@ e_util_glob_case_match(const char *str, const char *glob)
 EAPI E_Container *
 e_util_container_number_get(int num)
 {
-   Evas_List *l;
+   Eina_List *l;
 
    for (l = e_manager_list(); l; l = l->next)
      {
@@ -240,7 +238,7 @@ e_util_both_str_empty(const char *s1, const char *s2)
 EAPI int
 e_util_immortal_check(void)
 {
-   Evas_List *wins;
+   Eina_List *wins;
 
    wins = e_border_immortal_windows_get();
    if (wins)
@@ -252,7 +250,7 @@ e_util_immortal_check(void)
 	/* FIXME: should really display a list of these lifespan locked */
 	/* windows in a dialog and let the user disable their locks in */
 	/* this dialog */
-	evas_list_free(wins);
+	eina_list_free(wins);
 	return 1;
      }
    return 0;
@@ -402,7 +400,7 @@ e_util_menu_item_edje_icon_set(E_Menu_Item *mi, const char *name)
 EAPI E_Container *
 e_util_container_window_find(Ecore_X_Window win)
 {
-   Evas_List *l, *ll;
+   Eina_List *l, *ll;
 
    for (l = e_manager_list(); l; l = l->next)
      {
@@ -426,7 +424,7 @@ EAPI E_Border *
 e_util_desk_border_above(E_Border *bd)
 {
    E_Border *above = NULL;
-   Evas_List *l;
+   Eina_List *l;
    int pos, i;
 
    E_OBJECT_CHECK_RETURN(bd, NULL);
@@ -439,7 +437,7 @@ e_util_desk_border_above(E_Border *bd)
    else if ((bd->layer > 150) && (bd->layer <= 200)) pos = 4;
    else pos = 5;
 
-   for (l = evas_list_find_list(bd->zone->container->layers[pos].clients, bd);
+   for (l = eina_list_data_find_list(bd->zone->container->layers[pos].clients, bd);
 	(l) && (l->next) && (!above);
 	l = l->next)
      {
@@ -469,7 +467,7 @@ EAPI E_Border *
 e_util_desk_border_below(E_Border *bd)
 {
    E_Border *below = NULL;
-   Evas_List *l;
+   Eina_List *l;
    int pos, i;
 
    E_OBJECT_CHECK_RETURN(bd, NULL);
@@ -482,7 +480,7 @@ e_util_desk_border_below(E_Border *bd)
    else if ((bd->layer > 150) && (bd->layer <= 200)) pos = 4;
    else pos = 5;
 
-   for (l = evas_list_find_list(bd->zone->container->layers[pos].clients, bd);
+   for (l = eina_list_data_find_list(bd->zone->container->layers[pos].clients, bd);
 	(l) && (l->prev) && (!below);
 	l = l->prev)
      {
@@ -497,7 +495,7 @@ e_util_desk_border_below(E_Border *bd)
 	  {
 	     if (bd->zone->container->layers[i].clients)
 	       {
-		  for (l = evas_list_last(bd->zone->container->layers[i].clients);
+		  for (l = eina_list_last(bd->zone->container->layers[i].clients);
 		       (l) && (!below);
 		       l = l->prev)
 		    {
@@ -515,7 +513,7 @@ e_util_desk_border_below(E_Border *bd)
 EAPI int
 e_util_edje_collection_exists(const char *file, const char *coll)
 {
-   Evas_List *clist, *l;
+   Eina_List *clist, *l;
 
    clist = edje_file_collection_list(file);
    for (l = clist; l; l = l->next)
@@ -884,14 +882,11 @@ e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, unsigned int size, E_
 EAPI int
 e_util_dir_check(const char *dir)
 {
-   char msg[PATH_MAX];
-
    if (!ecore_file_exists(dir))
      {
 	if (!ecore_file_mkpath(dir))
 	  {
-	     snprintf (msg, sizeof (msg), "Failed to create directory: %s .<br>Check that you have correct permissions set.", dir);
-	     e_util_dialog_show("Error creating directory", msg);
+	     e_util_dialog_show("Error creating directory", "Failed to create directory: %s .<br>Check that you have correct permissions set.", dir);
 	     return 0;
 	  }
      }
@@ -899,8 +894,7 @@ e_util_dir_check(const char *dir)
      {
 	if (!ecore_file_is_dir(dir))
 	  {
-	     snprintf (msg, sizeof (msg), "Failed to create directory: %s .<br>A file of that name already exists.", dir);
-	     e_util_dialog_show("Error creating directory", msg); 
+	     e_util_dialog_show("Error creating directory", "Failed to create directory: %s .<br>A file of that name already exists.", dir);
 	     return 0;
 	  }
      }
@@ -936,26 +930,34 @@ e_util_winid_str_get(Ecore_X_Window win)
    return id;
 }
 
+EAPI void
+e_util_win_auto_resize_fill(E_Win *win)
+{
+   E_Zone *zone = NULL;
+   
+   if (win->border)
+     zone = win->border->zone;
+   if ((!zone) && (win->container))
+     zone = e_util_zone_current_get(win->container->manager);
+   
+   if (zone)
+     {
+        int w, h;
+        
+        w = zone->w / 3;
+        h = zone->h / 3;
+        if (w < win->min_w) w = win->min_w;
+        if (h < win->min_h) h = win->min_h;
+        e_win_resize(win, w, h);
+     }
+}
+
 /* local subsystem functions */
 static int
 _e_util_cb_delayed_del(void *data)
 {
    e_object_del(E_OBJECT(data));
    return 0;
-}
-
-static void
-_e_util_container_fake_mouse_up_cb(void *data)
-{
-   E_Util_Fake_Mouse_Up_Info *info;
-
-   info = data;
-   if (info)
-     {
-	evas_event_feed_mouse_up(info->evas, info->button, EVAS_BUTTON_NONE,
-				 ecore_x_current_time_get(), NULL);
-	free(info);
-     }
 }
 
 static int

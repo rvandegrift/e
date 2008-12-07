@@ -19,19 +19,19 @@ static void _ilist_language_cb_change       (void *data, Evas_Object *obj);
 static void _ilist_region_cb_change         (void *data, Evas_Object *obj);
 static void _ilist_codeset_cb_change        (void *data, Evas_Object *obj);
 static void _ilist_modifier_cb_change       (void *data, Evas_Object *obj);
-static int  _lang_list_sort                 (void *data1, void *data2);
+static int  _lang_list_sort                 (const void *data1, const void *data2);
 static void _lang_list_load                 (void *data);
-static int  _region_list_sort               (void *data1, void *data2);
+static int  _region_list_sort               (const void *data1, const void *data2);
 static void _region_list_load               (void *data);
-static int  _basic_lang_list_sort           (void *data1, void *data2);
+static int  _basic_lang_list_sort           (const void *data1, const void *data2);
 
 /* Fill the clear lists, fill with language, select */
 /* Update lanague */
 static void      _cfdata_language_go        (const char *lang, const char *region, const char *codeset, const char *modifier, E_Config_Dialog_Data *cfdata);
-static Evas_Bool _lang_hash_cb              (const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata);
-static Evas_Bool _region_hash_cb            (const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata);
-static Evas_Bool _language_hash_free_cb     (const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata __UNUSED__);
-static Evas_Bool _region_hash_free_cb       (const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata __UNUSED__);
+static Evas_Bool _lang_hash_cb              (const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata);
+static Evas_Bool _region_hash_cb            (const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata);
+static Evas_Bool _language_hash_free_cb     (const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__);
+static Evas_Bool _region_hash_free_cb       (const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__);
 static void      _intl_current_locale_setup (E_Config_Dialog_Data *cfdata);
 static const char *_intl_charset_upper_get  (const char *charset);
 
@@ -60,8 +60,8 @@ struct _E_Intl_Region_Node
 {
    const char *region_code;		/* US */
    const char *region_name;		/* United States */
-   Evas_List  *available_codesets;
-   Evas_List  *available_modifiers;
+   Eina_List  *available_codesets;
+   Eina_List  *available_modifiers;
 };
 
 struct _E_Config_Dialog_Data
@@ -82,9 +82,9 @@ struct _E_Config_Dialog_Data
    int  lang_dirty;
    
    Evas_Hash *locale_hash;
-   Evas_List *lang_list;
-   Evas_List *region_list;
-   Evas_List *blang_list;
+   Eina_List *lang_list;
+   Eina_List *region_list;
+   Eina_List *blang_list;
    
    struct
      {
@@ -579,7 +579,7 @@ e_int_config_intl(E_Container *con, const char *params __UNUSED__)
    v->basic.apply_cfdata      = _basic_apply_data;
    
    cfd = e_config_dialog_new(con,
-			     _("Language Configuration"),
+			     _("Language Settings"),
 			    "E", "_config_intl_dialog",
 			     "enlightenment/intl", 0, v, NULL);
    return cfd;
@@ -597,7 +597,7 @@ e_int_config_intl(E_Container *con, const char *params __UNUSED__)
 static void
 _fill_data(E_Config_Dialog_Data *cfdata)
 {
-   Evas_List    *e_lang_list;
+   Eina_List    *e_lang_list;
    FILE		*output;
    
    e_lang_list = e_intl_language_list();
@@ -629,8 +629,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 			    if (!strncmp(basic_language_predefined_pairs[i].locale_key, 
 				     basic_language, strlen(basic_language)))
 			      {
-				 if (!evas_list_find(cfdata->blang_list, &basic_language_predefined_pairs[i]))
-				   cfdata->blang_list = evas_list_append(cfdata->blang_list, &basic_language_predefined_pairs[i]);
+				 if (!eina_list_data_find(cfdata->blang_list, &basic_language_predefined_pairs[i]))
+				   cfdata->blang_list = eina_list_append(cfdata->blang_list, &basic_language_predefined_pairs[i]);
 				 break;
 			      }
 			    i++;
@@ -650,13 +650,13 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 		       lang_node  = evas_hash_find(cfdata->locale_hash, locale_parts->lang);
 		       if (lang_node == NULL) 
 			 {
-			    Evas_List *next;
+			    Eina_List *next;
 			    int i;
 		       
 			    /* create new node */
 			    lang_node = E_NEW(E_Intl_Language_Node, 1);
 
-		            lang_node->lang_code = evas_stringshare_add(locale_parts->lang);
+		            lang_node->lang_code = eina_stringshare_add(locale_parts->lang);
 
 		            /* Check if the language list exists */
 		            /* Linear Search */
@@ -702,7 +702,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 			    
 				 /* create new node */
 				 region_node = E_NEW(E_Intl_Region_Node, 1);
-				 region_node->region_code = evas_stringshare_add(locale_parts->region);
+				 region_node->region_code = eina_stringshare_add(locale_parts->region);
 		       
 				 /* Get the region translation */
 				 /* Linear Search */
@@ -728,14 +728,14 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 			    
 				 cs_trans = _intl_charset_upper_get(locale_parts->codeset);
 				 if (cs_trans == NULL) 
-				   cs = evas_stringshare_add(locale_parts->codeset);
+				   cs = eina_stringshare_add(locale_parts->codeset);
 				 else 
-				   cs = evas_stringshare_add(cs_trans);
+				   cs = eina_stringshare_add(cs_trans);
 			    
 				 /* Exclusive */
 				 /* Linear Search */
-				 if (!evas_list_find(region_node->available_codesets, cs))
-				   region_node->available_codesets = evas_list_append(region_node->available_codesets, cs);
+				 if (!eina_list_data_find(region_node->available_codesets, cs))
+				   region_node->available_codesets = eina_list_append(region_node->available_codesets, cs);
 			      }
 
 			    /* Add modifier to the region hash node if it exists */
@@ -743,13 +743,13 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 			      {
 				 const char *mod;
 
-				 mod = evas_stringshare_add(locale_parts->modifier);
+				 mod = eina_stringshare_add(locale_parts->modifier);
 				 /* Find only works here because we are using stringshare*/
 			    
 				 /* Exclusive */
 				 /* Linear Search */
-				 if (!evas_list_find(region_node->available_modifiers, mod))
-				   region_node->available_modifiers = evas_list_append(region_node->available_modifiers, mod);
+				 if (!eina_list_data_find(region_node->available_modifiers, mod))
+				   region_node->available_modifiers = eina_list_append(region_node->available_modifiers, mod);
 			      }
 			 }
 		    }
@@ -758,14 +758,14 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 	  }
 	
 	/* Sort basic languages */	
-	cfdata->blang_list = evas_list_sort(cfdata->blang_list, 
-	      evas_list_count(cfdata->blang_list), 
+	cfdata->blang_list = eina_list_sort(cfdata->blang_list, 
+	      eina_list_count(cfdata->blang_list), 
 	      _basic_lang_list_sort);
 
         while (e_lang_list)
 	  {
 	     free(e_lang_list->data);
-	     e_lang_list = evas_list_remove_list(e_lang_list, e_lang_list);
+	     e_lang_list = eina_list_remove_list(e_lang_list, e_lang_list);
 	  }	     
 	pclose(output);
      }
@@ -801,20 +801,20 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    evas_hash_foreach(cfdata->locale_hash, _language_hash_free_cb, NULL);
    evas_hash_free(cfdata->locale_hash);
    
-   cfdata->lang_list = evas_list_free(cfdata->lang_list);
-   cfdata->region_list = evas_list_free(cfdata->region_list);
-   cfdata->blang_list = evas_list_free(cfdata->blang_list);
+   cfdata->lang_list = eina_list_free(cfdata->lang_list);
+   cfdata->region_list = eina_list_free(cfdata->region_list);
+   cfdata->blang_list = eina_list_free(cfdata->blang_list);
    
    E_FREE(cfdata);
 }
 
 static Evas_Bool 
-_language_hash_free_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata __UNUSED__)
+_language_hash_free_cb(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__)
 {
    E_Intl_Language_Node *node;
 
    node = data;   
-   if (node->lang_code) evas_stringshare_del(node->lang_code);
+   if (node->lang_code) eina_stringshare_del(node->lang_code);
    evas_hash_foreach(node->region_hash, _region_hash_free_cb, NULL);
    evas_hash_free(node->region_hash);
    free(node); 
@@ -823,20 +823,20 @@ _language_hash_free_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSE
 }
 
 static Evas_Bool 
-_region_hash_free_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata __UNUSED__)
+_region_hash_free_cb(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__)
 { 
    E_Intl_Region_Node *node;
 
    node = data;   
-   if (node->region_code) evas_stringshare_del(node->region_code);
+   if (node->region_code) eina_stringshare_del(node->region_code);
    while (node->available_codesets) 
      {
 	const char *str;
 
 	str = node->available_codesets->data;
-	if (str) evas_stringshare_del(str);
+	if (str) eina_stringshare_del(str);
 	node->available_codesets = 
-          evas_list_remove_list(node->available_codesets, node->available_codesets);
+          eina_list_remove_list(node->available_codesets, node->available_codesets);
      }
     
    while (node->available_modifiers) 
@@ -844,9 +844,9 @@ _region_hash_free_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED_
 	const char *str;
 
 	str = node->available_modifiers->data;
-	if (str) evas_stringshare_del(str);
+	if (str) eina_stringshare_del(str);
 	node->available_modifiers = 
-          evas_list_remove_list(node->available_modifiers, node->available_modifiers);
+          eina_list_remove_list(node->available_modifiers, node->available_modifiers);
      }
    
    free(node);  
@@ -858,8 +858,8 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {	 
    if (cfdata->cur_language)
      {
-	if (e_config->language) evas_stringshare_del(e_config->language);
-	e_config->language = evas_stringshare_add(cfdata->cur_language);
+	if (e_config->language) eina_stringshare_del(e_config->language);
+	e_config->language = eina_stringshare_add(cfdata->cur_language);
 	e_intl_language_set(e_config->language);
      }
    
@@ -872,8 +872,8 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {	 
    if (cfdata->cur_language)
      {	
-	if (e_config->language) evas_stringshare_del(e_config->language);
-	e_config->language = evas_stringshare_add(cfdata->cur_language);
+	if (e_config->language) eina_stringshare_del(e_config->language);
+	e_config->language = eina_stringshare_add(cfdata->cur_language);
 	e_intl_language_set(e_config->language);
      }
    
@@ -886,7 +886,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 {
    Evas_Object *o, *of, *ob;
    char *cur_sig_loc;
-   Evas_List *next;
+   Eina_List *next;
    int i = 0;
    
    cfdata->evas = evas;
@@ -981,7 +981,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    if (cfdata->lang_list) 
      {
 	cfdata->lang_list = 
-          evas_list_sort(cfdata->lang_list, evas_list_count(cfdata->lang_list), 
+          eina_list_sort(cfdata->lang_list, eina_list_count(cfdata->lang_list), 
                          _lang_list_sort);
 	_lang_list_load(cfdata);
      }
@@ -1038,17 +1038,17 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    cs = NULL;
    mod = NULL;
    
-   if (cfdata->cur_lang) lang = evas_stringshare_add(cfdata->cur_lang);
-   if (cfdata->cur_reg) reg = evas_stringshare_add(cfdata->cur_reg);
-   if (cfdata->cur_cs) cs = evas_stringshare_add(cfdata->cur_cs);
-   if (cfdata->cur_mod) mod = evas_stringshare_add(cfdata->cur_mod);
+   if (cfdata->cur_lang) lang = eina_stringshare_add(cfdata->cur_lang);
+   if (cfdata->cur_reg) reg = eina_stringshare_add(cfdata->cur_reg);
+   if (cfdata->cur_cs) cs = eina_stringshare_add(cfdata->cur_cs);
+   if (cfdata->cur_mod) mod = eina_stringshare_add(cfdata->cur_mod);
    
    _cfdata_language_go(lang, reg, cs, mod, cfdata);
    
-   if (lang) evas_stringshare_del(lang); 
-   if (reg) evas_stringshare_del(reg); 
-   if (cs) evas_stringshare_del(cs); 
-   if (mod) evas_stringshare_del(mod); 
+   if (lang) eina_stringshare_del(lang); 
+   if (reg) eina_stringshare_del(reg); 
+   if (cs) eina_stringshare_del(cs); 
+   if (mod) eina_stringshare_del(mod); 
    
    e_widget_on_change_hook_set(cfdata->gui.lang_list, _ilist_language_cb_change, cfdata);
    e_widget_on_change_hook_set(cfdata->gui.reg_list, _ilist_region_cb_change, cfdata); 
@@ -1172,12 +1172,12 @@ _cfdata_language_go(const char *lang, const char *region, const char *codeset, c
 	     if (lang_update)
 	       {
 		  e_widget_ilist_clear(cfdata->gui.reg_list);
-		  cfdata->region_list = evas_list_free(cfdata->region_list);
+		  cfdata->region_list = eina_list_free(cfdata->region_list);
 		  evas_hash_foreach(lang_node->region_hash, 
                                     _region_hash_cb, cfdata);
 		  cfdata->region_list = 
-                    evas_list_sort(cfdata->region_list, 
-                                   evas_list_count(cfdata->region_list), 
+                    eina_list_sort(cfdata->region_list, 
+                                   eina_list_count(cfdata->region_list), 
                                    _region_list_sort);
 		  _region_list_load(cfdata);
 	       }
@@ -1189,7 +1189,7 @@ _cfdata_language_go(const char *lang, const char *region, const char *codeset, c
 		  reg_node = evas_hash_find(lang_node->region_hash, region);
 		  if (reg_node)
 		    {
-		       Evas_List *next;
+		       Eina_List *next;
 		       
 		       for (next = reg_node->available_codesets; next; next = next->next) 
 			 {
@@ -1237,7 +1237,7 @@ _cfdata_language_go(const char *lang, const char *region, const char *codeset, c
 }
 
 static Evas_Bool
-_lang_hash_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata)
+_lang_hash_cb(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata)
 {
    E_Config_Dialog_Data *cfdata; 
    E_Intl_Language_Node *lang_node;
@@ -1245,12 +1245,12 @@ _lang_hash_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void
    cfdata = fdata;
    lang_node = data;
    
-   cfdata->lang_list = evas_list_append(cfdata->lang_list, lang_node);
+   cfdata->lang_list = eina_list_append(cfdata->lang_list, lang_node);
    return 1;
 }
 
 static Evas_Bool
-_region_hash_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, void *data, void *fdata)
+_region_hash_cb(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata)
 {
    E_Config_Dialog_Data *cfdata; 
    E_Intl_Region_Node *reg_node;
@@ -1258,7 +1258,7 @@ _region_hash_cb(const Evas_Hash *hash __UNUSED__, const char *key __UNUSED__, vo
    cfdata = fdata;
    reg_node = data;
 
-   cfdata->region_list = evas_list_append(cfdata->region_list, reg_node);
+   cfdata->region_list = eina_list_append(cfdata->region_list, reg_node);
    return 1;
 }
 
@@ -1305,9 +1305,9 @@ _intl_current_locale_setup(E_Config_Dialog_Data *cfdata)
 }
 
 static int 
-_lang_list_sort(void *data1, void *data2) 
+_lang_list_sort(const void *data1, const void *data2) 
 {
-   E_Intl_Language_Node *ln1, *ln2;
+   const E_Intl_Language_Node *ln1, *ln2;
    const char *trans1;
    const char *trans2;
    
@@ -1330,7 +1330,7 @@ static void
 _lang_list_load(void *data) 
 {
    E_Config_Dialog_Data *cfdata;
-   Evas_List *l;
+   Eina_List *l;
    
    if (!data) return;
 
@@ -1378,9 +1378,9 @@ _lang_list_load(void *data)
 }
 
 static int 
-_region_list_sort(void *data1, void *data2) 
+_region_list_sort(const void *data1, const void *data2) 
 {
-   E_Intl_Region_Node *rn1, *rn2;
+   const E_Intl_Region_Node *rn1, *rn2;
    const char *trans1;
    const char *trans2;
    
@@ -1403,7 +1403,7 @@ static void
 _region_list_load(void *data) 
 {
    E_Config_Dialog_Data *cfdata;
-   Evas_List *l;
+   Eina_List *l;
    
    if (!data) return;
 
@@ -1442,9 +1442,9 @@ _region_list_load(void *data)
 }
 
 static int 
-_basic_lang_list_sort(void *data1, void *data2) 
+_basic_lang_list_sort(const void *data1, const void *data2) 
 {
-   E_Intl_Pair *ln1, *ln2;
+   const E_Intl_Pair *ln1, *ln2;
    const char *trans1;
    const char *trans2;
    
