@@ -1,3 +1,3 @@
 e17: possible-gpl-code-linked-with-openssl
-e17: setuid-binary usr/lib/enlightenment/modules/cpufreq/linux-gnu-x86_64/freqset 4755 root/root
+e17: setuid-binary usr/lib/enlightenment/modules/cpufreq/ARCH_PATH/freqset 4755 root/root
 e17: setuid-binary usr/lib/enlightenment/enlightenment_sys 4755 root/root

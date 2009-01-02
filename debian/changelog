@@ -22,9 +22,11 @@ e17 (0.16.999.050+svn20081207-1) experimental; urgency=low
   * lintian fixes:
     - add ${misc:Depends} to dependencies
     - remove e17-data.lintian-overrides, no longer needed
-    - Add overrides about setuid root programs to e17.lintian-overrides
+    - Add overrides about setuid root programs to e17.lintian-overrides.in
+  * As there is an arch-dependant lintian override, use an overrides.in and
+    handle that in debian/rules.
 
- -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 27 Dec 2008 14:30:42 +0100
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Fri, 02 Jan 2009 18:46:31 +0100
 
 e17 (0.16.999.050-1) experimental; urgency=low
 
