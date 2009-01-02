@@ -1,0 +1,170 @@
+diff --git a/src/bin/e_fm_main.c b/src/bin/e_fm_main.c
+index a5facaa..cbc6f5c 100644
+--- a/src/bin/e_fm_main.c
++++ b/src/bin/e_fm_main.c
+@@ -40,10 +40,8 @@
+ 
+ #define E_TYPEDEFS
+ #include "e_fm_op.h"
+-#include "e_prefix.h"
+ #undef E_TYPEDEFS
+ #include "e_fm_op.h"
+-#include "e_prefix.h"
+ 
+ /* FIXME: things to add to the slave enlightenment_fm process and ipc to e:
+  * 
+@@ -252,17 +250,6 @@ main(int argc, char **argv)
+    ecore_file_init();
+    ecore_ipc_init();
+ 
+-   if (!e_prefix_determine(argv[0]))
+-     {
+-	fprintf(stderr,
+-		"ERROR: Enlightenment cannot determine its installed\n"
+-		"       prefix from the system or argv[0].\n"
+-		"       This is because it is not on Linux AND has been\n"
+-		"       Executed strangely. This is unusual.\n"
+-		);
+-	e_prefix_fallback();
+-     }
+-
+    ecore_event_handler_add(ECORE_EXE_EVENT_DATA, _e_fm_slave_data_cb, NULL);
+    ecore_event_handler_add(ECORE_EXE_EVENT_ERROR, _e_fm_slave_error_cb, NULL);
+    ecore_event_handler_add(ECORE_EXE_EVENT_DEL, _e_fm_slave_del_cb, NULL);
+@@ -304,8 +291,6 @@ main(int argc, char **argv)
+    e_dbus_shutdown();
+    _e_storage_volume_edd_shutdown();
+    
+-   e_prefix_shutdown();
+-
+    ecore_ipc_shutdown();
+    ecore_file_shutdown();
+    eina_stringshare_shutdown();
+@@ -2173,9 +2158,11 @@ _e_prepare_command(E_Fm_Op_Type type, const char *args)
+    else
+      strcpy(command, "cp");
+ 
+-   length = 256 + strlen(e_prefix_bin_get()) + strlen(args);
++   length = 256 + strlen(getenv("E_LIB_DIR")) + strlen(args);
+    buffer = malloc(length);
+-   length = snprintf(buffer, length, "%s/enlightenment/enlightenment_fm_op %s %s", e_prefix_lib_get(), command, args);
++   length = snprintf(buffer, length, 
++                     "%s/enlightenment/enlightenment_fm_op %s %s", 
++                     getenv("E_LIB_DIR"), command, args);
+ 
+    return buffer;
+ }
+diff --git a/src/bin/e_prefix.c b/src/bin/e_prefix.c
+index dac1b13..f007a6e 100644
+--- a/src/bin/e_prefix.c
++++ b/src/bin/e_prefix.c
+@@ -29,6 +29,7 @@ e_prefix_determine(char *argv0)
+ {
+    char *p, buf[4096];
+ 
++   printf("e_prefix_determine()\n");
+    e_prefix_shutdown();
+ 
+    /* if user provides E_PREFIX - then use that or also more specific sub
+@@ -37,28 +38,40 @@ e_prefix_determine(char *argv0)
+      {
+ 	_prefix_path = strdup(getenv("E_PREFIX"));
+ 	if (getenv("E_BIN_DIR"))
+-	  snprintf(buf, sizeof(buf), "%s/bin", getenv("E_BIN_DIR"));
++          _prefix_path_bin = strdup(getenv("E_BIN_DIR"));
+ 	else
+-	  snprintf(buf, sizeof(buf), "%s/bin", _prefix_path);
+-	_prefix_path_bin = strdup(buf);
++          {
++             snprintf(buf, sizeof(buf), "%s/bin", _prefix_path);
++             _prefix_path_bin = strdup(buf);
++             e_util_env_set("E_BIN_DIR", _prefix_path_bin);
++          }
+ 
+ 	if (getenv("E_LIB_DIR"))
+-	  snprintf(buf, sizeof(buf), "%s/lib", getenv("E_LIB_DIR"));
++          _prefix_path_lib = strdup(getenv("E_LIB_DIR"));
+ 	else
+-	  snprintf(buf, sizeof(buf), "%s/lib", _prefix_path);
+-	_prefix_path_lib = strdup(buf);
++          {
++             snprintf(buf, sizeof(buf), "%s/lib", _prefix_path);
++             _prefix_path_lib = strdup(buf);
++             e_util_env_set("E_LIB_DIR", _prefix_path_lib);
++          }
+ 	
+ 	if (getenv("E_DATA_DIR"))
+-	  snprintf(buf, sizeof(buf), "%s/"SHARE_D, getenv("E_DATA_DIR"));
++          _prefix_path_data = strdup(getenv("E_DATA_DIR"));
+ 	else
+-	  snprintf(buf, sizeof(buf), "%s/"SHARE_D, _prefix_path);
+-	_prefix_path_data = strdup(buf);
++          {
++             snprintf(buf, sizeof(buf), "%s/"SHARE_D, _prefix_path);
++             _prefix_path_data = strdup(buf);
++             e_util_env_set("E_DATA_DIR", _prefix_path_data);
++          }
+ 	
+ 	if (getenv("E_LOCALE_DIR"))
+-	  snprintf(buf, sizeof(buf), "%s/"LOCALE_D, getenv("E_LOCALE_DIR"));
++          _prefix_path_locale = strdup(getenv("E_LOCALE_DIR"));
+ 	else
+-	  snprintf(buf, sizeof(buf), "%s/"LOCALE_D, _prefix_path);
+-	_prefix_path_locale = strdup(buf);
++          {
++             snprintf(buf, sizeof(buf), "%s/"LOCALE_D, _prefix_path);
++             _prefix_path_locale = strdup(buf);
++             e_util_env_set("E_LOCALE_DIR", _prefix_path_locale);
++          }
+ 	return 1;
+      }
+    /* no env var - examine process and possible argv0 */
+@@ -67,6 +80,10 @@ e_prefix_determine(char *argv0)
+ 	if (!_e_prefix_try_argv(argv0))
+ 	  {
+ 	     e_prefix_fallback();
++             e_util_env_set("E_PREFIX", _prefix_path);
++             e_util_env_set("E_BIN_DIR", _prefix_path_bin);
++             e_util_env_set("E_LIB_DIR", _prefix_path_lib);
++             e_util_env_set("E_DATA_DIR", _prefix_path_data);
+ 	     return 0;
+ 	  }
+      }
+@@ -121,14 +138,26 @@ e_prefix_determine(char *argv0)
+ 			    else
+ 			      {
+ 				 e_prefix_fallback();
++                                 e_util_env_set("E_PREFIX", _prefix_path);
++                                 e_util_env_set("E_BIN_DIR", _prefix_path_bin);
++                                 e_util_env_set("E_LIB_DIR", _prefix_path_lib);
++                                 e_util_env_set("E_DATA_DIR", _prefix_path_data);
+ 				 return 0;
+ 			      }
+ 			 }
++                       e_util_env_set("E_PREFIX", _prefix_path);
++                       e_util_env_set("E_BIN_DIR", _prefix_path_bin);
++                       e_util_env_set("E_LIB_DIR", _prefix_path_lib);
++                       e_util_env_set("E_DATA_DIR", _prefix_path_data);
+ 		       return 1;
+ 		    }
+ 		  else
+ 		    {
+ 		       e_prefix_fallback();
++                       e_util_env_set("E_PREFIX", _prefix_path);
++                       e_util_env_set("E_BIN_DIR", _prefix_path_bin);
++                       e_util_env_set("E_LIB_DIR", _prefix_path_lib);
++                       e_util_env_set("E_DATA_DIR", _prefix_path_data);
+ 		       return 0;
+ 		    }
+ 	       }
+@@ -136,6 +165,10 @@ e_prefix_determine(char *argv0)
+ 	  }
+      }
+    e_prefix_fallback();
++   e_util_env_set("E_PREFIX", _prefix_path);
++   e_util_env_set("E_BIN_DIR", _prefix_path_bin);
++   e_util_env_set("E_LIB_DIR", _prefix_path_lib);
++   e_util_env_set("E_DATA_DIR", _prefix_path_data);
+    return 0;
+ }
+ 

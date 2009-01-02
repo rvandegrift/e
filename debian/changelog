@@ -14,6 +14,9 @@ e17 (0.16.999.050+svn20081207-1) experimental; urgency=low
     - Add buttons for halt/shutdown/etc to the syscon module for the default
       profile. Without that, users upgrading from older versions would have an
       empty 'system' menu
+  * debian/patches/{03_fix_src-bin-makefile,04_fix_e_fm_main_svn38418}.diff:
+    - Cherry-pick patches from SVN to fix the file manager operations when it
+     is installed in /usr/lib/enlightenment
   * debian/patches/01_install_internal-use_binaries_in_usr_lib_enlightenment.diff:
     - update, as a new binary going in /usr/lib/enlightenment was introduced
   * lintian fixes:
