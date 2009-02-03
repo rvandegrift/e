@@ -1,6 +1,13 @@
 e17 (0.16.999.050+svn20081207-3) UNRELEASED; urgency=low
 
+  [Albin Tonnerre]
   * debian/e17.install: Add missing illume dicts and keyboards
+
+  [Luca Capello]
+  * debian/e17-data.install:
+    - do not install documentation duplicates (Closes: #513850)
+  * debian/e17.lintian-overrides.in:
+    - Add override for 'image-file-in-usr-lib' for illume keyboard images
 
  -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 01 Feb 2009 00:22:52 +0100
 
