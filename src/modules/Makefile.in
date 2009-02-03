@@ -31,16 +31,74 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-@HAVE_TEMPERATURE_TRUE@am__append_1 = temperature
+@USE_MODULE_IBAR_TRUE@am__append_1 = ibar
+@USE_MODULE_DROPSHADOW_TRUE@am__append_2 = dropshadow
+@USE_MODULE_CLOCK_TRUE@am__append_3 = clock
+@USE_MODULE_PAGER_TRUE@am__append_4 = pager
+@USE_MODULE_BATTERY_TRUE@am__append_5 = battery
+@USE_MODULE_TEMPERATURE_TRUE@am__append_6 = temperature
+@USE_MODULE_CPUFREQ_TRUE@am__append_7 = cpufreq
+@USE_MODULE_IBOX_TRUE@am__append_8 = ibox
+@USE_MODULE_START_TRUE@am__append_9 = start
+@USE_MODULE_EXEBUF_TRUE@am__append_10 = exebuf
+@USE_MODULE_WINLIST_TRUE@am__append_11 = winlist
+@USE_MODULE_FILEMAN_TRUE@am__append_12 = fileman
+@USE_MODULE_WIZARD_TRUE@am__append_13 = wizard
+@USE_MODULE_CONF_TRUE@am__append_14 = conf
+@USE_MODULE_CONF_WALLPAPER_TRUE@am__append_15 = conf_wallpaper
+@USE_MODULE_CONF_THEME_TRUE@am__append_16 = conf_theme
+@USE_MODULE_CONF_COLORS_TRUE@am__append_17 = conf_colors
+@USE_MODULE_CONF_FONTS_TRUE@am__append_18 = conf_fonts
+@USE_MODULE_CONF_BORDERS_TRUE@am__append_19 = conf_borders
+@USE_MODULE_CONF_ICON_THEME_TRUE@am__append_20 = conf_icon_theme
+@USE_MODULE_CONF_MOUSE_CURSOR_TRUE@am__append_21 = conf_mouse_cursor
+@USE_MODULE_CONF_TRANSITIONS_TRUE@am__append_22 = conf_transitions
+@USE_MODULE_CONF_STARTUP_TRUE@am__append_23 = conf_startup
+@USE_MODULE_CONF_INTL_TRUE@am__append_24 = conf_intl
+@USE_MODULE_CONF_IMC_TRUE@am__append_25 = conf_imc
+@USE_MODULE_CONF_PROFILES_TRUE@am__append_26 = conf_profiles
+@USE_MODULE_MSGBUS_LANG_TRUE@am__append_27 = msgbus_lang
+@USE_MODULE_CONF_ENGINE_TRUE@am__append_28 = conf_engine
+@USE_MODULE_CONF_APPLICATIONS_TRUE@am__append_29 = conf_applications
+@USE_MODULE_CONF_DESKS_TRUE@am__append_30 = conf_desks
+@USE_MODULE_CONF_DESK_TRUE@am__append_31 = conf_desk
+@USE_MODULE_CONF_DISPLAY_TRUE@am__append_32 = conf_display
+@USE_MODULE_CONF_DESKLOCK_TRUE@am__append_33 = conf_desklock
+@USE_MODULE_CONF_SCREENSAVER_TRUE@am__append_34 = conf_screensaver
+@USE_MODULE_CONF_DPMS_TRUE@am__append_35 = conf_dpms
+@USE_MODULE_CONF_SHELVES_TRUE@am__append_36 = conf_shelves
+@USE_MODULE_CONF_KEYBINDINGS_TRUE@am__append_37 = conf_keybindings
+@USE_MODULE_CONF_MOUSEBINDINGS_TRUE@am__append_38 = conf_mousebindings
+@USE_MODULE_CONF_MOUSE_TRUE@am__append_39 = conf_mouse
+@USE_MODULE_CONF_WINDOW_DISPLAY_TRUE@am__append_40 = conf_window_display
+@USE_MODULE_CONF_WINDOW_FOCUS_TRUE@am__append_41 = conf_window_focus
+@USE_MODULE_CONF_WINDOW_REMEMBERS_TRUE@am__append_42 = conf_window_remembers
+@USE_MODULE_CONF_WINDOW_MANIPULATION_TRUE@am__append_43 = conf_window_manipulation
+@USE_MODULE_CONF_MENUS_TRUE@am__append_44 = conf_menus
+@USE_MODULE_CONF_CLIENTLIST_TRUE@am__append_45 = conf_clientlist
+@USE_MODULE_CONF_DIALOGS_TRUE@am__append_46 = conf_dialogs
+@USE_MODULE_CONF_PERFORMANCE_TRUE@am__append_47 = conf_performance
+@USE_MODULE_CONF_WINLIST_TRUE@am__append_48 = conf_winlist
+@USE_MODULE_CONF_EXEBUF_TRUE@am__append_49 = conf_exebuf
+@USE_MODULE_CONF_PATHS_TRUE@am__append_50 = conf_paths
+@USE_MODULE_CONF_MIME_TRUE@am__append_51 = conf_mime
+@USE_MODULE_CONF_INTERACTION_TRUE@am__append_52 = conf_interaction
+@USE_MODULE_CONF_SCALE_TRUE@am__append_53 = conf_scale
+@USE_MODULE_GADMAN_TRUE@am__append_54 = gadman
+@USE_MODULE_MIXER_TRUE@am__append_55 = mixer
+@USE_MODULE_CONNMAN_TRUE@am__append_56 = connman
+@USE_MODULE_ILLUME_TRUE@am__append_57 = illume
+@USE_MODULE_SYSCON_TRUE@am__append_58 = syscon
 subdir = src/modules
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/ac_attribute.m4 \
-	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/iconv.m4 \
-	$(top_srcdir)/m4/isc-posix.m4 $(top_srcdir)/m4/lib-ld.m4 \
-	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
-	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
-	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
+	$(top_srcdir)/m4/ac_attribute.m4 $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
+	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
+	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/nls.m4 \
+	$(top_srcdir)/m4/po.m4 $(top_srcdir)/m4/progtest.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -59,25 +117,13 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
-	exebuf winlist fileman wizard conf conf_wallpaper conf_theme \
-	conf_colors conf_fonts conf_borders conf_icon_theme \
-	conf_mouse_cursor conf_transitions conf_startup conf_intl \
-	conf_imc msgbus_lang conf_profiles conf_engine \
-	conf_applications conf_desks conf_desk conf_display \
-	conf_desklock conf_screensaver conf_dpms conf_shelves \
-	conf_keybindings conf_mousebindings conf_mouse \
-	conf_window_display conf_window_focus conf_window_manipulation \
-	conf_menus conf_clientlist conf_dialogs conf_performance \
-	conf_winlist conf_exebuf conf_paths conf_mime conf_interaction \
-	gadman mixer conf_window_remembers conf_scale connman illume \
-	syscon temperature
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALL_LINGUAS = @ALL_LINGUAS@
 ALSA_CFLAGS = @ALSA_CFLAGS@
 ALSA_LIBS = @ALSA_LIBS@
+ALSA_VERSION = @ALSA_VERSION@
 AMTAR = @AMTAR@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
@@ -86,15 +132,12 @@ AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BATTERY_CFLAGS = @BATTERY_CFLAGS@
 BATTERY_LIBS = @BATTERY_LIBS@
+BATTERY_VERSION = @BATTERY_VERSION@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
-CXX = @CXX@
-CXXCPP = @CXXCPP@
-CXXDEPMODE = @CXXDEPMODE@
-CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
@@ -105,19 +148,44 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 ECORE_IMF_CFLAGS = @ECORE_IMF_CFLAGS@
 ECORE_IMF_LIBS = @ECORE_IMF_LIBS@
+ECORE_IMF_VERSION = @ECORE_IMF_VERSION@
 ECORE_TXT_CFLAGS = @ECORE_TXT_CFLAGS@
 ECORE_TXT_LIBS = @ECORE_TXT_LIBS@
+ECORE_TXT_VERSION = @ECORE_TXT_VERSION@
 EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
 EGREP = @EGREP@
+EXCHANGE_CFLAGS = @EXCHANGE_CFLAGS@
+EXCHANGE_LIBS = @EXCHANGE_LIBS@
+EXCHANGE_VERSION = @EXCHANGE_VERSION@
 EXEEXT = @EXEEXT@
 E_CFLAGS = @E_CFLAGS@
+E_FM_CFLAGS = @E_FM_CFLAGS@
+E_FM_LIBS = @E_FM_LIBS@
+E_FM_OPEN_CFLAGS = @E_FM_OPEN_CFLAGS@
+E_FM_OPEN_LIBS = @E_FM_OPEN_LIBS@
+E_FM_OP_CFLAGS = @E_FM_OP_CFLAGS@
+E_FM_OP_LIBS = @E_FM_OP_LIBS@
+E_IMC_CFLAGS = @E_IMC_CFLAGS@
+E_IMC_LIBS = @E_IMC_LIBS@
+E_INIT_CFLAGS = @E_INIT_CFLAGS@
+E_INIT_LIBS = @E_INIT_LIBS@
 E_LIBS = @E_LIBS@
-F77 = @F77@
-FFLAGS = @FFLAGS@
+E_REMOTE_CFLAGS = @E_REMOTE_CFLAGS@
+E_REMOTE_LIBS = @E_REMOTE_LIBS@
+E_SYS_CFLAGS = @E_SYS_CFLAGS@
+E_SYS_LIBS = @E_SYS_LIBS@
+E_THUMB_CFLAGS = @E_THUMB_CFLAGS@
+E_THUMB_LIBS = @E_THUMB_LIBS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_ALSA = @HAVE_ALSA@
+HAVE_BATTERY = @HAVE_BATTERY@
+HAVE_ECORE_IMF = @HAVE_ECORE_IMF@
+HAVE_ECORE_TXT = @HAVE_ECORE_TXT@
+HAVE_EXCHANGE = @HAVE_EXCHANGE@
+HAVE_TEMPERATURE = @HAVE_TEMPERATURE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -161,10 +229,69 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
-SOUND_LDFLAGS = @SOUND_LDFLAGS@
+SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
+TEMPERATURE_VERSION = @TEMPERATURE_VERSION@
+USE_MODULE_BATTERY = @USE_MODULE_BATTERY@
+USE_MODULE_CLOCK = @USE_MODULE_CLOCK@
+USE_MODULE_CONF = @USE_MODULE_CONF@
+USE_MODULE_CONF_APPLICATIONS = @USE_MODULE_CONF_APPLICATIONS@
+USE_MODULE_CONF_BORDERS = @USE_MODULE_CONF_BORDERS@
+USE_MODULE_CONF_CLIENTLIST = @USE_MODULE_CONF_CLIENTLIST@
+USE_MODULE_CONF_COLORS = @USE_MODULE_CONF_COLORS@
+USE_MODULE_CONF_DESK = @USE_MODULE_CONF_DESK@
+USE_MODULE_CONF_DESKLOCK = @USE_MODULE_CONF_DESKLOCK@
+USE_MODULE_CONF_DESKS = @USE_MODULE_CONF_DESKS@
+USE_MODULE_CONF_DIALOGS = @USE_MODULE_CONF_DIALOGS@
+USE_MODULE_CONF_DISPLAY = @USE_MODULE_CONF_DISPLAY@
+USE_MODULE_CONF_DPMS = @USE_MODULE_CONF_DPMS@
+USE_MODULE_CONF_ENGINE = @USE_MODULE_CONF_ENGINE@
+USE_MODULE_CONF_EXEBUF = @USE_MODULE_CONF_EXEBUF@
+USE_MODULE_CONF_FONTS = @USE_MODULE_CONF_FONTS@
+USE_MODULE_CONF_ICON_THEME = @USE_MODULE_CONF_ICON_THEME@
+USE_MODULE_CONF_IMC = @USE_MODULE_CONF_IMC@
+USE_MODULE_CONF_INTERACTION = @USE_MODULE_CONF_INTERACTION@
+USE_MODULE_CONF_INTL = @USE_MODULE_CONF_INTL@
+USE_MODULE_CONF_KEYBINDINGS = @USE_MODULE_CONF_KEYBINDINGS@
+USE_MODULE_CONF_MENUS = @USE_MODULE_CONF_MENUS@
+USE_MODULE_CONF_MIME = @USE_MODULE_CONF_MIME@
+USE_MODULE_CONF_MOUSE = @USE_MODULE_CONF_MOUSE@
+USE_MODULE_CONF_MOUSEBINDINGS = @USE_MODULE_CONF_MOUSEBINDINGS@
+USE_MODULE_CONF_MOUSE_CURSOR = @USE_MODULE_CONF_MOUSE_CURSOR@
+USE_MODULE_CONF_PATHS = @USE_MODULE_CONF_PATHS@
+USE_MODULE_CONF_PERFORMANCE = @USE_MODULE_CONF_PERFORMANCE@
+USE_MODULE_CONF_PROFILES = @USE_MODULE_CONF_PROFILES@
+USE_MODULE_CONF_SCALE = @USE_MODULE_CONF_SCALE@
+USE_MODULE_CONF_SCREENSAVER = @USE_MODULE_CONF_SCREENSAVER@
+USE_MODULE_CONF_SHELVES = @USE_MODULE_CONF_SHELVES@
+USE_MODULE_CONF_STARTUP = @USE_MODULE_CONF_STARTUP@
+USE_MODULE_CONF_THEME = @USE_MODULE_CONF_THEME@
+USE_MODULE_CONF_TRANSITIONS = @USE_MODULE_CONF_TRANSITIONS@
+USE_MODULE_CONF_WALLPAPER = @USE_MODULE_CONF_WALLPAPER@
+USE_MODULE_CONF_WINDOW_DISPLAY = @USE_MODULE_CONF_WINDOW_DISPLAY@
+USE_MODULE_CONF_WINDOW_FOCUS = @USE_MODULE_CONF_WINDOW_FOCUS@
+USE_MODULE_CONF_WINDOW_MANIPULATION = @USE_MODULE_CONF_WINDOW_MANIPULATION@
+USE_MODULE_CONF_WINDOW_REMEMBERS = @USE_MODULE_CONF_WINDOW_REMEMBERS@
+USE_MODULE_CONF_WINLIST = @USE_MODULE_CONF_WINLIST@
+USE_MODULE_CONNMAN = @USE_MODULE_CONNMAN@
+USE_MODULE_CPUFREQ = @USE_MODULE_CPUFREQ@
+USE_MODULE_DROPSHADOW = @USE_MODULE_DROPSHADOW@
+USE_MODULE_EXEBUF = @USE_MODULE_EXEBUF@
+USE_MODULE_FILEMAN = @USE_MODULE_FILEMAN@
+USE_MODULE_GADMAN = @USE_MODULE_GADMAN@
+USE_MODULE_IBAR = @USE_MODULE_IBAR@
+USE_MODULE_IBOX = @USE_MODULE_IBOX@
+USE_MODULE_ILLUME = @USE_MODULE_ILLUME@
+USE_MODULE_MIXER = @USE_MODULE_MIXER@
+USE_MODULE_MSGBUS_LANG = @USE_MODULE_MSGBUS_LANG@
+USE_MODULE_PAGER = @USE_MODULE_PAGER@
+USE_MODULE_START = @USE_MODULE_START@
+USE_MODULE_SYSCON = @USE_MODULE_SYSCON@
+USE_MODULE_TEMPERATURE = @USE_MODULE_TEMPERATURE@
+USE_MODULE_WINLIST = @USE_MODULE_WINLIST@
+USE_MODULE_WIZARD = @USE_MODULE_WIZARD@
 USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
@@ -180,8 +307,6 @@ abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
-ac_ct_CXX = @ac_ct_CXX@
-ac_ct_F77 = @ac_ct_F77@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -239,19 +364,86 @@ top_srcdir = @top_srcdir@
 x_cflags = @x_cflags@
 x_libs = @x_libs@
 MAINTAINERCLEANFILES = Makefile.in
-SUBDIRS = ibar dropshadow clock pager battery cpufreq ibox start \
-	exebuf winlist fileman wizard conf conf_wallpaper conf_theme \
-	conf_colors conf_fonts conf_borders conf_icon_theme \
-	conf_mouse_cursor conf_transitions conf_startup conf_intl \
-	conf_imc msgbus_lang conf_profiles conf_engine \
-	conf_applications conf_desks conf_desk conf_display \
-	conf_desklock conf_screensaver conf_dpms conf_shelves \
-	conf_keybindings conf_mousebindings conf_mouse \
-	conf_window_display conf_window_focus conf_window_manipulation \
-	conf_menus conf_clientlist conf_dialogs conf_performance \
-	conf_winlist conf_exebuf conf_paths conf_mime conf_interaction \
-	gadman mixer conf_window_remembers conf_scale connman illume \
-	syscon $(am__append_1)
+SUBDIRS = $(am__append_1) $(am__append_2) $(am__append_3) \
+	$(am__append_4) $(am__append_5) $(am__append_6) \
+	$(am__append_7) $(am__append_8) $(am__append_9) \
+	$(am__append_10) $(am__append_11) $(am__append_12) \
+	$(am__append_13) $(am__append_14) $(am__append_15) \
+	$(am__append_16) $(am__append_17) $(am__append_18) \
+	$(am__append_19) $(am__append_20) $(am__append_21) \
+	$(am__append_22) $(am__append_23) $(am__append_24) \
+	$(am__append_25) $(am__append_26) $(am__append_27) \
+	$(am__append_28) $(am__append_29) $(am__append_30) \
+	$(am__append_31) $(am__append_32) $(am__append_33) \
+	$(am__append_34) $(am__append_35) $(am__append_36) \
+	$(am__append_37) $(am__append_38) $(am__append_39) \
+	$(am__append_40) $(am__append_41) $(am__append_42) \
+	$(am__append_43) $(am__append_44) $(am__append_45) \
+	$(am__append_46) $(am__append_47) $(am__append_48) \
+	$(am__append_49) $(am__append_50) $(am__append_51) \
+	$(am__append_52) $(am__append_53) $(am__append_54) \
+	$(am__append_55) $(am__append_56) $(am__append_57) \
+	$(am__append_58)
+DIST_SUBDIRS = \
+ibar \
+dropshadow \
+clock \
+pager \
+battery \
+temperature \
+cpufreq \
+ibox \
+start \
+exebuf \
+winlist \
+fileman \
+wizard \
+conf \
+conf_wallpaper \
+conf_theme \
+conf_colors \
+conf_fonts \
+conf_borders \
+conf_icon_theme \
+conf_mouse_cursor \
+conf_transitions \
+conf_startup \
+conf_intl \
+conf_imc \
+conf_profiles \
+msgbus_lang \
+conf_engine \
+conf_applications \
+conf_desks \
+conf_desk \
+conf_display \
+conf_desklock \
+conf_screensaver \
+conf_dpms \
+conf_shelves \
+conf_keybindings \
+conf_mousebindings \
+conf_mouse \
+conf_window_display \
+conf_window_focus \
+conf_window_remembers \
+conf_window_manipulation \
+conf_menus \
+conf_clientlist \
+conf_dialogs \
+conf_performance \
+conf_winlist \
+conf_exebuf \
+conf_paths \
+conf_mime \
+conf_interaction \
+conf_scale \
+gadman \
+mixer \
+connman \
+illume \
+syscon
+
 all: all-recursive
 
 .SUFFIXES:

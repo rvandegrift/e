@@ -2026,6 +2026,30 @@ ACT_FN_GO(desk_lock)
 }
 
 /***************************************************************************/
+ACT_FN_GO(shelf_show)
+{
+   Eina_List *l;
+   E_Shelf *es;
+
+   if (params)
+     {
+	for (; *params != '\0'; params++)
+	  if (!isspace(*params))
+	    break;
+	if (*params == '\0')
+	  params = NULL;
+     }
+
+   EINA_LIST_FOREACH(e_shelf_list(), l, es)
+     {
+	if ((!params) || (params && (fnmatch(params, es->name, 0) == 0)))
+	  {
+	     e_shelf_toggle(es, 1);
+	     e_shelf_toggle(es, 0);
+	  }
+     }
+}
+/***************************************************************************/
 
 typedef struct _Delayed_Action     Delayed_Action;
 
@@ -2256,7 +2280,7 @@ ACT_FN_END_MOUSE(delayed_action)
 }
 
 /* local subsystem globals */
-static Evas_Hash *actions = NULL;
+static Eina_Hash *actions = NULL;
 static Eina_List *action_list = NULL;
 static Eina_List *action_names = NULL;
 static Eina_List *action_groups = NULL;
@@ -2268,8 +2292,9 @@ e_actions_init(void)
 {
    E_Action *act;
 
+   actions = eina_hash_string_superfast_new(NULL);
    ACT_GO(window_move);
-   e_action_predef_name_set(_("Window : Actions"), _("Move"), 
+   e_action_predef_name_set(_("Window : Actions"), _("Move"),
 			    "window_move", NULL, NULL, 0);
 
    ACT_GO_MOUSE(window_move);
@@ -2402,7 +2427,12 @@ e_actions_init(void)
    ACT_GO(desk_deskshow_toggle);
    e_action_predef_name_set(_("Desktop"), _("Show The Desktop"), 
 			    "desk_deskshow_toggle", NULL, NULL, 0);
-   
+
+   /* shelf_show */
+   ACT_GO(shelf_show);
+   e_action_predef_name_set(_("Desktop"), _("Show The Shelf"), "shelf_show",
+			    NULL, "shelf name glob: Shelf-* ", 1);
+
    /* desk_linear_flip_to */
    ACT_GO(desk_flip_to);
    e_action_predef_name_set(_("Desktop"), _("Flip Desktop To..."), 
@@ -2582,7 +2612,7 @@ e_actions_init(void)
 
    /* exec */
    ACT_GO(exec);
-   e_action_predef_name_set(_("Launch"), _("Defined Command"), "exec", NULL,
+   e_action_predef_name_set(_("Launch"), _("Command"), "exec", NULL,
 			    "syntax: CommandName, example: /usr/bin/xmms", 1);
 
    /* app */
@@ -2598,20 +2628,20 @@ e_actions_init(void)
    e_action_predef_name_set(_("Enlightenment"), _("Exit"), "exit", 
 			    NULL, NULL, 0);
 
-   ACT_GO(logout);
-   e_action_predef_name_set(_("Enlightenment"), _("Log Out"), "logout", 
-			    NULL, NULL, 0);
-
    ACT_GO(exit_now);
-   e_action_predef_name_set(_("Enlightenment"), _("Exit Immediately"), 
+   e_action_predef_name_set(_("Enlightenment"), _("Exit Now"), 
 			    "exit_now", NULL, NULL, 0);
 
+   ACT_GO(logout);
+   e_action_predef_name_set(_("System"), _("Log Out"), "logout", 
+			    NULL, NULL, 0);
+
    ACT_GO(halt_now);
-   e_action_predef_name_set(_("Enlightenment"), _("Shut Down Immediately"), 
+   e_action_predef_name_set(_("System"), _("Power Off Now"),
 			    "halt_now", NULL, NULL, 0);
 
    ACT_GO(halt);
-   e_action_predef_name_set(_("System"), _("Shut Down"), "halt", 
+   e_action_predef_name_set(_("System"), _("Power Off"), "halt", 
 			    NULL, NULL, 0);
 
    ACT_GO(reboot);
@@ -2623,7 +2653,7 @@ e_actions_init(void)
 			    NULL, NULL, 0);
 
    ACT_GO(hibernate);
-   e_action_predef_name_set(_("System"), _("Suspend to Disk"), "hibernate", 
+   e_action_predef_name_set(_("System"), _("Hibernate"), "hibernate", 
 			    NULL, NULL, 0);
    
    ACT_GO(pointer_resize_push);
@@ -2631,7 +2661,7 @@ e_actions_init(void)
    
    /* desk_lock */
    ACT_GO(desk_lock);
-   e_action_predef_name_set(_("Desktop"), _("Desktop Lock"), "desk_lock", 
+   e_action_predef_name_set(_("Desktop"), _("Lock"), "desk_lock", 
 			    NULL, NULL, 0);
 
    /* cleanup_windows */
@@ -2654,11 +2684,13 @@ EAPI int
 e_actions_shutdown(void)
 {
    e_action_predef_name_all_del();
-   action_names = eina_list_free(action_names);
-   evas_hash_free(actions);
-   actions = NULL;
 
    E_FREE_LIST(action_list, e_object_del);
+
+   action_names = eina_list_free(action_names);
+   eina_hash_free(actions);
+   actions = NULL;
+
    return 1;
 }
 
@@ -2672,14 +2704,14 @@ EAPI E_Action *
 e_action_add(const char *name)
 {
    E_Action *act;
-   
+
    act = e_action_find(name);
    if (!act)
      {
 	act = E_OBJECT_ALLOC(E_Action, E_ACTION_TYPE, _e_action_free);
 	if (!act) return NULL;
 	act->name = name;
-	actions = evas_hash_direct_add(actions, act->name, act);
+	eina_hash_direct_add(actions, act->name, act);
 	action_names = eina_list_append(action_names, name);
 	action_list = eina_list_append(action_list, act);
      }
@@ -2691,7 +2723,7 @@ e_action_del(const char *name)
 {
    E_Action *act;
 
-   act = evas_hash_find(actions, name);
+   act = eina_hash_find(actions, name);
    if (act)
      _e_action_free(act);
 }
@@ -2700,8 +2732,7 @@ EAPI E_Action *
 e_action_find(const char *name)
 {
    E_Action *act;
-   
-   act = evas_hash_find(actions, name);
+   act = eina_hash_find(actions, name);
    return act;
 }
 
@@ -2720,11 +2751,12 @@ e_action_predef_label_get(const char *action, const char *params)
              actd = l2->data;
              if (!strcmp(actd->act_cmd, action))
                {
-                  if ((params) && (actd->act_params) &&
-                      (!strcmp(params, actd->act_params)))
+                  if ((params) && (actd->act_params))
                     {
-                       return actd->act_name;
+                       if (!strcmp(params, actd->act_params))
+                         return actd->act_name;
                     }
+                  else return actd->act_name;
                }
           }
      }
@@ -2870,7 +2902,7 @@ e_action_groups_get(void)
 static void
 _e_action_free(E_Action *act)
 {
-   actions = evas_hash_del(actions, act->name, act);
+   eina_hash_del(actions, act->name, act);
    action_names = eina_list_remove(action_names, act->name);
    action_list = eina_list_remove(action_list, act);
    free(act);
