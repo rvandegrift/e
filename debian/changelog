@@ -1,7 +1,14 @@
-e17 (0.16.999.050+svn20081207-3) UNRELEASED; urgency=low
+e17 (0.16.999.050+svn20090203-1) experimental; urgency=low
 
   [Albin Tonnerre]
-  * debian/e17.install: Add missing illume dicts and keyboards
+  * New SVN snapshot
+    - Remove some patches, applied upstream:
+      + 01_install_internal-use_binaries_in_usr_lib_enlightenment.diff
+      + 03_fix_src-bin-makefile.diff
+      + 04_fix_e_fm_main_svn38418.diff
+    - control: tighten builddeps and depends of efl-dev
+    - e17.install: install binaries located in usr/lib/enlightenment/utils
+  * e17.install: Add missing illume dicts and keyboards (Closes: #513854)
 
   [Luca Capello]
   * debian/e17-data.install:
@@ -9,7 +16,7 @@ e17 (0.16.999.050+svn20081207-3) UNRELEASED; urgency=low
   * debian/e17.lintian-overrides.in:
     - Add override for 'image-file-in-usr-lib' for illume keyboard images
 
- -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 01 Feb 2009 00:22:52 +0100
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 07 Feb 2009 10:29:53 +0100
 
 e17 (0.16.999.050+svn20081207-2) experimental; urgency=low
 
