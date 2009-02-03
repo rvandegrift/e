@@ -28,6 +28,9 @@
 /* Define if the ALSA output plugin should be built */
 #undef HAVE_ALSA
 
+/* Package BATTERY (ecore ecore-file ecore-con) found. */
+#undef HAVE_BATTERY
+
 /* Define to 1 if you have the <CFBase.h> header file. */
 #undef HAVE_CFBASE_H
 
@@ -38,8 +41,14 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Ecore IMF support */
+/* Package ECORE_IMF (ecore-imf ecore-imf-evas) found. */
 #undef HAVE_ECORE_IMF
+
+/* Package ECORE_TXT (ecore-txt) found. */
+#undef HAVE_ECORE_TXT
+
+/* Package EXCHANGE (exchange) found. */
+#undef HAVE_EXCHANGE
 
 /* Define to 1 if you have the `fnmatch' function. */
 #undef HAVE_FNMATCH
@@ -86,6 +95,9 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Package TEMPERATURE (ecore ecore-file) found. */
+#undef HAVE_TEMPERATURE
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
@@ -130,6 +142,180 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Use module battery */
+#undef USE_MODULE_BATTERY
+
+/* Use module clock */
+#undef USE_MODULE_CLOCK
+
+/* Use module conf */
+#undef USE_MODULE_CONF
+
+/* Use module conf-applications */
+#undef USE_MODULE_CONF_APPLICATIONS
+
+/* Use module conf-borders */
+#undef USE_MODULE_CONF_BORDERS
+
+/* Use module conf-clientlist */
+#undef USE_MODULE_CONF_CLIENTLIST
+
+/* Use module conf-colors */
+#undef USE_MODULE_CONF_COLORS
+
+/* Use module conf-desk */
+#undef USE_MODULE_CONF_DESK
+
+/* Use module conf-desklock */
+#undef USE_MODULE_CONF_DESKLOCK
+
+/* Use module conf-desks */
+#undef USE_MODULE_CONF_DESKS
+
+/* Use module conf-dialogs */
+#undef USE_MODULE_CONF_DIALOGS
+
+/* Use module conf-display */
+#undef USE_MODULE_CONF_DISPLAY
+
+/* Use module conf-dpms */
+#undef USE_MODULE_CONF_DPMS
+
+/* Use module conf-engine */
+#undef USE_MODULE_CONF_ENGINE
+
+/* Use module conf-exebuf */
+#undef USE_MODULE_CONF_EXEBUF
+
+/* Use module conf-fonts */
+#undef USE_MODULE_CONF_FONTS
+
+/* Use module conf-icon-theme */
+#undef USE_MODULE_CONF_ICON_THEME
+
+/* Use module conf-imc */
+#undef USE_MODULE_CONF_IMC
+
+/* Use module conf-interaction */
+#undef USE_MODULE_CONF_INTERACTION
+
+/* Use module conf-intl */
+#undef USE_MODULE_CONF_INTL
+
+/* Use module conf-keybindings */
+#undef USE_MODULE_CONF_KEYBINDINGS
+
+/* Use module conf-menus */
+#undef USE_MODULE_CONF_MENUS
+
+/* Use module conf-mime */
+#undef USE_MODULE_CONF_MIME
+
+/* Use module conf-mouse */
+#undef USE_MODULE_CONF_MOUSE
+
+/* Use module conf-mousebindings */
+#undef USE_MODULE_CONF_MOUSEBINDINGS
+
+/* Use module conf-mouse-cursor */
+#undef USE_MODULE_CONF_MOUSE_CURSOR
+
+/* Use module conf-paths */
+#undef USE_MODULE_CONF_PATHS
+
+/* Use module conf-performance */
+#undef USE_MODULE_CONF_PERFORMANCE
+
+/* Use module conf-profiles */
+#undef USE_MODULE_CONF_PROFILES
+
+/* Use module conf-scale */
+#undef USE_MODULE_CONF_SCALE
+
+/* Use module conf-screensaver */
+#undef USE_MODULE_CONF_SCREENSAVER
+
+/* Use module conf-shelves */
+#undef USE_MODULE_CONF_SHELVES
+
+/* Use module conf-startup */
+#undef USE_MODULE_CONF_STARTUP
+
+/* Use module conf-theme */
+#undef USE_MODULE_CONF_THEME
+
+/* Use module conf-transitions */
+#undef USE_MODULE_CONF_TRANSITIONS
+
+/* Use module conf-wallpaper */
+#undef USE_MODULE_CONF_WALLPAPER
+
+/* Use module conf-window-display */
+#undef USE_MODULE_CONF_WINDOW_DISPLAY
+
+/* Use module conf-window-focus */
+#undef USE_MODULE_CONF_WINDOW_FOCUS
+
+/* Use module conf-window-manipulation */
+#undef USE_MODULE_CONF_WINDOW_MANIPULATION
+
+/* Use module conf-window-remembers */
+#undef USE_MODULE_CONF_WINDOW_REMEMBERS
+
+/* Use module conf-winlist */
+#undef USE_MODULE_CONF_WINLIST
+
+/* Use module connman */
+#undef USE_MODULE_CONNMAN
+
+/* Use module cpufreq */
+#undef USE_MODULE_CPUFREQ
+
+/* Use module dropshadow */
+#undef USE_MODULE_DROPSHADOW
+
+/* Use module exebuf */
+#undef USE_MODULE_EXEBUF
+
+/* Use module fileman */
+#undef USE_MODULE_FILEMAN
+
+/* Use module gadman */
+#undef USE_MODULE_GADMAN
+
+/* Use module ibar */
+#undef USE_MODULE_IBAR
+
+/* Use module ibox */
+#undef USE_MODULE_IBOX
+
+/* Use module illume */
+#undef USE_MODULE_ILLUME
+
+/* Use module mixer */
+#undef USE_MODULE_MIXER
+
+/* Use module msgbus-lang */
+#undef USE_MODULE_MSGBUS_LANG
+
+/* Use module pager */
+#undef USE_MODULE_PAGER
+
+/* Use module start */
+#undef USE_MODULE_START
+
+/* Use module syscon */
+#undef USE_MODULE_SYSCON
+
+/* Use module temperature */
+#undef USE_MODULE_TEMPERATURE
+
+/* Use module winlist */
+#undef USE_MODULE_WINLIST
+
+/* Use module wizard */
+#undef USE_MODULE_WIZARD
+
 /* Version number of package */
 #undef VERSION
 
@@ -139,6 +325,9 @@
 
 /* Define to 1 if the X Window System is missing or not being used. */
 #undef X_DISPLAY_MISSING
+
+/* Macro declaring a function argument to be unused */
+#undef __UNUSED__
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

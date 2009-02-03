@@ -236,6 +236,7 @@ src/modules/ibar/e_mod_config.c
 src/modules/ibar/e_mod_main.c
 src/modules/ibox/e_mod_config.c
 src/modules/ibox/e_mod_main.c
+src/modules/illume/e_mod_win.c
 src/modules/pager/e_mod_config.c
 src/modules/pager/e_mod_main.c
 src/modules/start/e_mod_main.c
@@ -253,6 +254,7 @@ src/modules/wizard/page_040.c
 src/modules/wizard/page_050.c
 src/modules/wizard/page_060.c
 src/modules/wizard/page_070.c
+src/modules/wizard/page_080.c
 src/modules/mixer/app_mixer.c
 src/modules/mixer/conf_gadget.c
 src/modules/mixer/conf_module.c

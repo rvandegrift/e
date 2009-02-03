@@ -3,7 +3,8 @@
 //	Icons:
 //		EFM - All popup icons ... eg, paste copy delete properties
 //		EFM - folders (perhaps?), dynamic mime icons
-//		Icons - Icon theme, Dialogs, Interactions, applications, settings
+//		Icons - engine, better looking SD card
+//		Icons for all modules in Module list.
 //
 
 /*
@@ -198,6 +199,7 @@ collections { /* begin the collection of edje groups that are in this file */
 				       * rest is relative to the whole object
 				       * (because its not specified) */
 	       }
+               color_class: "border_top";
 	       image { /* define the image to use */
 		  normal: "bd_top.png"; /* the image */
 		  border: 2 2 2 2; /* border scaling attributes. this is the
@@ -222,6 +224,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  relative: 1.0 1.0;
 		  offset: -1 -1;
 	       }
+               color_class: "border_bottom";
 	       image {
 		  normal: "bd_bottom.png";
 		  border: 2 2 0 0; /* the left and right pixels are not to
@@ -593,6 +596,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 0;
 		  to: "top";
 	       }
+               color_class: "border_top_hilight";
 	       image {
 		  normal: "bd_top_hilight.png";
 	       }
@@ -1447,6 +1451,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 -1;
 		  to_y: "title_base";
 	       }
+               color_class: "border_top";
 	       image {
 		  normal: "bd_top.png";
 		  border: 2 2 2 2;
@@ -1464,6 +1469,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  relative: 1.0 1.0;
 		  offset: -1 -1;
 	       }
+               color_class: "border_bottom";
 	       image {
 		  normal: "bd_bottom.png";
 		  border: 2 2 0 0;
@@ -1748,6 +1754,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 0;
 		  to: "top";
 	       }
+               color_class: "border_top_hilight";
 	       image {
 		  normal: "bd_top_hilight.png";
 	       }
@@ -2527,6 +2534,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 -1;
 		  to_y: "title_base";
 	       }
+               color_class: "border_top";
 	       image {
 		  normal: "bd_top.png";
 		  border: 2 2 2 2;
@@ -2803,6 +2811,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 0;
 		  to: "top";
 	       }
+               color_class: "border_top_hilight";
 	       image {
 		  normal: "bd_top_hilight.png";
 	       }
@@ -3376,6 +3385,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 -1;
 		  to_y: "title_base";
 	       }
+               color_class: "border_top";
 	       image {
 		  normal: "bd_top.png";
 		  border: 2 2 2 2;
@@ -3393,6 +3403,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  relative: 1.0 1.0;
 		  offset: -1 -1;
 	       }
+               color_class: "border_bottom";
 	       image {
 		  normal: "bd_bottom.png";
 		  border: 2 2 0 0;
@@ -3631,6 +3642,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 0;
 		  to: "top";
 	       }
+               color_class: "border_top_hilight";
 	       image {
 		  normal: "bd_top_hilight.png";
 	       }
@@ -4300,6 +4312,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 -1;
 		  to_y: "title_base";
 	       }
+               color_class: "border_top";
 	       image {
 		  normal: "bd_top.png";
 		  border: 2 2 2 2;
@@ -4530,6 +4543,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  offset: -1 0;
 		  to: "top";
 	       }
+               color_class: "border_top_hilight";
 	       image {
 		  normal: "bd_top_hilight.png";
 	       }
@@ -5423,7 +5437,8 @@ collections { /* begin the collection of edje groups that are in this file */
 	    }
 	 }
          part { name: "left_arrow";
-            mouse_events: 0;
+            mouse_events: 1;
+            scale: 1;
             description { state: "default" 0.0;
                image.normal: "icon_left_arrow.png";
                aspect: 1.0 1.0;
@@ -5439,7 +5454,8 @@ collections { /* begin the collection of edje groups that are in this file */
             }
          }
          part { name: "right_arrow";
-            mouse_events: 0;
+            mouse_events: 1;
+            scale: 1;
             description { state: "default" 0.0;
                image.normal: "icon_right_arrow.png";
                aspect: 1.0 1.0;
@@ -5454,7 +5470,20 @@ collections { /* begin the collection of edje groups that are in this file */
                color: 255 255 255 0;
             }
          }
-	 part { name: "event";
+         part { name: "e.dragable.hbar";
+            mouse_events: 0;
+            dragable {
+               x: 1 1 0;
+               y: 0 0 0;
+               confine: "base";
+            }
+            description { state: "default" 0.0;
+               visible: 0;
+               rel1.to: "base";
+               rel2.to: "base";
+            }
+         }
+         part { name: "event";
 	    type: RECT;
 	    mouse_events: 1;
             repeat_events: 1;
@@ -5479,6 +5508,18 @@ collections { /* begin the collection of edje groups that are in this file */
             target: "left_arrow";
             target: "right_arrow";
             transition: LINEAR 0.5;
+         }
+         program { name: "sb_left";
+            signal: "mouse,down,1";
+            source: "left_arrow";
+            action:  DRAG_VAL_STEP -1.0 0.0;
+            target: "e.dragable.hbar";
+         }
+         program { name: "sb_right";
+            signal: "mouse,down,1";
+            source: "right_arrow";
+            action:  DRAG_VAL_STEP 1.0 0.0;
+            target: "e.dragable.hbar";
          }
       }
    }
@@ -5632,6 +5673,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	    mouse_events:  0;
 	    description { state: "default" 0.0;
 	       align: 0.5 0.0;
+               color_class: "menu_base";
 	       image {
 		  normal: "base_bg.png";
 		  border: 2 2 2 2;
@@ -6227,6 +6269,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	 part { name: "base";
 	    mouse_events: 0;
 	    description { state: "default" 0.0;
+               color_class: "shelf_base";
 	       image.normal: "base_bg.png";
 	       image.border: 2 2 2 2;
 	       fill.smooth: 0;
@@ -6562,6 +6605,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	 part { name: "base";
 	    mouse_events: 0;
 	    description { state: "default" 0.0;
+               color_class: "shelf_base";
 	       image.normal: "shelf_alt_bg.png";
 	       fill.smooth: 0;
 	    }
@@ -10403,257 +10447,6 @@ collections { /* begin the collection of edje groups that are in this file */
 /////////////////////////////////////////////////////////////////////////////
    /*** MOD: SYSCON ***/
 
-/*
-   group { name: "e/wizard/main";
-      images {
-	 image: "vgrad_dark.png" COMP;
-	 image: "grill_dark_tiny_pattern.png" COMP;
-	 image: "bt_base1.png" COMP;
-	 image: "bt_base2.png" COMP;
-	 image: "bt_hilight.png" COMP;
-	 image: "bt_shine.png" COMP;
-         image: "bt_glow.png" COMP;
-         image: "bt_dis_base.png" COMP;
-	 image: "bt_dis_hilight.png" COMP;
-      }
-      parts {
-	 part { name: "background_image";
-	    description { state: "default" 0.0;
-	       image.normal: "vgrad_dark.png";
-	       fill {
-		  smooth: 0;
-		  size {
-		     relative: 0 1.0;
-		     offset: 36 0;
-		  }
-	       }
-	    }
-	 }
-	 part { name: "grill";
-	    description { state: "default" 0.0;
-	       image.normal: "grill_dark_tiny_pattern.png";
-	       fill {
-		  size {
-		     relative: 0 0;
-		     offset: 144 144;
-		  }
-	       }
-	    }
-	 }
-         part { name: "e.text.title";
-	    type: TEXT;
-	    effect: SOFT_SHADOW;
-	    mouse_events: 0;
-	    scale: 1;
-	    description {
-	       state: "default" 0.0;
-	       align: 0.5 0.0;
-	       rel1 {
-		  relative: 0.0 0.0;
-		  offset: 0 8;
-	       }
-	       rel2 {
-		  relative: 1.0 0.0;
-		  offset:   -1  8;
-	       }
-	       color: 255 255 255 255;
-	       color3: 0 0 0 32;
-	       text {
-                  font: "Sans:style=Bold";
-		  size: 20;
-		  min: 1 1;
-		  align: 0.5 0.5;
-	       }
-	    }
-	 }
-	 part { name: "e.swallow.content";
-	    type: SWALLOW;
-	    description { state: "default" 0.0;
-	       rel1 {
-		  to_y: "e.text.title";
-		  relative: 0.5 1.0;
-		  offset: 0 8;
-	       }
-	       rel2 {
-		  to_y: "button_image";
-		  relative: 0.5 0.0;
-		  offset: 0 -9;
-	       }
-	    }
-	 }
-	 part { name: "button_image";
-	    mouse_events: 1;
-	    scale: 1;
-	    description { state: "default" 0.0;
-	       fixed: 1 1;
-	       align: 0.5 1.0;
-	       rel1.relative: 0.5 1.0;
-	       rel1.offset: 0 -9;
-	       rel2.relative: 0.5 1.0;
-	       rel2.offset: 0 -9;
-	       min: 64 32;
-	       max: 64 32;
-	       image {
-		  normal: "bt_base2.png";
-		  border: 7 7 7 7;
-	       }
-	    }
-	    description { state: "clicked" 0.0;
-	       inherit: "default" 0.0;
-	       image.normal: "bt_base1.png";
-	    }
-	    description { state: "disabled" 0.0;
-	       inherit:  "default" 0.0;
-	       image {
-		  normal: "bt_dis_base.png";
-		  border: 4 4 4 4;
-	       }
-	    }
-	 }
-	 part { name: "e.text.label";
-	    type: TEXT;
-	    effect: SOFT_SHADOW;
-	    mouse_events: 0;
-	    scale: 1;
-	    description { state: "default" 0.0;
-	       rel1 {
-		  to: "button_image";
-		  relative: 0.0  0.0;
-		  offset:   3    3;
-	       }
-	       rel2 {
-		  relative: 1.0  1.0;
-		  offset:   -4   -4;
-		  to:     "button_image";
-	       }
-	       color: 224 224 224 255;
-	       color3: 0 0 0 64;
-	       color_class: "button_text";
-	       text {
-		  text:     "Close";
-		  font:     "Sans";
-		  size:     10;
-		  min:      1 1;
-		  align:    0.5 0.5;
-		  text_class: "button";
-	       }
-	    }
-	    description { state: "disabled" 0.0;
-	       inherit: "default" 0.0;
-	       color: 0 0 0 128;
-	       color3: 0 0 0 0;
-	       color_class: "button_text_disabled";
-	    }
-	 }
-	 part { name: "over1";
-	    mouse_events: 0;
-	    description { state: "default" 0.0;
-	       rel1.to: "button_image";
-	       rel2.to: "button_image";
-	       rel2.relative: 1.0 0.5;
-	       image {
-		  normal: "bt_hilight.png";
-		  border: 7 7 7 0;
-	       }
-	    }
-            description { state: "disabled" 0.0;
-	       inherit:  "default" 0.0;
-	       image {
-		  normal: "bt_dis_hilight.png";
-		  border: 4 4 4 0;
-	       }
-	    }
-	 }
-	 part { name: "over2";
-	    mouse_events: 0;
-	    description { state: "default" 0.0;
-	       rel1.to: "button_image";
-	       rel2.to: "button_image";
-	       image {
-		  normal: "bt_shine.png";
-		  border: 7 7 7 7;
-	       }
-	    }
-	    description { state: "disabled" 0.0;
-	       inherit:  "default" 0.0;
-	       visible: 0;
-	    }
-	 }
-	 part { name: "over3";
-	    mouse_events: 0;
-	    description { state: "default" 0.0;
-	       rel1.to: "button_image";
-	       rel2.to: "button_image";
-               visible: 0;
-               color: 255 255 255 0;
-	       image {
-		  normal: "bt_glow.png";
-		  border: 12 12 12 12;
-	       }
-	    }
-	    description { state: "clicked" 0.0;
-	       inherit:  "default" 0.0;
-	       visible: 1;
-               color: 255 255 255 255;
-	    }
-	 }
-	 part { name: "block";
-	    mouse_events: 1;
-	    description { state: "default" 0.0;
-	       rel1.to: "button_image";
-	       rel2.to: "button_image";
-	       visible: 0;
-	       color: 0 0 0 0;
-	    }
-	    description { state: "disabled" 0.0;
-	       inherit: "default" 0.0;
-	       visible: 1;
-	    }
-	 }
-      }
-      programs {
-	 program { name: "button_click";
-	    signal: "mouse,down,1";
-	    source: "button_image";
-	    action: STATE_SET "clicked" 0.0;
-	    target: "button_image";
-            target: "over3";
-	 }
-	 program { name: "button_unclick";
-	    signal: "mouse,up,1";
-	    source: "button_image";
-	    action: STATE_SET "default" 0.0;
-	    target: "button_image";
-            target: "over3";
-	 }
-	 program { name: "button_unclick2";
-	    signal: "mouse,clicked,1";
-	    source: "button_image";
-	    action: SIGNAL_EMIT "e,action,next" "";
-	 }
-	 program { name: "button_enable";
-            signal: "e,state,next,enable";
-	    source: "e";
-	    action: STATE_SET "default" 0.0;
-	    target: "button_image";
-	    target: "e.text.label";
-	    target: "over1";
-	    target: "over2";
-	    target: "block";
-	 }
-	 program { name: "button_disable";
-            signal: "e,state,next,disable";
-	    source: "e";
-	    action: STATE_SET "disabled" 0.0;
-	    target: "button_image";
-	    target: "e.text.label";
-	    target: "over1";
-	    target: "over2";
-	    target: "block";
-	 }
-      }
-   }
-*/
    group { name: "e/widgets/syscon/main";
       images {
 	 image: "base_bg.png" COMP;
@@ -10878,6 +10671,42 @@ collections { /* begin the collection of edje groups that are in this file */
 	       }
 	    }
 	 }
+	 part { name: "e.text.label";
+	    type: TEXT;
+	    effect: SOFT_SHADOW;
+	    mouse_events:  0;
+	    scale: 1;
+	    description { state: "default" 0.0;
+               fixed: 0 1;
+               align: 0.5 1.0;
+	       rel1 {
+		  relative: 0.0  1.0;
+		  offset:   3    -4;
+		  to:     "button_image";
+	       }
+	       rel2 {
+		  relative: 1.0  1.0;
+		  offset:   -4   -4;
+		  to:     "button_image";
+	       }
+	       color: 224 224 224 255;
+	       color3: 0 0 0 64;
+	       color_class: "button_text";
+	       text {
+		  font:     "Sans";
+		  size:     10;
+		  min:      1 1;
+		  align:    0.5 1.0;
+		  text_class: "button";
+	       }
+	    }
+	    description { state: "disabled" 0.0;
+	       inherit: "default" 0.0;
+	       color: 0 0 0 128;
+	       color3: 0 0 0 0;
+	       color_class: "button_text_disabled";
+	    }
+	 }
 	 part {
 	    name: "e.swallow.icon";
 	    type: SWALLOW;
@@ -10892,9 +10721,10 @@ collections { /* begin the collection of edje groups that are in this file */
 		  to: "button_image";
 	       }
 	       rel2 {
-		  relative: 1.0 1.0;
-		  offset:   -4   -4;
-		  to: "button_image";
+		  relative: 1.0 0.0;
+		  offset:   -4   -1;
+		  to_x: "button_image";
+		  to_y: "e.text.label";
 	       }
 	    }
 	 }
@@ -11170,6 +11000,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	 part { name: "base";
 	    mouse_events: 0;
 	    description { state: "default" 0.0;
+               color_class: "fileman_base";
 	       image.normal: "dia_grad.png";
 	       fill {
 		  smooth: 0;
@@ -14441,9 +14272,10 @@ collections { /* begin the collection of edje groups that are in this file */
 	    mouse_events: 0;
 	    description {
 	       state: "default" 0.0;
-	       aspect: 6.4 6.4;
-	       aspect_preference: HORIZONTAL;
+//	       aspect: 6.4 6.4;
+//	       aspect_preference: HORIZONTAL;
 	       align: 0.0 0.0;
+               min: 0 10;
 	       rel1 {
 		  to: "base";
 		  relative: 0.0 1.0;
@@ -14457,6 +14289,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	       image {
 		  normal: "ilist_item_shadow.png";
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part {
@@ -14468,6 +14301,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  normal: "ilist_1.png";
 		  border: 2 2 2 2;
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part { name: "bg";
@@ -14803,7 +14637,6 @@ collections { /* begin the collection of edje groups that are in this file */
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program { name: "go_passive";
 	    signal:  "e,state,unselected";
@@ -14904,9 +14737,10 @@ collections { /* begin the collection of edje groups that are in this file */
 	    mouse_events: 0;
 	    description {
 	       state: "default" 0.0;
-	       aspect: 6.4 6.4;
-	       aspect_preference: HORIZONTAL;
+//	       aspect: 6.4 6.4;
+//	       aspect_preference: HORIZONTAL;
 	       align: 0.0 0.0;
+               min: 0 10;
 	       rel1 {
 		  to: "base";
 		  relative: 0.0 1.0;
@@ -14920,6 +14754,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	       image {
 		  normal: "ilist_item_shadow.png";
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part {
@@ -14931,6 +14766,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  normal: "ilist_2.png";
 		  border: 2 2 2 2;
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part { name: "bg";
@@ -15266,7 +15102,6 @@ collections { /* begin the collection of edje groups that are in this file */
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program { name: "go_passive";
 	    signal:  "e,state,unselected";
@@ -15346,6 +15181,7 @@ collections { /* begin the collection of edje groups that are in this file */
    }
 
    group { name: "e/fileman/default/list/fixed";
+      alias: "e/fileman/desktop/list/fixed";
       data.item: "stacking" "above";
       data.item: "selectraise" "on";
       images {
@@ -15367,9 +15203,11 @@ collections { /* begin the collection of edje groups that are in this file */
 	    mouse_events: 0;
 	    description {
 	       state: "default" 0.0;
-	       aspect: 6.4 6.4;
-	       aspect_preference: HORIZONTAL;
+               fixed: 1 1;
+//	       aspect: 6.4 6.4;
+//	       aspect_preference: HORIZONTAL;
 	       align: 0.0 0.0;
+               min: 0 10;
 	       rel1 {
 		  to: "base";
 		  relative: 0.0 1.0;
@@ -15383,6 +15221,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	       image {
 		  normal: "ilist_item_shadow.png";
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part {
@@ -15394,6 +15233,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  normal: "ilist_1.png";
 		  border: 2 2 2 2;
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part { name: "bg";
@@ -15729,7 +15569,6 @@ collections { /* begin the collection of edje groups that are in this file */
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program { name: "go_passive";
 	    signal:  "e,state,unselected";
@@ -15809,6 +15648,7 @@ collections { /* begin the collection of edje groups that are in this file */
    }
 
    group { name: "e/fileman/default/list_odd/fixed";
+      alias: "e/fileman/desktop/list_odd/fixed";
       data.item: "stacking" "below";
       data.item: "selectraise" "on";
       images {
@@ -15830,9 +15670,10 @@ collections { /* begin the collection of edje groups that are in this file */
 	    mouse_events: 0;
 	    description {
 	       state: "default" 0.0;
-	       aspect: 6.4 6.4;
-	       aspect_preference: HORIZONTAL;
+//	       aspect: 6.4 6.4;
+//	       aspect_preference: HORIZONTAL;
 	       align: 0.0 0.0;
+               min: 0 10;
 	       rel1 {
 		  to: "base";
 		  relative: 0.0 1.0;
@@ -15846,6 +15687,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	       image {
 		  normal: "ilist_item_shadow.png";
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part {
@@ -15857,6 +15699,7 @@ collections { /* begin the collection of edje groups that are in this file */
 		  normal: "ilist_2.png";
 		  border: 2 2 2 2;
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part { name: "bg";
@@ -16192,7 +16035,6 @@ collections { /* begin the collection of edje groups that are in this file */
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program { name: "go_passive";
 	    signal:  "e,state,unselected";
@@ -16413,6 +16255,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	 part { name: "base";
 	    mouse_events:  0;
 	    description { state: "default" 0.0;
+               color_class: "dialog_base";
 	       image.normal: "dia_grad.png";
 	       fill {
 		  smooth: 0;
@@ -16461,11 +16304,11 @@ collections { /* begin the collection of edje groups that are in this file */
 	       fixed: 1 0;
 	       rel1 {
 		  relative: 0.0 0.0;
-		  offset:   4  4;
+		  offset:   2  2;
 	       }
 	       rel2 {
 		  relative: 0.0 0.0;
-		  offset:   4  -5;
+		  offset:   2  -5;
 		  to_y: "e.swallow.buttons";
 	       }
 	    }
@@ -16475,12 +16318,12 @@ collections { /* begin the collection of edje groups that are in this file */
 	    description { state: "default" 0.0;
 	       rel1 {
 		  relative: 1.0 0.0;
-		  offset:   4   4;
+		  offset:   2   2;
 		  to_x:     "e.swallow.icon";
 	       }
 	       rel2 {
 		  relative: 1.0 0.0;
-		  offset:   -5  -9;
+		  offset:   -3  -5;
 		  to_y: "e.swallow.buttons";
 	       }
 	    }
@@ -16565,6 +16408,7 @@ collections { /* begin the collection of edje groups that are in this file */
 	 part { name: "base";
 	    mouse_events:  0;
 	    description { state: "default" 0.0;
+               color_class: "configure_base";
 	       image.normal: "dia_grad.png";
 	       fill {
 		  smooth: 0;
@@ -16632,10 +16476,10 @@ collections { /* begin the collection of edje groups that are in this file */
 	    description { state: "default" 0.0;
 	       align: 0.5 0.5;
 	       min: 100 200;
-	       rel1.offset: 5 5;
+	       rel1.offset: 2 2;
 	       rel2 {
 		  relative: 1.0 0.0;
-		  offset: -6 -9;
+		  offset: -3 -5;
 		  to_y: "e.swallow.button";
 	       }
 	    }
@@ -18565,9 +18409,11 @@ group { name: "e/toolbar/default/base";
 	    mouse_events: 0;
 	    description {
 	       state: "default" 0.0;
-	       aspect: 6.4 6.4;
-	       aspect_preference: HORIZONTAL;
+               fixed: 1 1;
+//	       aspect: 6.4 6.4;
+//	       aspect_preference: HORIZONTAL;
 	       align: 0.0 0.0;
+               min: 0 10;
 	       rel1 {
 		  to: "base";
 		  relative: 0.0 1.0;
@@ -18581,6 +18427,7 @@ group { name: "e/toolbar/default/base";
 	       image {
 		  normal: "ilist_item_shadow.png";
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part {
@@ -18592,6 +18439,7 @@ group { name: "e/toolbar/default/base";
 		  normal: "ilist_1.png";
 		  border: 2 2 2 2;
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part { name: "bg";
@@ -18736,7 +18584,6 @@ group { name: "e/toolbar/default/base";
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program {
 	    name:    "go_passive";
@@ -18771,6 +18618,7 @@ group { name: "e/toolbar/default/base";
 		  normal: "ilist_2.png";
 		  border: 2 2 2 2;
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part { name: "bg";
@@ -18915,7 +18763,6 @@ group { name: "e/toolbar/default/base";
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program {
 	    name:    "go_passive";
@@ -18947,9 +18794,11 @@ group { name: "e/toolbar/default/base";
 	    mouse_events: 0;
 	    description {
 	       state: "default" 0.0;
-	       aspect: 6.4 6.4;
-	       aspect_preference: HORIZONTAL;
+               fixed: 1 1;
+//	       aspect: 6.4 6.4;
+//	       aspect_preference: HORIZONTAL;
 	       align: 0.0 0.0;
+               min: 0 10;
 	       rel1 {
 		  to: "base";
 		  relative: 0.0 1.0;
@@ -18963,6 +18812,7 @@ group { name: "e/toolbar/default/base";
 	       image {
 		  normal: "ilist_item_shadow.png";
 	       }
+               fill.smooth: 0;
 	    }
 	 }
 	 part {
@@ -19118,7 +18968,6 @@ group { name: "e/toolbar/default/base";
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program {
 	    name:    "go_passive";
@@ -19297,7 +19146,6 @@ group { name: "e/toolbar/default/base";
 	    target:  "fg1";
 	    target:  "fg2";
 	    target:  "e.text.label";
-	    transition: LINEAR 0.2;
 	 }
 	 program {
 	    name:    "go_passive";
@@ -20304,6 +20152,7 @@ group { name: "e/toolbar/default/base";
          part { name: "base0";
 	    mouse_events:  0;
 	    description { state: "default" 0.0;
+               color_class: "frame_base";
 	       image.normal: "dia_grad.png";
 	       rel1.to: "over";
 	       rel2.to: "over";
@@ -21743,13 +21592,13 @@ group { name: "e/toolbar/default/base";
 	    description { state: "default" 0.0;
 	       rel1 {
 		  to_y: "e.text.title";
-		  relative: 0.5 1.0;
-		  offset: 0 8;
+		  relative: 0.2 1.0;
+		  offset: 8 8;
 	       }
 	       rel2 {
 		  to_y: "button_image";
-		  relative: 0.5 0.0;
-		  offset: 0 -9;
+		  relative: 0.8 0.0;
+		  offset: -9 -9;
 	       }
 	    }
 	 }
@@ -22594,19 +22443,18 @@ ICON("widget/up_dir","icon_up_arrow.png",64)
 ICON("widget/new_dialog","icon_right_arrow.png",64)
 ICON("widget/config","icon_config.png",64)
 ICON("widget/resize","icon_resize.png",64)
+ICON("widget/open","icon_check.png",64)
+ICON("widget/close","icon_close.png",64)
+ICON("widget/reset","icon_reset.png",64)
 
 /// No icons made yet ///
 
 ICON("enlightenment/engine","icon_dummy.png",64)
-ICON("enlightenment/add_application","icon_dummy.png",64)
-ICON("enlightenment/profiles","icon_dummy.png",64)
-ICON("enlightenment/autoscroll","icon_dummy.png",64)
-ICON("enlightenment/showhide","icon_dummy.png",64)
 ICON("enlightenment/toolbar","icon_dummy.png",64)
-ICON("enlightenment/settings","icon_dummy.png",64)
 
 /// Normal Icons ///
 
+ICON("enlightenment/warning", "icon_warning.png",128)
 ICON("enlightenment/website","icon_globe.png",64)
 ICON("enlightenment/background","icon_wallpaper.png",64)
 ICON("enlightenment/picture","icon_wallpaper.png",64)
@@ -22624,6 +22472,7 @@ ICON("enlightenment/colors","icon_colors.png",64)
 ICON("enlightenment/themes","icon_theme.png",64)
 ICON("enlightenment/screen_setup","icon_screen_setup.png",64)
 ICON("enlightenment/windows","icon_windows.png",64)
+ICON("enlightenment/showhide","icon_windows.png",64)
 ICON("enlightenment/lost_windows","icon_lost_windows.png",64)
 ICON("enlightenment/window_remembers","icon_window_remembers.png",64)
 ICON("enlightenment/focus","icon_window_focus.png",64)
@@ -22631,7 +22480,10 @@ ICON("enlightenment/modules","icon_modules.png",64)
 ICON("enlightenment/favorites","icon_favorites.png",64)
 ICON("enlightenment/desktops","icon_desktops.png",64)
 ICON("enlightenment/configuration","icon_configuration.png",64)
+ICON("enlightenment/settings","icon_configuration.png",64)
+ICON("enlightenment/dialogs","icon_dummy.png",64)
 ICON("enlightenment/intl","icon_intl.png",64)
+ICON("enlightenment/interaction","icon_interaction.png",64)
 ICON("enlightenment/imc","icon_imc.png",64)
 ICON("enlightenment/system","icon_system.png",64)
 ICON("enlightenment/run","icon_run.png",64)
@@ -22653,13 +22505,15 @@ ICON("enlightenment/screen_resolution","icon_screen_resolution.png",64)
 ICON("enlightenment/shelf","icon_shelf.png",64)
 ICON("enlightenment/fonts","icon_fonts.png",64)
 ICON("enlightenment/icon_theme","icon_icon_theme.png",64)
-ICON("enlightenment/applications","icon_applications.png",64)
 ICON("enlightenment/transitions","icon_transitions.png",64)
 ICON("enlightenment/performance","icon_performance.png",64)
+ICON("enlightenment/profiles","icon_profiles.png",64)
 ICON("enlightenment/startup","icon_startup.png",64)
 ICON("enlightenment/winlist","icon_winlist.png",64)
 ICON("enlightenment/window_manipulation","icon_window_manipulation.png",64)
+ICON("enlightenment/window_maximize","icon_window_manipulation.png",64)
 ICON("enlightenment/window_stacking","icon_winlist.png",64)
+ICON("enlightenment/window_geometry","icon_window_manipulation.png",64)
 ICON("enlightenment/menus","icon_menus.png",64)
 ICON("enlightenment/menu_settings","icon_menu_settings.png",64)
 ICON("enlightenment/advanced","icon_advanced.png",64)
@@ -22667,9 +22521,12 @@ ICON("enlightenment/behavior","icon_behavior.png",64)
 ICON("enlightenment/appearance","icon_appearance.png",64)
 ICON("enlightenment/extensions","icon_extensions.png",64)
 ICON("enlightenment/file_icons","icon_file_icons.png",64)
-ICON("enlightenment/ibar_applications","icon_ibar_applications.png",64)
-ICON("enlightenment/restart_applications","icon_restart_applications.png",64)
-ICON("enlightenment/startup_applications","icon_startup_applications.png",64)
+ICON("enlightenment/applications","icon_applications.png",64)
+ICON("enlightenment/add_application","icon_applications_new.png",64)
+ICON("enlightenment/ibar_applications","icon_applications_ibar.png",64)
+ICON("enlightenment/autoscroll","icon_autoscroll.png",64)
+ICON("enlightenment/restart_applications","icon_applications_restart.png",64)
+ICON("enlightenment/startup_applications","icon_applications_startup.png",64)
 ICON("enlightenment/power_management","icon_power_management.png",64)
 ICON("enlightenment/screensaver","icon_screensaver.png",64)
 ICON("enlightenment/pager","icon_pager.png",64)
@@ -22903,8 +22760,8 @@ MIMEBASE("text/plain","icon_mime_text_generic.png", ".TXT", 128);
 MIMEBASE("application/x-msword","icon_mime_text_generic.png", ".DOC", 128);
 MIMEBASE("application/x-abiword","icon_mime_text_generic.png", ".ABW", 128);
 
-MIMEBASE("application/x-object","icon_mime_executable_generic.png", "", 128);
-MIMEBASE("application/x-shellscript","icon_mime_executable_generic.png", "", 128);
+MIMEBASE("application/x-object","icon_efm_file.png", "", 128);
+MIMEBASE("application/x-shellscript","icon_applications.png", "", 128);
 
 MIMEBASE("application/x-font-ttf","icon_mime_font_generic.png", ".TTF", 128);
 MIMEBASE("application/x-font-pcf","icon_mime_font_generic.png", ".PCF", 128);
@@ -23213,7 +23070,9 @@ MIMEBASE("application/x-font-bdf","icon_mime_font_generic.png", ".BDF", 128);
 	 }
       }
    }
-
+   
+/////////////////////////////////////////////////////////////////////////////
+   /*** INIT SPLASH ***/
    /* this first group is used for the primary screen (or only screen) so in
     * a multi-monitor setup whichever is first (screen 0) will get this
     * splash on it */

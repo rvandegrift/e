@@ -270,6 +270,11 @@ icon_add.png \
 icon_advanced.png \
 icon_appearance.png \
 icon_applications.png \
+icon_applications_ibar.png \
+icon_applications_new.png \
+icon_applications_restart.png \
+icon_applications_startup.png \
+icon_autoscroll.png \
 icon_behavior.png \
 icon_border_border.png \
 icon_border_close.png \
@@ -289,6 +294,7 @@ icon_border_stack_bot.png \
 icon_border_stack_norm.png \
 icon_border_stack_top.png \
 icon_check.png \
+icon_close.png \
 icon_colors.png \
 icon_config.png \
 icon_configuration.png \
@@ -310,6 +316,7 @@ icon_efm_desktop.png \
 icon_efm_dnd_ask.png \
 icon_efm_dnd_copy.png \
 icon_efm_dnd_move.png \
+icon_efm_eject.png \
 icon_efm_file.png \
 icon_efm_flash.png \
 icon_efm_folder.png \
@@ -337,9 +344,9 @@ icon_globe.png \
 icon_gradient.png \
 icon_halt.png \
 icon_hibernate.png \
-icon_ibar_applications.png \
 icon_icon_theme.png \
 icon_imc.png \
+icon_interaction.png \
 icon_intl.png \
 icon_keys.png \
 icon_left_arrow.png \
@@ -353,7 +360,6 @@ icon_mime_c.png \
 icon_mime_css.png \
 icon_mime_deb.png \
 icon_mime_doc.png \
-icon_mime_executable_generic.png \
 icon_mime_font_generic.png \
 icon_mime_h.png \
 icon_mime_html.png \
@@ -382,11 +388,11 @@ icon_new.png \
 icon_pager.png \
 icon_performance.png \
 icon_power_management.png \
+icon_profiles.png \
 icon_reboot.png \
 icon_regenerate_menus.png \
 icon_reset.png \
 icon_resize.png \
-icon_restart_applications.png \
 icon_right_arrow.png \
 icon_run.png \
 icon_scale.png \
@@ -418,7 +424,6 @@ icon_shelf_top_desk.png \
 icon_shelf_top_left.png \
 icon_shelf_top.png \
 icon_shelf_top_right.png \
-icon_startup_applications.png \
 icon_startup.png \
 icon_suspend.png \
 icon_swap.png \
@@ -431,6 +436,7 @@ icon_wallpaper_center.png \
 icon_wallpaper_grad_screen.png \
 icon_wallpaper.png \
 icon_wallpaper_screen.png \
+icon_warning.png \
 icon_window_focus.png \
 icon_window_manipulation.png \
 icon_window_remembers.png \

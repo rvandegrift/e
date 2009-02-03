@@ -37,12 +37,13 @@ subdir = src/modules/wizard
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/module.desktop.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/ac_attribute.m4 \
-	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/iconv.m4 \
-	$(top_srcdir)/m4/isc-posix.m4 $(top_srcdir)/m4/lib-ld.m4 \
-	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
-	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
-	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
+	$(top_srcdir)/m4/ac_attribute.m4 $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
+	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
+	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/nls.m4 \
+	$(top_srcdir)/m4/po.m4 $(top_srcdir)/m4/progtest.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -87,6 +88,16 @@ page_070_la_OBJECTS = $(am_page_070_la_OBJECTS)
 page_070_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(page_070_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_080_la_OBJECTS = page_080.lo
+page_080_la_OBJECTS = $(am_page_080_la_OBJECTS)
+page_080_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_080_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_200_la_OBJECTS = page_200.lo
+page_200_la_OBJECTS = $(am_page_200_la_OBJECTS)
+page_200_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_200_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -101,10 +112,12 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(module_la_SOURCES) $(page_000_la_SOURCES) \
 	$(page_010_la_SOURCES) $(page_020_la_SOURCES) \
-	$(page_030_la_SOURCES) $(page_070_la_SOURCES)
+	$(page_030_la_SOURCES) $(page_070_la_SOURCES) \
+	$(page_080_la_SOURCES) $(page_200_la_SOURCES)
 DIST_SOURCES = $(module_la_SOURCES) $(page_000_la_SOURCES) \
 	$(page_010_la_SOURCES) $(page_020_la_SOURCES) \
-	$(page_030_la_SOURCES) $(page_070_la_SOURCES)
+	$(page_030_la_SOURCES) $(page_070_la_SOURCES) \
+	$(page_080_la_SOURCES) $(page_200_la_SOURCES)
 filesDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(files_DATA)
 ETAGS = etags
@@ -115,6 +128,7 @@ ALLOCA = @ALLOCA@
 ALL_LINGUAS = @ALL_LINGUAS@
 ALSA_CFLAGS = @ALSA_CFLAGS@
 ALSA_LIBS = @ALSA_LIBS@
+ALSA_VERSION = @ALSA_VERSION@
 AMTAR = @AMTAR@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
@@ -123,15 +137,12 @@ AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BATTERY_CFLAGS = @BATTERY_CFLAGS@
 BATTERY_LIBS = @BATTERY_LIBS@
+BATTERY_VERSION = @BATTERY_VERSION@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
-CXX = @CXX@
-CXXCPP = @CXXCPP@
-CXXDEPMODE = @CXXDEPMODE@
-CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
@@ -142,19 +153,44 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 ECORE_IMF_CFLAGS = @ECORE_IMF_CFLAGS@
 ECORE_IMF_LIBS = @ECORE_IMF_LIBS@
+ECORE_IMF_VERSION = @ECORE_IMF_VERSION@
 ECORE_TXT_CFLAGS = @ECORE_TXT_CFLAGS@
 ECORE_TXT_LIBS = @ECORE_TXT_LIBS@
+ECORE_TXT_VERSION = @ECORE_TXT_VERSION@
 EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
 EGREP = @EGREP@
+EXCHANGE_CFLAGS = @EXCHANGE_CFLAGS@
+EXCHANGE_LIBS = @EXCHANGE_LIBS@
+EXCHANGE_VERSION = @EXCHANGE_VERSION@
 EXEEXT = @EXEEXT@
 E_CFLAGS = @E_CFLAGS@
+E_FM_CFLAGS = @E_FM_CFLAGS@
+E_FM_LIBS = @E_FM_LIBS@
+E_FM_OPEN_CFLAGS = @E_FM_OPEN_CFLAGS@
+E_FM_OPEN_LIBS = @E_FM_OPEN_LIBS@
+E_FM_OP_CFLAGS = @E_FM_OP_CFLAGS@
+E_FM_OP_LIBS = @E_FM_OP_LIBS@
+E_IMC_CFLAGS = @E_IMC_CFLAGS@
+E_IMC_LIBS = @E_IMC_LIBS@
+E_INIT_CFLAGS = @E_INIT_CFLAGS@
+E_INIT_LIBS = @E_INIT_LIBS@
 E_LIBS = @E_LIBS@
-F77 = @F77@
-FFLAGS = @FFLAGS@
+E_REMOTE_CFLAGS = @E_REMOTE_CFLAGS@
+E_REMOTE_LIBS = @E_REMOTE_LIBS@
+E_SYS_CFLAGS = @E_SYS_CFLAGS@
+E_SYS_LIBS = @E_SYS_LIBS@
+E_THUMB_CFLAGS = @E_THUMB_CFLAGS@
+E_THUMB_LIBS = @E_THUMB_LIBS@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
+HAVE_ALSA = @HAVE_ALSA@
+HAVE_BATTERY = @HAVE_BATTERY@
+HAVE_ECORE_IMF = @HAVE_ECORE_IMF@
+HAVE_ECORE_TXT = @HAVE_ECORE_TXT@
+HAVE_EXCHANGE = @HAVE_EXCHANGE@
+HAVE_TEMPERATURE = @HAVE_TEMPERATURE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -198,10 +234,69 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
-SOUND_LDFLAGS = @SOUND_LDFLAGS@
+SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
+TEMPERATURE_VERSION = @TEMPERATURE_VERSION@
+USE_MODULE_BATTERY = @USE_MODULE_BATTERY@
+USE_MODULE_CLOCK = @USE_MODULE_CLOCK@
+USE_MODULE_CONF = @USE_MODULE_CONF@
+USE_MODULE_CONF_APPLICATIONS = @USE_MODULE_CONF_APPLICATIONS@
+USE_MODULE_CONF_BORDERS = @USE_MODULE_CONF_BORDERS@
+USE_MODULE_CONF_CLIENTLIST = @USE_MODULE_CONF_CLIENTLIST@
+USE_MODULE_CONF_COLORS = @USE_MODULE_CONF_COLORS@
+USE_MODULE_CONF_DESK = @USE_MODULE_CONF_DESK@
+USE_MODULE_CONF_DESKLOCK = @USE_MODULE_CONF_DESKLOCK@
+USE_MODULE_CONF_DESKS = @USE_MODULE_CONF_DESKS@
+USE_MODULE_CONF_DIALOGS = @USE_MODULE_CONF_DIALOGS@
+USE_MODULE_CONF_DISPLAY = @USE_MODULE_CONF_DISPLAY@
+USE_MODULE_CONF_DPMS = @USE_MODULE_CONF_DPMS@
+USE_MODULE_CONF_ENGINE = @USE_MODULE_CONF_ENGINE@
+USE_MODULE_CONF_EXEBUF = @USE_MODULE_CONF_EXEBUF@
+USE_MODULE_CONF_FONTS = @USE_MODULE_CONF_FONTS@
+USE_MODULE_CONF_ICON_THEME = @USE_MODULE_CONF_ICON_THEME@
+USE_MODULE_CONF_IMC = @USE_MODULE_CONF_IMC@
+USE_MODULE_CONF_INTERACTION = @USE_MODULE_CONF_INTERACTION@
+USE_MODULE_CONF_INTL = @USE_MODULE_CONF_INTL@
+USE_MODULE_CONF_KEYBINDINGS = @USE_MODULE_CONF_KEYBINDINGS@
+USE_MODULE_CONF_MENUS = @USE_MODULE_CONF_MENUS@
+USE_MODULE_CONF_MIME = @USE_MODULE_CONF_MIME@
+USE_MODULE_CONF_MOUSE = @USE_MODULE_CONF_MOUSE@
+USE_MODULE_CONF_MOUSEBINDINGS = @USE_MODULE_CONF_MOUSEBINDINGS@
+USE_MODULE_CONF_MOUSE_CURSOR = @USE_MODULE_CONF_MOUSE_CURSOR@
+USE_MODULE_CONF_PATHS = @USE_MODULE_CONF_PATHS@
+USE_MODULE_CONF_PERFORMANCE = @USE_MODULE_CONF_PERFORMANCE@
+USE_MODULE_CONF_PROFILES = @USE_MODULE_CONF_PROFILES@
+USE_MODULE_CONF_SCALE = @USE_MODULE_CONF_SCALE@
+USE_MODULE_CONF_SCREENSAVER = @USE_MODULE_CONF_SCREENSAVER@
+USE_MODULE_CONF_SHELVES = @USE_MODULE_CONF_SHELVES@
+USE_MODULE_CONF_STARTUP = @USE_MODULE_CONF_STARTUP@
+USE_MODULE_CONF_THEME = @USE_MODULE_CONF_THEME@
+USE_MODULE_CONF_TRANSITIONS = @USE_MODULE_CONF_TRANSITIONS@
+USE_MODULE_CONF_WALLPAPER = @USE_MODULE_CONF_WALLPAPER@
+USE_MODULE_CONF_WINDOW_DISPLAY = @USE_MODULE_CONF_WINDOW_DISPLAY@
+USE_MODULE_CONF_WINDOW_FOCUS = @USE_MODULE_CONF_WINDOW_FOCUS@
+USE_MODULE_CONF_WINDOW_MANIPULATION = @USE_MODULE_CONF_WINDOW_MANIPULATION@
+USE_MODULE_CONF_WINDOW_REMEMBERS = @USE_MODULE_CONF_WINDOW_REMEMBERS@
+USE_MODULE_CONF_WINLIST = @USE_MODULE_CONF_WINLIST@
+USE_MODULE_CONNMAN = @USE_MODULE_CONNMAN@
+USE_MODULE_CPUFREQ = @USE_MODULE_CPUFREQ@
+USE_MODULE_DROPSHADOW = @USE_MODULE_DROPSHADOW@
+USE_MODULE_EXEBUF = @USE_MODULE_EXEBUF@
+USE_MODULE_FILEMAN = @USE_MODULE_FILEMAN@
+USE_MODULE_GADMAN = @USE_MODULE_GADMAN@
+USE_MODULE_IBAR = @USE_MODULE_IBAR@
+USE_MODULE_IBOX = @USE_MODULE_IBOX@
+USE_MODULE_ILLUME = @USE_MODULE_ILLUME@
+USE_MODULE_MIXER = @USE_MODULE_MIXER@
+USE_MODULE_MSGBUS_LANG = @USE_MODULE_MSGBUS_LANG@
+USE_MODULE_PAGER = @USE_MODULE_PAGER@
+USE_MODULE_START = @USE_MODULE_START@
+USE_MODULE_SYSCON = @USE_MODULE_SYSCON@
+USE_MODULE_TEMPERATURE = @USE_MODULE_TEMPERATURE@
+USE_MODULE_WINLIST = @USE_MODULE_WINLIST@
+USE_MODULE_WIZARD = @USE_MODULE_WIZARD@
 USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
@@ -217,8 +312,6 @@ abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
-ac_ct_CXX = @ac_ct_CXX@
-ac_ct_F77 = @ac_ct_F77@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -300,7 +393,9 @@ pkg_LTLIBRARIES = module.la \
                          page_010.la \
                          page_020.la \
                          page_030.la \
-                         page_070.la
+                         page_070.la \
+                         page_080.la \
+                         page_200.la
 
 
 ### disabled because profile selector really does the job. code here just for
@@ -351,6 +446,14 @@ page_070_la_SOURCES = page_070.c
 page_070_la_LIBADD = @e_libs@ @dlopen_libs@
 page_070_la_LDFLAGS = -module -avoid-version
 page_070_la_DEPENDENCIES = $(top_builddir)/config.h
+page_080_la_SOURCES = page_080.c
+page_080_la_LIBADD = @e_libs@ @dlopen_libs@
+page_080_la_LDFLAGS = -module -avoid-version
+page_080_la_DEPENDENCIES = $(top_builddir)/config.h
+page_200_la_SOURCES = page_200.c
+page_200_la_LIBADD = @e_libs@ @dlopen_libs@
+page_200_la_LDFLAGS = -module -avoid-version
+page_200_la_DEPENDENCIES = $(top_builddir)/config.h
 all: all-am
 
 .SUFFIXES:
@@ -425,6 +528,10 @@ page_030.la: $(page_030_la_OBJECTS) $(page_030_la_DEPENDENCIES)
 	$(page_030_la_LINK) -rpath $(pkgdir) $(page_030_la_OBJECTS) $(page_030_la_LIBADD) $(LIBS)
 page_070.la: $(page_070_la_OBJECTS) $(page_070_la_DEPENDENCIES) 
 	$(page_070_la_LINK) -rpath $(pkgdir) $(page_070_la_OBJECTS) $(page_070_la_LIBADD) $(LIBS)
+page_080.la: $(page_080_la_OBJECTS) $(page_080_la_DEPENDENCIES) 
+	$(page_080_la_LINK) -rpath $(pkgdir) $(page_080_la_OBJECTS) $(page_080_la_LIBADD) $(LIBS)
+page_200.la: $(page_200_la_OBJECTS) $(page_200_la_DEPENDENCIES) 
+	$(page_200_la_LINK) -rpath $(pkgdir) $(page_200_la_OBJECTS) $(page_200_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -439,6 +546,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_020.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_030.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_070.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_080.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_200.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
