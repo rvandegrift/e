@@ -7,6 +7,7 @@ e17 (0.16.999.050+svn20090203-1) experimental; urgency=low
       + 03_fix_src-bin-makefile.diff
       + 04_fix_e_fm_main_svn38418.diff
     - control: tighten builddeps and depends of efl-dev
+    - Update dependency on libevas-engines
     - e17.install: install binaries located in usr/lib/enlightenment/utils
   * e17.install: Add missing illume dicts and keyboards (Closes: #513854)
 
