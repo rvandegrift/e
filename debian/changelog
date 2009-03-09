@@ -1,3 +1,9 @@
+e17 (0.16.999.050+svn20090203-1~fr.1) freerunner; urgency=low
+
+  * Build for Freerunner
+
+ -- Nikita V. Youshchenko <yoush@debian.org>  Mon, 09 Mar 2009 21:43:35 +0300
+
 e17 (0.16.999.050+svn20090203-1) experimental; urgency=low
 
   [Albin Tonnerre]
