@@ -1,3 +1,16 @@
+e17 (0.16.999.060-1) experimental; urgency=low
+
+  * New upstream release
+    - update e17.install to add wifiget, provided with the illume module
+  * Bump Standards-Version, no change required.
+  * Remove build-dep on libedje-bin, now useless as libedje-dev depends on it
+  * Add debian/patches/03_config_panel_category_list_is_not_an_ilist.diff
+    - Cherry-pick from SVN r40508, fixes a potential issue due to
+      e_widget_ilist-related functions being called with an e_widget_toolbar as
+      argument
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Thu, 07 May 2009 13:54:43 +0200
+
 e17 (0.16.999.050+svn20090203-1) experimental; urgency=low
 
   [Albin Tonnerre]
