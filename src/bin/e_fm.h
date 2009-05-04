@@ -30,8 +30,21 @@ typedef enum _E_Fm2_Menu_Flags
    E_FM2_MENU_NO_CUT               = (1 << 6),
    E_FM2_MENU_NO_COPY              = (1 << 7),
    E_FM2_MENU_NO_PASTE             = (1 << 8),
-   E_FM2_MENU_NO_VIEW_MENU         = (1 << 9)
+   E_FM2_MENU_NO_SYMLINK           = (1 << 9),
+   E_FM2_MENU_NO_VIEW_MENU         = (1 << 10),
+   E_FM2_MENU_NO_INHERIT_PARENT    = (1 << 11)
 } E_Fm2_Menu_Flags;
+
+typedef enum _E_Fm2_View_Flags
+{
+  E_FM2_VIEW_NO_FLAGS           = 0,
+  E_FM2_VIEW_LOAD_DIR_CUSTOM    = (1 << 0),
+  E_FM2_VIEW_SAVE_DIR_CUSTOM    = (1 << 1),
+  E_FM2_VIEW_INHERIT_DIR_CUSTOM = (1 << 2),
+  E_FM2_VIEW_DIR_CUSTOM         = (E_FM2_VIEW_LOAD_DIR_CUSTOM |
+				   E_FM2_VIEW_SAVE_DIR_CUSTOM |
+				   E_FM2_VIEW_INHERIT_DIR_CUSTOM)
+} E_Fm2_View_Flags;
 
 typedef struct _E_Fm2_Config      E_Fm2_Config;
 typedef struct _E_Fm2_Icon        E_Fm2_Icon;
@@ -125,6 +138,7 @@ EAPI void                  e_fm2_custom_theme_content_set(Evas_Object *obj, cons
 EAPI void                  e_fm2_underlay_show(Evas_Object *obj);
 EAPI void                  e_fm2_underlay_hide(Evas_Object *obj);
 EAPI void                  e_fm2_all_unsel(Evas_Object *obj);
+EAPI void                  e_fm2_all_sel(Evas_Object *obj);
 EAPI void                  e_fm2_path_get(Evas_Object *obj, const char **dev, const char **path);
 EAPI void                  e_fm2_refresh(Evas_Object *obj);
 EAPI const char           *e_fm2_real_path_get(Evas_Object *obj);
@@ -141,6 +155,8 @@ EAPI void                  e_fm2_icon_menu_start_extend_callback_set(Evas_Object
 EAPI void                  e_fm2_icon_menu_end_extend_callback_set(Evas_Object *obj, void (*func) (void *data, Evas_Object *obj, E_Menu *m, E_Fm2_Icon_Info *info), void *data);
 EAPI void                  e_fm2_icon_menu_flags_set(Evas_Object *obj, E_Fm2_Menu_Flags flags);
 EAPI E_Fm2_Menu_Flags      e_fm2_icon_menu_flags_get(Evas_Object *obj);
+EAPI void                  e_fm2_view_flags_set(Evas_Object *obj, E_Fm2_View_Flags flags);
+EAPI E_Fm2_View_Flags      e_fm2_view_flags_get(Evas_Object *obj);
 EAPI void                  e_fm2_window_object_set(Evas_Object *obj, E_Object *eobj);
 EAPI void                  e_fm2_icons_update(Evas_Object *obj);
 

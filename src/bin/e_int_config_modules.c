@@ -17,7 +17,7 @@ struct _CFModule
 struct _CFType 
 {
    const char *key, *name, *icon;
-   Evas_Hash *modules;
+   Eina_Hash *modules;
 };
 
 struct _CFTypes 
@@ -38,11 +38,11 @@ struct _E_Config_Dialog_Data
 */
 const CFTypes _types[] = 
 {
-     {"appearance", N_("Appearance"),    "enlightenment/appearance"},
-     {"config",     N_("Settings"),      "enlightenment/configuration"},
-     {"fileman",    N_("File Manager"),  "enlightenment/fileman"},
-     {"shelf",      N_("Shelf"),         "enlightenment/shelf"},
-     {"system",     N_("System"),        "enlightenment/system"},
+     {"appearance", N_("Appearance"),    "preferences-appearance"},
+     {"config",     N_("Settings"),      "preferences-system"},
+     {"fileman",    N_("File Manager"),  "system-file-manager"},
+     {"shelf",      N_("Shelf"),         "preferences-desktop-shelf"}, //FIXME use gadget icon
+     {"system",     N_("System"),        "system"},
      {NULL, NULL, NULL}
 };
 
@@ -119,7 +119,7 @@ e_int_config_modules(E_Container *con, const char *params __UNUSED__)
 
    cfd = e_config_dialog_new(con, _("Module Settings"), 
 			     "E", "_config_modules_dialog", 
-			     "enlightenment/modules", 0, v, NULL);
+			     "preferences-plugin", 0, v, NULL);
    e_dialog_resizable_set(cfd->dia, 1);
    return cfd;
 }
@@ -185,7 +185,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_on_change_hook_set(ol, _avail_list_cb_change, cfdata);
    _fill_list(ol, 0);
    e_widget_frametable_object_append(of, ol, 0, 0, 1, 1, 1, 1, 1, 1);
-   ol = e_widget_button_add(evas, _("Load Module"), "widget/add", 
+   ol = e_widget_button_add(evas, _("Load Module"), "list-add", 
 			    _btn_cb_load, cfdata, NULL);
    cfdata->b_load = ol;
    e_widget_disabled_set(ol, 1);
@@ -199,7 +199,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_on_change_hook_set(ol, _load_list_cb_change, cfdata);
    _fill_list(ol, 1);
    e_widget_frametable_object_append(of, ol, 0, 0, 1, 1, 1, 1, 1, 1);
-   ol = e_widget_button_add(evas, _("Unload Module"), "widget/del", 
+   ol = e_widget_button_add(evas, _("Unload Module"), "list-remove", 
 			    _btn_cb_unload, cfdata, NULL);
    cfdata->b_unload = ol;
    e_widget_disabled_set(ol, 1);
@@ -241,15 +241,16 @@ _fill_type_hash(void)
 static void
 _load_modules(const char *dir)
 {
-   Ecore_List *files = NULL;
+   Eina_List *files = NULL;
+   Eina_List *l;
    char *mod = NULL;
+   char *file;
 
    if (!dir) return;
    if (!(files = ecore_file_ls(dir))) return;
 
    /* get all modules in this path_dir */
-   ecore_list_first_goto(files);
-   while ((mod = ecore_list_next(files))) 
+   EINA_LIST_FOREACH(files, l, mod)
      {
 	Efreet_Desktop *desk = NULL;
 	CFType *cft = NULL;
@@ -312,7 +313,8 @@ _load_modules(const char *dir)
 	eina_hash_direct_add(cft->modules, cfm->short_name, cfm);
      }
    free(mod);
-   if (files) ecore_list_destroy(files);
+   EINA_LIST_FREE(files, file)
+     free(file);
 }
 
 static void
@@ -338,7 +340,7 @@ _fill_list(Evas_Object *obj, int enabled)
 
    e_widget_ilist_go(obj);
    e_widget_min_size_get(obj, &w, NULL);
-   e_widget_min_size_set(obj, w, 250);
+   e_widget_min_size_set(obj, w > 180 ? w : 180, 200);
    e_widget_ilist_thaw(obj);
    edje_thaw();
    evas_event_thaw(evas);
@@ -394,8 +396,8 @@ _fill_list_types(Evas_Object *obj, CFType *cft, int enabled)
    /* We have at least one, append header */
    if (cft->icon)
      {
-	ic = edje_object_add(evas);
-	e_util_edje_icon_set(ic, cft->icon);
+	ic = e_icon_add(evas);
+	e_util_icon_theme_set(ic, cft->icon);
      }
    e_widget_ilist_header_append(obj, ic, cft->name);
 
@@ -494,17 +496,17 @@ _list_widget_load(Evas_Object *obj, Eina_List *list)
 {
    Evas *evas;
    Eina_List *ml = NULL;
+   CFModule *mod;
 
    if ((!obj) || (!list)) return;
    evas = evas_object_evas_get(obj);
-   for (ml = list; ml; ml = ml->next)
+   EINA_LIST_FOREACH(list, ml, mod)
      {
-	CFModule *mod = NULL;
 	Evas_Object *ic = NULL;
 	char *path;
 	char buf[4096];
 
-	if (!(mod = ml->data)) continue;
+	if (!mod) continue;
 	if (mod->orig_path)
 	  {
 	     path = ecore_file_dir_get(mod->orig_path);

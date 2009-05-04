@@ -61,7 +61,7 @@ e_int_config_paths(E_Container *con, const char *params __UNUSED__)
    
    cfd = e_config_dialog_new(con, _("Search Path Settings"),
 			    "E", "_config_paths_dialog",
-			     "enlightenment/directories", 0, v, NULL);
+			     "preferences-directories", 0, v, NULL);
    return cfd;
 }
 
@@ -168,7 +168,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_framelist_add(evas, _("E Paths"), 0);
    ob = e_widget_ilist_add(evas, 0, 0, NULL);
    cfdata->gui.path_list = ob;
-   e_widget_min_size_set(ob, 100, 100);
+   e_widget_min_size_set(ob, 170, 100);
 
    evas_event_freeze(evas_object_evas_get(cfdata->gui.path_list));
    edje_freeze();

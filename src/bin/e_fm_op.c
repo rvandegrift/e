@@ -53,6 +53,7 @@ static int _e_fm_op_scan_idler(void *data);
 
 static void _e_fm_op_send_error(E_Fm_Op_Task * task, E_Fm_Op_Type type, const char *fmt, ...);
 static void _e_fm_op_rollback(E_Fm_Op_Task * task);
+static void _e_fm_op_update_progress_report_simple(int percent, const char *src, const char *dst);
 static void  _e_fm_op_update_progress(E_Fm_Op_Task *task, long long _plus_e_fm_op_done, long long _plus_e_fm_op_total);
 static void _e_fm_op_copy_stat_info(E_Fm_Op_Task *task);
 static int _e_fm_op_handle_overwrite(E_Fm_Op_Task *task);
@@ -66,6 +67,7 @@ static int _e_fm_op_copy_chunk(E_Fm_Op_Task *task);
 static int _e_fm_op_copy_atom(E_Fm_Op_Task * task);
 static int _e_fm_op_scan_atom(E_Fm_Op_Task * task);
 static int _e_fm_op_copy_stat_info_atom(E_Fm_Op_Task * task);
+static int _e_fm_op_symlink_atom(E_Fm_Op_Task * task);
 static int _e_fm_op_remove_atom(E_Fm_Op_Task * task);
 
 Ecore_Fd_Handler *_e_fm_op_stdin_handler = NULL;
@@ -124,13 +126,8 @@ struct _E_Fm_Op_Copy_Data
 int
 main(int argc, char **argv)
 {
-   E_Fm_Op_Task *task = NULL;
    int i, last;
-   char *byte = "/";
-   char buf[PATH_MAX];
-   const char *name = NULL;
    E_Fm_Op_Type type;
-   char *p = NULL, *p2 = NULL;
 
    ecore_init();
    eina_stringshare_init();
@@ -152,79 +149,141 @@ main(int argc, char **argv)
      type = E_FM_OP_MOVE;
    else if (strcmp(argv[1], "rm") == 0)
      type = E_FM_OP_REMOVE;
+   else if (strcmp(argv[1], "lns") == 0)
+     type = E_FM_OP_SYMLINK;
    else return 0;
 
-   if ((type == E_FM_OP_COPY) || (type == E_FM_OP_MOVE))
+   if ((type == E_FM_OP_COPY) || (type == E_FM_OP_MOVE) || (type == E_FM_OP_SYMLINK))
      {
 	if (argc < 4) goto quit;
 
-        if (type == E_FM_OP_MOVE)
-          {
-             _e_fm_op_work_queue = eina_list_append(_e_fm_op_work_queue, NULL);
-             _e_fm_op_separator = _e_fm_op_work_queue;
-          }
+	if (type == E_FM_OP_MOVE)
+	  {
+	     _e_fm_op_work_queue = eina_list_append(_e_fm_op_work_queue, NULL);
+	     _e_fm_op_separator = _e_fm_op_work_queue;
+	  }
 
-        if ((argc >= 4) && (ecore_file_is_dir(argv[last])))
-          {
-             if (argv[last][strlen(argv[last]) - 1] == '/') byte = "";
-             p2 = ecore_file_realpath(argv[last]);
+	if ((argc >= 4) && (ecore_file_is_dir(argv[last])))
+	  {
+ 	     char buf[PATH_MAX];
+	     char *p2, *p3;
+	     int p2_len, last_len, done, total;
 
-             for(; i < last; i++)
-               {
-                  p = ecore_file_realpath(argv[i]);
+	     p2 = ecore_file_realpath(argv[last]);
+	     if (!p2) goto quit;
+	     p2_len = strlen(p2);
 
-                  /* Don't move a dir into itself */
-                  if ((p) && (p2) && (ecore_file_is_dir(argv[i])) && 
-                                 (strstr(p2, p) == p2))
-                    continue;
+	     last_len = strlen(argv[last]);
+	     if ((last_len < 1) || (last_len + 2 >= PATH_MAX))
+	       {
+		  free(p2);
+		  goto quit;
+	       }
+	     memcpy(buf, argv[last], last_len);
+	     if (buf[last_len - 1] != '/')
+	       {
+		  buf[last_len] = '/';
+		  last_len++;
+	       }
 
-                  name = ecore_file_file_get(argv[i]);
-                  task = _e_fm_op_task_new();
-                  task->type = type;
-                  task->src.name = eina_stringshare_add(argv[i]);
+	     p3 = buf + last_len;
 
-                  snprintf(buf, PATH_MAX, "%s%s%s", argv[last], byte, name);
-                  task->dst.name = eina_stringshare_add(buf);
+	     done = 0;
+	     total = last - 2;
 
-                  if ((type == E_FM_OP_MOVE) && 
-                      (rename(task->src.name, task->dst.name) == 0))
-                    _e_fm_op_task_free(task);
-                  else
-                    _e_fm_op_scan_queue = 
-                    eina_list_append(_e_fm_op_scan_queue, task);
-               }
-          }
-        else if (argc == 4)
-          {
-             snprintf(buf, sizeof(buf), "%s/%s", ecore_file_realpath(argv[i]),
-                      ecore_file_file_get(argv[i]));
-             p = strdup(buf);
+	     for (; i < last; i++)
+	       {
+		  char *p = ecore_file_realpath(argv[i]);
+		  const char *name;
+		  int name_len;
 
-             snprintf(buf, sizeof(buf), "%s/%s", 
-                      ecore_file_realpath(argv[last]),
-                      ecore_file_file_get(argv[last]));
-             p2 = strdup(buf);
+		  if (!p) continue;
 
-             /* Don't move a file on top of itself. */
-             i = (strlen(p) == strlen(p2)) && !strncmp(p,p2,strlen(p));
-             free(p);
-             free(p2);
-             if (i) goto quit;
+		  /* Don't move a dir into itself */
+		  if (ecore_file_is_dir(p) &&
+		      (strncmp(p, p2, p2_len) == 0) &&
+		      ((p[p2_len] == '/') || (p[p2_len] == '\0')))
+		    goto skip_arg;
 
-             /* Try a rename */
-             if ((type == E_FM_OP_MOVE) && (rename(argv[2], argv[3]) == 0))
-               goto quit;
-             
-             /* If that does work, setup a copy and delete operation. 
-              It's not atomic, but it's the best we can do. */
-             task = _e_fm_op_task_new();
-             task->type = type;
-             task->src.name = eina_stringshare_add(argv[2]);
-             task->dst.name = eina_stringshare_add(argv[3]);
-             _e_fm_op_scan_queue = eina_list_append(_e_fm_op_scan_queue, task);
-          }
-        else
-          goto quit;
+		  name = ecore_file_file_get(p);
+		  if (!name) goto skip_arg;
+		  name_len = strlen(name);
+		  if (p2_len + name_len >= PATH_MAX) goto skip_arg;
+		  memcpy(p3, name, name_len + 1);
+
+		  if ((type == E_FM_OP_MOVE) &&
+		      (rename(argv[i], buf) == 0))
+		    {
+		       done++;
+		       _e_fm_op_update_progress_report_simple
+			 (done * 100 / total, argv[i], buf);
+		    }
+		  else if ((type == E_FM_OP_SYMLINK) &&
+			   (symlink(argv[i], buf) == 0))
+		    {
+		       done++;
+		       _e_fm_op_update_progress_report_simple
+			 (done * 100 / total, argv[i], buf);
+		    }
+		  else
+		    {
+		       E_Fm_Op_Task *task;
+
+		       task = _e_fm_op_task_new();
+		       task->type = type;
+		       task->src.name = eina_stringshare_add(argv[i]);
+		       task->dst.name = eina_stringshare_add(buf);
+
+		       _e_fm_op_scan_queue =
+			 eina_list_append(_e_fm_op_scan_queue, task);
+		    }
+
+	       skip_arg:
+		  free(p);
+	       }
+
+	     free(p2);
+	  }
+	else if (argc == 4)
+	  {
+	     char *p, *p2;
+
+	     p = ecore_file_realpath(argv[2]);
+	     p2 = ecore_file_realpath(argv[3]);
+
+	     /* Don't move a file on top of itself. */
+	     i = (strcmp(p, p2) == 0);
+	     free(p);
+	     free(p2);
+	     if (i) goto quit;
+
+	     /* Try a rename */
+	     if ((type == E_FM_OP_MOVE) && (rename(argv[2], argv[3]) == 0))
+	       {
+		  _e_fm_op_update_progress_report_simple(100, argv[2], argv[3]);
+		  goto quit;
+	       }
+	     else if ((type == E_FM_OP_SYMLINK) &&
+		      (symlink(argv[2], argv[3]) == 0))
+	       {
+		  _e_fm_op_update_progress_report_simple(100, argv[2], argv[3]);
+		  goto quit;
+	       }
+	     else
+	       {
+		  E_Fm_Op_Task *task;
+
+		  /* If that doesn't work, setup a copy and delete operation.
+		     It's not atomic, but it's the best we can do. */
+		  task = _e_fm_op_task_new();
+		  task->type = type;
+		  task->src.name = eina_stringshare_add(argv[2]);
+		  task->dst.name = eina_stringshare_add(argv[3]);
+		  _e_fm_op_scan_queue = eina_list_append(_e_fm_op_scan_queue, task);
+	       }
+	  }
+	else
+	  goto quit;
      }
    else if (type == E_FM_OP_REMOVE)
      {
@@ -232,6 +291,8 @@ main(int argc, char **argv)
 
         while (i <= last)
           {
+	     E_Fm_Op_Task *task;
+
              task = _e_fm_op_task_new();
              task->type = type;
              task->src.name = eina_stringshare_add(argv[i]);
@@ -613,6 +674,8 @@ _e_fm_op_work_idler(void *data)
      _e_fm_op_remove_atom(task);
    else if (task->type == E_FM_OP_COPY_STAT_INFO)
      _e_fm_op_copy_stat_info_atom(task);
+   else if (task->type == E_FM_OP_SYMLINK)
+     _e_fm_op_symlink_atom(task);
 
    if (task->finished)
      {
@@ -836,6 +899,54 @@ _e_fm_op_rollback(E_Fm_Op_Task *task)
      _e_fm_op_update_progress(task, -REMOVECHUNKSIZE, -REMOVECHUNKSIZE);
 }
 
+static void
+_e_fm_op_update_progress_report(int percent, int eta, double elapsed, size_t done, size_t total, const char *src, const char *dst)
+{
+   const int magic = E_FM_OP_MAGIC;
+   const int id = E_FM_OP_PROGRESS;
+   void *p, *data;
+   int size, src_len, dst_len;
+
+   src_len = strlen(src);
+   dst_len = strlen(dst);
+
+   size = 2 * sizeof(int) + 2 * sizeof(size_t) + src_len + 1 + dst_len + 1;
+   data = alloca(3 * sizeof(int) + size);
+   if (!data) return;
+   p = data;
+
+#define P(value) memcpy(p, &(value), sizeof(int)); p += sizeof(int)
+   P(magic);
+   P(id);
+   P(size);
+   P(percent);
+   P(eta);
+#undef P
+
+#define P(value) memcpy(p, &(value), sizeof(size_t)); p += sizeof(size_t)
+   P(done);
+   P(total);
+#undef P
+
+#define P(value) memcpy(p, value, value ## _len + 1); p += value ## _len + 1
+   P(src);
+   P(dst);
+#undef P
+
+   write(STDOUT_FILENO, data, 3 * sizeof(int) + size);
+
+   E_FM_OP_DEBUG("Time left: %d at %e\n", eta, elapsed);
+   E_FM_OP_DEBUG("Progress %d. \n", percent);
+}
+
+static void
+_e_fm_op_update_progress_report_simple(int percent, const char *src, const char *dst)
+{
+   size_t done = (percent * REMOVECHUNKSIZE) / 100;
+   _e_fm_op_update_progress_report
+     (percent, 0, 0, done, REMOVECHUNKSIZE, src, dst);
+}
+
 /* Updates progress.
  * _plus_data is how much more works is done and _plus_e_fm_op_total 
  * is how much more work we found out needs to be done 
@@ -855,11 +966,6 @@ _e_fm_op_update_progress(E_Fm_Op_Task *task, long long _plus_e_fm_op_done, long 
    double eta = 0;
    static int peta = -1;
    static E_Fm_Op_Task *ptask = NULL;
-   void *data;
-   void *p;
-   int magic = E_FM_OP_MAGIC;
-   int id = E_FM_OP_PROGRESS;
-   int size = 0;
 
    _e_fm_op_done += _plus_e_fm_op_done;
    _e_fm_op_total += _plus_e_fm_op_total;
@@ -891,37 +997,9 @@ _e_fm_op_update_progress(E_Fm_Op_Task *task, long long _plus_e_fm_op_done, long 
 	     ppercent = percent;
              peta = eta;
              ptask = task;
-
-             size = 2 * sizeof(int) + 2 * sizeof(size_t) + strlen(ptask->src.name) + 1 + strlen(ptask->dst.name) + 1;
-             data = malloc(3 * sizeof(int) + size);
-
-             if (!data) return;
-             p = data;
-
-#define P(value) memcpy(p, &(value), sizeof(int)); p += sizeof(int)
-             P(magic);
-             P(id);
-             P(size);
-             P(ppercent);
-             P(peta);
-#undef P
-
-#define P(value) memcpy(p, &(value), sizeof(size_t)); p += sizeof(size_t)
-             P(ptask->dst.done);
-             P(ptask->src.st.st_size);
-#undef P
-
-#define P(value) memcpy(p, value, strlen(value) + 1); p += strlen(value) + 1
-             P(ptask->src.name);
-             P(ptask->dst.name);
-#undef P
-
-             write(STDOUT_FILENO, data, 3 * sizeof(int) + size);
-
-             E_FM_OP_DEBUG("Time left: %d at %e\n", peta, ctime - stime);
-	     E_FM_OP_DEBUG("Progress %d. \n", percent);
-
-             free(data);
+	     _e_fm_op_update_progress_report(percent, eta, ctime - stime,
+					     _e_fm_op_done, _e_fm_op_total,
+					     task->src.name, task->dst.name);
 	  }
      }
 }
@@ -991,7 +1069,7 @@ _e_fm_op_handle_overwrite(E_Fm_Op_Task *task)
         else
           {
              _e_fm_op_overwrite = 1;
-             _E_FM_OP_ERROR_SEND_WORK(task, E_FM_OP_OVERWRITE, "File '%s' already exists. Overwrite?", task->dst.name);
+             _E_FM_OP_ERROR_SEND_WORK(task, E_FM_OP_OVERWRITE, "%s", task->dst.name);
           }
      }
 
@@ -1338,6 +1416,19 @@ _e_fm_op_scan_atom(E_Fm_Op_Task * task)
 
         ctask->link = _e_fm_op_separator->next;
      }
+   else if (task->type == E_FM_OP_SYMLINK)
+     {
+        _e_fm_op_update_progress(NULL, 0, REMOVECHUNKSIZE);
+
+        rtask = _e_fm_op_task_new();
+        rtask->src.name = eina_stringshare_add(task->src.name);
+        memcpy(&(rtask->src.st), &(task->src.st), sizeof(struct stat));
+        if (task->dst.name)
+	  rtask->dst.name = eina_stringshare_add(task->dst.name);
+        rtask->type = E_FM_OP_SYMLINK;
+
+        _e_fm_op_work_queue = eina_list_prepend(_e_fm_op_work_queue, rtask);
+     }
 
    return 1;
 }
@@ -1352,6 +1443,23 @@ _e_fm_op_copy_stat_info_atom(E_Fm_Op_Task * task)
    task->dst.done += REMOVECHUNKSIZE;
 
    _e_fm_op_update_progress(task, REMOVECHUNKSIZE, 0);
+
+   return 0;
+}
+
+static int
+_e_fm_op_symlink_atom(E_Fm_Op_Task *task)
+{
+   if (_e_fm_op_abort) return 1;
+
+   E_FM_OP_DEBUG("Symlink: %s -> %s\n", task->src.name, task->dst.name);
+
+   if (symlink(task->src.name, task->dst.name) != 0)
+     _E_FM_OP_ERROR_SEND_WORK(task, E_FM_OP_ERROR, "Cannot create link from '%s' to '%s': %s.", task->src.name, task->dst.name);
+
+   task->dst.done += REMOVECHUNKSIZE;
+   _e_fm_op_update_progress(task, REMOVECHUNKSIZE, 0);
+   task->finished = 1;
 
    return 0;
 }

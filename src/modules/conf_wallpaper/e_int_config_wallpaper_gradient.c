@@ -145,7 +145,7 @@ e_int_config_wallpaper_gradient(E_Config_Dialog *parent)
    e_widget_table_object_append(ott, o, 1, 2, 1, 1, 1, 1, 1, 1);
    import->well2 = o;
 
-   o = e_widget_button_add(evas, "Swap Colors", "widget/swap", _import_cb_color_swap, import, NULL);
+   o = e_widget_button_add(evas, "Swap Colors", "edit-swap", _import_cb_color_swap, import, NULL);
    evas_object_show(o);
    e_widget_table_object_append(ott, o, 1, 3, 1, 1, 1, 1, 1, 1);
 
@@ -201,7 +201,7 @@ e_int_config_wallpaper_gradient(E_Config_Dialog *parent)
    e_dialog_resizable_set(dia, 0);
    e_dialog_show(dia);
    
-   e_dialog_border_icon_set(dia, "enlightenment/background");
+   e_dialog_border_icon_set(dia, "preferences-gradient");
    return dia;
 }
 
@@ -254,21 +254,22 @@ _import_edj_gen(Import *import)
    Evas *evas;
    int fd, num = 1;
    const char *file;
-   const char *homedir;
    char buf[4096], cmd[4096], tmpn[4096];
    char *fstrip;
    FILE *f;
+   size_t len, off;
 
    evas = e_win_evas_get(import->dia->win);
 
    file = import->cfdata->name;
-   homedir = e_user_homedir_get();
    fstrip = ecore_file_strip_ext(file);
    if (!fstrip) return;
-   snprintf(buf, sizeof(buf), "%s/.e/e/backgrounds/%s.edj", homedir, fstrip);
+   len = e_user_dir_snprintf(buf, sizeof(buf), "backgrounds/%s.edj", fstrip);
+   if (len >= sizeof(buf)) return;
+   off = len - (sizeof(".edj") - 1);
    while (ecore_file_exists(buf))
      {
-	snprintf(buf, sizeof(buf), "%s/.e/e/backgrounds/%s-%i.edj", homedir, fstrip, num);
+	snprintf(buf + off, sizeof(buf) - off, "-%d.edj", num);
 	num++;
      }
    free(fstrip);

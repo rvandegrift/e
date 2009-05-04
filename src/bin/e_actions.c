@@ -21,14 +21,21 @@
       if (act) act->func.go_mouse = _e_actions_act_##name##_go_mouse; \
    }
 #define ACT_FN_GO_MOUSE(act) \
-   static void _e_actions_act_##act##_go_mouse(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Button_Down *ev)
+   static void _e_actions_act_##act##_go_mouse(E_Object *obj, const char *params, Ecore_Event_Mouse_Button *ev)
 #define ACT_GO_WHEEL(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.go_wheel = _e_actions_act_##name##_go_wheel; \
    }
 #define ACT_FN_GO_WHEEL(act) \
-   static void _e_actions_act_##act##_go_wheel(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Wheel *ev)
+   static void _e_actions_act_##act##_go_wheel(E_Object *obj, const char *params, Ecore_Event_Mouse_Wheel *ev)
+#define ACT_GO_EDGE(name) \
+   { \
+      act = e_action_add(#name); \
+      if (act) act->func.go_edge = _e_actions_act_##name##_go_edge; \
+   }
+#define ACT_FN_GO_EDGE(act) \
+   static void _e_actions_act_##act##_go_edge(E_Object *obj, const char *params, E_Event_Zone_Edge *ev)
 #define ACT_GO_SIGNAL(name) \
    { \
       act = e_action_add(#name); \
@@ -42,7 +49,7 @@
       if (act) act->func.go_key = _e_actions_act_##name##_go_key; \
    }
 #define ACT_FN_GO_KEY(act) \
-   static void _e_actions_act_##act##_go_key(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev)
+   static void _e_actions_act_##act##_go_key(E_Object *obj, const char *params, Ecore_Event_Key *ev)
 #define ACT_END(name) \
    { \
       act = e_action_add(#name); \
@@ -56,14 +63,14 @@
       if (act) act->func.end_mouse = _e_actions_act_##name##_end_mouse; \
    }
 #define ACT_FN_END_MOUSE(act) \
-   static void _e_actions_act_##act##_end_mouse(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Button_Up *ev)
+   static void _e_actions_act_##act##_end_mouse(E_Object *obj, const char *params, Ecore_Event_Mouse_Button *ev)
 #define ACT_END_KEY(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.end_key = _e_actions_act_##name##_end_key; \
    }
 #define ACT_FN_END_KEY(act) \
-   static void _e_actions_act_##act##_end_key(E_Object *obj, const char *params, Ecore_X_Event_Key_Up *ev)
+   static void _e_actions_act_##act##_end_key(E_Object *obj, const char *params, Ecore_Event_Key *ev)
 
 /* local subsystem functions */
 static void _e_action_free(E_Action *act);
@@ -349,7 +356,7 @@ ACT_FN_GO(window_kill)
    e_dialog_title_set(kill_dialog, 
 		      _("Are you sure you want to kill this window?"));
    e_dialog_text_set(kill_dialog, _(dialog_text));
-   e_dialog_icon_set(kill_dialog, "enlightenment/exit", 64);
+   e_dialog_icon_set(kill_dialog, "application-exit", 64);
    e_dialog_button_add(kill_dialog, _("Yes"), NULL,
 		       _e_actions_cb_kill_dialog_ok, obj);
    e_dialog_button_add(kill_dialog, _("No"), NULL,
@@ -823,6 +830,35 @@ ACT_FN_GO(window_move_to)
 }
 
 /***************************************************************************/
+ACT_FN_GO(window_move_to_center)
+{
+   if (!obj) obj = E_OBJECT(e_border_focused_get());
+   if (!obj) return;
+   if (obj->type != E_BORDER_TYPE)
+     {
+       obj = E_OBJECT(e_border_focused_get());
+       if (!obj) return;
+     }
+
+   E_Border *bd;
+   bd = (E_Border *)obj;
+
+   int x, y;
+   x = (bd->zone->w - bd->w) / 2;
+   y = (bd->zone->h - bd->h) / 2;
+
+   if ((x != bd->x) || (y != bd->y))
+     {
+       e_border_move(bd, x, y);
+
+       if (e_config->focus_policy != E_FOCUS_CLICK)
+         ecore_x_pointer_warp(bd->zone->container->win,
+			    bd->x + (bd->w / 2),
+			    bd->y + (bd->h / 2));
+     }
+}
+
+/***************************************************************************/
 ACT_FN_GO(window_resize_by)
 {
    if (!obj) obj = E_OBJECT(e_border_focused_get());
@@ -1094,6 +1130,118 @@ ACT_FN_GO(desk_flip_to)
 	       e_zone_desk_flip_to(zone, dx, dy);
 	  }
      }
+}
+
+/***************************************************************************/
+#define ACT_FLIP_LEFT(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1)) || ((zone)->desk_x_current > 0))
+#define ACT_FLIP_RIGHT(zone) ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1)) || (((zone)->desk_x_current + 1) < (zone)->desk_x_count))
+#define ACT_FLIP_UP(zone)    ((e_config->desk_flip_wrap && ((zone)->desk_y_count > 1)) || ((zone)->desk_y_current > 0))
+#define ACT_FLIP_DOWN(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_y_count > 1)) || (((zone)->desk_y_current + 1) < (zone)->desk_y_count))
+#define ACT_FLIP_UP_LEFT(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1) && ((zone)->desk_y_count > 1)) || (((zone)->desk_x_current > 0) && ((zone)->desk_y_current > 0)))
+#define ACT_FLIP_UP_RIGHT(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1) && ((zone)->desk_y_count > 1)) || ((((zone)->desk_x_current + 1) < (zone)->desk_x_count) && ((zone)->desk_y_current > 0)))
+#define ACT_FLIP_DOWN_RIGHT(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1) && ((zone)->desk_y_count > 1)) || ((((zone)->desk_x_current + 1) < (zone)->desk_x_count) && (((zone)->desk_y_current + 1) < (zone)->desk_y_count)))
+#define ACT_FLIP_DOWN_LEFT(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1) && ((zone)->desk_y_count > 1)) || (((zone)->desk_x_current > 0) && (((zone)->desk_y_current + 1) < (zone)->desk_y_count)))
+
+ACT_FN_GO_EDGE(desk_flip_in_direction)
+{
+   E_Zone *zone;
+   E_Desk *prev = NULL, *current = NULL;
+   E_Event_Pointer_Warp *wev;
+   int x, y, offset = 25;
+
+   zone = _e_actions_zone_get(obj);
+   wev = E_NEW(E_Event_Pointer_Warp, 1);
+   if ((!wev) || (!zone)) return;
+   prev = e_desk_at_xy_get(zone, zone->desk_x_current, zone->desk_y_current);
+   ecore_x_pointer_xy_get(zone->container->win, &x, &y);
+   wev->prev.x = x;
+   wev->prev.y = y;
+   if (params)
+     {
+	if (sscanf(params, "%i", &offset) != 1)
+	  offset = 25;
+     }
+   switch(ev->edge)
+     {
+      case E_ZONE_EDGE_LEFT:
+	if (ACT_FLIP_LEFT(zone))
+	  {
+	     e_zone_desk_flip_by(zone, -1, 0);
+	     ecore_x_pointer_warp(zone->container->win, zone->w - offset, y);
+	     wev->curr.y = y;
+	     wev->curr.x = zone->w - offset;
+	  }
+	 break;
+      case E_ZONE_EDGE_RIGHT:
+	 if (ACT_FLIP_RIGHT(zone))
+	   {
+	      e_zone_desk_flip_by(zone, 1, 0);
+	      ecore_x_pointer_warp(zone->container->win, offset, y);
+	      wev->curr.y = y;
+	      wev->curr.x = offset;
+	   }
+	 break;
+      case E_ZONE_EDGE_TOP:
+	 if (ACT_FLIP_UP(zone))
+	   {
+	      e_zone_desk_flip_by(zone, 0, -1);
+	      ecore_x_pointer_warp(zone->container->win, x, zone->h - offset);
+	      wev->curr.x = x;
+	      wev->curr.y = zone->h - offset;
+	   }
+	 break;
+      case E_ZONE_EDGE_BOTTOM:
+	if (ACT_FLIP_DOWN(zone))
+	  {
+	     e_zone_desk_flip_by(zone, 0, 1);
+	     ecore_x_pointer_warp(zone->container->win, x, offset);
+	     wev->curr.x = x;
+	     wev->curr.y = offset;
+	  }
+	 break;
+      case E_ZONE_EDGE_TOP_LEFT:
+	 if (ACT_FLIP_UP_LEFT(zone))
+	   {
+	      e_zone_desk_flip_by(zone, -1, -1);
+	      ecore_x_pointer_warp(zone->container->win, zone->w - offset, zone->h - offset);
+	      wev->curr.x = zone->w - offset;
+	      wev->curr.y = zone->h - offset;
+	   }
+	 break;
+      case E_ZONE_EDGE_TOP_RIGHT:
+	 if (ACT_FLIP_UP_RIGHT(zone))
+	   {
+	      e_zone_desk_flip_by(zone, 1, -1);
+	      ecore_x_pointer_warp(zone->container->win, offset, zone->h - offset);
+	      wev->curr.x = offset;
+	      wev->curr.y = zone->h - offset;
+	   }
+	 break;
+      case E_ZONE_EDGE_BOTTOM_LEFT:
+	if (ACT_FLIP_DOWN_LEFT(zone))
+	  {
+	     e_zone_desk_flip_by(zone, -1, 1);
+	     ecore_x_pointer_warp(zone->container->win, zone->w - offset, offset);
+	     wev->curr.y = offset;
+	     wev->curr.x = zone->w - offset;
+	  }
+	 break;
+      case E_ZONE_EDGE_BOTTOM_RIGHT:
+	if (ACT_FLIP_DOWN_RIGHT(zone))
+	  {
+	     e_zone_desk_flip_by(zone, 1, 1);
+	     ecore_x_pointer_warp(zone->container->win, offset, offset);
+	     wev->curr.y = offset;
+	     wev->curr.x = offset;
+	  }
+	 break;
+     }
+
+   current = e_desk_current_get(zone);
+   if (current)
+     ecore_event_add(E_EVENT_POINTER_WARP, wev, NULL, NULL);
+   else
+     free(wev);
 }
 
 /***************************************************************************/
@@ -1466,7 +1614,7 @@ ACT_FN_GO_MOUSE(menu_show)
 		  y -= zone->container->y;
 		  e_menu_post_deactivate_callback_set(m, _e_actions_cb_menu_end, NULL);
 		  e_menu_activate_mouse(m, zone, x, y, 1, 1,
-					E_MENU_POP_DIRECTION_DOWN, ev->time);
+					E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
 	       }
 	  }
      }
@@ -1626,7 +1774,7 @@ ACT_FN_GO(exit)
 		       "<br>"
 		       "Are you sure you want to exit?"
 		       ));
-   e_dialog_icon_set(exit_dialog, "enlightenment/exit", 64);
+   e_dialog_icon_set(exit_dialog, "application-exit", 64);
    e_dialog_button_add(exit_dialog, _("Yes"), NULL,
 		       _e_actions_cb_exit_dialog_ok, NULL);
    e_dialog_button_add(exit_dialog, _("No"), NULL,
@@ -1708,7 +1856,7 @@ ACT_FN_GO(logout)
 		       "<br>"
 		       "Are you sure you want to do this?"
 		       ));
-   e_dialog_icon_set(logout_dialog, "enlightenment/logout", 64);
+   e_dialog_icon_set(logout_dialog, "system-log-out", 64);
    e_dialog_button_add(logout_dialog, _("Yes"), NULL,
 		       _e_actions_cb_logout_dialog_ok, NULL);
    e_dialog_button_add(logout_dialog, _("No"), NULL,
@@ -1772,7 +1920,7 @@ ACT_FN_GO(halt)
 		       "<br>"
 		       "Are you sure you want to shut down?"
 		       ));
-   e_dialog_icon_set(halt_dialog, "enlightenment/halt", 64);
+   e_dialog_icon_set(halt_dialog, "system-shutdown", 64);
    e_dialog_button_add(halt_dialog, _("Yes"), NULL,
 		       _e_actions_cb_halt_dialog_ok, NULL);
    e_dialog_button_add(halt_dialog, _("No"), NULL,
@@ -1836,7 +1984,7 @@ ACT_FN_GO(reboot)
 		       "<br>"
 		       "Are you sure you want to restart it?"
 		       ));
-   e_dialog_icon_set(reboot_dialog, "enlightenment/reboot", 64);
+   e_dialog_icon_set(reboot_dialog, "system-restart", 64);
    e_dialog_button_add(reboot_dialog, _("Yes"), NULL,
 		       _e_actions_cb_reboot_dialog_ok, NULL);
    e_dialog_button_add(reboot_dialog, _("No"), NULL,
@@ -1900,7 +2048,7 @@ ACT_FN_GO(suspend)
 		       "<br>"
 		       "Are you sure you want to suspend?"
 		       ));
-   e_dialog_icon_set(suspend_dialog, "enlightenment/suspend", 64);
+   e_dialog_icon_set(suspend_dialog, "system-suspend", 64);
    e_dialog_button_add(suspend_dialog, _("Yes"), NULL,
 		       _e_actions_cb_suspend_dialog_ok, NULL);
    e_dialog_button_add(suspend_dialog, _("No"), NULL,
@@ -1964,7 +2112,7 @@ ACT_FN_GO(hibernate)
 		       "<br>"
 		       "Are you sure you want to suspend to disk?"
 		       ));
-   e_dialog_icon_set(hibernate_dialog, "enlightenment/hibernate", 64);
+   e_dialog_icon_set(hibernate_dialog, "system-suspend-hibernate", 64);
    e_dialog_button_add(hibernate_dialog, _("Yes"), NULL,
 		       _e_actions_cb_hibernate_dialog_ok, NULL);
    e_dialog_button_add(hibernate_dialog, _("No"), NULL,
@@ -2184,7 +2332,7 @@ _delayed_action_list_parse(Delayed_Action *da, const char *params)
 }
 
 static void
-_delayed_action_key_add(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev)
+_delayed_action_key_add(E_Object *obj, const char *params, Ecore_Event_Key *ev)
 {
    Delayed_Action *da;
    
@@ -2202,7 +2350,7 @@ _delayed_action_key_add(E_Object *obj, const char *params, Ecore_X_Event_Key_Dow
 }
 
 static void
-_delayed_action_key_del(E_Object *obj, const char *params, Ecore_X_Event_Key_Up *ev)
+_delayed_action_key_del(E_Object *obj, const char *params, Ecore_Event_Key *ev)
 {
    Eina_List *l;
    
@@ -2223,7 +2371,7 @@ _delayed_action_key_del(E_Object *obj, const char *params, Ecore_X_Event_Key_Up 
 }
 
 static void
-_delayed_action_mouse_add(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Button_Down *ev)
+_delayed_action_mouse_add(E_Object *obj, const char *params, Ecore_Event_Mouse_Button *ev)
 {
    Delayed_Action *da;
    
@@ -2235,13 +2383,13 @@ _delayed_action_mouse_add(E_Object *obj, const char *params, Ecore_X_Event_Mouse
 	e_object_ref(da->obj);
      }
    da->mouse = 1;
-   da->button = ev->button;
+   da->button = ev->buttons;
    if (params) _delayed_action_list_parse(da, params);
    _delayed_actions = eina_list_append(_delayed_actions, da);
 }
 
 static void
-_delayed_action_mouse_del(E_Object *obj, const char *params, Ecore_X_Event_Mouse_Button_Up *ev)
+_delayed_action_mouse_del(E_Object *obj, const char *params, Ecore_Event_Mouse_Button *ev)
 {
    Eina_List *l;
    
@@ -2251,7 +2399,7 @@ _delayed_action_mouse_del(E_Object *obj, const char *params, Ecore_X_Event_Mouse
 	
 	da = l->data;
 	if ((da->obj == obj) && (da->mouse) && 
-	    (ev->button == da->button))
+	    (ev->buttons == da->button))
 	  {
 	     _delayed_action_do(da);
 	     _delayed_action_free(da);
@@ -2501,6 +2649,11 @@ e_actions_init(void)
 			    "desk_linear_flip_by_all",
 			    NULL, "syntax: N-offset, example: -2", 1);
 
+   /* desk_flip_in_direction */
+   ACT_GO_EDGE(desk_flip_in_direction);
+   e_action_predef_name_set(_("Desktop"), _("Flip Desktop In Direction..."), 
+			    "desk_flip_in_direction", NULL, "syntax: N-pixel-offset, example: 25", 1);
+
    /* desk_linear_flip_to_all */
    ACT_GO(desk_linear_flip_to_all);
    e_action_predef_name_set(_("Desktop"), _("Switch To Desktop 0 (All Screens)"), 
@@ -2551,6 +2704,10 @@ e_actions_init(void)
 			    "screen_send_by", NULL, 
 			    "syntax: N-offset, example: -2", 1);
    
+   /* window_move_to_center */
+   ACT_GO(window_move_to_center);
+   e_action_predef_name_set(_("Window : Actions"), "Move To Center", 
+			    "window_move_to_center", NULL, NULL, 0);
    /* window_move_to */
    ACT_GO(window_move_to);
    e_action_predef_name_set(_("Window : Actions"), "Move To...", 
@@ -2742,11 +2899,10 @@ e_action_predef_label_get(const char *action, const char *params)
    E_Action_Group *actg = NULL;
    E_Action_Description *actd = NULL;
    Eina_List *l, *l2;
-   
-   for (l = action_groups; l; l = l->next)
+
+   EINA_LIST_FOREACH(action_groups, l, actg)
      {
-	actg = l->data;
-        for (l2 = actg->acts; l2; l2 = l2->next)
+	EINA_LIST_FOREACH(actg->acts, l2, actd)
           {
              actd = l2->data;
              if (!strcmp(actd->act_cmd, action))
@@ -2773,10 +2929,8 @@ e_action_predef_name_set(const char *act_grp, const char *act_name, const char *
 
    if (!act_grp || !act_name) return;
 
-   for (l = action_groups; l; l = l->next)
+   EINA_LIST_FOREACH(action_groups, l, actg)
      {
-	actg = l->data;
-
 	if (!strcmp(actg->act_grp, act_grp))
 	  break;
 	actg = NULL;
@@ -2796,9 +2950,8 @@ e_action_predef_name_set(const char *act_grp, const char *act_name, const char *
 			  _action_groups_sort_cb);
      }
 
-   for (l = actg->acts; l; l = l->next)
+   EINA_LIST_FOREACH(actg->acts, l, actd)
      {
-	actd = l->data;
 	if (!strcmp(actd->act_name, act_name))
 	  break;
 	actd = NULL;

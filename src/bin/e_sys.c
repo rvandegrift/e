@@ -312,7 +312,7 @@ _e_sys_cb_logout_timer(void *data)
 	     if (dia)
 	       {
 		  e_dialog_title_set(dia, _("Logout problems"));
-		  e_dialog_icon_set(dia, "enlightenment/logout", 64);
+		  e_dialog_icon_set(dia, "system-log-out", 64);
 		  e_dialog_text_set(dia,
 				    _("Logout is taking too long. Some<br>"
 				      "applications refuse to close.<br>"
@@ -366,7 +366,7 @@ _e_sys_logout_begin(E_Sys_Action a_after)
 				  _("Logout in progress.<br>"
 				    "<hilight>Please wait.</hilight>"));
    e_obj_dialog_show(od);
-   e_obj_dialog_icon_set(od, "enlightenment/logout");
+   e_obj_dialog_icon_set(od, "system-log-out");
    if (_e_sys_dialog) e_object_del(E_OBJECT(_e_sys_dialog));
    _e_sys_dialog = od;
    _e_sys_action_after = a_after;
@@ -499,16 +499,22 @@ _e_sys_action_do(E_Sys_Action a, char *param)
    switch (a)
      {
       case E_SYS_EXIT:
+	// XXX TODO: check for e_fm_op_registry entries and confirm
 	if (!e_util_immortal_check()) ecore_main_loop_quit();
 	break;
       case E_SYS_RESTART:
-	restart = 1;
-	ecore_main_loop_quit();
+	// XXX TODO: check for e_fm_op_registry entries and confirm
+	if (!e_util_immortal_check())
+	  {
+	     restart = 1;
+	     ecore_main_loop_quit();
+	  }
 	break;
       case E_SYS_EXIT_NOW:
 	exit(0);
 	break;
       case E_SYS_LOGOUT:
+	// XXX TODO: check for e_fm_op_registry entries and confirm
 	_e_sys_logout_begin(E_SYS_EXIT);
 	break;
       case E_SYS_HALT:
@@ -532,7 +538,7 @@ _e_sys_action_do(E_Sys_Action a, char *param)
 					    _("Power off.<br>"
 					      "<hilight>Please wait.</hilight>"));
 	     e_obj_dialog_show(od);
-	     e_obj_dialog_icon_set(od, "enlightenment/halt");
+	     e_obj_dialog_icon_set(od, "system-shutdown");
 	     if (_e_sys_dialog) e_object_del(E_OBJECT(_e_sys_dialog));
 	     e_obj_dialog_cb_delete_set(od, _e_sys_dialog_cb_delete);
 	     _e_sys_dialog = od;
@@ -559,7 +565,7 @@ _e_sys_action_do(E_Sys_Action a, char *param)
 					    _("Resetting.<br>"
 					      "<hilight>Please wait.</hilight>"));
 	     e_obj_dialog_show(od);
-	     e_obj_dialog_icon_set(od, "enlightenment/reboot");
+	     e_obj_dialog_icon_set(od, "system-restart");
 	     if (_e_sys_dialog) e_object_del(E_OBJECT(_e_sys_dialog));
 	     e_obj_dialog_cb_delete_set(od, _e_sys_dialog_cb_delete);
 	     _e_sys_dialog = od;
@@ -585,7 +591,7 @@ _e_sys_action_do(E_Sys_Action a, char *param)
 					    _("Suspending.<br>"
 					      "<hilight>Please wait.</hilight>"));
 	     e_obj_dialog_show(od);
-	     e_obj_dialog_icon_set(od, "enlightenment/suspend");
+	     e_obj_dialog_icon_set(od, "system-suspend");
 	     if (_e_sys_dialog) e_object_del(E_OBJECT(_e_sys_dialog));
 	     e_obj_dialog_cb_delete_set(od, _e_sys_dialog_cb_delete);
 	     _e_sys_dialog = od;
@@ -611,7 +617,7 @@ _e_sys_action_do(E_Sys_Action a, char *param)
 					    _("Hibernating.<br>"
 					      "<hilight>Please wait.</hilight>"));
 	     e_obj_dialog_show(od);
-	     e_obj_dialog_icon_set(od, "enlightenment/hibernate");
+	     e_obj_dialog_icon_set(od, "system-suspend-hibernate");
 	     if (_e_sys_dialog) e_object_del(E_OBJECT(_e_sys_dialog));
 	     _e_sys_dialog = od;
 	     e_obj_dialog_cb_delete_set(od, _e_sys_dialog_cb_delete);

@@ -1,7 +1,7 @@
 # get rid of that stupid cache mechanism
 rm -f config.cache
 
-AC_INIT(enlightenment, 0.16.999.050, enlightenment-devel@lists.sourceforge.net)
+AC_INIT(enlightenment, 0.16.999.060, enlightenment-devel@lists.sourceforge.net)
 AC_PREREQ(2.52)
 AC_CONFIG_SRCDIR(configure.ac)
 AC_CONFIG_MACRO_DIR([m4])
@@ -12,6 +12,7 @@ AC_ISC_POSIX
 AM_INIT_AUTOMAKE(1.6 dist-bzip2)
 AM_CONFIG_HEADER(config.h)
 
+AC_GNU_SOURCE
 AC_C_BIGENDIAN
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
@@ -24,6 +25,9 @@ define([AC_LIBTOOL_LANG_GCJ_CONFIG], [:])
 define([AC_LIBTOOL_LANG_F77_CONFIG], [:])
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
+
+release="ver-pre-01"
+AC_SUBST(release)
 
 AC_CHECK_FUNCS(setenv)
 AC_CHECK_FUNCS(unsetenv)
@@ -62,7 +66,7 @@ dnl AC_E_CHECK_PKG(VALGRIND, [valgrind >= 2.4.0], [], [:])
 AC_SUBST(VALGRIND_CFLAGS)
 AC_SUBST(VALGRIND_LIBS)
 
-MODULE_ARCH="$host_os-$host_cpu"
+MODULE_ARCH="$host_os-$host_cpu-$release"
 AC_SUBST(MODULE_ARCH)
 AC_DEFINE_UNQUOTED(MODULE_ARCH, "$MODULE_ARCH", "Module architecture")
 
@@ -238,6 +242,7 @@ PKG_CHECK_MODULES(E, [
   ecore
   ecore-x
   ecore-evas
+  ecore-input
   ecore-con
   ecore-ipc
   ecore-job
@@ -312,6 +317,15 @@ define([CHECK_MODULE_BATTERY],
                        [], [BATTERY=false])
 ])
 
+BATTERY_LDFLAGS=
+case "$host_os" in
+   darwin*)
+      BATTERY_LDFLAGS="-framework Foundation -framework IOKit"
+   ;;
+esac
+
+AC_SUBST(BATTERY_LDFLAGS)
+
 AM_CONDITIONAL(HAVE_TEMPERATURE, false)
 define([CHECK_MODULE_TEMPERATURE],
 [
@@ -366,9 +380,11 @@ AC_E_OPTIONAL_MODULE([start], true)
 AC_E_OPTIONAL_MODULE([exebuf], true)
 AC_E_OPTIONAL_MODULE([winlist], true)
 AC_E_OPTIONAL_MODULE([fileman], true)
+AC_E_OPTIONAL_MODULE([fileman_opinfo], true)
 AC_E_OPTIONAL_MODULE([wizard], true)
 AC_E_OPTIONAL_MODULE([conf], true)
 AC_E_OPTIONAL_MODULE([conf_wallpaper], true)
+AC_E_OPTIONAL_MODULE([conf_wallpaper2], true)
 AC_E_OPTIONAL_MODULE([conf_theme], true, [CHECK_MODULE_CONF_THEME])
 AC_E_OPTIONAL_MODULE([conf_colors], true)
 AC_E_OPTIONAL_MODULE([conf_fonts], true)
@@ -392,6 +408,7 @@ AC_E_OPTIONAL_MODULE([conf_dpms], true)
 AC_E_OPTIONAL_MODULE([conf_shelves], true)
 AC_E_OPTIONAL_MODULE([conf_keybindings], true)
 AC_E_OPTIONAL_MODULE([conf_mousebindings], true)
+AC_E_OPTIONAL_MODULE([conf_edgebindings], true)
 AC_E_OPTIONAL_MODULE([conf_mouse], true)
 AC_E_OPTIONAL_MODULE([conf_window_display], true)
 AC_E_OPTIONAL_MODULE([conf_window_focus], true)
@@ -409,7 +426,7 @@ AC_E_OPTIONAL_MODULE([conf_interaction], true)
 AC_E_OPTIONAL_MODULE([conf_scale], true)
 AC_E_OPTIONAL_MODULE([gadman], true)
 AC_E_OPTIONAL_MODULE([mixer], true, [CHECK_MODULE_MIXER])
-AC_E_OPTIONAL_MODULE([connman], true)
+AC_E_OPTIONAL_MODULE([connman], false)
 AC_E_OPTIONAL_MODULE([illume], true)
 AC_E_OPTIONAL_MODULE([syscon], true)
 
@@ -444,12 +461,16 @@ src/modules/winlist/Makefile
 src/modules/winlist/module.desktop
 src/modules/fileman/Makefile
 src/modules/fileman/module.desktop
+src/modules/fileman_opinfo/Makefile
+src/modules/fileman_opinfo/module.desktop
 src/modules/wizard/Makefile
 src/modules/wizard/module.desktop
 src/modules/conf/Makefile
 src/modules/conf/module.desktop
 src/modules/conf_wallpaper/Makefile
 src/modules/conf_wallpaper/module.desktop
+src/modules/conf_wallpaper2/Makefile
+src/modules/conf_wallpaper2/module.desktop
 src/modules/conf_theme/Makefile
 src/modules/conf_theme/module.desktop
 src/modules/conf_colors/Makefile
@@ -496,6 +517,8 @@ src/modules/conf_keybindings/Makefile
 src/modules/conf_keybindings/module.desktop
 src/modules/conf_mousebindings/Makefile
 src/modules/conf_mousebindings/module.desktop
+src/modules/conf_edgebindings/Makefile
+src/modules/conf_edgebindings/module.desktop
 src/modules/conf_mouse/Makefile
 src/modules/conf_mouse/module.desktop
 src/modules/conf_window_display/Makefile

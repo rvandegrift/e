@@ -13,6 +13,8 @@ static void _cb_off_slider_change(void *data, Evas_Object *obj);
 static int _e_int_config_dpms_available(void);
 static int _e_int_config_dpms_capable(void);
 
+static void _cb_disable_check_list(void *data, Evas_Object *obj);
+
 struct _E_Config_Dialog_Data
 {
    E_Config_Dialog *cfd;
@@ -36,6 +38,7 @@ struct _E_Config_Dialog_Data
 };
 
 static E_Dialog *dpms_dialog = NULL;
+Eina_List *dpms_list = NULL;
 
 static void
 _cb_dpms_dialog_ok(void *data, E_Dialog *dia)
@@ -57,7 +60,7 @@ _e_int_config_dpms_capable(void)
    e_dialog_title_set(dpms_dialog, _("Display Power Management Signaling"));
    e_dialog_text_set(dpms_dialog, _("The current display server is not <br>"
 				    "DPMS capable."));
-   e_dialog_icon_set(dpms_dialog, "enlightenment/power_management", 64);
+   e_dialog_icon_set(dpms_dialog, "preferences-system-power-management", 64);
    e_dialog_button_add(dpms_dialog, _("OK"), NULL, _cb_dpms_dialog_ok, NULL);
    e_dialog_button_focus_num(dpms_dialog, 1);
    e_win_centered_set(dpms_dialog->win, 1);
@@ -78,7 +81,7 @@ _e_int_config_dpms_available(void)
    e_dialog_title_set(dpms_dialog, _("Display Power Management Signaling"));
    e_dialog_text_set(dpms_dialog, _("The current display server does not <br>"
 				    "have the DPMS extension."));
-   e_dialog_icon_set(dpms_dialog, "enlightenment/power_management", 64);
+   e_dialog_icon_set(dpms_dialog, "preferences-system-power-management", 64);
    e_dialog_button_add(dpms_dialog, _("OK"), NULL, _cb_dpms_dialog_ok, NULL);
    e_dialog_button_focus_num(dpms_dialog, 1);
    e_win_centered_set(dpms_dialog->win, 1);
@@ -107,7 +110,7 @@ e_int_config_dpms(E_Container *con, const char *params __UNUSED__)
    v->override_auto_apply = 1;
    
    cfd = e_config_dialog_new(con, _("Display Power Management Settings"), "E", 
-			     "_config_dpms_dialog", "enlightenment/power_management", 
+			     "_config_dpms_dialog", "preferences-system-power-management", 
 			     0, v, NULL);
    return cfd;
 }
@@ -143,13 +146,9 @@ _create_data(E_Config_Dialog *cfd)
 static void
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   if (!cfdata) return;
+  dpms_list = eina_list_free(dpms_list);
 
-   cfdata->standby_slider=NULL;
-   cfdata->suspend_slider=NULL;
-   cfdata->off_slider=NULL;
-
-   E_FREE(cfdata);
+  E_FREE(cfdata);
 }
 
 static int
@@ -193,38 +192,54 @@ static Evas_Object *
 _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *of, *ob;
+   Evas_Object *dpms_check;
 
    o = e_widget_list_add(evas, 0, 0);
 
-   ob = e_widget_check_add(evas, _("Enable Display Power Management"), 
+   dpms_check = e_widget_check_add(evas, _("Enable Display Power Management"), 
 			   &(cfdata->enable_dpms));
-   e_widget_list_object_append(o, ob, 1, 1, 0);   
+   e_widget_list_object_append(o, dpms_check, 1, 1, 0);   
    
    of = e_widget_framelist_add(evas, _("Timers"), 0);
 
    ob = e_widget_check_add(evas, _("Standby time"), &(cfdata->enable_standby));
    e_widget_framelist_object_append(of, ob);
+   dpms_list = eina_list_append (dpms_list, ob);
+   e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    ob = e_widget_slider_add(evas, 1, 0, _("%1.0f minutes"), 1.0, 90.0, 1.0, 0, 
 			    &(cfdata->standby_timeout), NULL, 200);
    e_widget_on_change_hook_set(ob, _cb_standby_slider_change, cfdata);   
    cfdata->standby_slider = ob;
+   dpms_list = eina_list_append (dpms_list, ob);
+   e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    e_widget_framelist_object_append(of, ob);
    
    ob = e_widget_check_add(evas, _("Suspend time"), &(cfdata->enable_suspend));
    e_widget_framelist_object_append(of, ob);
+   dpms_list = eina_list_append (dpms_list, ob);
+   e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    ob = e_widget_slider_add(evas, 1, 0, _("%1.0f minutes"), 1.0, 90.0, 1.0, 0, 
 			    &(cfdata->suspend_timeout), NULL, 200);
    e_widget_on_change_hook_set(ob, _cb_suspend_slider_change, cfdata);
    cfdata->suspend_slider = ob;
+   dpms_list = eina_list_append (dpms_list, ob);
+   e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    e_widget_framelist_object_append(of, ob);
 
    ob = e_widget_check_add(evas, _("Off time"), &(cfdata->enable_off));
    e_widget_framelist_object_append(of, ob);
+   dpms_list = eina_list_append (dpms_list, ob);
+   e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    ob = e_widget_slider_add(evas, 1, 0, _("%1.0f minutes"), 1.0, 90.0, 1.0, 0, 
 			    &(cfdata->off_timeout), NULL, 200);
    e_widget_on_change_hook_set(ob, _cb_off_slider_change, cfdata);
    cfdata->off_slider = ob;
+   dpms_list = eina_list_append (dpms_list, ob);
+   e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    e_widget_framelist_object_append(of, ob);
+
+   // handler for enable/disable widget array
+   e_widget_on_change_hook_set(dpms_check, _cb_disable_check_list, dpms_list);
 
    e_widget_list_object_append(o, of, 1, 1, 0.5);
    return o;   
@@ -297,4 +312,19 @@ _cb_off_slider_change(void *data, Evas_Object *obj)
 						cfdata->standby_timeout);
 	  }
      }
+}
+
+/*!
+ * @param data A Eina_List of Evas_Object to chain widgets together with the checkbox
+ * @param obj A Evas_Object checkbox created with e_widget_check_add()
+ */
+static void
+_cb_disable_check_list(void *data, Evas_Object *obj)
+{
+   Eina_List *list = (Eina_List*) data;
+   Eina_List *l;
+   Evas_Object *o;
+
+   EINA_LIST_FOREACH(list, l, o)
+      e_widget_disabled_set(o, !e_widget_check_checked_get(obj));
 }

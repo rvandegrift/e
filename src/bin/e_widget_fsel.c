@@ -70,34 +70,39 @@ static void
 _e_wid_fsel_favorites_add(void *data1, void *data2)
 {
    E_Widget_Data *wd;
-   const char *current_path, *homedir;
+   const char *current_path;
    char buf[4096], *fname;
    struct stat st;
-   int i = 1;
    FILE *f;
-   
+   size_t len;
+
    wd = data1;
    current_path = e_fm2_real_path_get(wd->o_files_fm);
    if (!ecore_file_is_dir(current_path)) return;
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/fileman/favorites/%s", 
-	    homedir, ecore_file_file_get(current_path));
+
+   len = e_user_dir_snprintf(buf, sizeof(buf), "fileman/favorites/%s",
+			     ecore_file_file_get(current_path));
+   if (len >= sizeof(buf)) return;
    if (stat(buf, &st) < 0) symlink(current_path, buf);
    else
      {
-        while (stat(buf, &st) == 0)
+	unsigned int i = 1, maxlen;
+	buf[len] = '-';
+	len++;
+	if (len == sizeof(buf)) return;
+	maxlen = sizeof(buf) - len;
+	do
 	  {
-	     snprintf(buf, sizeof(buf),
-		      "%s/.e/e/fileman/favorites/%s-%d",
-		      homedir,
-		      ecore_file_file_get(current_path), i);
+	     if (snprintf(buf + len, maxlen, "%d", i) >= maxlen)
+	       return;
 	     i++;
 	  }
-	symlink(current_path, buf);  
+        while (stat(buf, &st) == 0);
+	symlink(current_path, buf);
      }
    fname = alloca(strlen(ecore_file_file_get(buf)) + 1);
    strcpy(fname, ecore_file_file_get(buf));
-   snprintf(buf, sizeof(buf), "%s/.e/e/fileman/favorites/.order", homedir);
+   e_user_dir_concat_static(buf, "fileman/favorites/.order");
    if (ecore_file_exists(buf))
      {
 	f = fopen(buf, "a");
@@ -285,13 +290,13 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
    wd->o_table2 = o;
    e_widget_sub_object_add(obj, o);
    
-   o = e_widget_button_add(evas, _("Add to Favorites"), "widget/add_fav",
+   o = e_widget_button_add(evas, _("Add to Favorites"), "bookmark-new",
 			   _e_wid_fsel_favorites_add, wd, NULL);
    wd->o_favorites_add = o;
    e_widget_sub_object_add(obj, o);
    e_widget_table_object_append(wd->o_table2, o, 0, 0, 1, 1, 0, 0, 0, 0);
    
-   o = e_widget_button_add(evas, _("Go up a Directory"), "widget/up_dir",
+   o = e_widget_button_add(evas, _("Go up a Directory"), "go-up",
 			   _e_wid_fsel_button_up, wd, NULL);
    wd->o_up_button = o;
    e_widget_sub_object_add(obj, o);

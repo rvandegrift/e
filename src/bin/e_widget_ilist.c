@@ -4,9 +4,9 @@
 #include "e.h"
 
 typedef struct _E_Widget_Queue_Item E_Widget_Queue_Item;
-
 typedef struct _E_Widget_Data E_Widget_Data;
 typedef struct _E_Widget_Callback E_Widget_Callback;
+
 struct _E_Widget_Data
 {
    Evas_Object *o_widget, *o_scrollframe, *o_ilist;
@@ -16,7 +16,6 @@ struct _E_Widget_Data
       Eina_List *queue;
       Ecore_Timer *timer;
       int count;
-      
       int show_nth;
       int select_nth;
    } queue;
@@ -24,21 +23,20 @@ struct _E_Widget_Data
 struct _E_Widget_Callback
 {
    void (*func) (void *data);
-   void  *data;
-   char  *value;
+   void *data;
+   char *value;
 };
 
 struct _E_Widget_Queue_Item
 {
-   int command; 
+   int command;
    Evas_Object *icon;
    const char *label;
    int header;
    void (*func) (void *data);
    void *data;
    const char *val;
-   int relative;
-   int use_relative;
+   int relative, use_relative;
    int item;
 };
 
@@ -61,7 +59,7 @@ _queue_timer(void *data)
    Evas_Object *obj;
    E_Widget_Data *wd;
    int num;
-   
+
    obj = data;
    wd = e_widget_data_get(obj);
    wd->queue.timer = NULL;
@@ -70,69 +68,71 @@ _queue_timer(void *data)
    while (wd->queue.queue)
      {
         E_Widget_Queue_Item *qi;
-        
+
         qi = wd->queue.queue->data;
         if (qi->command == 0)
           {
              E_Widget_Callback *wcb, *rcb;
+
              wcb = E_NEW(E_Widget_Callback, 1);
              if (!wcb) break;
              wcb->func = qi->func;
              wcb->data = qi->data;
              if (qi->val) wcb->value = strdup(qi->val);
-             wd->callbacks = eina_list_append(wd->callbacks, wcb);
              if (qi->use_relative == 0) // append
-               e_ilist_append(wd->o_ilist, qi->icon, qi->label, qi->header, 
-                              _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
+               {
+                  wd->callbacks = eina_list_append(wd->callbacks, wcb);
+                  e_ilist_append(wd->o_ilist, qi->icon, qi->label, qi->header,
+                                 _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
+               }
              else if (qi->use_relative == 2) // prepend
-               e_ilist_prepend(wd->o_ilist, qi->icon, qi->label, qi->header, 
-                               _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
+               {
+                  wd->callbacks = eina_list_append(wd->callbacks, wcb);
+                  e_ilist_prepend(wd->o_ilist, qi->icon, qi->label, qi->header,
+                                  _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
+               }
              else if (qi->use_relative == 1) // append relative
                {
                   rcb = eina_list_nth(wd->callbacks, qi->relative);
-                  if (rcb) 
+                  if (rcb)
                     {
                        wd->callbacks = eina_list_append_relative(wd->callbacks, wcb, rcb);
-                       e_ilist_append_relative(wd->o_ilist, qi->icon, qi->label, qi->header, 
+                       e_ilist_append_relative(wd->o_ilist, qi->icon, qi->label, qi->header,
                                                _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb, qi->relative);
                     }
-                  else 
+                  else
                     {
                        wd->callbacks = eina_list_append(wd->callbacks, wcb);
-                       e_ilist_append(wd->o_ilist, qi->icon, qi->label, qi->header, 
+                       e_ilist_append(wd->o_ilist, qi->icon, qi->label, qi->header,
                                       _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
                     }
                }
              else if (qi->use_relative == 3) // prepend relative
                {
                   rcb = eina_list_nth(wd->callbacks, qi->relative);
-                  if (rcb) 
+                  if (rcb)
                     {
                        wd->callbacks = eina_list_prepend_relative(wd->callbacks, wcb, rcb);
-                       e_ilist_prepend_relative(wd->o_ilist, qi->icon, qi->label, qi->header, 
+                       e_ilist_prepend_relative(wd->o_ilist, qi->icon, qi->label, qi->header,
                                                 _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb, qi->relative);
                     }
-                  else 
+                  else
                     {
                        wd->callbacks = eina_list_prepend(wd->callbacks, wcb);
-                       e_ilist_prepend(wd->o_ilist, qi->icon, qi->label, qi->header, 
+                       e_ilist_prepend(wd->o_ilist, qi->icon, qi->label, qi->header,
                                        _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
                     }
                }
              if (qi->icon) evas_object_show(qi->icon);
           }
         else if (qi->command == 1)
-          {
-             e_ilist_nth_label_set(wd->o_ilist, qi->item, qi->label);
-          }
+          e_ilist_nth_label_set(wd->o_ilist, qi->item, qi->label);
         else if (qi->command == 2)
-          {
-             e_ilist_nth_icon_set(wd->o_ilist, qi->item, qi->icon);
-          }
+          e_ilist_nth_icon_set(wd->o_ilist, qi->item, qi->icon);
         else if (qi->command == 3)
           {
              Evas_Coord x, y, w, h;
-             
+
              e_ilist_nth_geometry_get(wd->o_ilist, qi->item, &x, &y, &w, &h);
              if (qi->use_relative)
                e_scrollframe_child_pos_set(wd->o_scrollframe, x, y);
@@ -140,14 +140,12 @@ _queue_timer(void *data)
                e_scrollframe_child_region_show(wd->o_scrollframe, x, y, w, h);
           }
         else if (qi->command == 4)
-          {
-             e_ilist_selected_set(wd->o_ilist, qi->item);
-          }
+          e_ilist_selected_set(wd->o_ilist, qi->item);
         else if (qi->command == 5)
           {
              if ((wd->value) && *(wd->value))
                {
-                  free(*(wd->value));
+                  eina_stringshare_del(*(wd->value));
                   *(wd->value) = NULL;
                }
              e_ilist_unselect(wd->o_ilist);
@@ -155,23 +153,22 @@ _queue_timer(void *data)
         else if (qi->command == 6)
           {
              E_Widget_Callback *wcb;
+	     Eina_List *item;
 
              e_ilist_remove_num(wd->o_ilist, qi->item);
-             if ((wcb = eina_list_nth(wd->callbacks, qi->item)))
-               {
-                  if (wcb->value) free(wcb->value);
+	     item = eina_list_nth_list(wd->callbacks, qi->item);
+	     if (item)
+	       {
+		  wcb = eina_list_data_get(item);
+		  if (wcb && wcb->value) free(wcb->value);
                   free(wcb);
-                  wd->callbacks = eina_list_remove(wd->callbacks, wcb);
+                  wd->callbacks = eina_list_remove_list(wd->callbacks, item);
                }
           }
         else if (qi->command == 7)
-          {
-             e_ilist_multi_select(wd->o_ilist, qi->item);
-          }
+          e_ilist_multi_select(wd->o_ilist, qi->item);
         else if (qi->command == 8)
-          {
-             e_ilist_range_select(wd->o_ilist, qi->item);
-          }
+          e_ilist_range_select(wd->o_ilist, qi->item);
         _queue_remove(obj, qi, 0);
         num++;
         if (num >= 10) break;
@@ -186,6 +183,7 @@ static void
 _queue_queue(Evas_Object *obj)
 {
    E_Widget_Data *wd;
+
    wd = e_widget_data_get(obj);
    if (!wd->queue.queue) return;
    if (wd->queue.timer) return;
@@ -207,7 +205,7 @@ _queue_append(Evas_Object *obj,
 {
    E_Widget_Data *wd;
    E_Widget_Queue_Item *qi;
-   
+
    wd = e_widget_data_get(obj);
    qi = E_NEW(E_Widget_Queue_Item, 1);
    if (!qi) return;
@@ -229,7 +227,7 @@ static void
 _queue_remove(Evas_Object *obj, E_Widget_Queue_Item *qi, int del)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    wd->queue.queue = eina_list_remove(wd->queue.queue, qi);
    if (del)
@@ -245,7 +243,7 @@ static void
 _queue_clear(Evas_Object *obj)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    while (wd->queue.queue)
      _queue_remove(obj, wd->queue.queue->data, 1);
@@ -255,7 +253,7 @@ _queue_clear(Evas_Object *obj)
 
 /* externally accessible functions */
 EAPI Evas_Object *
-e_widget_ilist_add(Evas *evas, int icon_w, int icon_h, char **value)
+e_widget_ilist_add(Evas *evas, int icon_w, int icon_h, const char **value)
 {
    Evas_Object *obj, *o;
    E_Widget_Data *wd;
@@ -314,7 +312,7 @@ EAPI void
 e_widget_ilist_append(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val)
 {
    _queue_append(obj, 0, icon, label, 0, func, data, val, 0, 0, 0);
-/*   
+/*
    E_Widget_Data *wd;
    E_Widget_Callback *wcb;
 
@@ -334,8 +332,8 @@ e_widget_ilist_append(Evas_Object *obj, Evas_Object *icon, const char *label, vo
 EAPI void
 e_widget_ilist_append_relative(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val, int relative)
 {
-   _queue_append(obj, 0, icon, label, 0, func, data, val, 1, relative, 0);
-/*   
+   _queue_append(obj, 0, icon, label, 0, func, data, val, relative,1, 0);
+/*
    E_Widget_Data *wd;
    E_Widget_Callback *wcb, *rcb;
 
@@ -348,12 +346,12 @@ e_widget_ilist_append_relative(Evas_Object *obj, Evas_Object *icon, const char *
    if (val) wcb->value = strdup(val);
 
    rcb = eina_list_nth(wd->callbacks, relative);
-   if (rcb) 
+   if (rcb)
      {
 	wd->callbacks = eina_list_append_relative(wd->callbacks, wcb, rcb);
 	e_ilist_append_relative(wd->o_ilist, icon, label, 0, _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb, relative);
      }
-   else 
+   else
      {
 	wd->callbacks = eina_list_append(wd->callbacks, wcb);
 	e_ilist_append(wd->o_ilist, icon, label, 0, _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
@@ -366,8 +364,8 @@ e_widget_ilist_append_relative(Evas_Object *obj, Evas_Object *icon, const char *
 EAPI void
 e_widget_ilist_prepend(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val)
 {
-   _queue_append(obj, 0, icon, label, 0, func, data, val, 2, 0, 0);
-/*   
+   _queue_append(obj, 0, icon, label, 0, func, data, val, 0, 2, 0);
+/*
    E_Widget_Data *wd;
    E_Widget_Callback *wcb;
 
@@ -387,8 +385,8 @@ e_widget_ilist_prepend(Evas_Object *obj, Evas_Object *icon, const char *label, v
 EAPI void
 e_widget_ilist_prepend_relative(Evas_Object *obj, Evas_Object *icon, const char *label, void (*func) (void *data), void *data, const char *val, int relative)
 {
-   _queue_append(obj, 0, icon, label, 0, func, data, val, 3, relative, 0);
-/*   
+   _queue_append(obj, 0, icon, label, 0, func, data, val, relative, 3, 0);
+/*
    E_Widget_Data *wd;
    E_Widget_Callback *wcb, *rcb;
 
@@ -401,12 +399,12 @@ e_widget_ilist_prepend_relative(Evas_Object *obj, Evas_Object *icon, const char 
    if (val) wcb->value = strdup(val);
 
    rcb = eina_list_nth(wd->callbacks, relative);
-   if (rcb) 
+   if (rcb)
      {
 	wd->callbacks = eina_list_prepend_relative(wd->callbacks, wcb, rcb);
 	e_ilist_prepend_relative(wd->o_ilist, icon, label, 0, _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb, relative);
      }
-   else 
+   else
      {
 	wd->callbacks = eina_list_prepend(wd->callbacks, wcb);
 	e_ilist_prepend(wd->o_ilist, icon, label, 0, _e_wid_cb_item_sel, _e_wid_cb_item_hilight, wd, wcb);
@@ -420,7 +418,7 @@ EAPI void
 e_widget_ilist_header_append(Evas_Object *obj, Evas_Object *icon, const char *label)
 {
    _queue_append(obj, 0, icon, label, 1, NULL, NULL, NULL, 0, 0, 0);
-/*   
+/*
    E_Widget_Data *wd;
    E_Widget_Callback *wcb;
 
@@ -458,7 +456,7 @@ e_widget_ilist_go(Evas_Object *obj)
    if (mw > vw)
      {
 	Evas_Coord wmw, wmh;
-	
+
 	e_widget_min_size_get(obj, &wmw, &wmh);
 	e_widget_min_size_set(obj, mw + (w - vw), wmh);
      }
@@ -467,7 +465,7 @@ e_widget_ilist_go(Evas_Object *obj)
 }
 
 EAPI void
-e_widget_ilist_clear(Evas_Object *obj) 
+e_widget_ilist_clear(Evas_Object *obj)
 {
    E_Widget_Data *wd;
 
@@ -496,7 +494,7 @@ e_widget_ilist_count(Evas_Object *obj)
 }
 
 EAPI Eina_List *
-e_widget_ilist_items_get(Evas_Object *obj) 
+e_widget_ilist_items_get(Evas_Object *obj)
 {
    E_Widget_Data *wd;
 
@@ -504,8 +502,8 @@ e_widget_ilist_items_get(Evas_Object *obj)
    return e_ilist_items_get(wd->o_ilist);
 }
 
-EAPI int 
-e_widget_ilist_nth_is_header(Evas_Object *obj, int n) 
+EAPI int
+e_widget_ilist_nth_is_header(Evas_Object *obj, int n)
 {
    E_Widget_Data *wd;
 
@@ -517,7 +515,7 @@ EAPI void
 e_widget_ilist_nth_label_set(Evas_Object *obj, int n, const char *label)
 {
    _queue_append(obj, 1, NULL, label, 0, NULL, NULL, NULL, 0, 0, n);
-/*   
+/*
    E_Widget_Data *wd;
 
    wd = e_widget_data_get(obj);
@@ -538,7 +536,7 @@ EAPI void
 e_widget_ilist_nth_icon_set(Evas_Object *obj, int n, Evas_Object *icon)
 {
    _queue_append(obj, 2, icon, NULL, 0, NULL, NULL, NULL, 0, 0, n);
-/*   
+/*
    E_Widget_Data *wd;
 
    wd = e_widget_data_get(obj);
@@ -564,9 +562,9 @@ e_widget_ilist_nth_data_get(Evas_Object *obj, int n)
    wd = e_widget_data_get(obj);
    wcb = eina_list_nth(wd->callbacks, n);
 
-   if (!wcb) 
+   if (!wcb)
      return NULL;
-   else 
+   else
      return wcb->data;
 }
 
@@ -574,14 +572,14 @@ e_widget_ilist_nth_data_get(Evas_Object *obj, int n)
  * Show the nth element of an ilist
  * @param obj the ilist
  * @param n the number of the element to show
- * @param top if true, place this item at the top, otherwise scroll just 
+ * @param top if true, place this item at the top, otherwise scroll just
  * enough to show the element (from the current position).
  */
 EAPI void
 e_widget_ilist_nth_show(Evas_Object *obj, int n, int top)
 {
    _queue_append(obj, 3, NULL, NULL, 0, NULL, NULL, NULL, 0, top, n);
-/*   
+/*
    E_Widget_Data *wd;
    Evas_Coord x, y, w, h;
 
@@ -598,7 +596,7 @@ EAPI void
 e_widget_ilist_selected_set(Evas_Object *obj, int n)
 {
    _queue_append(obj, 4, NULL, NULL, 0, NULL, NULL, NULL, 0, 0, n);
-/*   
+/*
    E_Widget_Data *wd;
 
    wd = e_widget_data_get(obj);
@@ -633,8 +631,8 @@ e_widget_ilist_selected_icon_get(Evas_Object *obj)
    return e_ilist_selected_icon_get(wd->o_ilist);
 }
 
-EAPI int 
-e_widget_ilist_selected_count_get(Evas_Object *obj) 
+EAPI int
+e_widget_ilist_selected_count_get(Evas_Object *obj)
 {
    E_Widget_Data *wd;
 
@@ -646,7 +644,7 @@ EAPI void
 e_widget_ilist_unselect(Evas_Object *obj)
 {
    _queue_append(obj, 5, NULL, NULL, 0, NULL, NULL, NULL, 0, 0, 0);
-/*   
+/*
    E_Widget_Data *wd;
 
    wd = e_widget_data_get(obj);
@@ -662,22 +660,25 @@ e_widget_ilist_unselect(Evas_Object *obj)
 EAPI void
 e_widget_ilist_remove_num(Evas_Object *obj, int n)
 {
-   _queue_append(obj, 6, NULL, NULL, 0, NULL, NULL, NULL, 0, 0, n);
-/*   
-   E_Widget_Data *wd;
+/*    _queue_append(obj, 6, NULL, NULL, 0, NULL, NULL, NULL, 0, 0, n); */
    E_Widget_Callback *wcb;
+   E_Widget_Data *wd;
+   Eina_List *item;
 
    wd = e_widget_data_get(obj);
    e_ilist_remove_num(wd->o_ilist, n);
-   if (!(wcb = eina_list_nth(wd->callbacks, n))) return;
-   if (wcb->value) free(wcb->value);
-   free(wcb);
-   wd->callbacks = eina_list_remove(wd->callbacks, wcb);
- */
+   item = eina_list_nth_list(wd->callbacks, n);
+   if (item)
+     {
+	wcb = eina_list_data_get(item);
+	if (wcb && wcb->value) free(wcb->value);
+	free(wcb);
+	wd->callbacks = eina_list_remove_list(wd->callbacks, item);
+     }
 }
 
-EAPI void 
-e_widget_ilist_multi_select_set(Evas_Object *obj, int multi) 
+EAPI void
+e_widget_ilist_multi_select_set(Evas_Object *obj, int multi)
 {
    E_Widget_Data *wd;
 
@@ -685,8 +686,8 @@ e_widget_ilist_multi_select_set(Evas_Object *obj, int multi)
    e_ilist_multi_select_set(wd->o_ilist, multi);
 }
 
-EAPI int 
-e_widget_ilist_multi_select_get(Evas_Object *obj) 
+EAPI int
+e_widget_ilist_multi_select_get(Evas_Object *obj)
 {
    E_Widget_Data *wd;
 
@@ -694,11 +695,11 @@ e_widget_ilist_multi_select_get(Evas_Object *obj)
    return e_ilist_multi_select_get(wd->o_ilist);
 }
 
-EAPI void 
-e_widget_ilist_multi_select(Evas_Object *obj, int n) 
+EAPI void
+e_widget_ilist_multi_select(Evas_Object *obj, int n)
 {
    _queue_append(obj, 7, NULL, NULL, 0, NULL, NULL, NULL, 0, 0, n);
-/*   
+/*
    E_Widget_Data *wd;
 
    wd = e_widget_data_get(obj);
@@ -706,11 +707,11 @@ e_widget_ilist_multi_select(Evas_Object *obj, int n)
  */
 }
 
-EAPI void 
-e_widget_ilist_range_select(Evas_Object *obj, int n) 
+EAPI void
+e_widget_ilist_range_select(Evas_Object *obj, int n)
 {
    _queue_append(obj, 8, NULL, NULL, 0, NULL, NULL, NULL, 0, 0, n);
-/*   
+/*
    E_Widget_Data *wd;
 
    wd = e_widget_data_get(obj);
@@ -723,7 +724,7 @@ e_widget_ilist_preferred_size_get(Evas_Object *obj, Evas_Coord *w, Evas_Coord *h
 {
    Evas_Coord ww, hh, mw, mh, vw, vh;
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    evas_object_geometry_get(wd->o_scrollframe, NULL, NULL, &ww, &hh);
    evas_object_resize(wd->o_scrollframe, 200, 200);
@@ -800,9 +801,9 @@ _e_wid_cb_item_sel(void *data, void *data2)
      {
 	if (wd->value)
 	  {
-	     if (*(wd->value)) free(*(wd->value));
+	     if (*(wd->value)) eina_stringshare_del(*(wd->value));
 	     if (wcb->value)
-	       *(wd->value) = strdup(wcb->value);
+	       *(wd->value) = (char*) eina_stringshare_add(wcb->value);
 	     else
 	       *(wd->value) = NULL;
 	  }

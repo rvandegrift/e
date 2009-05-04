@@ -175,8 +175,8 @@ static void _pager_popup_desk_switch(int x, int y);
 static void _pager_popup_modifiers_set(int mod);
 static int _pager_popup_cb_key_down(void *data, int type, void *event);
 static int _pager_popup_cb_key_up(void *data, int type, void *event);
-static void _pager_popup_cb_action_show(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev);
-static void _pager_popup_cb_action_switch(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev);
+static void _pager_popup_cb_action_show(E_Object *obj, const char *params, Ecore_Event_Key *ev);
+static void _pager_popup_cb_action_switch(E_Object *obj, const char *params, Ecore_Event_Key *ev);
 
 /* variables for pager popup on key actions */
 static E_Action *act_popup_show = NULL;
@@ -802,14 +802,14 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 
 	mi = e_menu_item_new(mn);
 	e_menu_item_label_set(mi, _("Settings"));
-	e_util_menu_item_edje_icon_set(mi, "widget/config");
+	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _pager_inst_cb_menu_configure, NULL);
 
 	if (e_configure_registry_exists("screen/virtual_desktops"))
 	  {
 	     mi = e_menu_item_new(mn);
 	     e_menu_item_label_set(mi, _("Virtual Desktops Settings"));
-	     e_util_menu_item_edje_icon_set(mi, "enlightenment/desktops");
+	     e_util_menu_item_theme_icon_set(mi, "preferences-desktop");
 	     e_menu_item_callback_set(mi, _pager_inst_cb_menu_virtual_desktops_dialog, inst);
 	  }
 
@@ -1383,8 +1383,12 @@ _pager_cb_event_border_urgent_change(void *data, int type, void *event)
 		  if (urgent)
 		    {
 		       if (!(ev->border->iconic))
-			 edje_object_signal_emit(pd->o_desk,
-						 "e,state,urgent", "e");
+			 {
+			    if (pd->pager && pd->pager->inst && !pager_config->popup_urgent)
+			      e_gadcon_urgent_show(pd->pager->inst->gcc->gadcon);
+			    edje_object_signal_emit(pd->o_desk,
+						    "e,state,urgent", "e");
+			 }
 		       edje_object_signal_emit(pw->o_window,
 					       "e,state,urgent", "e");
 		    }
@@ -2376,29 +2380,29 @@ _pager_popup_show()
    ecore_x_window_show(input_window);
    if (!e_grabinput_get(input_window, 0, input_window))
      {
-	ecore_x_window_del(input_window);
+	ecore_x_window_free(input_window);
 	input_window = 0;
 	return 0;
      }
 
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
-      (ECORE_X_EVENT_KEY_DOWN, _pager_popup_cb_key_down, NULL));
+      (ECORE_EVENT_KEY_DOWN, _pager_popup_cb_key_down, NULL));
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
-      (ECORE_X_EVENT_KEY_UP, _pager_popup_cb_key_up, NULL));
+      (ECORE_EVENT_KEY_UP, _pager_popup_cb_key_up, NULL));
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
-      (ECORE_X_EVENT_MOUSE_BUTTON_DOWN, _pager_popup_cb_mouse_down, NULL));
+      (ECORE_EVENT_MOUSE_BUTTON_DOWN, _pager_popup_cb_mouse_down, NULL));
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
-      (ECORE_X_EVENT_MOUSE_BUTTON_UP, _pager_popup_cb_mouse_up, NULL));
+      (ECORE_EVENT_MOUSE_BUTTON_UP, _pager_popup_cb_mouse_up, NULL));
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
-      (ECORE_X_EVENT_MOUSE_WHEEL, _pager_popup_cb_mouse_wheel, NULL));
+      (ECORE_EVENT_MOUSE_WHEEL, _pager_popup_cb_mouse_wheel, NULL));
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
-      (ECORE_X_EVENT_MOUSE_MOVE, _pager_popup_cb_mouse_move, NULL));
+      (ECORE_EVENT_MOUSE_MOVE, _pager_popup_cb_mouse_move, NULL));
 
    act_popup = _pager_popup_new(zone, 1);
 
@@ -2436,7 +2440,7 @@ _pager_popup_hide(int switch_desk)
 	ecore_event_handler_del(handlers->data);
 	handlers = eina_list_remove_list(handlers, handlers);
      }
-   ecore_x_window_del(input_window);
+   ecore_x_window_free(input_window);
    e_grabinput_release(input_window, input_window);
    input_window = 0;
 
@@ -2449,10 +2453,10 @@ _pager_popup_modifiers_set(int mod)
    if (!act_popup) return;
    hold_mod = mod;
    hold_count = 0;
-   if (hold_mod & ECORE_X_MODIFIER_SHIFT) hold_count++;
-   if (hold_mod & ECORE_X_MODIFIER_CTRL) hold_count++;
-   if (hold_mod & ECORE_X_MODIFIER_ALT) hold_count++;
-   if (hold_mod & ECORE_X_MODIFIER_WIN) hold_count++;
+   if (hold_mod & ECORE_EVENT_MODIFIER_SHIFT) hold_count++;
+   if (hold_mod & ECORE_EVENT_MODIFIER_CTRL) hold_count++;
+   if (hold_mod & ECORE_EVENT_MODIFIER_ALT) hold_count++;
+   if (hold_mod & ECORE_EVENT_MODIFIER_WIN) hold_count++;
 }
 
 static void
@@ -2486,14 +2490,14 @@ _pager_popup_desk_switch(int x, int y)
 }
 
 static void
-_pager_popup_cb_action_show(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev)
+_pager_popup_cb_action_show(E_Object *obj, const char *params, Ecore_Event_Key *ev)
 {
    if (_pager_popup_show())
      _pager_popup_modifiers_set(ev->modifiers);
 }
 
 static void
-_pager_popup_cb_action_switch(E_Object *obj, const char *params, Ecore_X_Event_Key_Down *ev)
+_pager_popup_cb_action_switch(E_Object *obj, const char *params, Ecore_Event_Key *ev)
 {
    int x = 0;
    int y = 0;
@@ -2520,51 +2524,51 @@ _pager_popup_cb_action_switch(E_Object *obj, const char *params, Ecore_X_Event_K
 static int
 _pager_popup_cb_mouse_down(void *data, int type, void *event)
 {
-   Ecore_X_Event_Mouse_Button_Down *ev;
+   Ecore_Event_Mouse_Button *ev;
    Pager_Popup *pp = act_popup;
 
    ev = event;
-   if (ev->event_win != input_window) return 1;
+   if (ev->window != input_window) return 1;
 
-   evas_event_feed_mouse_down(pp->popup->evas, ev->button,
-			      0, ev->time, NULL);
+   evas_event_feed_mouse_down(pp->popup->evas, ev->buttons,
+			      0, ev->timestamp, NULL);
    return 1;
 }
 
 static int
 _pager_popup_cb_mouse_up(void *data, int type, void *event)
 {
-   Ecore_X_Event_Mouse_Button_Up *ev;
+   Ecore_Event_Mouse_Button *ev;
    Pager_Popup *pp = act_popup;
 
    ev = event;
-   if (ev->event_win != input_window) return 1;
+   if (ev->window != input_window) return 1;
 
-   evas_event_feed_mouse_up(pp->popup->evas, ev->button,
-			    0, ev->time, NULL);
+   evas_event_feed_mouse_up(pp->popup->evas, ev->buttons,
+			    0, ev->timestamp, NULL);
    return 1;
 }
 
 static int
 _pager_popup_cb_mouse_move(void *data, int type, void *event)
 {
-   Ecore_X_Event_Mouse_Move *ev;
+   Ecore_Event_Mouse_Move *ev;
    Pager_Popup *pp = act_popup;
 
    ev = event;
-   if (ev->event_win != input_window) return 1;
+   if (ev->window != input_window) return 1;
 
    evas_event_feed_mouse_move(pp->popup->evas,
 			      ev->x - pp->popup->x + pp->pager->zone->x,
 			      ev->y - pp->popup->y + pp->pager->zone->y,
-			      ev->time, NULL);
+			      ev->timestamp, NULL);
    return 1;
 }
 
 static int
 _pager_popup_cb_mouse_wheel(void *data, int type, void *event)
 {
-   Ecore_X_Event_Mouse_Wheel *ev = event;
+   Ecore_Event_Mouse_Wheel *ev = event;
    Pager_Popup *pp = act_popup;
    int max_x;
    
@@ -2583,19 +2587,19 @@ _pager_popup_cb_mouse_wheel(void *data, int type, void *event)
 static int
 _pager_popup_cb_key_down(void *data, int type, void *event)
 {
-   Ecore_X_Event_Key_Down *ev;
+   Ecore_Event_Key *ev;
 
    ev = event;
-   if (ev->event_win != input_window) return 1;
-   if      (!strcmp(ev->keysymbol, "Up"))
+   if (ev->window != input_window) return 1;
+   if      (!strcmp(ev->key, "Up"))
      _pager_popup_desk_switch(0, -1);
-   else if (!strcmp(ev->keysymbol, "Down"))
+   else if (!strcmp(ev->key, "Down"))
      _pager_popup_desk_switch(0, 1);
-   else if (!strcmp(ev->keysymbol, "Left"))
+   else if (!strcmp(ev->key, "Left"))
      _pager_popup_desk_switch(-1, 0);
-   else if (!strcmp(ev->keysymbol, "Right"))
+   else if (!strcmp(ev->key, "Right"))
      _pager_popup_desk_switch(1, 0);
-   else if (!strcmp(ev->keysymbol, "Escape"))
+   else if (!strcmp(ev->key, "Escape"))
      _pager_popup_hide(0);
    else
      {
@@ -2610,10 +2614,10 @@ _pager_popup_cb_key_down(void *data, int type, void *event)
 
 	     if (bind->action && strcmp(bind->action,"pager_switch")) continue;
 
-	     if (ev->modifiers & ECORE_X_MODIFIER_SHIFT) mod |= E_BINDING_MODIFIER_SHIFT;
-	     if (ev->modifiers & ECORE_X_MODIFIER_CTRL) mod |= E_BINDING_MODIFIER_CTRL;
-	     if (ev->modifiers & ECORE_X_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
-	     if (ev->modifiers & ECORE_X_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
+	     if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT) mod |= E_BINDING_MODIFIER_SHIFT;
+	     if (ev->modifiers & ECORE_EVENT_MODIFIER_CTRL) mod |= E_BINDING_MODIFIER_CTRL;
+	     if (ev->modifiers & ECORE_EVENT_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
+	     if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
 
 	     if (bind->key && (!strcmp(bind->key, ev->keyname)) && ((bind->modifiers == mod)))
 	       {
@@ -2635,28 +2639,28 @@ _pager_popup_cb_key_down(void *data, int type, void *event)
 static int
 _pager_popup_cb_key_up(void *data, int type, void *event)
 {
-   Ecore_X_Event_Key_Up *ev;
+   Ecore_Event_Key *ev;
 
    ev = event;
    if (!(act_popup)) return 1;
 
    if (hold_mod)
      {
-	if      ((hold_mod & ECORE_X_MODIFIER_SHIFT) && (!strcmp(ev->keysymbol, "Shift_L"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_SHIFT) && (!strcmp(ev->keysymbol, "Shift_R"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_CTRL) && (!strcmp(ev->keysymbol, "Control_L"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_CTRL) && (!strcmp(ev->keysymbol, "Control_R"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_ALT) && (!strcmp(ev->keysymbol, "Alt_L"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_ALT) && (!strcmp(ev->keysymbol, "Alt_R"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_ALT) && (!strcmp(ev->keysymbol, "Meta_L"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_ALT) && (!strcmp(ev->keysymbol, "Meta_R"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_ALT) && (!strcmp(ev->keysymbol, "Super_L"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_ALT) && (!strcmp(ev->keysymbol, "Super_R"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_WIN) && (!strcmp(ev->keysymbol, "Super_L"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_WIN) && (!strcmp(ev->keysymbol, "Super_R"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_WIN) && (!strcmp(ev->keysymbol, "Mode_switch"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_WIN) && (!strcmp(ev->keysymbol, "Meta_L"))) hold_count--;
-	else if ((hold_mod & ECORE_X_MODIFIER_WIN) && (!strcmp(ev->keysymbol, "Meta_R"))) hold_count--;
+	if      ((hold_mod & ECORE_EVENT_MODIFIER_SHIFT) && (!strcmp(ev->key, "Shift_L"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_SHIFT) && (!strcmp(ev->key, "Shift_R"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_CTRL) && (!strcmp(ev->key, "Control_L"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_CTRL) && (!strcmp(ev->key, "Control_R"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_ALT) && (!strcmp(ev->key, "Alt_L"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_ALT) && (!strcmp(ev->key, "Alt_R"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_ALT) && (!strcmp(ev->key, "Meta_L"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_ALT) && (!strcmp(ev->key, "Meta_R"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_ALT) && (!strcmp(ev->key, "Super_L"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_ALT) && (!strcmp(ev->key, "Super_R"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_WIN) && (!strcmp(ev->key, "Super_L"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_WIN) && (!strcmp(ev->key, "Super_R"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_WIN) && (!strcmp(ev->key, "Mode_switch"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_WIN) && (!strcmp(ev->key, "Meta_L"))) hold_count--;
+	else if ((hold_mod & ECORE_EVENT_MODIFIER_WIN) && (!strcmp(ev->key, "Meta_R"))) hold_count--;
 	if (hold_count <= 0 && !act_popup->pager->dragging)
 	  {
 	     _pager_popup_hide(1);
@@ -2795,7 +2799,7 @@ e_modapi_init(E_Module *m)
    e_gadcon_provider_register(&_gadcon_class);
 
    e_configure_registry_item_add("extensions/pager", 40, N_("Pager"), NULL,
-				 "enlightenment/pager", _pager_config_dialog);
+				 "preferences-pager", _pager_config_dialog);
 
    act_popup_show = e_action_add("pager_show");
    if (act_popup_show)

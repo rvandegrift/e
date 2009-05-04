@@ -10,6 +10,7 @@ static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static int _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+static void _cb_disable_check_list(void *data, Evas_Object *obj);
 
 #define MODE_CUSTOM            0
 #define MODE_BOTTOM_MIDDLE     1
@@ -28,7 +29,7 @@ struct _E_Config_Dialog_Data
    int basic_size;
    
    /* ADVANCED */
-   char *style;
+   const char *style;
    int orient;
    int fit_along;
    int fit_size;
@@ -41,10 +42,12 @@ struct _E_Config_Dialog_Data
    double hide_duration;
 
    int desk_show_mode;
-   Eina_List *desk_list; 
+   Eina_List *desk_list;
+   Eina_List *autohide_list;
 
    Evas_Object *desk_sel_list;
 };
+
 
 /* a nice easy setup function that does the dirty work */
 EAPI void
@@ -70,7 +73,7 @@ e_int_shelf_config(E_Shelf *es)
 	cfd = e_config_dialog_new(es->zone->container, 
 				  _("Shelf Settings"),
 				  "E", "_shelf_config_dialog",
-				  "enlightenment/shelf", 0, v, es);
+				  "preferences-desktop-shelf", 0, v, es);
 	es->config_dialog = cfd;
      }
 }
@@ -116,9 +119,9 @@ _fill_data(E_Config_Dialog_Data *cfdata)
        cfdata->mode = MODE_TOP_DESKTOP;
    
    if (cfdata->escfg->style)
-     cfdata->style = strdup(cfdata->escfg->style);
+     cfdata->style = eina_stringshare_ref(cfdata->escfg->style);
    else
-     cfdata->style = strdup("");
+     cfdata->style = eina_stringshare_add("");
    cfdata->orient = cfdata->escfg->orient;
    cfdata->fit_along = cfdata->escfg->fit_along;
    cfdata->fit_size = cfdata->escfg->fit_size;
@@ -213,9 +216,11 @@ _create_data(E_Config_Dialog *cfd)
 static void
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
+   eina_list_free(cfdata->autohide_list);
+
    /* Free the cfdata */
    cfdata->es->config_dialog = NULL;
-   if (cfdata->style) free(cfdata->style);
+   eina_stringshare_del(cfdata->style);
    free(cfdata);
 }
 
@@ -305,14 +310,14 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    /* Only change style is we need to */
    if (!cfdata->escfg->style) 
      {
-	cfdata->escfg->style = eina_stringshare_add(cfdata->style);
+	cfdata->escfg->style = eina_stringshare_ref(cfdata->style);
 	e_shelf_style_set(cfdata->es, cfdata->style);
      }
    else if ((cfdata->escfg->style) && 
 	    (strcmp(cfdata->escfg->style, cfdata->style))) 
      {
 	if (cfdata->escfg->style) eina_stringshare_del(cfdata->escfg->style);
-	cfdata->escfg->style = eina_stringshare_add(cfdata->style);
+	cfdata->escfg->style = eina_stringshare_ref(cfdata->style);
 	e_shelf_style_set(cfdata->es, cfdata->style);
      }
 
@@ -395,11 +400,6 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    cfdata->escfg->autohide_show_action = cfdata->autohiding_show_action;
    cfdata->escfg->hide_timeout = cfdata->hide_timeout;
    cfdata->escfg->hide_duration = cfdata->hide_duration;
-   if (cfdata->escfg->autohide && !cfdata->es->hidden)
-     e_shelf_toggle(cfdata->es, 0);
-   else if (!cfdata->escfg->autohide && cfdata->es->hidden)
-     e_shelf_toggle(cfdata->es, 1);
-   e_zone_update_flip_all();
    
    cfdata->escfg->desk_show_mode = cfdata->desk_show_mode;
    cfdata->escfg->desk_list = NULL;
@@ -470,6 +470,11 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    else
      e_shelf_show(cfdata->es);
 
+   if (cfdata->escfg->autohide && !cfdata->es->hidden)
+     e_shelf_toggle(cfdata->es, 0);
+   else if (!cfdata->escfg->autohide && cfdata->es->hidden)
+     e_shelf_toggle(cfdata->es, 1);
+
    e_config_save_queue();   
    cfdata->es->config_dialog = cfd;
    return 1; /* Apply was OK */
@@ -499,17 +504,17 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    
    of = e_widget_framelist_add(evas, _("Layout"), 0);
    rg = e_widget_radio_group_new(&(cfdata->mode));
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_dock", 64, 24, MODE_BOTTOM_MIDDLE, rg);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-desktop-shelf-dock", 64, 24, MODE_BOTTOM_MIDDLE, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_panel", 64, 24, MODE_BOTTOM_ALL, rg);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-desktop-shelf-panel", 64, 24, MODE_BOTTOM_ALL, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_bottom_desk", 64, 24, MODE_BOTTOM_DESKTOP, rg);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-desktop-shelf-bottom-desk", 64, 24, MODE_BOTTOM_DESKTOP, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_menu_bar", 64, 24, MODE_TOP_ALL, rg);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-desktop-shelf-menu-bar", 64, 24, MODE_TOP_ALL, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_top_desk", 64, 24, MODE_TOP_DESKTOP, rg);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-desktop-shelf-top-desk", 64, 24, MODE_TOP_DESKTOP, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_custom", 64, 24, MODE_CUSTOM, rg);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-desktop-shelf-custom", 64, 24, MODE_CUSTOM, rg);
    e_widget_framelist_object_append(of, ob);
    e_widget_list_object_append(ol, of, 1, 1, 0.5);
 
@@ -529,7 +534,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    
    e_widget_list_object_append(o, ol, 0, 0, 0.5);
    
-   ob = e_widget_button_add(evas, _("Configure Contents..."), "widget/config", _cb_configure, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Set Contents..."), "configure", _cb_configure, cfdata, NULL);
    e_widget_list_object_append(o, ob, 0, 0, 0.5);
 
    return o;
@@ -540,6 +545,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 {
    /* generate the core widget layout for a basic dialog */
    Evas_Object *o, *o2, *of, *ob, *oi, *oj;
+   Evas_Object *autohide_check;
    E_Radio_Group *rg;
    Evas_Coord wmw, wmh;
    Eina_List *styles, *l;
@@ -562,50 +568,54 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    e_widget_framelist_object_append(of, ob);
    e_widget_list_object_append(o2, of, 1, 1, 0.5);
    
-   of = e_widget_frametable_add(evas, _("Layout"), 1);
+   of = e_widget_framelist_add(evas, _("Layout"), 0);
+   oi = e_widget_table_add(evas, 1);
    rg = e_widget_radio_group_new(&(cfdata->orient));
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_left", 24, 24, E_GADCON_ORIENT_LEFT, rg);
-   e_widget_frametable_object_append(of, ob, 0, 2, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_right", 24, 24, E_GADCON_ORIENT_RIGHT, rg);
-   e_widget_frametable_object_append(of, ob, 4, 2, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_top", 24, 24, E_GADCON_ORIENT_TOP, rg);
-   e_widget_frametable_object_append(of, ob, 2, 0, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_bottom", 24, 24, E_GADCON_ORIENT_BOTTOM, rg);
-   e_widget_frametable_object_append(of, ob, 2, 4, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_top_left", 24, 24, E_GADCON_ORIENT_CORNER_TL, rg);
-   e_widget_frametable_object_append(of, ob, 1, 0, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_top_right", 24, 24, E_GADCON_ORIENT_CORNER_TR, rg);
-   e_widget_frametable_object_append(of, ob, 3, 0, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_bottom_left", 24, 24, E_GADCON_ORIENT_CORNER_BL, rg);
-   e_widget_frametable_object_append(of, ob, 1, 4, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_bottom_right", 24, 24, E_GADCON_ORIENT_CORNER_BR, rg);
-   e_widget_frametable_object_append(of, ob, 3, 4, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_left_top", 24, 24, E_GADCON_ORIENT_CORNER_LT, rg);
-   e_widget_frametable_object_append(of, ob, 0, 1, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_right_top", 24, 24, E_GADCON_ORIENT_CORNER_RT, rg);
-   e_widget_frametable_object_append(of, ob, 4, 1, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_left_bottom", 24, 24, E_GADCON_ORIENT_CORNER_LB, rg);
-   e_widget_frametable_object_append(of, ob, 0, 3, 1, 1, 1, 1, 1, 1);
-   ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/shelf_position_right_bottom", 24, 24, E_GADCON_ORIENT_CORNER_RB, rg);
-   e_widget_frametable_object_append(of, ob, 4, 3, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-left", 24, 24, E_GADCON_ORIENT_LEFT, rg);
+   e_widget_table_object_append(oi, ob, 0, 2, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-right", 24, 24, E_GADCON_ORIENT_RIGHT, rg);
+   e_widget_table_object_append(oi, ob, 2, 2, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-top", 24, 24, E_GADCON_ORIENT_TOP, rg);
+   e_widget_table_object_append(oi, ob, 1, 0, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-bottom", 24, 24, E_GADCON_ORIENT_BOTTOM, rg);
+   e_widget_table_object_append(oi, ob, 1, 4, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-top-left", 24, 24, E_GADCON_ORIENT_CORNER_TL, rg);
+   e_widget_table_object_append(oi, ob, 0, 0, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-top-right", 24, 24, E_GADCON_ORIENT_CORNER_TR, rg);
+   e_widget_table_object_append(oi, ob, 2, 0, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-bottom-left", 24, 24, E_GADCON_ORIENT_CORNER_BL, rg);
+   e_widget_table_object_append(oi, ob, 0, 4, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-bottom-right", 24, 24, E_GADCON_ORIENT_CORNER_BR, rg);
+   e_widget_table_object_append(oi, ob, 2, 4, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-left-top", 24, 24, E_GADCON_ORIENT_CORNER_LT, rg);
+   e_widget_table_object_append(oi, ob, 0, 1, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-right-top", 24, 24, E_GADCON_ORIENT_CORNER_RT, rg);
+   e_widget_table_object_append(oi, ob, 2, 1, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-left-bottom", 24, 24, E_GADCON_ORIENT_CORNER_LB, rg);
+   e_widget_table_object_append(oi, ob, 0, 3, 1, 1, 1, 1, 1, 1);
+   ob = e_widget_radio_icon_add(evas, NULL, "preferences-position-right-bottom", 24, 24, E_GADCON_ORIENT_CORNER_RB, rg);
+   e_widget_table_object_append(oi, ob, 2, 3, 1, 1, 1, 1, 1, 1);
+
+   e_widget_framelist_object_append(of, oi);
+
+   ob = e_widget_check_add(evas, _("Shrink to Content Size"), &(cfdata->fit_along));
+   e_widget_framelist_object_append(of, ob);
+
+
    e_widget_list_object_append(o2, of, 1, 1, 0.5);
-   
+
    e_widget_list_object_append(o, o2, 1, 1, 0.5);
    
    o2 = e_widget_list_add(evas, 0, 0);
    
    of = e_widget_framelist_add(evas, _("Size"), 0);
-   ob = e_widget_check_add(evas, _("Shrink to Content Size"), &(cfdata->fit_along));
-   e_widget_framelist_object_append(of, ob);
-   ob = e_widget_label_add(evas, _("Shelf Size"));
-   e_widget_framelist_object_append(of, ob);
    ob = e_widget_slider_add(evas, 1, 0, _("%3.0f pixels"), 4, 120, 4, 0, NULL, &(cfdata->size), 100);
    e_widget_framelist_object_append(of, ob);
    e_widget_list_object_append(o2, of, 1, 1, 0.5);
 
    of = e_widget_framelist_add(evas, _("Styles"), 0);
    
-   oi = e_widget_ilist_add(evas, 128, 20, &(cfdata->style));
+   oi = e_widget_ilist_add(evas, 60, 20, &(cfdata->style));
    
    sel = 0;
    styles = e_theme_shelf_list();
@@ -615,7 +625,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 	char buf[4096];
 	
 	ob = e_livethumb_add(evas);
-	e_livethumb_vsize_set(ob, 256, 40);
+	e_livethumb_vsize_set(ob, 120, 40);
 	oj = edje_object_add(e_livethumb_evas_get(ob));
 	snprintf(buf, sizeof(buf), "e/shelf/%s/base", (char *)l->data);
 	e_theme_edje_object_set(oj, "base/theme/shelf", buf);
@@ -625,16 +635,16 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 	  sel = n;
      }
    e_widget_min_size_get(oi, &wmw, &wmh);
-   e_widget_min_size_set(oi, wmw, 120);
+   e_widget_min_size_set(oi, wmw, 160);
    
    e_widget_ilist_go(oi);
    e_widget_ilist_selected_set(oi, sel);
    
    e_widget_framelist_object_append(of, oi);
    
-   e_widget_list_object_append(o2, of, 0, 0, 0.5);
+   e_widget_list_object_append(o2, of, 1, 1, 0.5);
    
-   ob = e_widget_button_add(evas, _("Configure Contents..."), "widget/config", _cb_configure, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Set Contents..."), "configure", _cb_configure, cfdata, NULL);
    e_widget_list_object_append(o2, ob, 0, 0, 0.5);
    
    e_widget_list_object_append(o, o2, 0, 0, 0.0);
@@ -642,22 +652,36 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    o2 = e_widget_list_add(evas, 0, 0);
    
    of = e_widget_framelist_add(evas, _("Auto Hide"), 0);
-   ob = e_widget_check_add(evas, _("Auto-hide the shelf"), &(cfdata->autohiding));
-   e_widget_framelist_object_append(of, ob);
+   autohide_check = e_widget_check_add(evas, _("Auto-hide the shelf"), &(cfdata->autohiding));
+   e_widget_framelist_object_append(of, autohide_check);
    rg = e_widget_radio_group_new(&(cfdata->autohiding_show_action));
    ob = e_widget_radio_add(evas, _("Show on mouse in"), 0, rg);
+   cfdata->autohide_list = eina_list_append(cfdata->autohide_list, ob);
+   e_widget_disabled_set(ob, !cfdata->autohiding); // set state from saved config
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_radio_add(evas, _("Show on mouse click"), 1, rg);
+   cfdata->autohide_list = eina_list_append (cfdata->autohide_list, ob);
+   e_widget_disabled_set(ob, !cfdata->autohiding); // set state from saved config
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_label_add(evas, _("Hide timeout"));
+   cfdata->autohide_list = eina_list_append (cfdata->autohide_list, ob);
+   e_widget_disabled_set(ob, !cfdata->autohiding); // set state from saved config
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_slider_add(evas, 1, 0, _("%.1f seconds"), 0.2, 6.0, 0.2, 0, &(cfdata->hide_timeout), NULL, 60);
+   cfdata->autohide_list = eina_list_append (cfdata->autohide_list, ob);
+   e_widget_disabled_set(ob, !cfdata->autohiding); // set state from saved config
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_label_add(evas, _("Hide duration"));
+   cfdata->autohide_list = eina_list_append (cfdata->autohide_list, ob);
+   e_widget_disabled_set(ob, !cfdata->autohiding); // set state from saved config
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_slider_add(evas, 1, 0, _("%.1f seconds"), 0.1, 2.0, 0.1, 0, &(cfdata->hide_duration), NULL, 60);
+   cfdata->autohide_list = eina_list_append (cfdata->autohide_list, ob);
+   e_widget_disabled_set(ob, !cfdata->autohiding); // set state from saved config
    e_widget_framelist_object_append(of, ob);
    e_widget_list_object_append(o2, of, 1, 1, 0.5);
+   // handler for enable/disable widget array
+   e_widget_on_change_hook_set(autohide_check, _cb_disable_check_list, cfdata->autohide_list);
 
    of = e_widget_framelist_add(evas, _("Desktop"), 0);
    rg = e_widget_radio_group_new(&(cfdata->desk_show_mode));
@@ -667,6 +691,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    e_widget_framelist_object_append(of, ob);
 
    ob = e_widget_ilist_add(evas, 16, 16, NULL);
+   e_widget_disabled_set(ob, 1); // set state from saved config
    cfdata->desk_sel_list = ob;
    e_widget_ilist_multi_select_set(ob, 1);
    _desk_sel_list_load(cfdata);
@@ -679,4 +704,19 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    e_widget_list_object_append(o, o2, 0, 0, 0.0);
    
    return o;   
+}
+
+/*!
+ * @param data A Eina_List of Evas_Object to chain widgets together with the checkbox
+ * @param obj A Evas_Object checkbox created with e_widget_check_add()
+ */
+static void
+_cb_disable_check_list(void *data, Evas_Object *obj)
+{
+   Eina_List *list = (Eina_List*) data;
+   Eina_List *l;
+   Evas_Object *o;
+
+   EINA_LIST_FOREACH(list, l, o)
+      e_widget_disabled_set(o, !e_widget_check_checked_get(obj));
 }

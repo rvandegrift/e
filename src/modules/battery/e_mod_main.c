@@ -174,7 +174,7 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 
 	mi = e_menu_item_new(mn);
 	e_menu_item_label_set(mi, _("Settings"));
-	e_util_menu_item_edje_icon_set(mi, "widget/config");
+	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _battery_face_cb_menu_configure, NULL);
 
 	e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
@@ -258,6 +258,7 @@ struct _Hal_Battery
    const char *model;
    const char *vendor;
    const char *type;
+   Eina_Bool got_prop:1;
 };
 
 struct _Hal_Ac_Adapter
@@ -273,7 +274,6 @@ static void _battery_hal_shutdown(void);
 static void _battery_hal_battery_props(void *data, void *reply_data, DBusError *error);
 static void _battery_hal_ac_adapter_props(void *data, void *reply_data, DBusError *error);
 static void _battery_hal_battery_property_changed(void *data, DBusMessage *msg);
-static void _battery_hal_ac_adatper_property_changed(void *data, DBusMessage *msg);
 static void _battery_hal_battery_add(const char *udi);
 static void _battery_hal_battery_del(const char *udi);
 static void _battery_hal_ac_adapter_add(const char *udi);
@@ -316,6 +316,8 @@ _battery_hal_update(void)
         Hal_Battery *hbat;
         
         hbat = l->data;
+	if (!hbat->got_prop)
+	  continue;
         have_battery = 1;
         batnum++;
         if (hbat->is_charging) have_power = 1;
@@ -334,6 +336,10 @@ _battery_hal_update(void)
         disch += hbat->is_discharging;
         chrg += hbat->is_charging;
      }
+
+   if ((hal_batteries) && (batnum == 0))
+     return; /* not ready yet, no properties received for any battery */
+
    if (batnum > 0) full /= batnum;
 
    if ((disch == 0) && (chrg == 0)) time_left = -1;
@@ -348,6 +354,8 @@ static void
 _battery_hal_shutdown(void)
 {
    E_DBus_Connection *conn;
+   Hal_Ac_Adapter *hac;
+   Hal_Battery *hbat;
    
    conn = e_dbus_bus_get(DBUS_BUS_SYSTEM);
    if (!conn) return;
@@ -366,25 +374,17 @@ _battery_hal_shutdown(void)
         e_dbus_signal_handler_del(conn, battery_config->hal.dev_del);
         battery_config->hal.dev_del = NULL;
      }
-   while (hal_ac_adapters)
+   EINA_LIST_FREE(hal_ac_adapters, hac)
      {
-        Hal_Ac_Adapter *hac;
-        
-        hac = hal_ac_adapters->data;
         e_dbus_signal_handler_del(conn, hac->prop_change);
         eina_stringshare_del(hac->udi);
         free(hac);
-        hal_ac_adapters = eina_list_remove_list(hal_ac_adapters, hal_ac_adapters);
      }
-   while (hal_batteries)
+   EINA_LIST_FREE(hal_batteries, hbat)
      {
-        Hal_Battery *hbat;
-        
-        hbat = hal_batteries->data;
         e_dbus_signal_handler_del(conn, hbat->prop_change);
         eina_stringshare_del(hbat->udi);
         free(hbat);
-        hal_batteries = eina_list_remove_list(hal_batteries, hal_batteries);
      }
 }
 
@@ -393,7 +393,6 @@ _battery_hal_battery_props(void *data, void *reply_data, DBusError *error)
 {
    E_Hal_Properties *ret = reply_data;
    int err = 0;
-   int i;
    char *str;
    Hal_Battery *hbat;
    
@@ -429,7 +428,8 @@ _battery_hal_battery_props(void *data, void *reply_data, DBusError *error)
    GET_INT(time_left, "battery.remaining_time");
    GET_BOOL(is_charging, "battery.rechargeable.is_charging");
    GET_BOOL(is_discharging, "battery.rechargeable.is_discharging");
-   
+
+   hbat->got_prop = 1;
    _battery_hal_update();
 }
 
@@ -438,7 +438,6 @@ _battery_hal_ac_adapter_props(void *data, void *reply_data, DBusError *error)
 {
    E_Hal_Properties *ret = reply_data;
    int err = 0;
-   int i;
    char *str;
    Hal_Ac_Adapter *hac;
 
@@ -588,26 +587,27 @@ _battery_hal_ac_adapter_del(const char *udi)
 static void
 _battery_hal_find_battery(void *user_data, void *reply_data, DBusError *error)
 {
+   Eina_List *l;
    char *device;
+
    E_Hal_Manager_Find_Device_By_Capability_Return *ret;
    
    ret = reply_data;
-   if (ecore_list_count(ret->strings) < 1) return;
-   ecore_list_first_goto(ret->strings);
-   while ((device = ecore_list_next(ret->strings)))
+   if (eina_list_count(ret->strings) < 1) return;
+   EINA_LIST_FOREACH(ret->strings, l, device)
      _battery_hal_battery_add(device);
 }
 
 static void
 _battery_hal_find_ac(void *user_data, void *reply_data, DBusError *err)
 {
+   Eina_List *l;
    char *device;
    E_Hal_Manager_Find_Device_By_Capability_Return *ret;
    
    ret = reply_data;
-   if (ecore_list_count(ret->strings) < 1) return;
-   ecore_list_first_goto(ret->strings);
-   while ((device = ecore_list_next(ret->strings)))
+   if (eina_list_count(ret->strings) < 1) return;
+   EINA_LIST_FOREACH(ret->strings, l, device)
      _battery_hal_ac_adapter_add(device);
 }
 
@@ -760,8 +760,7 @@ _battery_config_updated(void)
             (battery_config->force_mode == 2))
      {
         E_DBus_Connection *conn;
-        DBusPendingCall *call;
-        
+
         if (battery_config->batget_exe)
           {
              ecore_exe_terminate(battery_config->batget_exe);
@@ -881,13 +880,11 @@ static void
 _battery_update(int full, int time_left, int have_battery, int have_power)
 {
    Eina_List *l;
+   Instance *inst;
    static double debounce_time = 0.0;
    
-   for (l = battery_config->instances; l; l = l->next)
+   EINA_LIST_FOREACH(battery_config->instances, l, inst)
      {
-        Instance *inst;
-        
-        inst = l->data;
         if (have_power != battery_config->have_power)
           {
              if (have_power)
@@ -1093,7 +1090,7 @@ e_modapi_init(E_Module *m)
 
    snprintf(buf, sizeof(buf), "%s/e-module-battery.edj", e_module_dir_get(m));
    e_configure_registry_category_add("advanced", 80, _("Advanced"), NULL, 
-                                     "enlightenment/advanced");
+                                     "preferences-advanced");
    e_configure_registry_item_add("advanced/battery", 100, _("Battery Meter"), 
                                  NULL, buf, e_int_config_battery_module);
 

@@ -212,7 +212,7 @@ e_slipshelf_new(E_Zone *zone, const char *themedir)
 
    ess->handlers = eina_list_append
      (ess->handlers,
-      ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_UP,
+      ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP,
 			      _e_slipshelf_cb_mouse_up, ess));
    ess->handlers = eina_list_append
      (ess->handlers,
@@ -459,20 +459,18 @@ e_slipshelf_border_home_callback_set(E_Slipshelf *ess, void (*func) (void *data,
 static void
 _e_slipshelf_free(E_Slipshelf *ess)
 {
+   Ecore_Event_Handler *handle;
+
    if (ess->slide_down_timer) ecore_timer_del(ess->slide_down_timer);
    slipshelves = eina_list_remove(slipshelves, ess);
    e_object_del(E_OBJECT(ess->gadcon));
    e_object_del(E_OBJECT(ess->gadcon_extra));
-   while (ess->handlers)
-     {
-	if (ess->handlers->data)
-	  ecore_event_handler_del(ess->handlers->data);
-	ess->handlers = eina_list_remove_list(ess->handlers, ess->handlers);
-     }
+   EINA_LIST_FREE(ess->handlers, handle)
+     ecore_event_handler_del(handle);
    if (ess->animator) ecore_animator_del(ess->animator);
    if (ess->themedir) evas_stringshare_del(ess->themedir);
    if (ess->default_title) evas_stringshare_del(ess->default_title);
-   if (ess->clickwin) ecore_x_window_del(ess->clickwin);
+   if (ess->clickwin) ecore_x_window_free(ess->clickwin);
    e_object_del(E_OBJECT(ess->popup));
    free(ess);
 }
@@ -754,12 +752,12 @@ _e_slipshelf_slide(E_Slipshelf *ess, int out, double len)
 static int
 _e_slipshelf_cb_mouse_up(void *data, int type, void *event)
 {
-   Ecore_X_Event_Mouse_Button_Up *ev;
+   Ecore_Event_Mouse_Button *ev;
    E_Slipshelf *ess;
    
    ev = event;
    ess = data;
-   if (ev->win == ess->clickwin)
+   if (ev->window == ess->clickwin)
      {
 	if (ess->slide_down_timer) ecore_timer_del(ess->slide_down_timer);
 	ess->slide_down_timer = NULL;
@@ -809,11 +807,12 @@ _e_slipshelf_object_del_attach(void *o)
 
    if (e_object_is_del(E_OBJECT(o))) return;
    ess = o;
-   ev = calloc(1, sizeof(E_Event_Slipshelf_Del));
-   ev->slipshelf = ess;
-   e_object_ref(E_OBJECT(ess));
-   ecore_event_add(E_EVENT_SLIPSHELF_DEL, ev, 
-		   _e_slipshelf_event_simple_free, NULL);
+/*    ev = calloc(1, sizeof(E_Event_Slipshelf_Del)); */
+/*    ev->slipshelf = ess; */
+/*    e_object_ref(E_OBJECT(ess)); */
+/*    fprintf(stderr, "event add E_EVENT_SLIPSHELF_DEL\n"); */
+/*    ecore_event_add(E_EVENT_SLIPSHELF_DEL, ev,  */
+/* 		   _e_slipshelf_event_simple_free, NULL); */
 }
     
 static int

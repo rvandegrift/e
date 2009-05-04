@@ -159,7 +159,6 @@ struct _E_Border
    Ecore_Evas     *bg_ecore_evas;
    Evas           *bg_evas;
    Ecore_X_Window  bg_win;
-   Ecore_X_Window  bg_subwin;
    Evas_Object    *bg_object;
    Evas_Object    *icon_object;
    Ecore_X_Window  event_win;
@@ -602,11 +601,11 @@ EAPI Eina_List *e_border_client_list(void);
 EAPI void e_border_act_move_keyboard(E_Border *bd);
 EAPI void e_border_act_resize_keyboard(E_Border *bd);
 
-EAPI void e_border_act_move_begin(E_Border *bd, Ecore_X_Event_Mouse_Button_Down *ev);
-EAPI void e_border_act_move_end(E_Border *bd, Ecore_X_Event_Mouse_Button_Up *ev);
-EAPI void e_border_act_resize_begin(E_Border *bd, Ecore_X_Event_Mouse_Button_Down *ev);
-EAPI void e_border_act_resize_end(E_Border *bd, Ecore_X_Event_Mouse_Button_Up *ev);
-EAPI void e_border_act_menu_begin(E_Border *bd, Ecore_X_Event_Mouse_Button_Down *ev, int key);
+EAPI void e_border_act_move_begin(E_Border *bd, Ecore_Event_Mouse_Button *ev);
+EAPI void e_border_act_move_end(E_Border *bd, Ecore_Event_Mouse_Button *ev);
+EAPI void e_border_act_resize_begin(E_Border *bd, Ecore_Event_Mouse_Button *ev);
+EAPI void e_border_act_resize_end(E_Border *bd, Ecore_Event_Mouse_Button *ev);
+EAPI void e_border_act_menu_begin(E_Border *bd, Ecore_Event_Mouse_Button *ev, int key);
 EAPI void e_border_act_close_begin(E_Border *bd);
 EAPI void e_border_act_kill_begin(E_Border *bd);
 

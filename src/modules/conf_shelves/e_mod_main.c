@@ -35,9 +35,10 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("extensions", 90, _("Extensions"), NULL, "enlightenment/extensions");
-   e_configure_registry_item_add("extensions/shelves", 20, _("Shelves"), NULL, "enlightenment/shelf", e_int_config_shelf);
-   maug = e_int_menus_menu_augmentation_add("config/1", _e_mod_menu_add, NULL, NULL, NULL);
+   e_configure_registry_category_add("extensions", 90, _("Extensions"), NULL, "preferences-extensions");
+   e_configure_registry_item_add("extensions/shelves", 20, _("Shelves"), NULL, "preferences-desktop-shelf", e_int_config_shelf);
+   maug = e_int_menus_menu_augmentation_add_sorted
+     ("config/1", _("Shelves"), _e_mod_menu_add, NULL, NULL, NULL);
 
    conf_module = m;
    e_module_delayed_set(m, 1);
@@ -82,6 +83,6 @@ _e_mod_menu_add(void *data, E_Menu *m)
    
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Shelves"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/shelf");
+   e_util_menu_item_theme_icon_set(mi, "preferences-desktop-shelf");
    e_menu_item_callback_set(mi, _e_mod_run_cb, NULL);
 }

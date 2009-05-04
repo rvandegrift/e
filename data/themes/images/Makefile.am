@@ -336,6 +336,7 @@ icon_efm_tmp.png \
 icon_efm_view_details.png \
 icon_efm_view_name.png \
 icon_efm_view.png \
+icon_engine.png \
 icon_extensions.png \
 icon_favorites.png \
 icon_file_icons.png \
@@ -390,7 +391,6 @@ icon_performance.png \
 icon_power_management.png \
 icon_profiles.png \
 icon_reboot.png \
-icon_regenerate_menus.png \
 icon_reset.png \
 icon_resize.png \
 icon_right_arrow.png \
@@ -428,6 +428,7 @@ icon_startup.png \
 icon_suspend.png \
 icon_swap.png \
 icon_system.png \
+icon_toolbar.png \
 icon_theme.png \
 icon_transitions.png \
 icon_up_arrow.png \
@@ -547,4 +548,11 @@ wifi_0.png \
 wifi_1.png \
 wifi_2.png \
 wifi_3.png \
-wifi_4.png
+wifi_4.png \
+wp-tb1.png \
+wp-bot1.png \
+wp-tb2.png \
+wp-bot2.png \
+wp-tb3.png \
+wp-tbs.png
+

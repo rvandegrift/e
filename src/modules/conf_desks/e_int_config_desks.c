@@ -7,7 +7,9 @@
 static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static int _basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static int _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static int _advanced_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static void _cb_slider_change(void *data, Evas_Object *obj);
@@ -18,13 +20,10 @@ struct _E_Config_Dialog_Data
    /*- BASIC -*/
    int x;
    int y;
-   int edge_flip_basic;
    int flip_animate;
    
    /*- ADVANCED -*/
-   int edge_flip_moving;
    int edge_flip_dragging;
-   double edge_flip_timeout;
    int flip_wrap;
    int flip_mode;
    int flip_interp;
@@ -49,13 +48,15 @@ e_int_config_desks(E_Container *con, const char *params __UNUSED__)
    v->free_cfdata             = _free_data;
    v->basic.apply_cfdata      = _basic_apply_data;
    v->basic.create_widgets    = _basic_create_widgets;
+   v->basic.check_changed     = _basic_check_changed;
    v->advanced.apply_cfdata   = _advanced_apply_data;
    v->advanced.create_widgets = _advanced_create_widgets;
+   v->advanced.check_changed  = _advanced_check_changed;
    /* create config diaolg for NULL object/data */
    cfd = e_config_dialog_new(con,
 			     _("Virtual Desktops Settings"),
 			    "E", "_config_desks_dialog",
-			     "enlightenment/desktops", 0, v, NULL);
+			     "preferences-desktop", 0, v, NULL);
    return cfd;
 }
 
@@ -65,11 +66,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 {
    cfdata->x = e_config->zone_desks_x_count;
    cfdata->y = e_config->zone_desks_y_count;
-   cfdata->edge_flip_basic = e_config->edge_flip_moving || e_config->edge_flip_dragging;
    cfdata->flip_animate = e_config->desk_flip_animate_mode > 0;
-   cfdata->edge_flip_moving = e_config->edge_flip_moving;
    cfdata->edge_flip_dragging = e_config->edge_flip_dragging;
-   cfdata->edge_flip_timeout = e_config->edge_flip_timeout;   
    cfdata->flip_wrap = e_config->desk_flip_wrap;
    cfdata->flip_mode = e_config->desk_flip_animate_mode;
    cfdata->flip_interp = e_config->desk_flip_animate_interpolation;
@@ -101,24 +99,15 @@ static int
 _basic_apply_data(E_Config_Dialog *cdd, E_Config_Dialog_Data *cfdata)
 {
    /* Actually take our cfdata settings and apply them in real life */
-   Eina_List *l, *ll, *lll;
+   const Eina_List *l, *ll, *lll;
    E_Manager *man;
    E_Container *con;
    E_Zone *zone;
 
-   for (l = e_manager_list(); l; l = l->next)
-     {
-	man = l->data;
-	for (ll = man->containers; ll; ll = ll->next)
-	  {
-	     con = ll->data;
-	     for (lll = con ->zones; lll; lll = lll->next)
-	       {
-		  zone = lll->data;
-		  e_zone_desk_count_set(zone, cfdata->x, cfdata->y);
-	       }
-	  }
-     }
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
+     EINA_LIST_FOREACH(man->containers, ll, con)
+       EINA_LIST_FOREACH(con->zones, lll, zone)
+         e_zone_desk_count_set(zone, cfdata->x, cfdata->y);
 
    if (cfdata->flip_animate)
      {
@@ -132,49 +121,95 @@ _basic_apply_data(E_Config_Dialog *cdd, E_Config_Dialog_Data *cfdata)
 	cfdata->flip_mode = 0;
 	e_config->desk_flip_animate_mode = 0;
      }
-   e_config->edge_flip_dragging = cfdata->edge_flip_basic;
-   e_config->edge_flip_moving = cfdata->edge_flip_basic;
-   e_zone_update_flip_all();
 
    e_config_save_queue();
    return 1; /* Apply was OK */
 }
 
 static int
-_advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   /* Actually take our cfdata settings and apply them in real life */
-   Eina_List *l, *ll, *lll;
+   const Eina_List *l, *ll, *lll;
    E_Manager *man;
    E_Container *con;
    E_Zone *zone;
 
-   for (l = e_manager_list(); l; l = l->next)
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
+     EINA_LIST_FOREACH(man->containers, ll, con)
+       EINA_LIST_FOREACH(con->zones, lll, zone)
+         {
+	    int x, y;
+	    e_zone_desk_count_get(zone, &x, &y);
+	    if ((x != cfdata->x) || (y != cfdata->y))
+	      return 1;
+	 }
+
+   if (cfdata->flip_animate)
      {
-	man = l->data;
-	for (ll = man->containers; ll; ll = ll->next)
-	  {
-	     con = ll->data;
-	     for (lll = con->zones; lll; lll = lll->next)
-	       {
-		  zone = lll->data;
-		  e_zone_desk_count_set(zone, cfdata->x, cfdata->y);
-	       }
-	  }
+	if ((cfdata->flip_mode != 1) ||
+	    (e_config->desk_flip_animate_mode != 1) ||
+	    (e_config->desk_flip_animate_interpolation != 0) ||
+	    (e_config->desk_flip_animate_time != 0.5))
+	  return 1;
      }
+   else
+     {
+	if ((cfdata->flip_mode != 0) ||
+	    (e_config->desk_flip_animate_mode != 0))
+	  return 1;
+     }
+
+   return 0;
+}
+
+static int
+_advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+{
+   /* Actually take our cfdata settings and apply them in real life */
+   const Eina_List *l, *ll, *lll;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
+
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
+     EINA_LIST_FOREACH(man->containers, ll, con)
+       EINA_LIST_FOREACH(con->zones, lll, zone)
+         e_zone_desk_count_set(zone, cfdata->x, cfdata->y);
 
    e_config->desk_flip_animate_mode = cfdata->flip_mode;
    e_config->desk_flip_animate_interpolation = cfdata->flip_interp;
    e_config->desk_flip_animate_time = cfdata->flip_speed;
    
-   e_config->edge_flip_moving = cfdata->edge_flip_moving;
    e_config->edge_flip_dragging = cfdata->edge_flip_dragging;
-   e_config->edge_flip_timeout = cfdata->edge_flip_timeout;
    e_config->desk_flip_wrap = cfdata->flip_wrap;
 
-   e_zone_update_flip_all();
    e_config_save_queue();
    return 1; /* Apply was OK */
+}
+
+static int
+_advanced_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+{
+   const Eina_List *l, *ll, *lll;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
+
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
+     EINA_LIST_FOREACH(man->containers, ll, con)
+       EINA_LIST_FOREACH(con->zones, lll, zone)
+         {
+	    int x, y;
+	    e_zone_desk_count_get(zone, &x, &y);
+	    if ((x != cfdata->x) || (y != cfdata->y))
+	      return 1;
+	 }
+
+   return ((e_config->desk_flip_animate_mode != cfdata->flip_mode) ||
+	   (e_config->desk_flip_animate_interpolation != cfdata->flip_interp) ||
+	   (e_config->desk_flip_animate_time != cfdata->flip_speed) ||
+	   (e_config->edge_flip_dragging != cfdata->edge_flip_dragging) ||
+	   (e_config->desk_flip_wrap != cfdata->flip_wrap));
 }
 
 /**--GUI--**/
@@ -206,8 +241,6 @@ _basic_create_widgets(E_Config_Dialog *cdd, Evas *evas, E_Config_Dialog_Data *cf
    e_widget_list_object_append(o, of, 1, 1, 0.5);
     
    of = e_widget_framelist_add(evas, _("Desktop Mouse Flip"), 0);
-   ob = e_widget_check_add(evas, _("Flip desktops when mouse at screen edge"), &(cfdata->edge_flip_basic));
-   e_widget_framelist_object_append(of, ob);
    ob = e_widget_check_add(evas, _("Animated flip"), &(cfdata->flip_animate));
    e_widget_framelist_object_append(of, ob);
 
@@ -245,13 +278,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    e_widget_table_object_append(ott, of, 0, 0, 1, 2, 1, 1, 1, 1);
    
    of = e_widget_framelist_add(evas, _("Desktop Mouse Flip"), 0);
-   ob = e_widget_check_add(evas, _("Flip when moving mouse to the screen edge"), &(cfdata->edge_flip_moving));
-   e_widget_framelist_object_append(of, ob);
    ob = e_widget_check_add(evas, _("Flip when dragging objects to the screen edge"), &(cfdata->edge_flip_dragging));
-   e_widget_framelist_object_append(of, ob);
-   ob = e_widget_label_add(evas, _("Time the mouse is at the edge before flipping:"));
-   e_widget_framelist_object_append(of, ob);
-   ob = e_widget_slider_add(evas, 1, 0, _("%1.1f sec"), 0.0, 2.0, 0.05, 0, &(cfdata->edge_flip_timeout), NULL, 200);
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_check_add(evas, _("Wrap desktops around when flipping"), &(cfdata->flip_wrap));
    e_widget_framelist_object_append(of, ob);

@@ -50,6 +50,10 @@ if USE_MODULE_FILEMAN
 SUBDIRS += fileman
 endif
 
+if USE_MODULE_FILEMAN_OPINFO
+SUBDIRS += fileman_opinfo
+endif
+
 if USE_MODULE_WIZARD
 SUBDIRS += wizard
 endif
@@ -60,6 +64,10 @@ endif
 
 if USE_MODULE_CONF_WALLPAPER
 SUBDIRS += conf_wallpaper
+endif
+
+if USE_MODULE_CONF_WALLPAPER2
+SUBDIRS += conf_wallpaper2
 endif
 
 if USE_MODULE_CONF_THEME
@@ -152,6 +160,10 @@ endif
 
 if USE_MODULE_CONF_MOUSEBINDINGS
 SUBDIRS += conf_mousebindings
+endif
+
+if USE_MODULE_CONF_EDGEBINDINGS
+SUBDIRS += conf_edgebindings
 endif
 
 if USE_MODULE_CONF_MOUSE
@@ -250,9 +262,11 @@ start \
 exebuf \
 winlist \
 fileman \
+fileman_opinfo \
 wizard \
 conf \
 conf_wallpaper \
+conf_wallpaper2 \
 conf_theme \
 conf_colors \
 conf_fonts \
@@ -276,6 +290,7 @@ conf_dpms \
 conf_shelves \
 conf_keybindings \
 conf_mousebindings \
+conf_edgebindings \
 conf_mouse \
 conf_window_display \
 conf_window_focus \

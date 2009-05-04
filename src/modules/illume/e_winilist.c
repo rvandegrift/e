@@ -69,11 +69,10 @@ e_winilist_init(void)
 EAPI int
 e_winilist_shutdown(void)
 {
-   while (handlers)
-     {
-	ecore_event_handler_del(handlers->data);
-	handlers = eina_list_remove_list(handlers, handlers);
-     }
+   Ecore_Event_Handler *handle;
+
+   EINA_LIST_FREE(handlers, handle)
+     ecore_event_handler_del(handle);
    return 1;
 }
 
@@ -265,6 +264,8 @@ _cb_object_resize(void *data, Evas *e, Evas_Object *obj, void *event_info)
    d = evas_object_data_get(obj, "..[winilist]");
    if (!d) return;
    e_ilist_min_size_get(d->o_ilist, &lw, &lh);
+   if (lh < (120 * e_scale)) lh = 120 * e_scale;
+   printf("%i\n", lh);
    e_scrollframe_child_viewport_size_get(d->o_frame, &vw, &vh);
    evas_object_resize(d->o_ilist, vw, lh);
 }
@@ -403,6 +404,8 @@ _refill(Data *d)
    
    /* FIXME: figure out optimal size */
    e_ilist_min_size_get(d->o_ilist, &lw, &lh);
+   if (lh < (120 * e_scale)) lh = 120 * e_scale;
+   printf("%i\n", lh);
    e_scrollframe_child_viewport_size_get(d->o_frame, &vw, &vh);
    evas_object_geometry_get(d->o_frame, NULL, NULL, &w, &h);
    evas_object_resize(d->o_ilist, vw, lh);

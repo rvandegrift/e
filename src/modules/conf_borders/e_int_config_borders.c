@@ -14,7 +14,7 @@ struct _E_Config_Dialog_Data
 {
    E_Border *border;
    E_Container *container;
-   char *bordername;
+   const char *bordername;
    int remember_border;
 };
 
@@ -29,7 +29,7 @@ e_int_config_borders(E_Container *con, const char *params __UNUSED__)
    if (!v) return NULL;
    cfd = e_config_dialog_new(con, _("Default Border Style"), 
 			     "E", "_config_border_style_dialog", 
-			     "enlightenment/windows", 0, v, con);
+			     "preferences-system-windows", 0, v, con);
    return cfd;
 }
 
@@ -49,7 +49,7 @@ e_int_config_borders_border(E_Container *con __UNUSED__, const char *params)
    cfd = e_config_dialog_new(bd->zone->container, 
 			     _("Window Border Selection"), 
 			     "E", "_config_border_border_style_dialog", 
-			     "enlightenment/windows", 0, v, bd);
+			     "preferences-system-windows", 0, v, bd);
    bd->border_border_dialog = cfd;
    return cfd;
 }
@@ -97,10 +97,10 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 	  {
 	     cfdata->remember_border = 1;
 	  }
-	cfdata->bordername = strdup(cfdata->border->client.border.name);
+	cfdata->bordername = eina_stringshare_add(cfdata->border->client.border.name);
      }
    else
-     cfdata->bordername = strdup(e_config->theme_default_border_style);
+     cfdata->bordername = eina_stringshare_add(e_config->theme_default_border_style);
 }
 
 static void 
@@ -109,7 +109,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
    if (cfdata->border) 
      cfdata->border->border_border_dialog = NULL;
 
-   E_FREE(cfdata->bordername);
+   eina_stringshare_del(cfdata->bordername);
    E_FREE(cfdata);
 }
 
@@ -131,9 +131,8 @@ _basic_apply_data(E_Config_Dialog *cfd __UNUSED__,
      _basic_apply_border(cfdata);
    else if (cfdata->container)
      {
-	if (e_config->theme_default_border_style)
-	  eina_stringshare_del(e_config->theme_default_border_style);
-	e_config->theme_default_border_style = eina_stringshare_add(cfdata->bordername);
+	eina_stringshare_del(e_config->theme_default_border_style);
+	e_config->theme_default_border_style = eina_stringshare_ref(cfdata->bordername);
 	/* FIXME: Should this trigger an E Restart to reset all borders ? */
      }
    e_config_save_queue();
@@ -145,8 +144,8 @@ _basic_apply_border(E_Config_Dialog_Data *cfdata)
 {
    if ((!cfdata->border->lock_border) && (!cfdata->border->shaded)) 
      {
-	if (cfdata->border->bordername) eina_stringshare_del(cfdata->border->bordername);
-	cfdata->border->bordername = eina_stringshare_add(cfdata->bordername);
+	eina_stringshare_del(cfdata->border->bordername);
+	cfdata->border->bordername = eina_stringshare_ref(cfdata->bordername);
 	cfdata->border->client.border.changed = 1;
 	cfdata->border->changed = 1;
      }
@@ -197,7 +196,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    o = e_widget_list_add(evas, 0, 0);
    of = e_widget_framelist_add(evas, _("Default Border Style"), 0);
    e_widget_framelist_content_align_set(of, 0.0, 0.0);
-   ol = e_widget_ilist_add(evas, 80, 48, &(cfdata->bordername));
+   ol = e_widget_ilist_add(evas, 96, 96, &(cfdata->bordername));
    borders = e_theme_border_list();
    orect = evas_object_rectangle_add(evas);
    evas_object_color_set(orect, 0, 0, 0, 128);
@@ -212,7 +211,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 	char buf[4096];
 	
 	ob = e_livethumb_add(evas);
-	e_livethumb_vsize_set(ob, 160, 96);
+	e_livethumb_vsize_set(ob, 96, 96);
 	oj = edje_object_add(e_livethumb_evas_get(ob));
 	snprintf(buf, sizeof(buf), "e/widgets/border/%s/border", (char *)l->data);
 	e_theme_edje_object_set(oj, "base/theme/borders", buf);
@@ -227,7 +226,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
      }
    
    e_widget_min_size_get(ol, &w, &h);
-   e_widget_min_size_set(ol, w, 250);
+   e_widget_min_size_set(ol, w > 200 ? w : 200, 200);
 
    e_widget_ilist_go(ol);
    e_widget_ilist_selected_set(ol, sel);

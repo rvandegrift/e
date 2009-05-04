@@ -81,7 +81,7 @@ e_int_border_prop(E_Border *bd)
    e_dialog_button_add(dia, _("Close"), NULL, _bd_cb_dialog_close, dia);
    e_win_centered_set(dia->win, 1);
    e_dialog_show(dia);
-   e_dialog_border_icon_set(dia, "enlightenment/windows");
+   e_dialog_border_icon_set(dia, "preferences-system-windows");
    e_dialog_resizable_set(dia, 1);
 }
 
@@ -360,14 +360,14 @@ _bd_go(void *data, void *data2)
      {
 	o = _bd_icccm_create(dia, NULL);
 	e_widget_list_object_append(c, o, 1, 1, 0.0);
-	ob = e_widget_button_add(e_win_evas_get(dia->win), _("NetWM"), "widget/new_dialog",
+	ob = e_widget_button_add(e_win_evas_get(dia->win), _("NetWM"), "go-next",
 				 _bd_go, dia, (void *)1);
      }
    else 
      {
 	o = _bd_netwm_create(dia, NULL);
 	e_widget_list_object_append(c, o, 1, 1, 0.0);
-	ob = e_widget_button_add(e_win_evas_get(dia->win), _("ICCCM"), "widget/new_dialog",
+	ob = e_widget_button_add(e_win_evas_get(dia->win), _("ICCCM"), "go-next",
 				 _bd_go, dia, (void *)0);
      }
    

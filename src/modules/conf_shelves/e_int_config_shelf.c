@@ -17,7 +17,7 @@ struct _E_Config_Dialog_Data
    Evas_Object *o_delete;
    Evas_Object *o_config;
 
-   char *cur_shelf;
+   const char *cur_shelf;
 };
 
 typedef struct _Shelf_Del_Confirm_Data Shelf_Del_Confirm_Data;
@@ -42,7 +42,7 @@ e_int_config_shelf(E_Container *con, const char *params __UNUSED__)
 
    cfd = e_config_dialog_new(con, _("Shelf Settings"), "E", 
 			     "_config_shelf_dialog",
-			     "enlightenment/shelf", 0, v, NULL);
+			     "preferences-desktop-shelf", 0, v, NULL);
    return cfd;
 }
 
@@ -76,12 +76,12 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_list_object_append(o, of, 1, 1, 0.5);
 
    ot = e_widget_table_add(evas, 0);
-   ob = e_widget_button_add(evas, _("Add"), "widget/add", _cb_add, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Add"), "list-add", _cb_add, cfdata, NULL);
    e_widget_table_object_append(ot, ob, 0, 0, 1, 1, 1, 1, 0, 0);
-   cfdata->o_delete = e_widget_button_add(evas, _("Delete"), "widget/del", 
+   cfdata->o_delete = e_widget_button_add(evas, _("Delete"), "list-remove", 
 					  _cb_delete, cfdata, NULL);
    e_widget_table_object_append(ot, cfdata->o_delete, 0, 1, 1, 1, 1, 1, 0, 0);
-   cfdata->o_config = e_widget_button_add(evas, _("Configure"), "widget/config", 
+   cfdata->o_config = e_widget_button_add(evas, _("Setup"), "configure", 
 					  _cb_config, cfdata, NULL);
    e_widget_table_object_append(ot, cfdata->o_config, 0, 2, 1, 1, 1, 1, 0, 0);
 
@@ -132,47 +132,47 @@ _ilist_fill(E_Config_Dialog_Data *cfdata)
 	if (!label) label = _("Shelf #");
 	snprintf(buf, sizeof(buf), "%s %i", label, es->id);
 
-	ob = edje_object_add(evas);
+	ob = e_icon_add(evas);
         switch (es->cfg->orient)
           {
           case E_GADCON_ORIENT_LEFT:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_left");
+             e_util_icon_theme_set(ob, "preferences-position-left");
              break;
           case E_GADCON_ORIENT_RIGHT:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_right");
+             e_util_icon_theme_set(ob, "preferences-position-right");
              break;
           case E_GADCON_ORIENT_TOP:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_top");
+             e_util_icon_theme_set(ob, "preferences-position-top");
              break;
           case E_GADCON_ORIENT_BOTTOM:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_bottom");
+             e_util_icon_theme_set(ob, "preferences-position-bottom");
              break;
           case E_GADCON_ORIENT_CORNER_TL:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_top_left");
+             e_util_icon_theme_set(ob, "preferences-position-top-left");
              break;
           case E_GADCON_ORIENT_CORNER_TR:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_top_right");
+             e_util_icon_theme_set(ob, "preferences-position-top-right");
              break;
           case E_GADCON_ORIENT_CORNER_BL:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_bottom_left");
+             e_util_icon_theme_set(ob, "preferences-position-bottom-left");
              break;
           case E_GADCON_ORIENT_CORNER_BR:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_bottom_right");
+             e_util_icon_theme_set(ob, "preferences-position-bottom-right");
              break;
           case E_GADCON_ORIENT_CORNER_LT:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_left_top");
+             e_util_icon_theme_set(ob, "preferences-position-left-top");
              break;
           case E_GADCON_ORIENT_CORNER_RT:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_right_top");
+             e_util_icon_theme_set(ob, "preferences-position-right-top");
              break;
           case E_GADCON_ORIENT_CORNER_LB:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_left_bottom");
+             e_util_icon_theme_set(ob, "preferences-position-left-bottom");
              break;
           case E_GADCON_ORIENT_CORNER_RB:
-             e_util_edje_icon_set(ob, "enlightenment/shelf_position_right_bottom");
+             e_util_icon_theme_set(ob, "preferences-position-right-bottom");
              break;
           default:
-             e_util_edje_icon_set(ob, "enlightenment/e");
+             e_util_icon_theme_set(ob, "enlightenment");
              break;
           }
 	e_widget_ilist_append(cfdata->o_list, ob, buf, 
@@ -279,7 +279,7 @@ _cb_delete(void *data, void *data2)
 	    d->cfdata->cur_shelf);
 
    e_confirm_dialog_show(_("Are you sure you want to delete this shelf?"), 
-			 "enlightenment/exit", buf, NULL, NULL, 
+			 "application-exit", buf, NULL, NULL, 
 			 _cb_dialog_yes, NULL, d, NULL, _cb_dialog_destroy, d);
 }
 

@@ -58,15 +58,11 @@ e_manager_init(void)
 EAPI int
 e_manager_shutdown(void)
 {
-   Eina_List *l;
+   E_Manager *man;
 
-   l = managers;
-   managers = NULL;
-   while (l)
-     {
-	e_object_del(E_OBJECT(l->data));
-	l = eina_list_remove_list(l, l);
-     }
+   EINA_LIST_FREE(managers, man)
+     e_object_del(E_OBJECT(man));
+
    if (frame_extents)
      {
 	eina_hash_foreach(frame_extents, _e_manager_frame_extents_free_cb, NULL);
@@ -134,9 +130,9 @@ e_manager_new(Ecore_X_Window root, int num)
    if (h) man->handlers = eina_list_append(man->handlers, h);
    h = ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CONFIGURE, _e_manager_cb_window_configure, man);
    if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_X_EVENT_KEY_DOWN, _e_manager_cb_key_down, man);
+   h = ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, _e_manager_cb_key_down, man);
    if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_X_EVENT_KEY_UP, _e_manager_cb_key_up, man);
+   h = ecore_event_handler_add(ECORE_EVENT_KEY_UP, _e_manager_cb_key_up, man);
    if (h) man->handlers = eina_list_append(man->handlers, h);
    h = ecore_event_handler_add(ECORE_X_EVENT_FRAME_EXTENTS_REQUEST, _e_manager_cb_frame_extents_request, man);
    if (h) man->handlers = eina_list_append(man->handlers, h);
@@ -160,6 +156,7 @@ e_manager_manage_windows(E_Manager *man)
 
    /* a manager is designated for each root. lets get all the windows in 
       the managers root */
+   printf("--------BD DO!!!\n");
    windows = ecore_x_window_children_get(man->root, &wnum);
    if (windows)
      {
@@ -187,7 +184,8 @@ e_manager_manage_windows(E_Manager *man)
 	     unsigned int ret_val, deskxy[2];
 	     int ret;
 
-             if (e_border_find_by_client_window(windows[i])) continue;
+             if (e_border_find_by_client_window(windows[i]))
+               continue;
 	     ecore_x_window_attributes_get(windows[i], &att);
 	     if ((att.override) || (att.input_only))
 	       {
@@ -213,7 +211,7 @@ e_manager_manage_windows(E_Manager *man)
 			 }
 		    }
 		  else
-		    continue;
+                    continue;
 	       }
 	     if (!ecore_x_window_prop_property_get(windows[i],
 						   atom_xmbed,
@@ -284,6 +282,7 @@ e_manager_manage_windows(E_Manager *man)
 		       bd = e_border_new(con, windows[i], 1, 0);
 		       if (bd)
 			 {
+                            bd->ignore_first_unmap = 1;
 			    /* FIXME:
 			     * It's enough to set the desk, the zone will
 			     * be set according to the desk */
@@ -302,7 +301,11 @@ e_manager_manage_windows(E_Manager *man)
 		  
 		  con = e_container_current_get(man);
 		  bd = e_border_new(con, windows[i], 1, 0);
-		  if (bd) e_border_show(bd);
+		  if (bd)
+                    {
+                       bd->ignore_first_unmap = 1;
+                       e_border_show(bd);
+                    }
 	       }
 	  }
 	free(windows);
@@ -545,7 +548,7 @@ _e_manager_free(E_Manager *man)
      }
    if (man->root != man->win)
      {
-	ecore_x_window_del(man->win);
+	ecore_x_window_free(man->win);
      }
    if (man->pointer) e_object_del(E_OBJECT(man->pointer));
    managers = eina_list_remove(managers, man);   
@@ -596,13 +599,13 @@ static int
 _e_manager_cb_key_down(void *data, int ev_type __UNUSED__, void *ev)
 {
    E_Manager *man;
-   Ecore_X_Event_Key_Down *e;
+   Ecore_Event_Key *e;
    
    man = data;
    e = ev;
 
-   if (e->event_win != man->root) return 1;
-   if (e->root_win != man->root) man = _e_manager_get_for_root(e->root_win);
+   if (e->event_window != man->root) return 1;
+   if (e->root_window != man->root) man = _e_manager_get_for_root(e->root_window);
    if (e_bindings_key_down_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(man), ev))
      return 0;
    return 1;
@@ -612,13 +615,13 @@ static int
 _e_manager_cb_key_up(void *data, int ev_type __UNUSED__, void *ev)
 {
    E_Manager *man;
-   Ecore_X_Event_Key_Up *e;
+   Ecore_Event_Key *e;
    
    man = data;
    e = ev;
 
-   if (e->event_win != man->root) return 1;
-   if (e->root_win != man->root) man = _e_manager_get_for_root(e->root_win);
+   if (e->event_window != man->root) return 1;
+   if (e->root_window != man->root) man = _e_manager_get_for_root(e->root_window);
    if (e_bindings_key_up_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(man), ev))
      return 0;
    return 1;

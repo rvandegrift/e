@@ -50,7 +50,7 @@ struct _E_Config_Dialog_Data
    Evas_Object *o_fm; /* File manager */
    Evas_Object *o_frame; /* scrollpane for file manager*/
 
-   char *imc_current;
+   const char *imc_current;
    Eina_Hash *imc_basic_map;
 
    int imc_disable; /* 0=enable, 1=disable */
@@ -108,7 +108,7 @@ e_int_config_imc(E_Container *con, const char *params __UNUSED__)
    cfd = e_config_dialog_new(con,
 			     _("Input Method Settings"),
 			    "E", "_config_imc_dialog",
-			     "enlightenment/imc", 0, v, NULL);
+			     "preferences-imc", 0, v, NULL);
    return cfd;
 }
 
@@ -116,7 +116,7 @@ static void
 _fill_data(E_Config_Dialog_Data *cfdata)
 {
    if (e_config->input_method)
-     cfdata->imc_current = strdup(e_config->input_method);
+     cfdata->imc_current = eina_stringshare_add(e_config->input_method);
 
    if (cfdata->imc_current)
      {
@@ -157,7 +157,7 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->win_import)
      e_int_config_imc_import_del(cfdata->win_import);
-   E_FREE(cfdata->imc_current);
+   eina_stringshare_del(cfdata->imc_current);
 
    if (cfdata->imc_basic_map)
      {
@@ -194,7 +194,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	  }
 
 	if (!cfdata->imc_disable)
-	  e_config->input_method = eina_stringshare_add(cfdata->imc_current);
+	  e_config->input_method = eina_stringshare_ref(cfdata->imc_current);
 
 	e_intl_input_method_set(e_config->input_method);
      }
@@ -302,7 +302,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    e_widget_frametable_object_append(of, ob, 0, 0, 1, 1, 1, 0, 1, 0);
 
    /* Configure imc button */
-   ob = e_widget_button_add(evas, _("Setup Selected Input Method"), "widget/config", _e_imc_setup_cb, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Setup Selected Input Method"), "configure", _e_imc_setup_cb, cfdata, NULL);
    cfdata->gui.imc_basic_setup = ob;
    e_widget_frametable_object_append(of, ob, 0, 2, 1, 1, 1, 1, 1, 0);
 
@@ -357,7 +357,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 		    }
 
 		  e_widget_ilist_append(cfdata->gui.imc_basic_list, icon, imc->e_im_name, NULL, NULL, imc_path);
-		  if (cfdata->imc_current && !strncmp(imc_path, cfdata->imc_current, strlen(cfdata->imc_current)))
+		  if (cfdata->imc_current && !strncmp(imc_path, cfdata->imc_current, eina_stringshare_strlen(cfdata->imc_current)))
 		    e_widget_ilist_selected_set(cfdata->gui.imc_basic_list, i);
 		  i++;
 
@@ -565,7 +565,7 @@ _cb_files_selection_change(void *data, Evas_Object *obj, void *event_info)
    if (cfdata->imc_current)
      {
 	_e_imc_change_enqueue(cfdata);
-	free(cfdata->imc_current);
+	eina_stringshare_del(cfdata->imc_current);
 	cfdata->imc_current = NULL;
      }
 
@@ -577,7 +577,7 @@ _cb_files_selection_change(void *data, Evas_Object *obj, void *event_info)
      snprintf(buf, sizeof(buf), "%s/%s", realpath, ici->file);
    eina_list_free(selected);
    if (ecore_file_is_dir(buf)) return;
-   cfdata->imc_current = strdup(buf);
+   cfdata->imc_current = eina_stringshare_add(buf);
    _e_imc_form_fill(cfdata);
    if (cfdata->o_frame)
      e_widget_change(cfdata->o_frame);
@@ -794,8 +794,8 @@ e_int_config_imc_update(E_Config_Dialog *dia, const char *file)
 
    cfdata = dia->cfdata;
    cfdata->fmdir = 1;
-   E_FREE(cfdata->imc_current);
-   cfdata->imc_current = strdup(file);
+   eina_stringshare_del(cfdata->imc_current);
+   cfdata->imc_current = eina_stringshare_add(file);
    e_widget_radio_toggle_set(cfdata->o_personal, 1);
 
    if (cfdata->o_fm)
@@ -831,7 +831,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 
    e_widget_table_object_append(ol, il, 0, 0, 1, 1, 0, 0, 0, 0);
 
-   o = e_widget_button_add(evas, _("Go up a Directory"), "widget/up_dir", _cb_button_up, cfdata, NULL);
+   o = e_widget_button_add(evas, _("Go up a Directory"), "go-up", _cb_button_up, cfdata, NULL);
    cfdata->o_up_button = o;
    e_widget_table_object_append(ol, o, 0, 1, 1, 1, 0, 0, 0, 0);
 
@@ -898,9 +898,9 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 
    ol = e_widget_list_add(evas, 1, 1);
 
-   o = e_widget_button_add(evas, _("New"), "widget/new", _cb_new, cfdata, NULL);
+   o = e_widget_button_add(evas, _("New"), "document-new", _cb_new, cfdata, NULL);
    e_widget_list_object_append(ol, o, 1, 0, 0.5);
-   o = e_widget_button_add(evas, _("Import..."), "enlightenment/imc", _cb_import, cfdata, NULL);
+   o = e_widget_button_add(evas, _("Import..."), "preferences-imc", _cb_import, cfdata, NULL);
    e_widget_list_object_append(ol, o, 1, 0, 0.5);
    e_widget_list_object_append(il, ol, 1, 0, 0.5);
    e_widget_list_object_append(of, il, 1, 0, 0.0);
@@ -958,7 +958,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    e_widget_list_object_append(of, ol, 0, 1, 0.5);
    e_widget_table_object_append(ot, of, 1, 0, 1, 1, 1, 1, 1, 1);
 
-   o = e_widget_button_add(evas, _("Setup Selected Input Method"), "widget/config", _e_imc_adv_setup_cb, cfdata, NULL);
+   o = e_widget_button_add(evas, _("Setup Selected Input Method"), "configure", _e_imc_adv_setup_cb, cfdata, NULL);
    e_widget_table_object_append(ot, o, 0, 1, 1, 1, 1, 1, 1, 0);
    cfdata->gui.imc_advanced_setup = o;
 

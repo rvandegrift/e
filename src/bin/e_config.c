@@ -29,6 +29,7 @@ static E_Config_DD *_e_config_font_default_edd = NULL;
 static E_Config_DD *_e_config_theme_edd = NULL;
 static E_Config_DD *_e_config_bindings_mouse_edd = NULL;
 static E_Config_DD *_e_config_bindings_key_edd = NULL;
+static E_Config_DD *_e_config_bindings_edge_edd = NULL;
 static E_Config_DD *_e_config_bindings_signal_edd = NULL;
 static E_Config_DD *_e_config_bindings_wheel_edd = NULL;
 static E_Config_DD *_e_config_path_append_edd = NULL;
@@ -59,18 +60,14 @@ e_config_init(void)
      {
 	Eet_File *ef;
 	char buf[4096];
-	const char *homedir;
 
 	/* try user profile config */
-	homedir = e_user_homedir_get();
-	snprintf(buf, sizeof(buf), "%s/.e/e/config/profile.cfg",
-		 homedir);
+	e_user_dir_concat_static(buf, "config/profile.cfg");
 	ef = eet_open(buf, EET_FILE_MODE_READ);
 	if (!ef)
 	  {
 	     /* use system if no user profile config */
-	     snprintf(buf, sizeof(buf), "%s/data/config/profile.cfg",
-		      e_prefix_data_get());
+	     e_prefix_data_concat_static(buf, "data/config/profile.cfg");
 	     ef = eet_open(buf, EET_FILE_MODE_READ);
 	  }
 	if (ef)
@@ -98,8 +95,7 @@ e_config_init(void)
 	     char *link = NULL;
 	     
 	     /* check symlink - if default is a symlink to another dir */
-             snprintf(buf, sizeof(buf), "%s/data/config/default",
-		      e_prefix_data_get());
+	     e_prefix_data_concat_static(buf, "data/config/default");
 	     link = ecore_file_readlink(buf);
 	     /* if so use just the filename as the priofle - must be a local link */
 	     if (link)
@@ -266,6 +262,20 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, params, STR);
    E_CONFIG_VAL(D, T, any_mod, UCHAR);
 
+   _e_config_bindings_edge_edd = E_CONFIG_DD_NEW("E_Config_Binding_Edge", 
+						  E_Config_Binding_Edge);
+#undef T
+#undef D
+#define T E_Config_Binding_Edge
+#define D _e_config_bindings_edge_edd
+   E_CONFIG_VAL(D, T, context, INT);
+   E_CONFIG_VAL(D, T, modifiers, INT);
+   E_CONFIG_VAL(D, T, action, STR);
+   E_CONFIG_VAL(D, T, params, STR);
+   E_CONFIG_VAL(D, T, edge, UCHAR);
+   E_CONFIG_VAL(D, T, any_mod, UCHAR);
+   E_CONFIG_VAL(D, T, delay, FLOAT);
+
    _e_config_bindings_signal_edd = E_CONFIG_DD_NEW("E_Config_Binding_Signal", 
 						   E_Config_Binding_Signal);
 #undef T
@@ -347,6 +357,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, prop.skip_winlist, UCHAR);
    E_CONFIG_VAL(D, T, prop.skip_pager, UCHAR);
    E_CONFIG_VAL(D, T, prop.skip_taskbar, UCHAR);
+   E_CONFIG_VAL(D, T, prop.fullscreen, UCHAR);
    E_CONFIG_VAL(D, T, prop.desk_x, INT);
    E_CONFIG_VAL(D, T, prop.desk_y, INT);
    E_CONFIG_VAL(D, T, prop.zone, INT);
@@ -414,6 +425,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, border_shade_transition, INT); /**/
    E_CONFIG_VAL(D, T, border_shade_speed, DOUBLE); /**/
    E_CONFIG_VAL(D, T, framerate, DOUBLE); /**/
+   E_CONFIG_VAL(D, T, priority, INT); /**/
    E_CONFIG_VAL(D, T, image_cache, INT); /**/
    E_CONFIG_VAL(D, T, font_cache, INT); /**/
    E_CONFIG_VAL(D, T, edje_cache, INT); /**/
@@ -423,8 +435,6 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, use_virtual_roots, INT); /* should not make this a config option (for now) */
    E_CONFIG_VAL(D, T, show_desktop_icons, INT); /**/
    E_CONFIG_VAL(D, T, edge_flip_dragging, INT); /**/
-   E_CONFIG_VAL(D, T, edge_flip_moving, INT); /**/
-   E_CONFIG_VAL(D, T, edge_flip_timeout, DOUBLE); /**/
    E_CONFIG_VAL(D, T, evas_engine_default, INT); /**/
    E_CONFIG_VAL(D, T, evas_engine_container, INT); /**/
    E_CONFIG_VAL(D, T, evas_engine_init, INT); /**/
@@ -443,6 +453,7 @@ e_config_init(void)
    E_CONFIG_LIST(D, T, themes, _e_config_theme_edd); /**/
    E_CONFIG_LIST(D, T, mouse_bindings, _e_config_bindings_mouse_edd); /**/
    E_CONFIG_LIST(D, T, key_bindings, _e_config_bindings_key_edd); /**/
+   E_CONFIG_LIST(D, T, edge_bindings, _e_config_bindings_edge_edd); /**/
    E_CONFIG_LIST(D, T, signal_bindings, _e_config_bindings_signal_edd); /**/
    E_CONFIG_LIST(D, T, wheel_bindings, _e_config_bindings_wheel_edd); /**/
    E_CONFIG_LIST(D, T, path_append_data, _e_config_path_append_edd); /**/
@@ -595,8 +606,10 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, border_raise_on_mouse_action, INT);
    E_CONFIG_VAL(D, T, border_raise_on_focus, INT);
    E_CONFIG_VAL(D, T, desk_flip_wrap, INT);
+   E_CONFIG_VAL(D, T, fullscreen_flip, INT);
 
    E_CONFIG_VAL(D, T, icon_theme, STR);
+   E_CONFIG_VAL(D, T, icon_theme_overrides, UCHAR);
    
    E_CONFIG_VAL(D, T, desk_flip_animate_mode, INT);
    E_CONFIG_VAL(D, T, desk_flip_animate_interpolation, INT);
@@ -679,6 +692,7 @@ e_config_shutdown(void)
    E_CONFIG_DD_FREE(_e_config_theme_edd);
    E_CONFIG_DD_FREE(_e_config_bindings_mouse_edd);
    E_CONFIG_DD_FREE(_e_config_bindings_key_edd);
+   E_CONFIG_DD_FREE(_e_config_bindings_edge_edd);
    E_CONFIG_DD_FREE(_e_config_bindings_signal_edd);
    E_CONFIG_DD_FREE(_e_config_bindings_wheel_edd);
    E_CONFIG_DD_FREE(_e_config_path_append_edd);
@@ -856,6 +870,17 @@ e_config_load(void)
         COPYPTR(syscon.actions);
         IFCFGEND;
         
+        IFCFG(0x012d);
+        COPYVAL(priority);
+        IFCFGEND;
+        
+        IFCFG(0x012e);
+        COPYVAL(fullscreen_flip);
+        IFCFGEND;
+        
+        IFCFG(0x012f);
+        COPYVAL(icon_theme_overrides);
+        IFCFGEND;
         e_config->config_version = E_CONFIG_FILE_VERSION;   
         _e_config_free(tcfg);
      }
@@ -869,6 +894,7 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->border_shade_transition, 0, 3);
    E_CONFIG_LIMIT(e_config->border_shade_speed, 1.0, 20000.0);
    E_CONFIG_LIMIT(e_config->framerate, 1.0, 200.0);
+   E_CONFIG_LIMIT(e_config->priority, 0, 19);
    E_CONFIG_LIMIT(e_config->image_cache, 0, 256 * 1024);
    E_CONFIG_LIMIT(e_config->font_cache, 0, 32 * 1024);
    E_CONFIG_LIMIT(e_config->edje_cache, 0, 256);
@@ -878,8 +904,6 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->zone_desks_y_count, 1, 64);
    E_CONFIG_LIMIT(e_config->show_desktop_icons, 0, 1);
    E_CONFIG_LIMIT(e_config->edge_flip_dragging, 0, 1);
-   E_CONFIG_LIMIT(e_config->edge_flip_moving, 0, 1);
-   E_CONFIG_LIMIT(e_config->edge_flip_timeout, 0.0, 2.0);
    E_CONFIG_LIMIT(e_config->window_placement_policy, E_WINDOW_PLACEMENT_SMART, E_WINDOW_PLACEMENT_MANUAL);
    E_CONFIG_LIMIT(e_config->focus_policy, 0, 2);
    E_CONFIG_LIMIT(e_config->focus_setting, 0, 3);
@@ -954,6 +978,8 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->border_raise_on_mouse_action, 0, 1);
    E_CONFIG_LIMIT(e_config->border_raise_on_focus, 0, 1);
    E_CONFIG_LIMIT(e_config->desk_flip_wrap, 0, 1);
+   E_CONFIG_LIMIT(e_config->fullscreen_flip, 0, 1);
+   E_CONFIG_LIMIT(e_config->icon_theme_overrides, 0, 1);
    E_CONFIG_LIMIT(e_config->remember_internal_windows, 0, 1);
    E_CONFIG_LIMIT(e_config->desk_auto_switch, 0, 1);
 
@@ -1048,14 +1074,10 @@ EAPI char *
 e_config_profile_dir_get(const char *prof)
 {
    char buf[PATH_MAX];
-   const char *homedir;
-   const char *dir;
 
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/%s", homedir, prof);
+   e_user_dir_snprintf(buf, sizeof(buf), "config/%s", prof);
    if (ecore_file_is_dir(buf)) return strdup(buf);
-   dir = e_prefix_data_get();
-   snprintf(buf, sizeof(buf), "%s/data/config/%s", dir, prof);
+   e_prefix_data_snprintf(buf, sizeof(buf), "data/config/%s", prof);
    if (ecore_file_is_dir(buf)) return strdup(buf);
    return NULL;
 }
@@ -1068,55 +1090,75 @@ static int _cb_sort_files(char *f1, char *f2)
 EAPI Eina_List *
 e_config_profile_list(void)
 {
-   Ecore_List *files;
-   char buf[PATH_MAX];
-   const char *homedir;
-   const char *dir;
+   Eina_List *files;
+   char buf[PATH_MAX], *p;
    Eina_List *flist = NULL;
-   
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/", homedir);
+   size_t len;
+
+   len = e_user_dir_concat_static(buf, "config");
+   if (len + 1 >= (int)sizeof(buf))
+     return NULL;
+
    files = ecore_file_ls(buf);
+
+   buf[len] = '/';
+   len++;
+
+   p = buf + len;
+   len = sizeof(buf) - len;
    if (files)
      {
 	char *file;
-	
-	ecore_list_sort(files, ECORE_COMPARE_CB(_cb_sort_files), ECORE_SORT_MIN);
-	ecore_list_first_goto(files);
-	while ((file = ecore_list_current(files)))
+
+	files = eina_list_sort(files, 0, (Eina_Compare_Cb)_cb_sort_files);
+	EINA_LIST_FREE(files, file)
 	  {
-	     snprintf(buf, sizeof(buf), "%s/.e/e/config/%s", homedir, file);
+	     if (ecore_strlcpy(p, file, len) >= len)
+	       {
+		  free(file);
+		  continue;
+	       }
 	     if (ecore_file_is_dir(buf))
-	       flist = eina_list_append(flist, strdup(file));
-	     ecore_list_next(files);
+	       flist = eina_list_append(flist, file);
+	     else
+	       free(file);
 	  }
-        ecore_list_destroy(files);
      }
-   dir = e_prefix_data_get();
-   snprintf(buf, sizeof(buf), "%s/data/config", dir);
+   len = e_prefix_data_concat_static(buf, "data/config");
+   if (len >= sizeof(buf))
+     return NULL;
+
    files = ecore_file_ls(buf);
+
+   buf[len] = '/';
+   len++;
+
+   p = buf + len;
+   len = sizeof(buf) - len;
    if (files)
      {
 	char *file;
-	
-	ecore_list_sort(files, ECORE_COMPARE_CB(_cb_sort_files), ECORE_SORT_MIN);
-	ecore_list_first_goto(files);
-	while ((file = ecore_list_current(files)))
+	files = eina_list_sort(files, 0, (Eina_Compare_Cb)_cb_sort_files);
+	EINA_LIST_FREE(files, file)
 	  {
-	     snprintf(buf, sizeof(buf), "%s/data/config/%s", dir, file);
+	     if (ecore_strlcpy(p, file, len) >= len)
+	       {
+		  free(file);
+		  continue;
+	       }
 	     if (ecore_file_is_dir(buf))
 	       {
-		  Eina_List *l;
-		  
-		  for (l = flist; l; l = l->next)
-		    {
-		       if (!strcmp(file, l->data)) break;
-		    }
-		  if (!l) flist = eina_list_append(flist, strdup(file));
+		  const Eina_List *l;
+		  const char *tmp;
+		  EINA_LIST_FOREACH(flist, l, tmp)
+		    if (!strcmp(file, tmp)) break;
+
+		  if (!l) flist = eina_list_append(flist, file);
+		  else free(file);
 	       }
-	     ecore_list_next(files);
+	     else
+	       free(file);
 	  }
-	ecore_list_destroy(files);
      }
    return flist;
 }
@@ -1125,39 +1167,18 @@ EAPI void
 e_config_profile_add(const char *prof)
 {
    char buf[4096];
-   const char *homedir;
-   
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/%s", homedir, prof);
+   if (e_user_dir_snprintf(buf, sizeof(buf), "config/%s", prof) >= sizeof(buf))
+     return;
    ecore_file_mkdir(buf);
 }
 
 EAPI void
 e_config_profile_del(const char *prof)
 {
-   Ecore_List *files;
    char buf[4096];
-   const char *homedir;
-   
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/%s", homedir, prof);
-   files = ecore_file_ls(buf);
-   if (files)
-     {
-	char *file;
-	
-	ecore_list_first_goto(files);
-	while ((file = ecore_list_current(files)))
-	  {
-	     snprintf(buf, sizeof(buf), "%s/.e/e/config/%s/%s",
-		      homedir, prof, file);
-	     ecore_file_unlink(buf);
-	     ecore_list_next(files);
-	  }
-        ecore_list_destroy(files);
-     }
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/%s", homedir, prof);
-   ecore_file_rmdir(buf);
+   if (e_user_dir_snprintf(buf, sizeof(buf), "config/%s", prof) >= sizeof(buf))
+     return;
+   ecore_file_recursive_rm(buf);
 }
 
 EAPI Eina_List *
@@ -1198,12 +1219,10 @@ e_config_domain_load(const char *domain, E_Config_DD *edd)
 {
    Eet_File *ef;
    char buf[4096];
-   const char *homedir;
    void *data = NULL;
 
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/%s/%s.cfg",
-	    homedir, _e_config_profile, domain);
+   e_user_dir_snprintf(buf, sizeof(buf), "config/%s/%s.cfg",
+		       _e_config_profile, domain);
    ef = eet_open(buf, EET_FILE_MODE_READ);
    if (ef)
      {
@@ -1221,8 +1240,8 @@ e_config_domain_system_load(const char *domain, E_Config_DD *edd)
    char buf[4096];
    void *data = NULL;
 
-   snprintf(buf, sizeof(buf), "%s/data/config/%s/%s.cfg",
-	    e_prefix_data_get(), _e_config_profile, domain);
+   e_prefix_data_snprintf(buf, sizeof(buf), "data/config/%s/%s.cfg",
+			  _e_config_profile, domain);
    ef = eet_open(buf, EET_FILE_MODE_READ);
    if (ef)
      {
@@ -1239,13 +1258,11 @@ e_config_profile_save(void)
 {
    Eet_File *ef;
    char buf[4096], buf2[4096];
-   const char *homedir;
    int ok = 0;
 
    /* FIXME: check for other sessions fo E running */
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/profile.cfg", homedir);
-   snprintf(buf2, sizeof(buf2), "%s.tmp", buf);
+   e_user_dir_concat_static(buf, "config/profile.cfg");
+   e_user_dir_concat_static(buf2, "config/profile.cfg.tmp");
 
    ef = eet_open(buf2, EET_FILE_MODE_WRITE);
    if (ef)
@@ -1272,18 +1289,31 @@ e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data)
 {
    Eet_File *ef;
    char buf[4096], buf2[4096];
-   const char *homedir;
    int ok = 0, ret;
+   size_t len, len2;
 
    if (_e_config_save_block) return 0;
    /* FIXME: check for other sessions fo E running */
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/%s", 
-	    homedir, _e_config_profile);
+   len = e_user_dir_snprintf(buf, sizeof(buf), "config/%s", _e_config_profile);
+   if (len + 1 >= sizeof(buf)) return 0;
+
    ecore_file_mkdir(buf);
-   snprintf(buf, sizeof(buf), "%s/.e/e/config/%s/%s.cfg", 
-	    homedir, _e_config_profile, domain);
-   snprintf(buf2, sizeof(buf2), "%s.tmp", buf);
+
+   buf[len] = '/';
+   len++;
+
+   len2 = ecore_strlcpy(buf + len, domain, sizeof(buf) - len);
+   if (len2 + sizeof(".cfg") >= sizeof(buf) - len) return 0;
+
+   len += len2;
+
+   memcpy(buf + len, ".cfg", sizeof(".cfg"));
+   len += sizeof(".cfg") - 1;
+
+   if (len + sizeof(".tmp") >= sizeof(buf)) return 0;
+   memcpy(buf2, buf, len);
+   memcpy(buf2 + len, ".tmp", sizeof(".tmp"));
+
    ef = eet_open(buf2, EET_FILE_MODE_WRITE);
    if (ef)
      {
@@ -1339,6 +1369,30 @@ e_config_binding_key_match(E_Config_Binding_Key *eb_in)
 	    (eb->any_mod == eb_in->any_mod) &&
 	    (((eb->key) && (eb_in->key) && (!strcmp(eb->key, eb_in->key))) ||
 	     ((!eb->key) && (!eb_in->key))) &&
+	    (((eb->action) && (eb_in->action) && (!strcmp(eb->action, eb_in->action))) ||
+	     ((!eb->action) && (!eb_in->action))) &&
+	    (((eb->params) && (eb_in->params) && (!strcmp(eb->params, eb_in->params))) ||
+	     ((!eb->params) && (!eb_in->params))))
+	  return eb;
+     }
+   return NULL;
+}
+
+EAPI E_Config_Binding_Edge *
+e_config_binding_edge_match(E_Config_Binding_Edge *eb_in)
+{
+   Eina_List *l;
+   
+   for (l = e_config->edge_bindings; l; l = l->next)
+     {
+	E_Config_Binding_Edge *eb;
+	
+	eb = l->data;
+	if ((eb->context == eb_in->context) &&
+	    (eb->modifiers == eb_in->modifiers) &&
+	    (eb->any_mod == eb_in->any_mod) &&
+	    (eb->edge == eb_in->edge) &&
+	    (eb->delay == eb_in->delay) &&
 	    (((eb->action) && (eb_in->action) && (!strcmp(eb->action, eb_in->action))) ||
 	     ((!eb->action) && (!eb_in->action))) &&
 	    (((eb->params) && (eb_in->params) && (!strcmp(eb->params, eb_in->params))) ||
@@ -1411,181 +1465,134 @@ _e_config_save_cb(void *data)
 static void
 _e_config_free(E_Config *ecf)
 {
-   if (!ecf) return;
-   while (ecf->modules)
-     {
-        E_Config_Module *em;
+   E_Config_Binding_Signal *ebs;
+   E_Config_Binding_Mouse *ebm;
+   E_Config_Binding_Wheel *ebw;
+   E_Config_Syscon_Action *sca;
+   E_Config_Binding_Key *ebk;
+   E_Config_Binding_Edge *ebe;
+   E_Font_Fallback *eff;
+   E_Config_Module *em;
+   E_Font_Default *efd;
+   E_Config_Theme *et;
+   E_Color_Class *cc;
+   E_Path_Dir *epd;
+   E_Remember *rem;
         
-        em = ecf->modules->data;
-        ecf->modules = eina_list_remove_list(ecf->modules, ecf->modules);
+   if (!ecf) return;
+
+   EINA_LIST_FREE(ecf->modules, em)
+     {
         if (em->name) eina_stringshare_del(em->name);
         E_FREE(em);
      }
-   while (ecf->font_fallbacks)
+   EINA_LIST_FREE(ecf->font_fallbacks, eff)
      {
-        E_Font_Fallback *eff;
-        
-        eff = ecf->font_fallbacks->data;
-        ecf->font_fallbacks = eina_list_remove_list(ecf->font_fallbacks, ecf->font_fallbacks);
         if (eff->name) eina_stringshare_del(eff->name);
         E_FREE(eff);
      }
-   while (ecf->font_defaults)
+   EINA_LIST_FREE(ecf->font_defaults, efd)
      {
-        E_Font_Default *efd;
-        
-        efd = ecf->font_defaults->data;
-        ecf->font_defaults = eina_list_remove_list(ecf->font_defaults, ecf->font_defaults);
         if (efd->text_class) eina_stringshare_del(efd->text_class);
         if (efd->font) eina_stringshare_del(efd->font);
         E_FREE(efd);
      }
-   while (ecf->themes)
+   EINA_LIST_FREE(ecf->themes, et)
      {
-        E_Config_Theme *et;
-        
-        et = ecf->themes->data;
-        ecf->themes = eina_list_remove_list(ecf->themes, ecf->themes);
         if (et->category) eina_stringshare_del(et->category);
         if (et->file) eina_stringshare_del(et->file);
         E_FREE(et);
      }
-   while (ecf->mouse_bindings)
+   EINA_LIST_FREE(ecf->mouse_bindings, ebm)
      {
-        E_Config_Binding_Mouse *eb;
-        
-        eb = ecf->mouse_bindings->data;
-        ecf->mouse_bindings  = eina_list_remove_list(ecf->mouse_bindings, ecf->mouse_bindings);
-        if (eb->action) eina_stringshare_del(eb->action);
-        if (eb->params) eina_stringshare_del(eb->params);
-        E_FREE(eb);
+        if (ebm->action) eina_stringshare_del(ebm->action);
+        if (ebm->params) eina_stringshare_del(ebm->params);
+        E_FREE(ebm);
      }
-   while (ecf->key_bindings)
+   EINA_LIST_FREE(ecf->key_bindings, ebk)
      {
-        E_Config_Binding_Key *eb;
-        
-        eb = ecf->key_bindings->data;
-        ecf->key_bindings  = eina_list_remove_list(ecf->key_bindings, ecf->key_bindings);
-        if (eb->key) eina_stringshare_del(eb->key);
-        if (eb->action) eina_stringshare_del(eb->action);
-        if (eb->params) eina_stringshare_del(eb->params);
-        E_FREE(eb);
+        if (ebk->key) eina_stringshare_del(ebk->key);
+        if (ebk->action) eina_stringshare_del(ebk->action);
+        if (ebk->params) eina_stringshare_del(ebk->params);
+        E_FREE(ebk);
      }
-   while (ecf->signal_bindings)
+   EINA_LIST_FREE(ecf->edge_bindings, ebe)
      {
-        E_Config_Binding_Signal *eb;
-        
-        eb = ecf->signal_bindings->data;
-        ecf->signal_bindings  = eina_list_remove_list(ecf->signal_bindings, ecf->signal_bindings);
-        if (eb->signal) eina_stringshare_del(eb->signal);
-        if (eb->source) eina_stringshare_del(eb->source);
-        if (eb->action) eina_stringshare_del(eb->action);
-        if (eb->params) eina_stringshare_del(eb->params);
-        E_FREE(eb);
+        if (ebe->action) eina_stringshare_del(ebe->action);
+        if (ebe->params) eina_stringshare_del(ebe->params);
+        E_FREE(ebe);
      }
-   while (ecf->wheel_bindings)
+   EINA_LIST_FREE(ecf->signal_bindings, ebs)
      {
-        E_Config_Binding_Wheel *eb;
-        
-        eb = ecf->wheel_bindings->data;
-        ecf->wheel_bindings  = eina_list_remove_list(ecf->wheel_bindings, ecf->wheel_bindings);
-        if (eb->action) eina_stringshare_del(eb->action);
-        if (eb->params) eina_stringshare_del(eb->params);
-        E_FREE(eb);
+        if (ebs->signal) eina_stringshare_del(ebs->signal);
+        if (ebs->source) eina_stringshare_del(ebs->source);
+        if (ebs->action) eina_stringshare_del(ebs->action);
+        if (ebs->params) eina_stringshare_del(ebs->params);
+        E_FREE(ebs);
      }
-   while (ecf->path_append_data)
+   EINA_LIST_FREE(ecf->wheel_bindings, ebw)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_data->data;
-        ecf->path_append_data = eina_list_remove_list(ecf->path_append_data, ecf->path_append_data);
+        if (ebw->action) eina_stringshare_del(ebw->action);
+        if (ebw->params) eina_stringshare_del(ebw->params);
+        E_FREE(ebw);
+     }
+   EINA_LIST_FREE(ecf->path_append_data, epd)
+     {
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_images)
+   EINA_LIST_FREE(ecf->path_append_images, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_images->data;
-        ecf->path_append_images = eina_list_remove_list(ecf->path_append_images, ecf->path_append_images);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_fonts)
+   EINA_LIST_FREE(ecf->path_append_fonts, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_fonts->data;
-        ecf->path_append_fonts = eina_list_remove_list(ecf->path_append_fonts, ecf->path_append_fonts);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_themes)
+   EINA_LIST_FREE(ecf->path_append_themes, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_themes->data;
-        ecf->path_append_themes = eina_list_remove_list(ecf->path_append_themes, ecf->path_append_themes);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_init)
+   EINA_LIST_FREE(ecf->path_append_init, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_init->data;
-        ecf->path_append_init = eina_list_remove_list(ecf->path_append_init, ecf->path_append_init);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_icons)
+   EINA_LIST_FREE(ecf->path_append_icons, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_icons->data;
-        ecf->path_append_icons = eina_list_remove_list(ecf->path_append_icons, ecf->path_append_icons);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_modules)
+   EINA_LIST_FREE(ecf->path_append_modules, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_modules->data;
-        ecf->path_append_modules = eina_list_remove_list(ecf->path_append_modules, ecf->path_append_modules);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_backgrounds)
+   EINA_LIST_FREE(ecf->path_append_backgrounds, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_backgrounds->data;
-        ecf->path_append_backgrounds = eina_list_remove_list(ecf->path_append_backgrounds, ecf->path_append_backgrounds);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->path_append_messages)
+   EINA_LIST_FREE(ecf->path_append_messages, epd)
      {
-        E_Path_Dir *epd;
-        epd = ecf->path_append_messages->data;
-        ecf->path_append_messages = eina_list_remove_list(ecf->path_append_messages, ecf->path_append_messages);
         if (epd->dir) eina_stringshare_del(epd->dir);
         E_FREE(epd);
      }
-   while (ecf->remembers)
+   EINA_LIST_FREE(ecf->remembers, rem)
      {
-        E_Remember *rem;
-        rem = ecf->remembers->data;
-        ecf->remembers = eina_list_remove_list(ecf->remembers, ecf->remembers);
-        
         if (rem->name) eina_stringshare_del(rem->name);
         if (rem->class) eina_stringshare_del(rem->class);
         if (rem->title) eina_stringshare_del(rem->title);		   
         if (rem->role) eina_stringshare_del(rem->role);
         if (rem->prop.border) eina_stringshare_del(rem->prop.border);
         if (rem->prop.command) eina_stringshare_del(rem->prop.command);
-        
         E_FREE(rem);
      }
-   while (ecf->color_classes)
+   EINA_LIST_FREE(ecf->color_classes, cc)
      {
-        E_Color_Class *cc;
-        cc = ecf->color_classes->data;
-        ecf->color_classes = eina_list_remove_list(ecf->color_classes, ecf->color_classes);
-        
         if (cc->name) eina_stringshare_del(cc->name);
         E_FREE(cc);
      }
@@ -1605,17 +1612,13 @@ _e_config_free(E_Config *ecf)
    if (ecf->wallpaper_import_last_path) eina_stringshare_del(ecf->wallpaper_import_last_path);
    if (ecf->theme_default_border_style) eina_stringshare_del(ecf->theme_default_border_style);
    if (ecf->desklock_custom_desklock_cmd) eina_stringshare_del(ecf->desklock_custom_desklock_cmd);
-   while (ecf->syscon.actions)
+   EINA_LIST_FREE(ecf->syscon.actions, sca)
      {
-        E_Config_Syscon_Action *sca;
-        
-        sca = ecf->syscon.actions->data;
         if (sca->action) eina_stringshare_del(sca->action);
         if (sca->params) eina_stringshare_del(sca->params);
         if (sca->button) eina_stringshare_del(sca->button);
         if (sca->icon) eina_stringshare_del(sca->icon);
         E_FREE(sca);
-        ecf->syscon.actions = eina_list_remove_list(ecf->syscon.actions, ecf->syscon.actions);
      }
    E_FREE(ecf);
 }
@@ -1633,9 +1636,7 @@ static void
 _e_config_error_dialog_cb_delete(void *dia)
 {
    if (dia == _e_config_error_dialog)
-     {
-	_e_config_error_dialog = NULL;
-     }
+     _e_config_error_dialog = NULL;
 }
 
 static int
@@ -1714,14 +1715,14 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
 	if (!_e_config_error_dialog)
 	  {
              E_Dialog *dia;
-	     
+
 	     dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_sys_error_logout_slow");
 	     if (dia)
 	       {
 		  char buf[8192];
-		  
+
 		  e_dialog_title_set(dia, _("Enlightenment Settings Write Problems"));
-		  e_dialog_icon_set(dia, "enlightenment/error", 64);
+		  e_dialog_icon_set(dia, "dialog-error", 64);
 		  snprintf(buf, sizeof(buf), erstr, file);
 		  e_dialog_text_set(dia, buf);
 		  e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);

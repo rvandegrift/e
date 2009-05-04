@@ -50,7 +50,7 @@ e_int_config_desk(E_Container *con, const char *params)
    v->override_auto_apply = 1;
    
    cfd = e_config_dialog_new(con, _("Desk Settings"), "E", "_config_desk_dialog",
-			     "enlightenment/desktops", 0, v, cfdata);
+			     "preferences-desktop", 0, v, cfdata);
    return cfd;
 }
 
@@ -159,7 +159,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    if (cfdata->bg)
      e_widget_preview_edje_set(ob, cfdata->bg, "e/desktop/background");
    e_widget_frametable_object_append(of, ob, 0, 0, 3, 1, 1, 1, 1, 0);
-   ob = e_widget_button_add(evas, _("Configure"), "widget/config", 
+   ob = e_widget_button_add(evas, _("Set"), "configure", 
 			    _cb_config, cfdata, NULL);
    e_widget_frametable_object_append(of, ob, 1, 1, 1, 1, 1, 1, 1, 0);
    e_widget_list_object_append(o, of, 1, 1, 0.5);

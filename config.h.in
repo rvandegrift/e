@@ -107,6 +107,10 @@
 /* Define to 1 if your compiler has __attribute__ */
 #undef HAVE___ATTRIBUTE__
 
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
+
 /* "Module architecture" */
 #undef MODULE_ARCH
 
@@ -181,6 +185,9 @@
 /* Use module conf-dpms */
 #undef USE_MODULE_CONF_DPMS
 
+/* Use module conf-edgebindings */
+#undef USE_MODULE_CONF_EDGEBINDINGS
+
 /* Use module conf-engine */
 #undef USE_MODULE_CONF_ENGINE
 
@@ -250,6 +257,9 @@
 /* Use module conf-wallpaper */
 #undef USE_MODULE_CONF_WALLPAPER
 
+/* Use module conf-wallpaper2 */
+#undef USE_MODULE_CONF_WALLPAPER2
+
 /* Use module conf-window-display */
 #undef USE_MODULE_CONF_WINDOW_DISPLAY
 
@@ -279,6 +289,9 @@
 
 /* Use module fileman */
 #undef USE_MODULE_FILEMAN
+
+/* Use module fileman-opinfo */
+#undef USE_MODULE_FILEMAN_OPINFO
 
 /* Use module gadman */
 #undef USE_MODULE_GADMAN
@@ -325,6 +338,11 @@
 
 /* Define to 1 if the X Window System is missing or not being used. */
 #undef X_DISPLAY_MISSING
+
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# undef _GNU_SOURCE
+#endif
 
 /* Macro declaring a function argument to be unused */
 #undef __UNUSED__

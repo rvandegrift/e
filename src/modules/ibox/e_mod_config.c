@@ -17,11 +17,15 @@ struct _E_Config_Dialog_Data
      } gui;
 };
 
+Eina_List *show_label_list = NULL;
+
 /* Protos */
 static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static void _cb_disable_check(void *data, Evas_Object *obj);
+static void _cb_disable_check_list(void *data, Evas_Object *obj);
 
 static void _cb_zone_policy_change(void *data, Evas_Object *obj);
 
@@ -75,6 +79,8 @@ _create_data(E_Config_Dialog *cfd)
 static void 
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
+   show_label_list = eina_list_free(show_label_list);
+
    ibox_config->config_dialog = eina_list_remove(ibox_config->config_dialog, cfd);
    free(cfdata);
 }
@@ -84,27 +90,46 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 {
    E_Radio_Group *rg;
    Evas_Object *o, *of, *ob;
-
+   Evas_Object *show_check = NULL;
+   
    Eina_List *l, *l2;
    int zone_count;
 
    o = e_widget_list_add(evas, 0, 0);
 
    of = e_widget_framelist_add(evas, _("General Settings"), 0);
-   ob = e_widget_check_add(evas, _("Show Icon Label"), &(cfdata->show_label));
-   e_widget_framelist_object_append(of, ob);
+   show_check = e_widget_check_add(evas, _("Show Icon Label"), &(cfdata->show_label));
+   e_widget_framelist_object_append(of, show_check);
    rg = e_widget_radio_group_new(&(cfdata->icon_label));
+
    ob = e_widget_radio_add(evas, _("Display Name"), 0, rg);
+   e_widget_disabled_set(ob, !cfdata->show_label); // set state from saved config
+   show_label_list = eina_list_append (show_label_list, ob);
    e_widget_framelist_object_append(of, ob);
+
    ob = e_widget_radio_add(evas, _("Display Title"), 1, rg);
+   e_widget_disabled_set(ob, !cfdata->show_label); // set state from saved config
+   show_label_list = eina_list_append (show_label_list, ob);
    e_widget_framelist_object_append(of, ob);
+
    ob = e_widget_radio_add(evas, _("Display Class"), 2, rg);
+   e_widget_disabled_set(ob, !cfdata->show_label); // set state from saved config
+   show_label_list = eina_list_append (show_label_list, ob);
    e_widget_framelist_object_append(of, ob);
+
    ob = e_widget_radio_add(evas, _("Display Icon Name"), 3, rg);
+   e_widget_disabled_set(ob, !cfdata->show_label); // set state from saved config
+   show_label_list = eina_list_append (show_label_list, ob);
    e_widget_framelist_object_append(of, ob);
+
    ob = e_widget_radio_add(evas, _("Display Border Caption"), 4, rg);
+   e_widget_disabled_set(ob, !cfdata->show_label); // set state from saved config
+   show_label_list = eina_list_append (show_label_list, ob);
    e_widget_framelist_object_append(of, ob);
-   
+
+   // handler for enable/disable widget array
+   e_widget_on_change_hook_set(show_check, _cb_disable_check_list, show_label_list);
+
    e_widget_list_object_append(o, of, 1, 1, 0.5);
 
    of = e_widget_framelist_add(evas, _("Screen"), 0);
@@ -192,4 +217,30 @@ _cb_zone_policy_change(void *data, Evas_Object *obj)
 	e_widget_disabled_set(cfdata->gui.o_desk_show_all, 0);
 	e_widget_disabled_set(cfdata->gui.o_desk_show_active, 0);
      }
+}
+
+/*!
+ * @param data A Evas_Object to chain together with the checkbox
+ * @param obj A Evas_Object checkbox created with e_widget_check_add()
+ */
+static void
+_cb_disable_check(void *data, Evas_Object *obj)
+{
+   e_widget_disabled_set((Evas_Object *) data, 
+                         !e_widget_check_checked_get(obj));
+}
+
+/*!
+ * @param data A Eina_List of Evas_Object to chain widgets together with the checkbox
+ * @param obj A Evas_Object checkbox created with e_widget_check_add()
+ */
+static void
+_cb_disable_check_list(void *data, Evas_Object *obj)
+{
+   Eina_List *list = (Eina_List*) data;
+   Eina_List *l;
+   Evas_Object *o;
+
+   EINA_LIST_FOREACH(list, l, o)
+      e_widget_disabled_set(o, !e_widget_check_checked_get(obj));
 }

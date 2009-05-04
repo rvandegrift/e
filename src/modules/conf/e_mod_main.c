@@ -49,8 +49,8 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    Evas_Object *o;
    E_Gadcon_Client *gcc;
    
-   o = edje_object_add(gc->evas);
-   e_util_edje_icon_set(o, "enlightenment/configuration");
+   o = e_icon_add(gc->evas);
+   e_util_icon_theme_set(o, "preferences-system");
    evas_object_show(o);
    gcc = e_gadcon_client_new(gc, name, id, style, o);
    gcc->data = o;
@@ -110,11 +110,8 @@ _gc_id_new(E_Gadcon_Client_Class *client_class)
 static void
 _cb_mouse_up(void *data, Evas *evas, Evas_Object *obj, void *event_info)
 {
-   Evas_Event_Mouse_Up *ev;
    E_Action *a;
 
-   ev = event_info;
-   if (ev->button != 1) return;
    a = e_action_find("configuration");
    if ((a) && (a->func.go)) a->func.go(NULL, NULL);
 }
@@ -142,7 +139,8 @@ e_modapi_init(E_Module *m)
 	e_action_predef_name_set(_("Launch"), _("Settings Panel"), "configuration",
 				 NULL, NULL, 0);
      }
-   maug = e_int_menus_menu_augmentation_add("config/0", _e_mod_menu_add, NULL, NULL, NULL);
+   maug = e_int_menus_menu_augmentation_add_sorted
+     ("config/0", _("Settings Panel"), _e_mod_menu_add, NULL, NULL, NULL);
    e_module_delayed_set(m, 1);
    e_gadcon_provider_register(&_gadcon_class);
    return m;
@@ -194,7 +192,10 @@ _e_mod_action_conf_cb(E_Object *obj, const char *params)
 	  zone = e_util_zone_current_get(e_manager_current_get());
      }
    if (!zone) zone = e_util_zone_current_get(e_manager_current_get());
-   if (zone) e_configure_show(zone->container);
+   if (zone && params)
+      e_configure_registry_call(params, zone->container, params);
+   else if (zone)
+      e_configure_show(zone->container);
 }
 
 /* menu item callback(s) */
@@ -212,6 +213,6 @@ _e_mod_menu_add(void *data, E_Menu *m)
    
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Settings Panel"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/configuration");
+   e_util_menu_item_theme_icon_set(mi, "preferences-system");
    e_menu_item_callback_set(mi, _e_mod_conf_cb, NULL);
 }
