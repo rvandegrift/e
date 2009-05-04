@@ -188,7 +188,7 @@ _surebox_new(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    cfdata->surebox = sb;
    sb->dia->data = sb;
    e_dialog_title_set(sb->dia, _("Resolution change"));
-   e_dialog_icon_set(sb->dia, "enlightenment/screen_resolution", 48);
+   e_dialog_icon_set(sb->dia, "preferences-system-screen-resolution", 48);
    _surebox_text_fill(sb);
    e_win_delete_callback_set(sb->dia->win, _surebox_dialog_cb_delete);
    e_dialog_button_add(sb->dia, _("Save"), NULL, _surebox_dialog_cb_yes, sb);
@@ -226,8 +226,8 @@ e_int_config_display(E_Container *con, const char *params __UNUSED__)
    v->override_auto_apply = 1;
 
    cfd = e_config_dialog_new(con, _("Screen Resolution Settings"),
-			    "E", "_config_display_dialog",
-			     "enlightenment/screen_resolution", 0, v, NULL);
+			     "E", "_config_display_dialog",
+			     "preferences-system-screen-resolution", 0, v, NULL);
    return cfd;
 }
 
@@ -282,21 +282,20 @@ static void
 _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata) 
 {
    Eina_List *l, *ll;
+   Resolution *r;
 
    if (cfdata->surebox)
      _surebox_dialog_cb_delete(cfdata->surebox->dia->win);
 
-   for (l = cfdata->resolutions; l; l = l->next)
+   EINA_LIST_FREE(cfdata->resolutions, r)
      {
-	Resolution *r = l->data;
+	Ecore_X_Screen_Refresh_Rate *rt;
 
-	for (ll = r->rates; ll; ll = ll->next)
-	  E_FREE(ll->data);
+	EINA_LIST_FREE(r->rates, rt)
+	  E_FREE(rt);
 
-	r->rates = eina_list_free(r->rates);
 	E_FREE(r);
      }
-   cfdata->resolutions = eina_list_free(cfdata->resolutions);
    E_FREE(cfdata);
 }
 
@@ -308,13 +307,13 @@ _basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfda
    Ecore_X_Screen_Refresh_Rate *rt;
 
    r = e_widget_ilist_selected_get(cfdata->res_list);
-   if (r < 0) return;
-   res = evas_list_nth(cfdata->resolutions, r);
-   if (!res) return;
+   if (r < 0) return 0;
+   res = eina_list_nth(cfdata->resolutions, r);
+   if (!res) return 0;
    r = e_widget_ilist_selected_get(cfdata->rate_list);
-   if (r < 0) return;
-   rt = evas_list_nth(res->rates, r);
-   if (!rt) return;
+   if (r < 0) return 0;
+   rt = eina_list_nth(res->rates, r);
+   if (!rt) return 0;
 
    return (e_config->display_res_restore != cfdata->restore) ||
 	  (res->size.width != cfdata->orig_size.width) ||
@@ -338,9 +337,9 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    E_Manager *man;
 
    r = e_widget_ilist_selected_get(cfdata->res_list);
-   res = evas_list_nth(cfdata->resolutions, r);
+   res = eina_list_nth(cfdata->resolutions, r);
    r = e_widget_ilist_selected_get(cfdata->rate_list);
-   rate = evas_list_nth(res->rates, r);
+   rate = eina_list_nth(res->rates, r);
 
    man = e_manager_current_get();
 
@@ -370,7 +369,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
      {
 	int rot;
 
-	cfdata->flip = cfdata->rotation;	
+	cfdata->flip = cfdata->rotation;
 	if (cfdata->flip_x)
 	  cfdata->flip = (cfdata->flip | ECORE_X_RANDR_FLIP_X);
 	if (cfdata->flip_y)
@@ -475,16 +474,16 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
      {
 	of = e_widget_framelist_add(evas, _("Rotation"), 0);
 	rg = e_widget_radio_group_new(&(cfdata->rotation));
-	ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/screen_normal", 24, 24, ECORE_X_RANDR_ROT_0, rg);
+	ob = e_widget_radio_icon_add(evas, NULL, "preferences-screen-normal", 24, 24, ECORE_X_RANDR_ROT_0, rg);
         e_widget_framelist_object_append(of, ob);
 	if (!(cfdata->can_rotate & ECORE_X_RANDR_ROT_0)) e_widget_disabled_set(ob, 1);
-	ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/screen_left", 24, 24, ECORE_X_RANDR_ROT_90, rg);
+	ob = e_widget_radio_icon_add(evas, NULL, "preferences-screen-left", 24, 24, ECORE_X_RANDR_ROT_90, rg);
         e_widget_framelist_object_append(of, ob);
 	if (!(cfdata->can_rotate & ECORE_X_RANDR_ROT_90)) e_widget_disabled_set(ob, 1);
-	ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/screen_around", 24, 24, ECORE_X_RANDR_ROT_180, rg);
+	ob = e_widget_radio_icon_add(evas, NULL, "preferences-screen-around", 24, 24, ECORE_X_RANDR_ROT_180, rg);
         e_widget_framelist_object_append(of, ob);
 	if (!(cfdata->can_rotate & ECORE_X_RANDR_ROT_180)) e_widget_disabled_set(ob, 1);
-	ob = e_widget_radio_icon_add(evas, NULL, "enlightenment/screen_right", 24, 24, ECORE_X_RANDR_ROT_270, rg);
+	ob = e_widget_radio_icon_add(evas, NULL, "preferences-screen-right", 24, 24, ECORE_X_RANDR_ROT_270, rg);
         e_widget_framelist_object_append(of, ob);
 	if (!(cfdata->can_rotate & ECORE_X_RANDR_ROT_270)) e_widget_disabled_set(ob, 1);
 	e_widget_table_object_append(ot, of, 0, 1, 1, 1, 1, 0, 1, 0);
@@ -493,10 +492,10 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    if (cfdata->can_flip)
      {
 	of = e_widget_framelist_add(evas, _("Mirroring"), 0);
-	ob = e_widget_check_icon_add(evas, NULL, "enlightenment/screen_hflip", 24, 24, &(cfdata->flip_x));
+	ob = e_widget_check_icon_add(evas, NULL, "preferences-screen-hflip", 24, 24, &(cfdata->flip_x));
         e_widget_framelist_object_append(of, ob);
 	if (!(cfdata->can_flip & ECORE_X_RANDR_FLIP_X)) e_widget_disabled_set(ob, 1);
-	ob = e_widget_check_icon_add(evas, NULL, "enlightenment/screen_vflip", 24, 24, &(cfdata->flip_y));
+	ob = e_widget_check_icon_add(evas, NULL, "preferences-screen-vflip", 24, 24, &(cfdata->flip_y));
         e_widget_framelist_object_append(of, ob);
 	if (!(cfdata->can_flip & ECORE_X_RANDR_FLIP_Y)) 
 	  e_widget_disabled_set(ob, 1);
@@ -549,8 +548,8 @@ _load_resolutions(E_Config_Dialog_Data *cfdata)
 	     if ((res->size.width == cfdata->orig_size.width) &&
 		 (res->size.height == cfdata->orig_size.height))
 	       {
-		  ob = edje_object_add(evas);
-		  e_util_edje_icon_set(ob, "enlightenment/check");
+		  ob = e_icon_add(evas);
+		  e_util_icon_theme_set(ob, "dialog-ok-apply");
 		  sel = res->id;
 	       }
 	     e_widget_ilist_append(cfdata->res_list, ob, buf, 
@@ -573,8 +572,8 @@ _load_resolutions(E_Config_Dialog_Data *cfdata)
 	     if ((res->size.width == cfdata->orig_size.width) &&
 		 (res->size.height == cfdata->orig_size.height))
 	       {
-		  ob = edje_object_add(evas);
-		  e_util_edje_icon_set(ob, "enlightenment/check");
+		  ob = e_icon_add(evas);
+		  e_util_icon_theme_set(ob, "dialog-ok-apply");
 		  sel = res->id;
 	       }
 	     e_widget_ilist_nth_icon_set(cfdata->res_list, res->id, ob);
@@ -588,6 +587,7 @@ _load_rates(E_Config_Dialog_Data *cfdata)
    int r, k = 0, sel = 0;
    char buf[16];
    Evas *evas;
+   Resolution *res;
    Eina_List *l;
 
    evas = evas_object_evas_get(cfdata->rate_list);
@@ -598,34 +598,29 @@ _load_rates(E_Config_Dialog_Data *cfdata)
 
    r = e_widget_ilist_selected_get(cfdata->res_list);
 
-   for (l = cfdata->resolutions; l; l = l->next) 
-     {
-	Resolution *res = l->data;
+   EINA_LIST_FOREACH(cfdata->resolutions, l, res)
+     if (res->id == r)
+       {
+	  Ecore_X_Screen_Refresh_Rate *rt;
+	  Eina_List *ll;
 
-	if (res->id == r)
-	  {
-	     Eina_List *ll;
+	  EINA_LIST_FOREACH(res->rates, ll, rt)
+	    {
+	       Evas_Object *ob = NULL;
 
-	     for (ll = res->rates; ll; ll = ll->next)
-	       {
-		  Ecore_X_Screen_Refresh_Rate *rt;
-		  Evas_Object *ob = NULL;
+	       snprintf(buf, sizeof(buf), "%i Hz", rt->rate);
 
-		  rt = ll->data;
-		  snprintf(buf, sizeof(buf), "%i Hz", rt->rate);
-
-		  if (rt->rate == cfdata->orig_rate.rate)
-		    {
-		       ob = edje_object_add(evas);
-		       e_util_edje_icon_set(ob, "enlightenment/check");
-		       sel = k;
-		    }
-		  e_widget_ilist_append(cfdata->rate_list, ob, buf, NULL, NULL, NULL);
-		  k++;
-	       }
-	     break;
-	  }
-     }   
+	       if (rt->rate == cfdata->orig_rate.rate)
+		 {
+		    ob = e_icon_add(evas);
+		    e_util_icon_theme_set(ob, "dialog-ok-apply");
+		    sel = k;
+		 }
+	       e_widget_ilist_append(cfdata->rate_list, ob, buf, NULL, NULL, NULL);
+	       k++;
+	    }
+	  break;
+       }
 
    e_widget_ilist_go(cfdata->rate_list);
    e_widget_ilist_selected_set(cfdata->rate_list, sel);

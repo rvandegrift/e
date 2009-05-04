@@ -1,5 +1,5 @@
 group "E_Config" struct {
-  value "config_version" int: 65836;
+  value "config_version" int: 65838;
   value "show_splash" int: 0;
   value "init_default_theme" string: "default.edj";
   value "desktop_default_name" string: "Desktop %i, %i";
@@ -10,6 +10,7 @@ group "E_Config" struct {
   value "border_shade_transition" int: 3;
   value "border_shade_speed" double: 3000.0000000000000000000000000;
   value "framerate" double: 30.0000000000000000000000000;
+  value "priority" int: 1;
   value "image_cache" int: 4096;
   value "font_cache" int: 512;
   value "edje_cache" int: 10;
@@ -19,8 +20,6 @@ group "E_Config" struct {
   value "use_virtual_roots" int: 0;
   value "show_desktop_icons" int: 1;
   value "edge_flip_dragging" int: 0;
-  value "edge_flip_moving" int: 0;
-  value "edge_flip_timeout" double: 0.2500000000000000000000000;
   value "evas_engine_default" int: 1;
   value "evas_engine_container" int: 0;
   value "evas_engine_init" int: 0;
@@ -482,6 +481,7 @@ group "E_Config" struct {
   value "border_raise_on_mouse_action" int: 1;
   value "border_raise_on_focus" int: 1;
   value "desk_flip_wrap" int: 0;
+  value "fullscreen_flip" int: 1;
   value "icon_theme" string: "Tango";
   value "desk_flip_animate_mode" int: 0;
   value "desk_flip_animate_interpolation" int: 0;

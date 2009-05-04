@@ -112,7 +112,7 @@ e_appwin_new(E_Zone *zone, const char *themedir)
 
    esw->handlers = eina_list_append
      (esw->handlers,
-      ecore_event_handler_add(ECORE_X_EVENT_MOUSE_BUTTON_UP,
+      ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP,
 			      _e_appwin_cb_mouse_up, esw));
    
    e_object_del_attach_func_set(E_OBJECT(esw), _e_appwin_object_del_attach);
@@ -169,7 +169,7 @@ e_appwin_show(E_Appwin *esw)
 	ent->appwin = esw;
 	ent->border = bd;
 	ent->icon = ic;
-	esw->borders = evas_list_append(esw->borders, ent);
+	esw->borders = eina_list_append(esw->borders, ent);
 	e_widget_ilist_append(esw->ilist_obj, ic, title, _e_appwin_cb_item_sel, ent, NULL);
 	if (bd == e_border_focused_get()) selnum = i;
 	i++;
@@ -181,6 +181,7 @@ e_appwin_show(E_Appwin *esw)
    e_widget_ilist_go(esw->ilist_obj);
 
    e_widget_ilist_preferred_size_get(esw->ilist_obj, &mw, &mh);
+   if (mh < (120 *e_scale)) mh = 120 * e_scale;
    edje_extern_object_min_size_set(esw->ilist_obj, mw, mh);
    edje_object_part_swallow(esw->base_obj, "e.swallow.content", esw->ilist_obj);
 
@@ -222,16 +223,14 @@ e_appwin_border_select_callback_set(E_Appwin *esw, void (*func) (void *data, E_A
 static void
 _e_appwin_free(E_Appwin *esw)
 {
+   Ecore_Event_Handler *handle;
+
    appwins = eina_list_remove(appwins, esw);
-   while (esw->handlers)
-     {
-	if (esw->handlers->data)
-	  ecore_event_handler_del(esw->handlers->data);
-	esw->handlers = eina_list_remove_list(esw->handlers, esw->handlers);
-     }
+   EINA_LIST_FREE(esw->handlers, handle)
+     ecore_event_handler_del(handle);
    if (esw->animator) ecore_animator_del(esw->animator);
    if (esw->themedir) evas_stringshare_del(esw->themedir);
-   ecore_x_window_del(esw->clickwin);
+   ecore_x_window_free(esw->clickwin);
    e_object_del(E_OBJECT(esw->popup));
    free(esw);
 }
@@ -314,12 +313,12 @@ _e_appwin_slide(E_Appwin *esw, int out, double len)
 static int
 _e_appwin_cb_mouse_up(void *data, int type, void *event)
 {
-   Ecore_X_Event_Mouse_Button_Up *ev;
+   Ecore_Event_Mouse_Button *ev;
    E_Appwin *esw;
    
    ev = event;
    esw = data;
-   if (ev->win == esw->clickwin)
+   if (ev->window == esw->clickwin)
      {
 	if (esw->out) _e_appwin_slide(esw, 0, 1.0);
 	else _e_appwin_slide(esw, 1, 1.0);
@@ -385,11 +384,12 @@ _e_appwin_object_del_attach(void *o)
 	esw->borders = eina_list_remove_list(esw->borders, esw->borders);
 	free(ent);
      }
-   ev = calloc(1, sizeof(E_Event_Appwin_Del));
-   ev->appwin = esw;
-   e_object_ref(E_OBJECT(esw));
-   ecore_event_add(E_EVENT_APPWIN_DEL, ev, 
-		   _e_appwin_event_simple_free, NULL);
+/*    ev = calloc(1, sizeof(E_Event_Appwin_Del)); */
+/*    ev->appwin = esw; */
+/*    e_object_ref(E_OBJECT(esw)); */
+/*    fprintf(stderr, "event add E_EVENT_APPWIN_DEL\n"); */
+/*    ecore_event_add(E_EVENT_APPWIN_DEL, ev,  */
+/* 		   _e_appwin_event_simple_free, NULL); */
 }
 
 static void

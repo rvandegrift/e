@@ -1,5 +1,5 @@
 group "E_Config" struct {
-  value "config_version" int: 65836;
+  value "config_version" int: 65839;
   value "show_splash" int: 1;
   value "init_default_theme" string: "default.edj";
   value "desktop_default_name" string: "Desktop %i, %i";
@@ -10,6 +10,7 @@ group "E_Config" struct {
   value "border_shade_transition" int: 3;
   value "border_shade_speed" double: 3000.0000000000000000000000000;
   value "framerate" double: 30.0000000000000000000000000;
+  value "priority" int: 1;
   value "image_cache" int: 2048;
   value "font_cache" int: 512;
   value "edje_cache" int: 8;
@@ -19,8 +20,6 @@ group "E_Config" struct {
   value "use_virtual_roots" int: 0;
   value "show_desktop_icons" int: 0;
   value "edge_flip_dragging" int: 0;
-  value "edge_flip_moving" int: 0;
-  value "edge_flip_timeout" double: 0.2500000000000000000000000;
   value "evas_engine_default" int: 1;
   value "evas_engine_container" int: 0;
   value "evas_engine_init" int: 0;
@@ -692,7 +691,9 @@ group "E_Config" struct {
   value "border_raise_on_mouse_action" int: 1;
   value "border_raise_on_focus" int: 1;
   value "desk_flip_wrap" int: 0;
+  value "fullscreen_flip" int: 1;
   value "icon_theme" string: "openmoko-standard";
+  value "icon_theme_overrides" uchar: 0;
   value "desk_flip_animate_mode" int: 0;
   value "desk_flip_animate_interpolation" int: 0;
   value "desk_flip_animate_time" double: 0.2000000000000000111022302;
@@ -749,6 +750,12 @@ group "E_Config" struct {
   }
   group "mime_icons" list {
     group "E_Config_Mime_Icon" struct {
+      value "mime" string: "application/x-edje";
+      value "icon" string: "THUMB";
+    }
+  }
+  group "mime_icons" list {
+    group "E_Config_Mime_Icon" struct {
       value "mime" string: "application/x-desktop";
       value "icon" string: "DESKTOP";
     }
@@ -789,7 +796,7 @@ group "E_Config" struct {
       value "action" string: "suspend";
       value "params" string: "now";
       value "button" string: "button";
-      value "icon" string: "enlightenment/suspend";
+      value "icon" string: "system-suspend";
       value "is_main" int: 1;
     }
   }
@@ -797,7 +804,7 @@ group "E_Config" struct {
     group "E_Config_Syscon_Action" struct {
       value "action" string: "desk_lock";
       value "button" string: "button";
-      value "icon" string: "enlightenment/desklock_menu";
+      value "icon" string: "system-lock-screen";
       value "is_main" int: 1;
     }
   }
@@ -806,7 +813,7 @@ group "E_Config" struct {
       value "action" string: "halt";
       value "params" string: "now";
       value "button" string: "button";
-      value "icon" string: "enlightenment/halt";
+      value "icon" string: "system-shutdown";
       value "is_main" int: 0;
     }
   }

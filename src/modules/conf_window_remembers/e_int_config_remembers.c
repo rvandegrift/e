@@ -28,7 +28,7 @@ e_int_config_remembers(E_Container *con, const char *params __UNUSED__)
 
    cfd = e_config_dialog_new(con, _("Window Remembers"), "E", 
                              "_config_remembers_dialog", 
-                             "enlightenment/window_remembers", 0, v, NULL);
+                             "preferences-desktop-window-remember", 0, v, NULL);
    e_dialog_resizable_set(cfd->dia, 1);
    return cfd;
 }
@@ -39,7 +39,8 @@ _cb_sort(const void *data1, const void *data2)
 {
    const E_Remember *rem1 = NULL;
    const E_Remember *rem2 = NULL;
-   const char *d1, *d2;
+   const char *d1 = NULL;
+   const char *d2 = NULL;
 
    if (!(rem1 = data1)) return 1;
    if (!(rem2 = data2)) return -1;
@@ -91,7 +92,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    o = e_widget_list_add(evas, 0, 0);
    of = e_widget_frametable_add(evas, _("Window Remembers"), 0);
 
-   ow = e_widget_button_add(evas, _("Delete Remember(s)"), "widget/del",
+   ow = e_widget_button_add(evas, _("Delete Remember(s)"), "list-remove",
 			    _cb_delete, cfdata, NULL);
    cfdata->btn = ow;
 
@@ -151,8 +152,8 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
    ll = e_config->remembers;
    ll = eina_list_sort(ll, -1, _cb_sort);
 
-   ic = edje_object_add(evas);
-   e_util_edje_icon_set(ic, "enlightenment/applications");
+   ic = e_icon_add(evas);
+   e_util_icon_theme_set(ic, "preferences-applications");
    e_widget_ilist_header_append(cfdata->list, ic, _("Applications"));
 
    for (l = ll; l; l = l->next) 
@@ -176,8 +177,8 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
           e_widget_ilist_append(cfdata->list, NULL, rem->role, NULL, rem, NULL);
      }
 
-   ic = edje_object_add(evas);
-   e_util_edje_icon_set(ic, "enlightenment/e");
+   ic = e_icon_add(evas);
+   e_util_icon_theme_set(ic, "enlightenment");
    e_widget_ilist_header_append(cfdata->list, ic, _("Enlightenment"));
    for (l = ll; l; l = l->next)
      {
@@ -191,8 +192,8 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
         e_widget_ilist_append(cfdata->list, NULL, rem->class, NULL, rem, NULL);
      }
 
-   ic = edje_object_add(evas);
-   e_util_edje_icon_set(ic, "enlightenment/modules");
+   ic = e_icon_add(evas);
+   e_util_icon_theme_set(ic, "preferences-plugin");
    e_widget_ilist_header_append(cfdata->list, ic, _("Modules"));
    for (l = ll; l; l = l->next) 
      {

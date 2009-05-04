@@ -26,7 +26,7 @@ struct _E_Config_Dialog_Data
    Evas_Object *o_delete;
    Evas_Object *o_reset;
    Evas_Object *o_text;
-   char *sel_profile;
+   const char *sel_profile;
 
    E_Dialog *dia_new_profile;
    char *new_profile;
@@ -55,7 +55,7 @@ e_int_config_profiles(E_Container *con, const char *params __UNUSED__)
    cfd = e_config_dialog_new(con,
 			     _("Profile Selector"),
 			    "E", "_config_profiles_dialog",
-			     "enlightenment/profiles", 0, v, NULL);
+			     "preferences-profiles", 0, v, NULL);
    e_config_dialog_changed_auto_set(cfd, 0);
    return cfd;
 }
@@ -100,7 +100,6 @@ static Evas_Object *
 _create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *of, *ot, *ob;
-   const char *dir;
    char buf[PATH_MAX];
 
    o = e_widget_list_add(evas, 0, 0);
@@ -119,16 +118,15 @@ _create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    cfdata->o_text = ob;
    
    ot = e_widget_table_add(evas, 0);
-   ob = e_widget_button_add(evas, _("Add"), "widget/add", _cb_add, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Add"), "list-add", _cb_add, cfdata, NULL);
    e_widget_table_object_append(ot, ob, 0, 0, 1, 1, 1, 1, 0, 0);
-   cfdata->o_delete = e_widget_button_add(evas, _("Delete"), "widget/del", _cb_delete, cfdata, NULL);
+   cfdata->o_delete = e_widget_button_add(evas, _("Delete"), "list-remove", _cb_delete, cfdata, NULL);
    e_widget_table_object_append(ot, cfdata->o_delete, 1, 0, 1, 1, 1, 1, 0, 0);
-   cfdata->o_reset = e_widget_button_add(evas, _("Reset"), "widget/reset", _cb_reset, cfdata, NULL);
+   cfdata->o_reset = e_widget_button_add(evas, _("Reset"), "system-restart", _cb_reset, cfdata, NULL);
    e_widget_table_object_align_append(ot, cfdata->o_reset, 2, 0, 1, 1, 0, 1, 1, 1, 1.0, 0.5);
 
    // if there is a system version of the profile - allow reset
-   dir = e_prefix_data_get();
-   snprintf(buf, sizeof(buf), "%s/data/config/%s/", dir, e_config_profile_get());
+   e_prefix_data_snprintf(buf, sizeof(buf), "data/config/%s/", e_config_profile_get());
    if (ecore_file_is_dir(buf))
      e_widget_disabled_set(cfdata->o_reset, 0);
    else
@@ -170,7 +168,7 @@ _ilist_fill(E_Config_Dialog_Data *cfdata)
         Efreet_Desktop *desk = NULL;
 	Evas_Object *ic;
         char buf[PATH_MAX], *prof, *pdir;
-        const char *label, *dir;
+        const char *label;
         
         prof = l->data;
         if (e_config_profile_get())
@@ -182,8 +180,7 @@ _ilist_fill(E_Config_Dialog_Data *cfdata)
         desk = efreet_desktop_get(buf);
         if (!desk)
           {
-             dir = e_prefix_data_get();
-             snprintf(buf, sizeof(buf), "%s/data/config/%s/", dir, prof);
+             e_prefix_data_snprintf(buf, sizeof(buf), "data/config/%s/", prof);
              pdir = strdup(buf);
              if (pdir)
                {
@@ -199,14 +196,14 @@ _ilist_fill(E_Config_Dialog_Data *cfdata)
         if ((desk) && (desk->icon) && (pdir))
           snprintf(buf, sizeof(buf), "%s/%s", pdir, desk->icon);
         else
-          snprintf(buf, sizeof(buf), "%s/data/images/enlightenment.png", e_prefix_data_get());
+          e_prefix_data_concat_static(buf, "data/images/enlightenment.png");
         ic = e_util_icon_add(buf, evas);
         e_widget_ilist_append(cfdata->o_list, ic, label, _ilist_cb_selected, cfdata, prof);
         if (pdir) free(pdir);
         free(prof);
         if (desk) efreet_desktop_free(desk);
      }
-   if (profiles) evas_list_free(profiles);
+   if (profiles) eina_list_free(profiles);
    if (selected >= 0)
      e_widget_ilist_selected_set(cfdata->o_list, selected);   
    e_widget_min_size_set(cfdata->o_list, 155, 250);
@@ -221,7 +218,7 @@ static void
 _ilist_cb_selected(void *data)
 {
    E_Config_Dialog_Data *cfdata;
-   const char *cur_profile, *dir;
+   const char *cur_profile;
    unsigned char v;
    Efreet_Desktop *desk = NULL;
    char *pdir, buf[PATH_MAX];
@@ -240,8 +237,7 @@ _ilist_cb_selected(void *data)
    desk = efreet_desktop_get(buf);
    if (!desk)
      {
-        dir = e_prefix_data_get();
-        snprintf(buf, sizeof(buf), "%s/data/config/%s/", dir, cfdata->sel_profile);
+        e_prefix_data_snprintf(buf, sizeof(buf), "data/config/%s/", cfdata->sel_profile);
         pdir = strdup(buf);
         if (pdir)
           {
@@ -287,7 +283,7 @@ _cb_delete(void *data, void *data2)
             d->cfdata->sel_profile);
    e_confirm_dialog_show
      (_("Delete OK?"),
-      "enlightenment/warning", buf, NULL, NULL, _cb_dialog_yes, NULL, d, NULL,
+      "dialog-warning", buf, NULL, NULL, _cb_dialog_yes, NULL, d, NULL,
       _cb_dialog_destroy, d);
 }
 

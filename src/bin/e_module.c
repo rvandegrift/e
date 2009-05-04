@@ -36,7 +36,7 @@ e_module_init(void)
 EAPI int
 e_module_shutdown(void)
 {
-   Eina_List *l;
+   E_Module *m;
 
 #ifdef HAVE_VALGRIND
    /* do a leak check now before we dlclose() all those plugins, cause
@@ -46,25 +46,18 @@ e_module_shutdown(void)
 #endif
 
    _e_modules = eina_list_reverse(_e_modules);
-   for (l = _e_modules; l; l = l->next)
+
+   EINA_LIST_FREE(_e_modules, m)
      {
-	E_Module *m;
-	
-	m = l->data;
-	if ((m->enabled) && (!m->error))
+	if (m && m->enabled && !m->error)
 	  {
 	     m->func.save(m);
 	     m->func.shutdown(m);
 	     m->enabled = 0;
 	  }
+	e_object_del(E_OBJECT(m));
      }
-   l = _e_modules;
-   _e_modules = NULL;
-   while (l)
-     {
-	e_object_del(E_OBJECT(l->data));
-	l = eina_list_remove_list(l, l);
-     }
+
    return 1;
 }
 
@@ -147,11 +140,7 @@ e_module_new(const char *name)
    m->func.shutdown = dlsym(m->handle, "e_modapi_shutdown");
    m->func.save = dlsym(m->handle, "e_modapi_save");
 
-   if ((!m->func.init) ||
-       (!m->func.shutdown) ||
-       (!m->func.save) ||
-       (!m->api)
-       )
+   if ((!m->func.init) || (!m->func.shutdown) || (!m->func.save) || (!m->api))
      {
 	snprintf(body, sizeof(body), _("There was an error loading module named: %s<br>"
 				       "The full path to this module is:<br>"
@@ -200,7 +189,7 @@ init_done:
 	if (s)
 	  {
 	     char *s2;
-	     
+
 	     s2 = ecore_file_dir_get(s);
 	     free(s);
 	     if (s2)
@@ -213,9 +202,8 @@ init_done:
    for (l = e_config->modules; l; l = l->next)
      {
 	E_Config_Module *em;
-	
-	em = l->data;
-	if (!em) continue;
+
+	if (!(em = l->data)) continue;
 	if (!e_util_strcmp(em->name, m->name))
 	  {
 	     in_list = 1;
@@ -225,7 +213,7 @@ init_done:
    if (!in_list)
      {
 	E_Config_Module *em;
-	
+
 	em = E_NEW(E_Config_Module, 1);
 	em->name = eina_stringshare_add(m->name);
 	em->enabled = 0;
@@ -337,14 +325,14 @@ e_module_save_all(void)
    int ret = 1;
 
    EINA_LIST_FOREACH(_e_modules, l, m)
-      e_object_ref(E_OBJECT(m));
+     e_object_ref(E_OBJECT(m));
    EINA_LIST_FOREACH(_e_modules, l, m)
-	if ((m->enabled) && (!m->error))
-	  {
-	     if (!m->func.save(m)) ret = 0;
-	  }
+     if ((m->enabled) && (!m->error))
+       {
+          if (!m->func.save(m)) ret = 0;
+       }
    EINA_LIST_FOREACH(_e_modules, l, m)
-      e_object_unref(E_OBJECT(m));
+     e_object_unref(E_OBJECT(m));
    return ret;
 }
 
@@ -356,7 +344,7 @@ e_module_find(const char *name)
 
    if (!name) return NULL;
    EINA_LIST_FOREACH(_e_modules, l, m)
-      if (!e_util_strcmp(name, m->name)) return m;
+     if (!e_util_strcmp(name, m->name)) return m;
    return NULL;
 }
 
@@ -402,7 +390,7 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
 	if (desktop) efreet_desktop_free(desktop);
      }
    else
-     e_dialog_icon_set(dia, "enlightenment/modules", 64);
+     e_dialog_icon_set(dia, "preferences-plugin", 64);
    
    e_dialog_text_set(dia, body);
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
@@ -445,13 +433,12 @@ e_module_priority_set(E_Module *m, int priority)
    /* Set the loading order for a module.
       More priority means load earlier */
    Eina_List *l;
-   
+
    for (l = e_config->modules; l; l = l->next)
      {
 	E_Config_Module *em;
-	
-	em = l->data;
-	if (!em) continue;
+
+	if (!(em = l->data)) continue;
 	if (!e_util_strcmp(m->name, em->name))
 	  {
 	     if (em->priority != priority)
@@ -469,13 +456,11 @@ e_module_priority_set(E_Module *m, int priority)
 static void
 _e_module_free(E_Module *m)
 {
+   E_Config_Module *em;
    Eina_List *l;
    
-   for (l = e_config->modules; l; l = l->next)
+   EINA_LIST_FOREACH(e_config->modules, l, em)
      {
-	E_Config_Module *em;
-	
-	em = l->data;
 	if (!em) continue;
 	if (!e_util_strcmp(em->name, m->name))
 	  {
@@ -485,7 +470,7 @@ _e_module_free(E_Module *m)
 	     break;
 	  }
      }
-   
+
    if ((m->enabled) && (!m->error))
      {
 	m->func.save(m);
@@ -512,7 +497,7 @@ _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m)
 	    _("Would you like to unload this module?<br>"));
 
    e_dialog_title_set(dia, title);
-   e_dialog_icon_set(dia, "enlightenment/e", 64);
+   e_dialog_icon_set(dia, "enlightenment", 64);
    e_dialog_text_set(dia, buf);
    e_dialog_button_add(dia, _("Yes"), NULL, _e_module_cb_dialog_disable, m);
    e_dialog_button_add(dia, _("No"), NULL, NULL, NULL);
@@ -537,8 +522,7 @@ _e_module_event_update_free(void *data, void *event)
 {
    E_Event_Module_Update *ev;
    
-   ev = event;
-   if (!ev) return;
+   if (!(ev = event)) return;
    E_FREE(ev->name);
    E_FREE(ev);
 }
@@ -550,7 +534,7 @@ _e_module_cb_idler(void *data)
      {
 	const char *name;
 	E_Module *m;
-	
+
 	name = _e_modules_delayed->data;
 	_e_modules_delayed = eina_list_remove_list(_e_modules_delayed, _e_modules_delayed);
 	m = NULL;

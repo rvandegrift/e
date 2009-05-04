@@ -35,9 +35,9 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("appearance", 10, _("Look"), NULL, "enlightenment/appearance");
-   e_configure_registry_item_add("appearance/theme", 20, _("Theme"), NULL, "enlightenment/themes", e_int_config_theme);
-   maug = e_int_menus_menu_augmentation_add("config/1", _e_mod_menu_add, NULL, NULL, NULL);
+   e_configure_registry_category_add("appearance", 10, _("Look"), NULL, "preferences-appearance");
+   e_configure_registry_item_add("appearance/theme", 20, _("Theme"), NULL, "preferences-desktop-theme", e_int_config_theme);
+   maug = e_int_menus_menu_augmentation_add_sorted("config/1", _("Theme"), _e_mod_menu_add, NULL, NULL, NULL);
 
    conf_module = m;
    e_module_delayed_set(m, 1);
@@ -82,6 +82,6 @@ _e_mod_menu_add(void *data, E_Menu *m)
    
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Theme"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/themes");
+   e_util_menu_item_theme_icon_set(mi, "preferences-desktop-theme");
    e_menu_item_callback_set(mi, _e_mod_run_cb, NULL);
 }

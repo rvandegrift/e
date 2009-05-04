@@ -31,8 +31,8 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("advanced", 80, _("Advanced"), NULL, "enlightenment/advanced");
-   e_configure_registry_item_add("advanced/performance", 20, _("Performance"), NULL, "enlightenment/performance", e_int_config_performance);   
+   e_configure_registry_category_add("advanced", 80, _("Advanced"), NULL, "preferences-advanced");
+   e_configure_registry_item_add("advanced/performance", 20, _("Performance"), NULL, "preferences-system-performance", e_int_config_performance);   
    conf_module = m;
    e_module_delayed_set(m, 1);
    return m;

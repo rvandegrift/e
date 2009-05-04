@@ -10,6 +10,7 @@ typedef struct _E_Config_Module             E_Config_Module;
 typedef struct _E_Config_Theme              E_Config_Theme;
 typedef struct _E_Config_Binding_Mouse      E_Config_Binding_Mouse;
 typedef struct _E_Config_Binding_Key        E_Config_Binding_Key;
+typedef struct _E_Config_Binding_Edge       E_Config_Binding_Edge;
 typedef struct _E_Config_Binding_Signal     E_Config_Binding_Signal;
 typedef struct _E_Config_Binding_Wheel      E_Config_Binding_Wheel;
 typedef struct _E_Config_Desktop_Background E_Config_Desktop_Background;
@@ -34,7 +35,7 @@ typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 0x012c
+#define E_CONFIG_FILE_GENERATION 0x012f
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH << 16) | E_CONFIG_FILE_GENERATION)
 
 #define E_EVAS_ENGINE_DEFAULT         0
@@ -72,6 +73,7 @@ struct _E_Config
    int         border_shade_transition; // GUI
    double      border_shade_speed; // GUI
    double      framerate; // GUI
+   int         priority; // GUI
    int         image_cache; // GUI
    int         font_cache; // GUI
    int         edje_cache; // GUI
@@ -81,8 +83,6 @@ struct _E_Config
    int         use_virtual_roots; // NO GUI - maybe remove?
    int         show_desktop_icons; // GUI
    int         edge_flip_dragging; // GUI
-   int         edge_flip_moving; // GUI
-   double      edge_flip_timeout; // GUI
    int         evas_engine_default; // GUI
    int         evas_engine_container; // NO GUI - maybe remove?
    int         evas_engine_init; // NO GUI - maybe remove?
@@ -101,6 +101,7 @@ struct _E_Config
    Eina_List  *themes; // GUI
    Eina_List  *mouse_bindings; // GUI
    Eina_List  *key_bindings; // GUI
+   Eina_List  *edge_bindings; // GUI
    Eina_List  *signal_bindings;
    Eina_List  *wheel_bindings; // GUI
    Eina_List  *path_append_data; // GUI
@@ -258,8 +259,10 @@ struct _E_Config
    int         border_raise_on_mouse_action; // GUI
    int         border_raise_on_focus; // GUI
    int         desk_flip_wrap; // GUI
+   int         fullscreen_flip; // GUI
 
    const char *icon_theme; // GUI
+   Eina_Bool   icon_theme_overrides; // GUI
    
    int         desk_flip_animate_mode; // GUI
    int         desk_flip_animate_interpolation; // GUI
@@ -370,6 +373,17 @@ struct _E_Config_Binding_Key
    const char    *key;
    const char    *action;
    const char    *params;
+   unsigned char  any_mod;
+};
+
+struct _E_Config_Binding_Edge
+{
+   int            context;
+   int            modifiers;
+   float	  delay;
+   const char    *action;
+   const char    *params;
+   unsigned char  edge;
    unsigned char  any_mod;
 };
 
@@ -502,6 +516,7 @@ EAPI int        e_config_domain_save(const char *domain, E_Config_DD *edd, const
 
 EAPI E_Config_Binding_Mouse  *e_config_binding_mouse_match(E_Config_Binding_Mouse *eb_in);
 EAPI E_Config_Binding_Key    *e_config_binding_key_match(E_Config_Binding_Key *eb_in);
+EAPI E_Config_Binding_Edge   *e_config_binding_edge_match(E_Config_Binding_Edge *eb_in);
 EAPI E_Config_Binding_Signal *e_config_binding_signal_match(E_Config_Binding_Signal *eb_in);
 EAPI E_Config_Binding_Wheel  *e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in);
     

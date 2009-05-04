@@ -48,7 +48,7 @@ const CFColor_Hash _wm_hash[] =
      {"about_title",        N_("About Dialog Title")},
      {"about_version",      N_("About Dialog Version")},
      {"border_title",       N_("Border Title")},
-     {"configure_title",    N_("Configure Dialog Title")},
+     {"configure_title",    N_("Settings Dialog Title")},
      {"error_text",         N_("Error Text")},
      {"menu_title",         N_("Menu Title")},
      {"menu_title_active",  N_("Menu Title Active")},
@@ -128,7 +128,7 @@ e_int_config_color_classes(E_Container *con, const char *params __UNUSED__)
    v->advanced.create_widgets = _adv_create_widgets;
    
    cfd = e_config_dialog_new(con, _("Colors"), "E", "_config_color_classes_dialog",
-			     "enlightenment/colors", 0, v, NULL);
+			     "preferences-desktop-color", 0, v, NULL);
    return cfd;
 }
 
@@ -587,8 +587,8 @@ _load_color_classes(Evas_Object *obj, E_Config_Dialog_Data *cfdata)
 	  {
 	     if (cfc->enabled) 
 	       {
-		  icon = edje_object_add(evas_object_evas_get(obj));
-		  e_util_edje_icon_set(icon, "enlightenment/check");
+		  icon = e_icon_add(evas_object_evas_get(obj));
+		  e_util_icon_theme_set(icon, "dialog-ok-apply");
 	       }
 	     else
 	       icon = NULL;
@@ -628,8 +628,8 @@ _radio_cb_change(void *data, Evas_Object *obj, void *event_info)
 	c->enabled = cfdata->state;
 	if (c->enabled) 
 	  {
-	     icon = edje_object_add(evas_object_evas_get(cfdata->gui.ilist));
-	     e_util_edje_icon_set(icon, "enlightenment/check");
+	     icon = e_icon_add(evas_object_evas_get(cfdata->gui.ilist));
+	     e_util_icon_theme_set(icon, "dialog-ok-apply");
 	  }
 	else 
 	  icon = NULL;

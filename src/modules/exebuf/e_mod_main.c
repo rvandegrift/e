@@ -48,7 +48,8 @@ e_modapi_init(E_Module *m)
 	e_action_predef_name_set(_("Launch"), _("Run Command Dialog"), "exebuf",
 				 NULL, NULL, 0);
      }
-   maug = e_int_menus_menu_augmentation_add("main/1", _e_mod_menu_add, NULL, NULL, NULL);
+   maug = e_int_menus_menu_augmentation_add_sorted
+     ("main/1", _("Run Command"), _e_mod_menu_add, NULL, NULL, NULL);
    e_module_delayed_set(m, 1);
    return m;
 }
@@ -126,6 +127,6 @@ _e_mod_menu_add(void *data, E_Menu *m)
    
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Run Command"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/run");
+   e_util_menu_item_theme_icon_set(mi, "system-run");
    e_menu_item_callback_set(mi, _e_mod_run_cb, NULL);
 }

@@ -53,6 +53,7 @@ e_int_border_menu_create(E_Border *bd)
 {
    E_Menu *m;
    E_Menu_Item *mi;
+   Eina_Bool separator;
 
    if (bd->border_menu) return;
 
@@ -135,15 +136,15 @@ e_int_border_menu_create(E_Border *bd)
 
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
+   separator = 1;
 
    if (!(((bd->client.icccm.min_w == bd->client.icccm.max_w) &&
 	  (bd->client.icccm.min_h == bd->client.icccm.max_h)) ||
 	 (bd->lock_user_maximize)))
      {
-	/* Only allow to change layer for windows in "normal" layers */
-	if ((!bd->lock_user_maximize) && (!bd->shaded) &&
-	    ((bd->layer == 50) || (bd->layer == 100) || (bd->layer == 150)))
+	if ((!bd->lock_user_maximize) && (!bd->shaded) && (!bd->fullscreen))
 	  {
+	     separator = 0;
 	     mi = e_menu_item_new(m);
 	     e_menu_item_label_set(mi, _("Maximize"));
 	     e_menu_item_submenu_pre_callback_set(mi, _e_border_menu_cb_maximize_pre, bd);
@@ -158,6 +159,7 @@ e_int_border_menu_create(E_Border *bd)
      {
 	if ((!bd->lock_user_iconify) && (!bd->fullscreen))
 	  {
+	     separator = 0;
 	     mi = e_menu_item_new(m);
 	     e_menu_item_label_set(mi, _("Iconify"));
 	     e_menu_item_callback_set(mi, _e_border_menu_cb_iconify, bd);
@@ -170,6 +172,7 @@ e_int_border_menu_create(E_Border *bd)
 	if ((!bd->lock_user_stacking) &&
 	    ((bd->layer == 50) || (bd->layer == 100) || (bd->layer == 150)))
 	  {
+	     separator = 0;
 	     mi = e_menu_item_new(m);
 	     e_menu_item_label_set(mi, _("Lower"));
 	     e_menu_item_callback_set(mi, _e_border_menu_cb_lower, bd);
@@ -188,8 +191,12 @@ e_int_border_menu_create(E_Border *bd)
 	  }
      }
 
-   mi = e_menu_item_new(m);
-   e_menu_item_separator_set(mi, 1);
+   if (!separator)
+     {
+	mi = e_menu_item_new(m);
+	e_menu_item_separator_set(mi, 1);
+	separator = 1;
+     }
 
    if ((!bd->lock_close) && (!bd->internal))
      {
@@ -476,19 +483,19 @@ _e_border_menu_cb_application_add_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 	submi = e_menu_item_new(subm);
 	e_menu_item_label_set(submi, _("Keyboard Shortcut"));
 	e_menu_item_callback_set(submi, _e_border_menu_cb_kbdshrtct_add, bd);
-	e_util_menu_item_edje_icon_set(submi, "enlightenment/keys");
+	e_util_menu_item_theme_icon_set(submi, "preferences-desktop-keyboard");
      }
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("To Favorites Menu"));
    e_menu_item_callback_set(submi, _e_border_menu_cb_fav_add, bd);
-   e_util_menu_item_edje_icon_set(submi, "enlightenment/favorites");
+   e_util_menu_item_theme_icon_set(submi, "user-bookmarks");
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("To Launcher"));
    e_menu_item_submenu_pre_callback_set(submi, 
                                         _e_border_menu_cb_ibar_add_pre, bd);
-   e_util_menu_item_edje_icon_set(submi, "enlightenment/ibar_applications");
+   e_util_menu_item_theme_icon_set(submi, "preferences-applications-ibar");
 }
 
 static void
@@ -523,8 +530,7 @@ _e_border_menu_cb_more_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 						   "e/widgets/border/default/skip"),
 			     "e/widgets/border/default/skip");
 
-   if ((!bd->lock_user_stacking) &&
-       ((bd->layer == 50) || (bd->layer == 100) || (bd->layer == 150)))
+   if ((!bd->lock_user_stacking) && (!bd->fullscreen))
      {
 	submi = e_menu_item_new(subm);
 	e_menu_item_label_set(submi, _("Stacking"));
@@ -1068,8 +1074,7 @@ _e_border_menu_cb_fav_add(void *data, E_Menu *m, E_Menu_Item *mi)
    char buf[4096];
 
    if (!(bd = data)) return;
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/menu/favorite.menu",
-	    e_user_homedir_get());
+   e_user_dir_concat_static(buf, "applications/menu/favorite.menu");
    menu = efreet_menu_parse(buf);
    if (!menu) return;
    efreet_menu_desktop_insert(menu, bd->desktop, -1);
@@ -1095,23 +1100,28 @@ _e_border_menu_cb_ibar_add_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 {
    E_Menu *sm;
    E_Border *bd;
-   Ecore_List *dirs;
+   Eina_List *dirs;
+   Eina_List *l;
    char buf[4096], *file;
-   const char *homedir;
+   size_t len;
 
    if (!(bd = data)) return;
-   homedir = e_user_homedir_get();
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/bar", homedir);
+   len = e_user_dir_concat_static(buf, "applications/bar");
+   if (len + 1 >= sizeof(buf)) return;
    dirs = ecore_file_ls(buf);
    if (!dirs) return;
 
+   buf[len] = '/';
+   len++;
+
    sm = e_menu_new();
-   while ((file = ecore_list_next(dirs)))
+   EINA_LIST_FOREACH(dirs, l, file)
      {
 	E_Menu_Item *smi;
 
 	if (file[0] == '.') continue;
-	snprintf(buf, sizeof(buf), "%s/.e/e/applications/bar/%s", homedir, file);
+
+	ecore_strlcpy(buf + len, file, sizeof(buf) - len);
 	if (ecore_file_is_dir(buf))
 	  {
 	     smi = e_menu_item_new(sm);
@@ -1133,8 +1143,8 @@ _e_border_menu_cb_ibar_add(void *data, E_Menu *m, E_Menu_Item *mi)
    bd = e_object_data_get(E_OBJECT(m));
    if ((!bd) || (!bd->desktop)) return;
 
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/bar/%s/.order",
-	    e_user_homedir_get(), (char *)data);
+   e_user_dir_snprintf(buf, sizeof(buf), "applications/bar/%s/.order",
+		       (const char *)data);
    od = e_order_new(buf);
    if (!od) return;
    e_order_append(od, bd->desktop);

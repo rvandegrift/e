@@ -316,7 +316,7 @@ _ibox_cb_empty_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_inf
 
 	mi = e_menu_item_new(mn);
 	e_menu_item_label_set(mi, _("Settings"));
-	e_util_menu_item_edje_icon_set(mi, "widget/config");
+	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _ibox_cb_menu_configuration, b);
 
 	mi = e_menu_item_new(mn);
@@ -594,7 +594,6 @@ _ibox_icon_fill_label(IBox_Icon *ic)
      }
 
    if (!label) label = "?";
-   edje_object_part_text_set(ic->o_holder, "e.text.label", label);
    edje_object_part_text_set(ic->o_holder2, "e.text.label", label);
 }
 
@@ -714,7 +713,7 @@ _ibox_cb_icon_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info
 	/* FIXME: other icon options go here too */
 	mi = e_menu_item_new(mn);
 	e_menu_item_label_set(mi, _("Settings"));
-	e_util_menu_item_edje_icon_set(mi, "widget/config");
+	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _ibox_cb_menu_configuration, ic->ibox);
 
 	mi = e_menu_item_new(mn);
@@ -1200,6 +1199,7 @@ _ibox_cb_event_border_urgent_change(void *data, int type, void *event)
 	if (!ic) continue;
 	if (ev->border->client.icccm.urgent)
 	  {
+	     e_gadcon_urgent_show(b->inst->gcc->gadcon);
 	     edje_object_signal_emit(ic->o_holder, "e,state,urgent", "e");
 	     edje_object_signal_emit(ic->o_holder2, "e,state,urgent", "e");
 	  }

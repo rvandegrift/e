@@ -28,8 +28,6 @@ struct _E_Drag
 {
    E_Object             e_obj_inherit;
 
-   char         **types;
-   unsigned int   num_types;
    void          *data;
    int            data_size;
 
@@ -38,8 +36,8 @@ struct _E_Drag
    struct {
 	void *(*convert)(E_Drag *drag, const char *type);
 	void  (*finished)(E_Drag *drag, int dropped);
-	void  (*key_down)(E_Drag *drag, Ecore_X_Event_Key_Down *e);
-	void  (*key_up)(E_Drag *drag, Ecore_X_Event_Key_Up *e);
+	void  (*key_down)(E_Drag *drag, Ecore_Event_Key *e);
+	void  (*key_up)(E_Drag *drag, Ecore_Event_Key *e);
    } cb;
 
    E_Container       *container;
@@ -59,6 +57,9 @@ struct _E_Drag
    unsigned char  visible : 1;
    unsigned char  need_shape_export : 1;
    unsigned char  xy_update : 1;
+
+   unsigned int   num_types;
+   const char    *types[];
 };
 
 struct _E_Drop_Handler
@@ -72,14 +73,13 @@ struct _E_Drop_Handler
    } cb;
 
    E_Object      *obj;
-   char         **types;
-   unsigned int   num_types;
-
    int x, y, w, h;
 
    unsigned char  active : 1;
    unsigned char  entered : 1;
    const char    *active_type;
+   unsigned int   num_types;
+   const char    *types[];
 };
 
 struct _E_Event_Dnd_Enter
@@ -117,13 +117,13 @@ EAPI E_Drag *e_drag_new(E_Container *container, int x, int y,
 			void *data, int size,
 			void *(*convert_cb)(E_Drag *drag, const char *type),
 			void (*finished_cb)(E_Drag *drag, int dropped));
-EAPI Evas   *e_drag_evas_get(E_Drag *drag);
+EAPI Evas   *e_drag_evas_get(const E_Drag *drag);
 EAPI void    e_drag_object_set(E_Drag *drag, Evas_Object *object);
 EAPI void    e_drag_move(E_Drag *drag, int x, int y);
 EAPI void    e_drag_resize(E_Drag *drag, int w, int h);
 EAPI void    e_drag_idler_before(void);
-EAPI void    e_drag_key_down_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_X_Event_Key_Down *e));
-EAPI void    e_drag_key_up_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_X_Event_Key_Up *e));
+EAPI void    e_drag_key_down_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_Event_Key *e));
+EAPI void    e_drag_key_up_cb_set(E_Drag *drag, void (*func)(E_Drag *drag, Ecore_Event_Key *e));
 
 /* x and y are the coords where the mouse is when dragging starts */
 EAPI int  e_drag_start(E_Drag *drag, int x, int y);
@@ -138,11 +138,11 @@ EAPI E_Drop_Handler *e_drop_handler_add(E_Object *obj,
 				       	const char **types, unsigned int num_types,
 					int x, int y, int w, int h);
 EAPI void e_drop_handler_geometry_set(E_Drop_Handler *handler, int x, int y, int w, int h);
-EAPI int  e_drop_inside(E_Drop_Handler *handler, int x, int y);
+EAPI int  e_drop_inside(const E_Drop_Handler *handler, int x, int y);
 EAPI void e_drop_handler_del(E_Drop_Handler *handler);
 EAPI int  e_drop_xdnd_register_set(Ecore_X_Window win, int reg);
 EAPI void e_drop_handler_responsive_set(E_Drop_Handler *handler);
-EAPI int  e_drop_handler_responsive_get(E_Drop_Handler *handler);
+EAPI int  e_drop_handler_responsive_get(const E_Drop_Handler *handler);
 EAPI void e_drop_handler_action_set(Ecore_X_Atom action);
 EAPI Ecore_X_Atom e_drop_handler_action_get();
 

@@ -6,6 +6,7 @@
 typedef struct _E_Desk E_Desk;
 typedef struct _E_Event_Desk_Show E_Event_Desk_Show;
 typedef struct _E_Event_Desk_Before_Show E_Event_Desk_Before_Show;
+typedef struct _E_Event_Desk_After_Show E_Event_Desk_After_Show;
 typedef struct _E_Event_Desk_DeskShow E_Event_Desk_DeskShow;
 typedef struct _E_Event_Desk_Name_Change E_Event_Desk_Name_Change;
 
@@ -24,6 +25,7 @@ struct _E_Desk
    int                  x, y;
    char                 visible : 1;
    unsigned int         deskshow_toggle : 1;
+   int                  fullscreen_borders;
 
    Evas_Object         *bg_object;
    
@@ -40,6 +42,10 @@ struct _E_Event_Desk_Before_Show
    E_Desk   *desk;
 };
 
+struct _E_Event_Desk_After_Show
+{
+   E_Desk   *desk;
+};
 
 struct _E_Event_Desk_Name_Change
 {
@@ -69,6 +75,7 @@ EAPI void         e_desk_col_remove(E_Zone *zone);
 
 extern EAPI int E_EVENT_DESK_SHOW;
 extern EAPI int E_EVENT_DESK_BEFORE_SHOW;
+extern EAPI int E_EVENT_DESK_AFTER_SHOW;
 extern EAPI int E_EVENT_DESK_DESKSHOW;
 extern EAPI int E_EVENT_DESK_NAME_CHANGE;
 

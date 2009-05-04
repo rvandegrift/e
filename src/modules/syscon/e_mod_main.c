@@ -34,8 +34,8 @@ e_modapi_init(E_Module *m)
 	e_action_predef_name_set(_("System"), _("System Control"), "syscon",
 				 NULL, NULL, 0);
      }
-   maug = e_int_menus_menu_augmentation_add("main/10", _e_mod_menu_add, 
-                                            NULL, NULL, NULL);
+   maug = e_int_menus_menu_augmentation_add_sorted
+     ("main/10", _("System"), _e_mod_menu_add, NULL, NULL, NULL);
    e_module_delayed_set(m, 1);
    return m;
 }
@@ -120,6 +120,6 @@ _e_mod_menu_add(void *data, E_Menu *m)
 
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("System"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/system");
+   e_util_menu_item_theme_icon_set(mi, "system");
    e_menu_item_callback_set(mi, _e_mod_syscon_cb, NULL);
 }

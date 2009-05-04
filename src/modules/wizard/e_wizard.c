@@ -166,7 +166,6 @@ e_wizard_page_show(Evas_Object *obj)
      }
 }
 
-/* FIXME: decide how pages are defined - how about an array of page structs? */
 EAPI E_Wizard_Page *
 e_wizard_page_add(void *handle,
 		  int (*init)     (E_Wizard_Page *pg),
@@ -243,8 +242,9 @@ _e_wizard_main_new(E_Zone *zone)
    E_Popup *pop;
    Evas_Object *o, *o_ev;
    Evas_Modifier_Mask mask;
+   Eina_Bool kg;
    
-   pop = e_popup_new(zone, zone->x, zone->y, zone->w, zone->h);
+   pop = e_popup_new(zone, 0, 0, zone->w, zone->h);
    e_popup_layer_set(pop, 255);
    o = edje_object_add(pop->evas);
 
@@ -258,13 +258,21 @@ _e_wizard_main_new(E_Zone *zone)
    
    o = evas_object_rectangle_add(pop->evas);
    mask = 0;
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = evas_key_modifier_mask_get(pop->evas, "Shift");
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"Return\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"KP_Enter\" key events to object %p.\n", o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_KEY_DOWN,
 				  _e_wizard_cb_key_down, pop);
    o_ev = o;
@@ -276,8 +284,8 @@ _e_wizard_main_new(E_Zone *zone)
    
    e_popup_edje_bg_object_set(pop, o_bg);
    e_popup_show(pop);
-   if (!e_grabinput_get(ecore_evas_software_x11_subwindow_get(pop->ecore_evas),
-			1, ecore_evas_software_x11_subwindow_get(pop->ecore_evas)))
+   if (!e_grabinput_get(ecore_evas_software_x11_window_get(pop->ecore_evas),
+			1, ecore_evas_software_x11_window_get(pop->ecore_evas)))
      {
 	e_object_del(E_OBJECT(pop));
 	pop = NULL;
@@ -291,7 +299,7 @@ _e_wizard_extra_new(E_Zone *zone)
    E_Popup *pop;
    Evas_Object *o;
    
-   pop = e_popup_new(zone, zone->x, zone->y, zone->w, zone->h);
+   pop = e_popup_new(zone, 0, 0, zone->w, zone->h);
    e_popup_layer_set(pop, 255);
    o = edje_object_add(pop->evas);
    e_theme_edje_object_set(o, "base/theme/wizard", "e/wizard/extra");

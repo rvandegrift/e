@@ -25,13 +25,13 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("appearance", 10, _("Look"), NULL, "enlightenment/appearance");
-   e_configure_registry_item_add("appearance/wallpaper", 10, _("Wallpaper"), NULL, "enlightenment/background", e_int_config_wallpaper);
+   e_configure_registry_category_add("appearance", 10, _("Look"), NULL, "preferences-appearance");
+   e_configure_registry_item_add("appearance/wallpaper", 10, _("Wallpaper"), NULL, "preferences-desktop-wallpaper", e_int_config_wallpaper);
    e_configure_registry_category_add("internal", -1, _("Internal"), NULL, "enlightenment/internal");
-   e_configure_registry_item_add("internal/wallpaper_desk", -1, _("Wallpaper"), NULL, "enlightenment/windows", e_int_config_wallpaper_desk);
-   maug = e_int_menus_menu_augmentation_add("config/1", _e_mod_menu_add, NULL, NULL, NULL);
+   e_configure_registry_item_add("internal/wallpaper_desk", -1, _("Wallpaper"), NULL, "preferences-system-windows", e_int_config_wallpaper_desk);
+   maug = e_int_menus_menu_augmentation_add_sorted("config/1", _("Wallpaper"), _e_mod_menu_add, NULL, NULL, NULL);
 
-   import_hdl = e_fm2_mime_handler_new(_("Set As Background"), "enlightenment/background", 
+   import_hdl = e_fm2_mime_handler_new(_("Set As Background"), "preferences-desktop-wallpaper", 
 				       e_int_config_wallpaper_handler_set, NULL,
 				       e_int_config_wallpaper_handler_test, NULL);
    if (import_hdl) 
@@ -94,6 +94,6 @@ _e_mod_menu_add(void *data, E_Menu *m)
    
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Wallpaper"));
-   e_util_menu_item_edje_icon_set(mi, "enlightenment/background");
+   e_util_menu_item_theme_icon_set(mi, "preferences-desktop-wallpaper");
    e_menu_item_callback_set(mi, _e_mod_run_cb, NULL);
 }

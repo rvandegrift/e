@@ -1,11 +1,16 @@
 /*
  * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
  */
+#define _GNU_SOURCE
 #include "e.h"
 
 #ifdef HAVE_ECORE_IMF
 #include <Ecore_IMF.h>
 #endif
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 /*
  * i need to make more use of these when i'm baffled as to when something is
@@ -55,6 +60,8 @@ static void my_free_hook(void *p, const void *caller)
 */
 
 EAPI int e_precache_end = 0;
+
+static int really_know = 0;
 
 /* local subsystem functions */
 static void _e_main_shutdown_push(int (*func)(void));
@@ -210,9 +217,8 @@ main(int argc, char **argv)
      {
 	/* do some extra tests to see if the prefix really is right */
 	char buf[4096];
-	
-	snprintf(buf, sizeof(buf), "%s/data/themes/default.edj",
-		 e_prefix_data_get());
+
+	e_prefix_data_concat_static(buf, "data/themes/default.edj");
 	if (!ecore_file_exists(buf))
 	  {
 	     printf("WARNING: Prefix guess was wrong. Guessed:\n"
@@ -302,6 +308,15 @@ main(int argc, char **argv)
 	     i++;
 	     e_util_env_set("E_CONF_PROFILE", argv[i]);
 	  }
+	else if (!strcmp(argv[i], "-i-really-know-what-i-am-doing-and-accept-full-responsibility-for-it"))
+	  {
+             really_know = 1;
+	  }
+	else if (!strcmp(argv[i], "-locked"))
+	  {
+	     locked = 1;
+	     puts("enlightenment will start with desklock on.");
+	  }
 	else if ((!strcmp(argv[i], "-h")) ||
 		 (!strcmp(argv[i], "-help")) ||
 		 (!strcmp(argv[i], "--help")))
@@ -327,15 +342,12 @@ main(int argc, char **argv)
 		  "\t-psychotic\n"
 		  "\t\tBe psychotic.\n"
 		  "\t-locked\n"
-		  "\t\tstart with desklock on, so password will be asked.\n"
+		  "\t\tStart with desklock on, so password will be asked.\n"
+		  "\t-i-really-know-what-i-am-doing-and-accept-full-responsibility-for-it\n"
+		  "\t\tIf you need this help, you don't need this option.\n"
 		  )
 		);
 	     exit(0);
-	  }
-	else if (!strcmp(argv[i], "-locked"))
-	  {
-	     locked = 1;
-	     puts("enlightenment will start with desklock on.");
 	  }
      }
 
@@ -365,10 +377,7 @@ main(int argc, char **argv)
    TS("arg parse done");
    /* fixes for FOOLS that keep cp'ing default.edj into ~/.e/e/themes */
      {
-	const char *homedir;
-	
-	homedir = e_user_homedir_get();
-	snprintf(buf, sizeof(buf), "%s/.e/e/themes/default.edj", homedir);
+	e_user_dir_concat_static(buf, "themes/default.edj");
 	if (ecore_file_exists(buf))
 	  ecore_file_unlink(buf);
      }
@@ -576,8 +585,8 @@ main(int argc, char **argv)
 
    locked |= e_config->desklock_start_locked;
 
-   /* set all execced stuff to pri 1 - nice. make this config later? */
-   ecore_exe_run_priority_set(1);
+   /* set all execced stuff to configured priority */
+   ecore_exe_run_priority_set(e_config->priority);
    
    TS("scale");
    /* init config system */
@@ -660,65 +669,67 @@ main(int argc, char **argv)
 	_e_main_shutdown_push(e_init_shutdown);
 	pause();
      }
-   
-   e_init_status_set(_("Testing Format Support"));
-   TS("test file format support");   
+   if (!really_know)
      {
-	Ecore_Evas *ee;
-	Evas_Object *im, *txt;
-	char buf[4096];
-        Evas_Coord tw, th;
-	
-	ee = ecore_evas_buffer_new(1, 1);
-	if (!ee)
-	  {
-	     e_error_message_show(_("Enlightenment found Evas can't create a buffer canvas. Please check\n"
-				    "Evas has Software Buffer engine support.\n"));
-	     _e_main_shutdown(-1);
-	  }
-        e_canvas_add(ee);
-	im = evas_object_image_add(ecore_evas_get(ee));
-
-	snprintf(buf, sizeof(buf), "%s/data/images/test.png", e_prefix_data_get());
-	evas_object_image_file_set(im, buf, NULL);
-	if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
-	  {
-	     e_error_message_show(_("Enlightenment found Evas can't load PNG files. Check Evas has PNG\n"
-				    "loader support.\n"));
-	     _e_main_shutdown(-1);
-	  }
-	
-	snprintf(buf, sizeof(buf), "%s/data/images/test.jpg", e_prefix_data_get());
-	evas_object_image_file_set(im, buf, NULL);
-	if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
-	  {
-	     e_error_message_show(_("Enlightenment found Evas can't load JPEG files. Check Evas has JPEG\n"
-				    "loader support.\n"));
-	     _e_main_shutdown(-1);
-	  }
-
-	snprintf(buf, sizeof(buf), "%s/data/images/test.edj", e_prefix_data_get());
-	evas_object_image_file_set(im, buf, "images/0");
-	if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
-	  {
-	     e_error_message_show(_("Enlightenment found Evas can't load EET files. Check Evas has EET\n"
-				    "loader support.\n"));
-	     _e_main_shutdown(-1);
-	  }
-	evas_object_del(im);
-        txt = evas_object_text_add(ecore_evas_get(ee));
-        evas_object_text_font_set(txt, "Sans", 10);
-        evas_object_text_text_set(txt, "Hello");
-        evas_object_geometry_get(txt, NULL, NULL, &tw, &th);
-        if ((tw <= 0) && (th <= 0))
+        e_init_status_set(_("Testing Format Support"));
+        TS("test file format support");   
           {
-	     e_error_message_show(_("Enlightenment found Evas can't load the 'Sans' font. Check Evas has fontconfig\n"
-				    "support and system fontconfig defines a 'Sans' font.\n"));
-	     _e_main_shutdown(-1);
+             Ecore_Evas *ee;
+             Evas_Object *im, *txt;
+             char buf[4096];
+             Evas_Coord tw, th;
+             
+             ee = ecore_evas_buffer_new(1, 1);
+             if (!ee)
+               {
+                  e_error_message_show(_("Enlightenment found Evas can't create a buffer canvas. Please check\n"
+                                         "Evas has Software Buffer engine support.\n"));
+                  _e_main_shutdown(-1);
+               }
+             e_canvas_add(ee);
+             im = evas_object_image_add(ecore_evas_get(ee));
+             
+             e_prefix_data_concat_static(buf, "data/images/test.png");
+             evas_object_image_file_set(im, buf, NULL);
+             if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
+               {
+                  e_error_message_show(_("Enlightenment found Evas can't load PNG files. Check Evas has PNG\n"
+                                         "loader support.\n"));
+                  _e_main_shutdown(-1);
+               }
+             
+	     e_prefix_data_concat_static(buf, "data/images/test.jpg");
+             evas_object_image_file_set(im, buf, NULL);
+             if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
+               {
+                  e_error_message_show(_("Enlightenment found Evas can't load JPEG files. Check Evas has JPEG\n"
+                                         "loader support.\n"));
+                  _e_main_shutdown(-1);
+               }
+             
+             e_prefix_data_concat_static(buf, "data/images/test.edj");
+             evas_object_image_file_set(im, buf, "images/0");
+             if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
+               {
+                  e_error_message_show(_("Enlightenment found Evas can't load EET files. Check Evas has EET\n"
+                                         "loader support.\n"));
+                  _e_main_shutdown(-1);
+               }
+             evas_object_del(im);
+             txt = evas_object_text_add(ecore_evas_get(ee));
+             evas_object_text_font_set(txt, "Sans", 10);
+             evas_object_text_text_set(txt, "Hello");
+             evas_object_geometry_get(txt, NULL, NULL, &tw, &th);
+             if ((tw <= 0) && (th <= 0))
+               {
+                  e_error_message_show(_("Enlightenment found Evas can't load the 'Sans' font. Check Evas has fontconfig\n"
+                                         "support and system fontconfig defines a 'Sans' font.\n"));
+                  _e_main_shutdown(-1);
+               }
+             evas_object_del(txt);
+             e_canvas_del(ee);
+             ecore_evas_free(ee);
           }
-        evas_object_del(txt);
-        e_canvas_del(ee);
-	ecore_evas_free(ee);
      }
    
    e_init_status_set(_("Setup Screens"));
@@ -762,15 +773,15 @@ main(int argc, char **argv)
    e_init_status_set(_("Setting up Paths"));
    TS("efreet paths");
      {
-	Ecore_List *list;
+	Eina_List **list;
 	
 	list = efreet_icon_extra_list_get();
 	if (list)
 	  {
-	     snprintf(buf, sizeof(buf), "%s/.e/e/icons", e_user_homedir_get());
-	     ecore_list_prepend(list, (void *)eina_stringshare_add(buf));
-	     snprintf(buf, sizeof(buf), "%s/data/icons", e_prefix_data_get());
-	     ecore_list_prepend(list, (void *)eina_stringshare_add(buf));
+	     e_user_dir_concat_static(buf, "icons");
+	     *list = eina_list_prepend(*list, (void *)eina_stringshare_add(buf));
+	     e_prefix_data_concat_static(buf, "data/icons");
+	     *list = eina_list_prepend(*list, (void *)eina_stringshare_add(buf));
 	  }
      }
    efreet_icon_extension_add(".edj");
@@ -1154,47 +1165,35 @@ _e_main_x_shutdown(void)
 static int
 _e_main_dirs_init(void)
 {
-   const char *homedir;
-   char buf[PATH_MAX];
-   const char *dirs[] =
+   const char *base;
+   const char *dirs[] = {
+     "images",
+     "fonts",
+     "themes",
+     "icons",
+     "backgrounds",
+     "applications",
+     "applications/menu",
+     "applications/menu/favorite",
+     "applications/menu/all",
+     "applications/bar",
+     "applications/bar/default",
+     "applications/startup",
+     "applications/restart",
+     "applications/trash",
+     "modules",
+     "config",
+     "locale",
+     "input_methods",
+     NULL
+   };
+
+   base = e_user_dir_get();
+   if (ecore_file_mksubdirs(base, dirs) != sizeof(dirs)/sizeof(dirs[0]) - 1)
      {
-	"%s/.e",
-	"%s/.e/e/",
-	"%s/.e/e/images",
-	"%s/.e/e/fonts",
-	"%s/.e/e/themes",
-	"%s/.e/e/icons",
-	"%s/.e/e/backgrounds",
-	"%s/.e/e/applications",
-	"%s/.e/e/applications/menu",
-	"%s/.e/e/applications/menu/favorite",
-	"%s/.e/e/applications/menu/all",
-	"%s/.e/e/applications/bar",
-	"%s/.e/e/applications/bar/default",
-	"%s/.e/e/applications/startup",
-	"%s/.e/e/applications/restart",
-	"%s/.e/e/applications/trash",
-	"%s/.e/e/modules",
-	"%s/.e/e/config",
-	"%s/.e/e/locale",
-	"%s/.e/e/input_methods"
-     };
-   int i;
-   
-   homedir = e_user_homedir_get();
-   for (i = 0; i < (int)(sizeof(dirs) / sizeof(char *)); i++)
-     {
-	snprintf(buf, sizeof(buf), dirs[i], homedir);
-	if (!ecore_file_mkdir(buf))
-	  {
-	     if (!ecore_file_is_dir(buf))
-	       {
-		  e_error_message_show("Error creating directory:\n"
-				       "%s",
-				       buf);
-		  return 0;
-	       }
-	  }
+	e_error_message_show
+	  ("Could not create one of the required subdirectories of '%s'", base);
+	return 0;
      }
 
    return 1;
@@ -1322,7 +1321,7 @@ _e_main_path_init(void)
 	e_error_message_show("Cannot allocate path for path_data\n");
 	return 0;
      }
-   snprintf(buf, sizeof(buf), "%s/data", e_prefix_data_get());
+   e_prefix_data_concat_static(buf, "data");
    e_path_default_path_append(path_data, buf);
    e_path_user_path_set(path_data, &(e_config->path_append_data));
 
@@ -1334,7 +1333,7 @@ _e_main_path_init(void)
 	return 0;
      }
    e_path_default_path_append(path_images, "~/.e/e/images");
-   snprintf(buf, sizeof(buf), "%s/data/images", e_prefix_data_get());
+   e_prefix_data_concat_static(buf, "data/images");
    e_path_default_path_append(path_images, buf);
    e_path_user_path_set(path_images, &(e_config->path_append_images));
    
@@ -1346,7 +1345,7 @@ _e_main_path_init(void)
 	return 0;
      }
    e_path_default_path_append(path_fonts, "~/.e/e/fonts");
-   snprintf(buf, sizeof(buf), "%s/data/fonts", e_prefix_data_get());
+   e_prefix_data_concat_static(buf, "data/fonts");
    e_path_default_path_append(path_fonts, buf);
    e_path_user_path_set(path_fonts, &(e_config->path_append_fonts));
 
@@ -1358,7 +1357,7 @@ _e_main_path_init(void)
 	return 0;
      }
    e_path_default_path_append(path_themes, "~/.e/e/themes");
-   snprintf(buf, sizeof(buf), "%s/data/themes", e_prefix_data_get());
+   e_prefix_data_concat_static(buf, "data/themes");
    e_path_default_path_append(path_themes, buf);
    e_path_user_path_set(path_themes, &(e_config->path_append_themes));
 
@@ -1370,7 +1369,7 @@ _e_main_path_init(void)
 	return 0;
      }
    e_path_default_path_append(path_icons, "~/.e/e/icons");
-   snprintf(buf, sizeof(buf), "%s/data/icons", e_prefix_data_get());
+   e_prefix_data_concat_static(buf, "data/icons");
    e_path_default_path_append(path_icons, buf);
    e_path_user_path_set(path_icons, &(e_config->path_append_icons));
 
@@ -1400,7 +1399,7 @@ _e_main_path_init(void)
 	return 0;
      }
    e_path_default_path_append(path_backgrounds, "~/.e/e/backgrounds");
-   snprintf(buf, sizeof(buf), "%s/data/backgrounds", e_prefix_data_get());
+   e_prefix_data_concat_static(buf, "data/backgrounds");
    e_path_default_path_append(path_backgrounds, buf);
    e_path_user_path_set(path_backgrounds, &(e_config->path_append_backgrounds));
 
@@ -1474,16 +1473,14 @@ static int
 _e_main_cb_signal_exit(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__)
 {
    /* called on ctrl-c, kill (pid) (also SIGINT, SIGTERM and SIGQIT) */
-   if (!e_util_immortal_check()) ecore_main_loop_quit();
+   e_sys_action_do(E_SYS_EXIT, NULL);
    return 1;
 }
 
 static int
 _e_main_cb_signal_hup(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__)
 {
-   /* called on SIGHUP to restart Enlightenment */
-   restart = 1;
-   ecore_main_loop_quit();
+   e_sys_action_do(E_SYS_RESTART, NULL);
    return 1;
 }
 

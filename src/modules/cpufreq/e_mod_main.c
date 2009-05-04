@@ -125,9 +125,6 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 static void
 _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
 {
-   Instance *inst;
-   
-   inst = gcc->data;
    e_gadcon_client_aspect_set(gcc, 16, 16);
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
@@ -385,7 +382,7 @@ _cpufreq_set_governor(const char *governor)
 	dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_e_mod_cpufreq_error_setfreq");
 	if (!dia) return;
 	e_dialog_title_set(dia, "Enlightenment Cpufreq Module");
-	e_dialog_icon_set(dia, "enlightenment/e", 64);
+	e_dialog_icon_set(dia, "enlightenment", 64);
 	e_dialog_text_set(dia, _("There was an error trying to set the<br>"
 				 "cpu frequency governor via the module's<br>"
 				 "setfreq utility."));
@@ -411,7 +408,7 @@ _cpufreq_set_frequency(int frequency)
 	dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_e_mod_cpufreq_error_setfreq");
 	if (!dia) return;
 	e_dialog_title_set(dia, "Enlightenment Cpufreq Module");
-	e_dialog_icon_set(dia, "enlightenment/e", 64);
+	e_dialog_icon_set(dia, "enlightenment", 64);
 	e_dialog_text_set(dia, _("Your kernel does not support setting the<br>"
 				 "CPU frequency at all. You may be missing<br>"
 				 "Kernel modules or features, or your CPU<br>"
@@ -431,7 +428,7 @@ _cpufreq_set_frequency(int frequency)
 	dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_e_mod_cpufreq_error_setfreq");
 	if (!dia) return;
 	e_dialog_title_set(dia, "Enlightenment Cpufreq Module");
-	e_dialog_icon_set(dia, "enlightenment/e", 64);
+	e_dialog_icon_set(dia, "enlightenment", 64);
 	e_dialog_text_set(dia, _("There was an error trying to set the<br>"
 				 "cpu frequency setting via the module's<br>"
 				 "setfreq utility."));
@@ -811,7 +808,8 @@ _cpufreq_event_cb_powersave(void *data __UNUSED__, int type, void *event)
 {
    E_Event_Powersave_Update *ev;
    Eina_List *l;
-   Eina_Bool has_powersave, has_conservative;
+   Eina_Bool has_powersave = EINA_FALSE;
+   Eina_Bool has_conservative = EINA_FALSE;
 
    if (type != E_EVENT_POWERSAVE_UPDATE) return 1;
    if (!cpufreq_config->auto_powersave) return 1;

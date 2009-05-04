@@ -67,7 +67,7 @@ const E_Text_Class_Pair text_class_predefined_names[ ] = {
      { "move_text",       N_("Move Text")},
      { "resize_text",     N_("Resize Text")},
      { "winlist_title",   N_("Winlist Title")},
-     { "configure",       N_("Configure Heading")},
+     { "configure",       N_("Settings Heading")},
      { "about_title",     N_("About Title")},
      { "about_version",   N_("About Version")},
      { "button_text",     N_("About Text")},
@@ -122,8 +122,8 @@ struct _E_Config_Dialog_Data
    Eina_List    *font_scale_list;
 
    /* Current data */
-   char		*cur_font;
-   char         *cur_style;
+   const char	*cur_font;
+   const char   *cur_style;
    double	 cur_size;
    int		 cur_enabled;
    int		 cur_index;
@@ -167,7 +167,7 @@ e_int_config_fonts(E_Container *con, const char *params __UNUSED__)
    
    cfd = e_config_dialog_new(con, _("Font Settings"),
 			     "E", "_config_fonts_dialog",
-			     "enlightenment/fonts", 0, v, NULL);
+			     "preferences-desktop-font", 0, v, NULL);
    return cfd;
 }
 
@@ -313,51 +313,41 @@ _create_data(E_Config_Dialog *cfd)
 static void
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
+   E_Font_Size_Data *size_data;
+   CFText_Class *tc;
    Eina_List *l;
 
    e_font_available_hash_free(cfdata->font_hash);
-   while (cfdata->font_list)
-     cfdata->font_list = eina_list_remove_list(cfdata->font_list, cfdata->font_list);
+   cfdata->font_list =eina_list_free(cfdata->font_list);
 
-   while ((l = cfdata->text_classes))
+   EINA_LIST_FREE(cfdata->text_classes, tc)
      {
-        CFText_Class *tc;
-
-        tc = l->data;
-        cfdata->text_classes = eina_list_remove_list(cfdata->text_classes, l);
-        if (tc->font) eina_stringshare_del(tc->font);
-	if (tc->style) eina_stringshare_del(tc->style);
+        eina_stringshare_del(tc->font);
+	eina_stringshare_del(tc->style);
         E_FREE(tc);
      }
 
-   while ((l = cfdata->font_scale_list))
+   EINA_LIST_FREE(cfdata->font_scale_list, size_data)
      {
-        E_Font_Size_Data *size_data;
-
-        size_data = l->data;
-        cfdata->font_scale_list = eina_list_remove_list(cfdata->font_scale_list, l);
- 	if (size_data->size_str) eina_stringshare_del(size_data->size_str);
+ 	eina_stringshare_del(size_data->size_str);
         E_FREE(size_data);
      }
 
-   while ((l = cfdata->font_px_list))
+   EINA_LIST_FREE(cfdata->font_px_list, size_data)
      {
-        E_Font_Size_Data *size_data;
-
-        size_data = l->data;
-	cfdata->font_px_list = eina_list_remove_list(cfdata->font_scale_list, l);
-        if (size_data->size_str) eina_stringshare_del(size_data->size_str);
+	eina_stringshare_del(size_data->size_str);
         E_FREE(size_data);
      }
 
-   E_FREE(cfdata->cur_font);
-   E_FREE(cfdata->cur_style);
+   eina_stringshare_del(cfdata->cur_font);
+   eina_stringshare_del(cfdata->cur_style);
    E_FREE(cfdata);
 }
 
 static int
 _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
+   CFText_Class *tc;
    Eina_List *next;
    int i;
 
@@ -395,24 +385,15 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    e_config_save_queue();
 
    /* Apply to advanced */
-   for (next = cfdata->text_classes; next; next = next->next)
+   EINA_LIST_FOREACH(cfdata->text_classes, next, tc)
      {
-	CFText_Class *tc;
-
-	tc = next->data;
 	tc->size = cfdata->cur_size;
 
-	if (tc->font) eina_stringshare_del(tc->font);
-	if (cfdata->cur_font)
-	  tc->font = eina_stringshare_add(cfdata->cur_font);
-	else
-	  tc->font = NULL;
+	eina_stringshare_del(tc->font);
+	tc->font = eina_stringshare_ref(cfdata->cur_font);
 
-	if (tc->style) eina_stringshare_del(tc->style);
-	if (cfdata->cur_style)
-	  tc->style = eina_stringshare_add(cfdata->cur_style);
-	else
-	  tc->style = NULL;
+	eina_stringshare_del(tc->style);
+	tc->style = eina_stringshare_ref(cfdata->cur_style);
 	tc->enabled = cfdata->cur_enabled;
      }
 
@@ -420,7 +401,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Bool
-_font_hash_cb(const Evas_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata)
+_font_hash_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata)
 {
    E_Config_Dialog_Data *cfdata;
    E_Font_Properties *efp;
@@ -563,14 +544,13 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	tc->enabled = cfdata->cur_enabled;
 	tc->size = cfdata->cur_size;
 	if (cfdata->cur_font)
-	  tc->font = eina_stringshare_add(cfdata->cur_font);
+	  tc->font = eina_stringshare_ref(cfdata->cur_font);
 	if (cfdata->cur_style)
-	  tc->style = eina_stringshare_add(cfdata->cur_style);
+	  tc->style = eina_stringshare_ref(cfdata->cur_style);
      }
 
-   for (next = cfdata->text_classes; next; next = next->next)
+   EINA_LIST_FOREACH(cfdata->text_classes, next, tc)
      {
-	tc = next->data;
 	if (!tc->class_name) continue;
 	if (tc->enabled && tc->font) 
 	  {
@@ -735,8 +715,8 @@ _class_list_load(E_Config_Dialog_Data *cfdata)
 	       {
 		  if (tc->enabled)
 		    {
-		       ic = edje_object_add(evas);
-		       e_util_edje_icon_set(ic, "enlightenment/check");
+		       ic = e_icon_add(evas);
+		       e_util_icon_theme_set(ic, "dialog-ok-apply");
 		    }
 		  else
 		    ic = NULL;
@@ -768,16 +748,13 @@ _adv_class_cb_change(void *data, Evas_Object *obj)
 	tc = eina_list_nth(cfdata->text_classes, cfdata->cur_index);
 	tc->enabled = cfdata->cur_enabled;
 	tc->size = cfdata->cur_size;
-	if (tc->font) eina_stringshare_del(tc->font);
-	if (cfdata->cur_font)
-	  tc->font = eina_stringshare_add(cfdata->cur_font);
-	else
-	  tc->font = NULL;
-	if (tc->style) eina_stringshare_del(tc->style);
-	if (cfdata->cur_style)
-	  tc->style = eina_stringshare_add(cfdata->cur_style);
-	else
-	  tc->style = NULL;
+
+	eina_stringshare_del(tc->font);
+	tc->font = eina_stringshare_ref(cfdata->cur_font);
+
+	eina_stringshare_del(tc->style);
+	tc->style = eina_stringshare_ref(cfdata->cur_style);
+
 	if (cfdata->gui.style_list)
 	  e_widget_ilist_unselect(cfdata->gui.style_list);
 	if (cfdata->gui.size_list)
@@ -847,13 +824,13 @@ _adv_enabled_font_cb_change(void *data, Evas_Object *obj)
 	tc = eina_list_nth(cfdata->text_classes, n);
 	tc->enabled = cfdata->cur_enabled;
 	tc->size = cfdata->cur_size;
-	if (tc->font) eina_stringshare_del(tc->font);
+	eina_stringshare_del(tc->font);
 	if (cfdata->cur_font)
-	  tc->font = eina_stringshare_add(cfdata->cur_font);
-	if (cfdata->cur_enabled) 
+	  tc->font = eina_stringshare_ref(cfdata->cur_font);
+	if (cfdata->cur_enabled)
 	  {
-	     icon = edje_object_add(cfdata->evas);
-	     e_util_edje_icon_set(icon, "enlightenment/e");
+	     icon = e_icon_add(cfdata->evas);
+	     e_util_icon_theme_set(icon, "enlightenment");
 	  }
 	e_widget_ilist_nth_icon_set(cfdata->gui.class_list, n, icon);
      }
@@ -911,7 +888,7 @@ _adv_font_cb_change(void *data, Evas_Object *obj)
 	tc = eina_list_nth(cfdata->text_classes, n);
 	if (tc->font) eina_stringshare_del(tc->font);
 	if (cfdata->cur_font)
-	  tc->font = eina_stringshare_add(cfdata->cur_font);
+	  tc->font = eina_stringshare_ref(cfdata->cur_font);
      }
 
    /* Load the style list */
@@ -1034,7 +1011,7 @@ _font_list_load(E_Config_Dialog_Data *cfdata, const char *cur_font)
 
 	fonts = evas_font_available_list(evas);
 	cfdata->font_hash = e_font_available_list_parse(fonts);
-	evas_hash_foreach(cfdata->font_hash, _font_hash_cb, cfdata);
+	eina_hash_foreach(cfdata->font_hash, _font_hash_cb, cfdata);
 	if (cfdata->font_list)
 	  {
 	     cfdata->font_list = 
@@ -1103,11 +1080,8 @@ _adv_style_cb_change(void *data, Evas_Object *obj)
 	if (!i->selected) continue;
 
 	tc = eina_list_nth(cfdata->text_classes, n);
-	if (tc->style) eina_stringshare_del(tc->style);
-	if (cfdata->cur_style)
-	  tc->style = eina_stringshare_add(cfdata->cur_style);
-	else
-	  tc->style = NULL;
+	eina_stringshare_del(tc->style);
+	tc->style = eina_stringshare_ref(cfdata->cur_style);
      }
 
    _font_preview_update(cfdata);

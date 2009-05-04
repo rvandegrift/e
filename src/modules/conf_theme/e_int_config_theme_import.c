@@ -134,7 +134,7 @@ e_int_config_theme_import(E_Config_Dialog *parent)
    e_win_size_min_set(win, w, h);
    e_win_size_max_set(win, 99999, 99999);
    e_win_show(win);
-   e_win_border_icon_set(win, "enlightenment/themes");
+   e_win_border_icon_set(win, "preferences-desktop-theme");
    
    win->data = import;
    
@@ -242,15 +242,12 @@ _theme_import_cb_ok(void *data, void *data2)
    E_Win *win;
    const char *path;
    const char *file;
-   const char *homedir;
    char buf[4096];
 
    win = data;
    import = win->data;
    if (!import) return;
 
-   homedir = e_user_homedir_get();
- 
    path = e_widget_fsel_selection_path_get(import->fsel_obj);
    E_FREE(import->cfdata->file);
    if (path)
@@ -261,7 +258,7 @@ _theme_import_cb_ok(void *data, void *data2)
 	char *strip;
 	
 	file = ecore_file_file_get(import->cfdata->file);
-	snprintf(buf, sizeof(buf), "%s/.e/e/themes/%s", homedir, file);
+	e_user_dir_snprintf(buf, sizeof(buf), "themes/%s", file);
 
 	strip = ecore_file_strip_ext(file);
 	if (!strip) 

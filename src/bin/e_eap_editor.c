@@ -214,7 +214,7 @@ _e_desktop_edit_view_create(E_Desktop_Edit *editor, E_Container *con)
    editor->cfd = 
      e_config_dialog_new(con, _("Desktop Entry Editor"), "E", 
 			 "_desktop_editor_dialog",
-			 "enlightenment/applications", 0, v, editor);
+			 "preferences-applications", 0, v, editor);
    
    if (!editor->cfd)
      {
@@ -358,6 +358,7 @@ _e_desktop_edit_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfd
 {
    E_Desktop_Edit *editor;
    Efreet_Desktop *desktop;
+   char *str;
 
    editor = cfdata->editor;
    desktop = editor->desktop;
@@ -375,11 +376,12 @@ _e_desktop_edit_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfd
    IFFREE(cfdata->desktop->startup_wm_class);
    IFDUP(cfdata->startup_wm_class, cfdata->desktop->startup_wm_class);
 
-   if (cfdata->desktop->categories) 
-     ecore_list_destroy(cfdata->desktop->categories);
+   EINA_LIST_FREE(cfdata->desktop->categories, str)
+     eina_stringshare_del(str);
    cfdata->desktop->categories = efreet_desktop_string_list_parse(cfdata->categories);
-   if (cfdata->desktop->mime_types) 
-     ecore_list_destroy(cfdata->desktop->mime_types);
+
+   EINA_LIST_FREE(cfdata->desktop->mime_types, str)
+     eina_stringshare_del(str);
    cfdata->desktop->mime_types = efreet_desktop_string_list_parse(cfdata->mimes);
 
    IFFREE(cfdata->desktop->icon);

@@ -23,7 +23,7 @@ e_modapi_init(E_Module *m)
    /* Set up a new configuration panel */
    snprintf(buf, sizeof(buf), "%s/e-module-gadman.edj", m->dir);
    e_configure_registry_category_add("extensions", 90, _("Extensions"), NULL, 
-                                     "enlightenment/extensions");
+                                     "preferences-extensions");
    e_configure_registry_item_add("extensions/gadman", 150, _("Gadgets"), NULL, 
                                  buf, _config_gadman_module);
 
@@ -73,8 +73,9 @@ e_modapi_init(E_Module *m)
    Man->icon_name = eina_stringshare_add(buf);
    Man->maug = NULL;
    Man->maug = 
-     e_int_menus_menu_augmentation_add("config/1", _gadman_maug_add,
-                                       (void *)Man->icon_name, NULL, NULL);
+     e_int_menus_menu_augmentation_add_sorted
+     ("config/1", _("Gadgets"), _gadman_maug_add, (void *)Man->icon_name,
+      NULL, NULL);
    /* Create toggle action */
    Man->action = e_action_add("gadman_toggle");
    if (Man->action)

@@ -22,6 +22,7 @@ _e_dialog_internal_new(E_Container *con, const char *name, const char *class, in
    E_Manager *man;
    Evas_Object *o;
    Evas_Modifier_Mask mask;
+   Eina_Bool kg;
    
    if (!con)
      {
@@ -59,16 +60,26 @@ _e_dialog_internal_new(E_Container *con, const char *name, const char *class, in
    o = evas_object_rectangle_add(e_win_evas_get(dia->win));
    dia->event_object = o;
    mask = 0;
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = evas_key_modifier_mask_get(e_win_evas_get(dia->win), "Shift");
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"Return\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"KP_Enter\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "space", mask, ~mask, 0);
- 
+   kg = evas_object_key_grab(o, "space", mask, ~mask, 0);
+   if (!kg)
+      fprintf(stderr,"ERROR: unable to redirect \"space\" key events to object %p.\n", o);
+
    evas_object_event_callback_add(o, EVAS_CALLBACK_KEY_DOWN, _e_dialog_cb_key_down, dia);
 
    return dia;
@@ -155,10 +166,10 @@ EAPI void
 e_dialog_icon_set(E_Dialog *dia, const char *icon, Evas_Coord size)
 {
    if (!icon) return;
-   
-   dia->icon_object = edje_object_add(e_win_evas_get(dia->win));
-   e_util_edje_icon_set(dia->icon_object, icon);
-   edje_extern_object_min_size_set(dia->icon_object, size, size);
+
+   dia->icon_object = e_icon_add(e_win_evas_get(dia->win));
+   e_util_icon_theme_set(dia->icon_object, icon);
+   edje_extern_object_min_size_set(dia->icon_object, size * e_scale, size * e_scale);
    edje_object_part_swallow(dia->bg_object, "e.swallow.icon", dia->icon_object);
    evas_object_show(dia->icon_object);
 }

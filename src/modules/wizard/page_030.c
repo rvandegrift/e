@@ -4,12 +4,32 @@
 #include "e.h"
 #include "e_mod_main.h"
 
-static char *xdg_sel = NULL;
+static const char *xdg_sel = NULL;
 static Eina_List *menus = NULL;
+
+static void
+check_menu_dir(const char *dir)
+{
+   char buf[PATH_MAX], *file;
+   Eina_List *files;
+   
+   snprintf(buf, sizeof(buf), "%s/menus", dir);
+   files = ecore_file_ls(buf);
+   EINA_LIST_FREE(files, file)
+          {
+             if (e_util_glob_match(file, "*.menu"))
+               {
+                  snprintf(buf, sizeof(buf), "%s/menus/%s", dir, file);
+                  menus = eina_list_append(menus, strdup(buf));
+               }
+	free(file);
+     }
+}
 
 EAPI int
 wizard_page_init(E_Wizard_Page *pg)
 {
+   char buf[PATH_MAX];
    const char *dirs[] = 
      {
 	"/etc/xdg",
@@ -17,33 +37,27 @@ wizard_page_init(E_Wizard_Page *pg)
 	  "/usr/local/etc/xdg",
 	  "/usr/opt/etc/xdg",
 	  "/usr/opt/xdg",
+	  "/usr/local/opt/etc/xdg",
+	  "/usr/local/opt/xdg",
+          "/opt/etc/xdg",
+          "/opt/xdg",
 	  // FIXME: add more "known locations"
 	  NULL
      };
-   int i;
+   int i, newdir;
 
+   for (i = 0; dirs[i]; i++) check_menu_dir(dirs[i]);
+   newdir = 1;
+   snprintf(buf, sizeof(buf), "%s/etc/xdg", e_prefix_get());
    for (i = 0; dirs[i]; i++)
      {
-	Ecore_List *files;
-	char buf[PATH_MAX], *file;
-	
-	snprintf(buf, sizeof(buf), "%s/menus", dirs[i]);
-	files = ecore_file_ls(buf);
-	if (files)
-	  {
-	     ecore_list_first_goto(files);
-	     while ((file = ecore_list_current(files)))
-	       {
-		  if (e_util_glob_match(file, "*.menu"))
-		    {
-		       snprintf(buf, sizeof(buf), "%s/menus/%s", dirs[i], file);
-		       menus = eina_list_append(menus, strdup(buf));
-		    }
-		  ecore_list_next(files);
-	       }
-	     ecore_list_destroy(files);
-	  }
+        if (!strcmp(dirs[i], buf))
+          {
+             newdir = 0;
+             break;
+          }
      }
+   if (newdir) check_menu_dir(buf);
    return 1;
 }
 EAPI int
@@ -57,7 +71,9 @@ wizard_page_show(E_Wizard_Page *pg)
 {
    Evas_Object *o, *of, *ob;
    Eina_List *l;
-   int i, sel = -1;
+   char *file;
+   int sel = -1;
+   int i = 0;
    
    o = e_widget_list_add(pg->evas, 1, 0);
    e_wizard_title_set(_("Menus"));
@@ -94,12 +110,12 @@ wizard_page_show(E_Wizard_Page *pg)
 	e_widget_min_size_set(ob, 140 * e_scale, 140 * e_scale);
 	
 	e_widget_ilist_freeze(ob);
-	for (i = 0, l = menus; l; l = l->next, i++)
+
+	EINA_LIST_FREE(menus, file)
 	  {
-	     char buf[PATH_MAX], *file, *p, *p2, *tlabel, *tdesc;
+	     char buf[PATH_MAX], *p, *p2, *tlabel, *tdesc;
 	     const char *label;
-	     
-	     file = l->data;
+
 	     label = file;
 	     tlabel = NULL;
 	     tdesc = NULL;
@@ -155,9 +171,8 @@ wizard_page_show(E_Wizard_Page *pg)
 	     if (tlabel) free(tlabel);
 	     if (tdesc) free(tdesc);
 	     free(file);
+	     i++;
 	  }
-	evas_list_free(menus);
-	menus = NULL;
 	e_widget_ilist_go(ob);
 	e_widget_ilist_thaw(ob);
    
@@ -183,11 +198,11 @@ EAPI int
 wizard_page_apply(E_Wizard_Page *pg)
 {
    if ((xdg_sel) && (!strcmp("/etc/xdg/menus/applications.menu", xdg_sel)))
-     xdg_sel = NULL;
-   if (xdg_sel)
-     e_config->default_system_menu = eina_stringshare_add(xdg_sel);
-   else
-     e_config->default_system_menu = NULL;
+     {
+	eina_stringshare_del(xdg_sel);
+	xdg_sel = NULL;
+     }
+   e_config->default_system_menu = eina_stringshare_ref(xdg_sel);
    efreet_menu_file_set(e_config->default_system_menu);
    // FIXME: no normal config dialog to change this!
    return 1;

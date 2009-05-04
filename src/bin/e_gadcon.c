@@ -708,6 +708,17 @@ e_gadcon_util_lock_func_set(E_Gadcon *gc,
 }
 
 EAPI void
+e_gadcon_util_urgent_show_func_set(E_Gadcon *gc, 
+				   void (*func) (void *data),
+				   void *data)
+{
+   E_OBJECT_CHECK(gc);
+   E_OBJECT_TYPE_CHECK(gc, E_GADCON_TYPE);
+   gc->urgent_show.func = func;
+   gc->urgent_show.data = data;
+}
+
+EAPI void
 e_gadcon_dnd_window_set(E_Gadcon *gc, Ecore_X_Window win)
 {
    E_OBJECT_CHECK(gc);
@@ -1246,7 +1257,7 @@ e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu, int f
 	mn = e_menu_new();
 	mi = e_menu_item_new(mn);
 	e_menu_item_label_set(mi, _("Plain"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/plain");
+	e_util_menu_item_theme_icon_set(mi, "enlightenment/plain");
 	e_menu_item_radio_group_set(mi, 1);
 	e_menu_item_radio_set(mi, 1);
 	if ((gcc->style) && (!strcmp(gcc->style, E_GADCON_CLIENT_STYLE_PLAIN)))
@@ -1255,7 +1266,7 @@ e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu, int f
    
 	mi = e_menu_item_new(mn);
 	e_menu_item_label_set(mi, _("Inset"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/inset");
+	e_util_menu_item_theme_icon_set(mi, "enlightenment/inset");
 	e_menu_item_radio_group_set(mi, 1);
 	e_menu_item_radio_set(mi, 1);
 	if ((gcc->style) && (!strcmp(gcc->style, E_GADCON_CLIENT_STYLE_INSET)))
@@ -1264,7 +1275,7 @@ e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu, int f
 
 	mi = e_menu_item_new(menu);
 	e_menu_item_label_set(mi, _("Appearance"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/appearance");
+	e_util_menu_item_theme_icon_set(mi, "preferences-appearance");
 	e_menu_item_submenu_set(mi, mn);
      }
 
@@ -1272,14 +1283,14 @@ e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu, int f
      {
 	mi = e_menu_item_new(menu);
 	e_menu_item_label_set(mi, _("Automatically scroll contents"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/autoscroll");
+	e_util_menu_item_theme_icon_set(mi, "transform-move");
 	e_menu_item_check_set(mi, 1);
 	if (gcc->autoscroll) e_menu_item_toggle_set(mi, 1);
 	e_menu_item_callback_set(mi, _e_gadcon_client_cb_menu_autoscroll, gcc);
 
 	mi = e_menu_item_new(menu);
 	e_menu_item_label_set(mi, _("Able to be resized"));
-	e_util_menu_item_edje_icon_set(mi, "widget/resize");
+	e_util_menu_item_theme_icon_set(mi, "transform-scale");
 	e_menu_item_check_set(mi, 1);
 	if (gcc->resizable) e_menu_item_toggle_set(mi, 1);
 	e_menu_item_callback_set(mi, _e_gadcon_client_cb_menu_resizable, gcc);
@@ -1291,13 +1302,13 @@ e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu, int f
 	  {
 		mi = e_menu_item_new(menu);
 		e_menu_item_label_set(mi, _("Begin move/resize this gadget"));
-		e_util_menu_item_edje_icon_set(mi, "widget/resize");
+		e_util_menu_item_theme_icon_set(mi, "transform-scale");
 		e_menu_item_callback_set(mi, _e_gadcon_client_cb_menu_edit, gcc);
 	  }
 
 	mi = e_menu_item_new(menu);
 	e_menu_item_label_set(mi, _("Remove this gadget"));
-	e_util_menu_item_edje_icon_set(mi, "widget/del");
+	e_util_menu_item_theme_icon_set(mi, "list-remove");
 	e_menu_item_callback_set(mi, _e_gadcon_client_cb_menu_remove, gcc);
      }
    if (gcc->gadcon->menu_attach.func)
@@ -1341,6 +1352,13 @@ e_gadcon_locked_set(E_Gadcon *gc, int lock)
      {
 	gc->locked_set.func(gc->locked_set.data, lock);
      }
+}
+
+EAPI void
+e_gadcon_urgent_show(E_Gadcon *gc)
+{
+   if (gc->urgent_show.func)
+     gc->urgent_show.func(gc->urgent_show.data);
 }
 
 /*
@@ -1723,7 +1741,7 @@ _e_gadcon_cb_client_mouse_down(void *data, Evas *evas, Evas_Object *obj, void *e
 
 	mi = e_menu_item_new(mn);
 	e_menu_item_label_set(mi, _("Stop move/resize this gadget"));
-	e_util_menu_item_edje_icon_set(mi, "enlightenment/edit");
+	e_util_menu_item_theme_icon_set(mi, "enlightenment/edit");
 	e_menu_item_callback_set(mi, _e_gadcon_client_cb_menu_edit, gcc);
 
 	if (gcc->gadcon->menu_attach.func)
@@ -3473,11 +3491,12 @@ _e_gadcon_layout_smart_width_smart_sort_reverse_cb(const void *d1, const void *d
 void 
 _e_gadcon_layout_smart_gadcons_width_adjust(E_Smart_Data *sd, int min, int cur)
 { 
+   E_Gadcon_Layout_Item *bi2 = NULL;
+   E_Gadcon_Layout_Item *bi = NULL;
+   Eina_List *l, *l2;
    int need, limit, reduce_total, reduce;
    int max_size;
    int c;
-   Eina_List *l, *l2;
-   E_Gadcon_Layout_Item *bi, *bi2;
 
    if (sd->horizontal)
      {

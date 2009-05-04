@@ -14,7 +14,7 @@ struct _E_Config_Dialog_Data
    Evas_Object *o_all, *o_sel;
    Evas_Object *o_add, *o_del;
    Evas_Object *o_up, *o_down;
-   Ecore_List *apps;
+   Eina_List *apps;
 };
 
 /* local protos */
@@ -23,8 +23,8 @@ static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static int _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static Ecore_List *_load_menu(const char *path);
-static Ecore_List *_load_order(const char *path);
+static Eina_List *_load_menu(const char *path);
+static Eina_List *_load_order(const char *path);
 static void _fill_apps(E_Config_Dialog_Data *cfdata);
 static void _fill_list(E_Config_Dialog_Data *cfdata);
 static int _cb_sort_desks(Efreet_Desktop *d1, Efreet_Desktop *d2);
@@ -45,12 +45,11 @@ e_int_config_apps_favs(E_Container *con, const char *params __UNUSED__)
    E_Config_Data *data;
    char buf[4096];
 
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/menu/favorite.menu", 
-	    e_user_homedir_get());
+   e_user_dir_concat_static(buf, "applications/menu/favorite.menu");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("Favorites Menu"));
    data->dialog = eina_stringshare_add("_config_apps_favs_dialog");
-   data->icon = eina_stringshare_add("enlightenment/favorites");
+   data->icon = eina_stringshare_add("user-bookmarks");
    data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
@@ -100,12 +99,11 @@ e_int_config_apps_ibar(E_Container *con, const char *params __UNUSED__)
    E_Config_Data *data;
    char buf[4096];
 
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/bar/default/.order", 
-	    e_user_homedir_get());
+   e_user_dir_concat_static(buf, "applications/bar/default/.order");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("IBar Applications"));
    data->dialog = eina_stringshare_add("_config_apps_ibar_dialog");
-   data->icon = eina_stringshare_add("enlightenment/ibar_applications");
+   data->icon = eina_stringshare_add("preferences-applications-ibar");
    data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
@@ -120,7 +118,7 @@ e_int_config_apps_ibar_other(E_Container *con, const char *path)
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("IBar Applications"));
    data->dialog = eina_stringshare_add("_config_apps_ibar_dialog");
-   data->icon = eina_stringshare_add("enlightenment/ibar_applications");
+   data->icon = eina_stringshare_add("preferences-applications-ibar");
    data->filename = eina_stringshare_add(path);
 
    return _create_dialog(con, data);
@@ -132,12 +130,11 @@ e_int_config_apps_startup(E_Container *con, const char *params __UNUSED__)
    E_Config_Data *data;
    char buf[4096];
 
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/startup/.order", 
-	    e_user_homedir_get());
+   e_user_dir_concat_static(buf, "applications/startup/.order");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("Startup Applications"));
    data->dialog = eina_stringshare_add("_config_apps_startup_dialog");
-   data->icon = eina_stringshare_add("enlightenment/startup_applications");
+   data->icon = eina_stringshare_add("preferences-applications-startup");
    data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
@@ -149,12 +146,11 @@ e_int_config_apps_restart(E_Container *con, const char *params __UNUSED__)
    E_Config_Data *data;
    char buf[4096];
 
-   snprintf(buf, sizeof(buf), "%s/.e/e/applications/restart/.order", 
-	    e_user_homedir_get());
+   e_user_dir_concat_static(buf, "applications/restart/.order");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("Restart Applications"));
    data->dialog = eina_stringshare_add("_config_apps_restart_dialog");
-   data->icon = eina_stringshare_add("enlightenment/restart_applications");
+   data->icon = eina_stringshare_add("preferences-applications-restart");
    data->filename = eina_stringshare_add(buf);
 
    return _create_dialog(con, data);
@@ -215,6 +211,7 @@ static void
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
 {
    E_Config_Data *data;
+   Efreet_Desktop *desktop;
 
    data = cfdata->data;
    if (data) 
@@ -225,7 +222,8 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	if (data->filename) eina_stringshare_del(data->filename);
 	E_FREE(data);
      }
-   if (cfdata->apps) ecore_list_destroy(cfdata->apps);
+   EINA_LIST_FREE(cfdata->apps, desktop)
+     efreet_desktop_free(desktop);
    E_FREE(cfdata);
 }
 
@@ -242,7 +240,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    cfdata->o_all = ow;
    _fill_apps(cfdata);
    e_widget_frametable_object_append(ot, ow, 0, 0, 1, 1, 1, 1, 1, 1);
-   ow = e_widget_button_add(evas, _("Add"), "widget/add", _cb_add, 
+   ow = e_widget_button_add(evas, _("Add"), "list-add", _cb_add, 
 			    cfdata, NULL);
    cfdata->o_add = ow;
    e_widget_disabled_set(ow, 1);
@@ -257,18 +255,18 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    _fill_list(cfdata);
    e_widget_frametable_object_append(ot, ow, 0, 0, 1, 1, 1, 1, 1, 1);
    bt = e_widget_table_add(evas, 0);
-   ow = e_widget_button_add(evas, _("Up"), "widget/up_arrow", _cb_up, 
+   ow = e_widget_button_add(evas, _("Up"), "go-up", _cb_up, 
 			    cfdata, NULL);
    cfdata->o_up = ow;
    e_widget_disabled_set(ow, 1);
    e_widget_table_object_append(bt, ow, 0, 0, 1, 1, 1, 0, 1, 0);
-   ow = e_widget_button_add(evas, _("Down"), "widget/down_arrow", _cb_down, 
+   ow = e_widget_button_add(evas, _("Down"), "go-down", _cb_down, 
 			    cfdata, NULL);
    cfdata->o_down = ow;
    e_widget_disabled_set(ow, 1);
    e_widget_table_object_append(bt, ow, 1, 0, 1, 1, 1, 0, 1, 0);
    e_widget_frametable_object_append(ot, bt, 0, 1, 1, 1, 1, 0, 1, 0);
-   ow = e_widget_button_add(evas, _("Delete"), "widget/del", _cb_del, 
+   ow = e_widget_button_add(evas, _("Delete"), "list-remove", _cb_del, 
 			    cfdata, NULL);
    cfdata->o_del = ow;
    e_widget_disabled_set(ow, 1);
@@ -295,44 +293,43 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    return ret;
 }
 
-static Ecore_List *
+static Eina_List *
 _load_menu(const char *path) 
 {
    Efreet_Menu *menu, *entry;
-   Ecore_List *apps = NULL;
+   Eina_List *apps = NULL;
+   Eina_List *l;
 
-   apps = ecore_list_new();
-   ecore_list_free_cb_set(apps, ECORE_FREE_CB(efreet_desktop_free));
+   apps = NULL;
    menu = efreet_menu_parse(path);
    if ((!menu) || (!menu->entries)) return apps;
-   ecore_list_first_goto(menu->entries);
-   while ((entry = ecore_list_next(menu->entries))) 
+   EINA_LIST_FOREACH(menu->entries, l, entry)
      {
 	if (entry->type != EFREET_MENU_ENTRY_DESKTOP) continue;
 	efreet_desktop_ref(entry->desktop);
-	ecore_list_append(apps, entry->desktop);
+	apps = eina_list_append(apps, entry->desktop);
      }
    efreet_menu_free(menu);
    return apps;
 }
 
-static Ecore_List *
+static Eina_List *
 _load_order(const char *path) 
 {
    E_Order *order = NULL;
    Eina_List *l = NULL;
-   Ecore_List *apps = NULL;
+   Eina_List *apps = NULL;
 
-   apps = ecore_list_new();
-   ecore_list_free_cb_set(apps, ECORE_FREE_CB(efreet_desktop_free));
+   apps = NULL;
    if (!path) return apps;
    order = e_order_new(path);
    if (!order) return apps;
    for (l = order->desktops; l; l = l->next) 
      {
 	efreet_desktop_ref(l->data);
-	ecore_list_append(apps, l->data);
+	apps = eina_list_append(apps, l->data);
      }
+   /* FIXME: The test below will never be true ! */
    if (l) eina_list_free(l);
    e_object_del(E_OBJECT(order));
    return apps;
@@ -341,48 +338,42 @@ _load_order(const char *path)
 static void 
 _fill_apps(E_Config_Dialog_Data *cfdata) 
 {
-   Ecore_List *desks = NULL, *l = NULL;
+   Eina_List *desks = NULL, *l = NULL;
    Efreet_Desktop *desk = NULL;
    Evas *evas;
    int w;
 
-   l = ecore_list_new();
-   ecore_list_free_cb_set(l, ECORE_FREE_CB(efreet_desktop_free));
+   l = NULL;
 
    evas = evas_object_evas_get(cfdata->o_all);
    desks = efreet_util_desktop_name_glob_list("*");
-   if (desks) 
-     {
-	ecore_list_sort(desks, ECORE_COMPARE_CB(_cb_sort_desks), ECORE_SORT_MIN);
-	ecore_list_first_goto(desks);
-	while ((desk = ecore_list_next(desks))) 
+
+   desks = eina_list_sort(desks, 0, _cb_sort_desks);
+   EINA_LIST_FREE(desks, desk)
 	  {
-	     if (!ecore_list_find(l, ECORE_COMPARE_CB(_cb_sort_desks), desk)) 
+	if (!eina_list_search_unsorted(l, _cb_sort_desks, desk))
 	       {
 		  efreet_desktop_ref(desk);
-		  ecore_list_append(l, desk);
-	       }
+	     l = eina_list_append(l, desk);
 	  }
-	ecore_list_destroy(desks);
+	efreet_desktop_free(desk);
      }
-   if (l) ecore_list_sort(l, ECORE_COMPARE_CB(_cb_sort_desks), ECORE_SORT_MIN);
+
+   l = eina_list_sort(l, 0, _cb_sort_desks);
 
    evas_event_freeze(evas);
    edje_freeze();
    e_widget_ilist_freeze(cfdata->o_all);
    e_widget_ilist_clear(cfdata->o_all);
-   if (l) 
-     {
-	ecore_list_first_goto(l);
-	while ((desk = ecore_list_next(l))) 
+
+   EINA_LIST_FREE(l, desk)
 	  {
 	     Evas_Object *icon = NULL;
 
 	     icon = e_util_desktop_icon_add(desk, 24, evas);
 	     e_widget_ilist_append(cfdata->o_all, icon, desk->name, 
 				   _all_list_cb_selected, cfdata, desk->orig_path);
-	  }
-	ecore_list_destroy(l);
+	efreet_desktop_free(desk);
      }
 
    e_widget_ilist_go(cfdata->o_all);
@@ -406,10 +397,8 @@ _fill_list(E_Config_Dialog_Data *cfdata)
    edje_freeze();
    e_widget_ilist_freeze(cfdata->o_sel);
    e_widget_ilist_clear(cfdata->o_sel);
-   if (cfdata->apps) 
-     {
-	ecore_list_first_goto(cfdata->apps);
-	while ((desk = ecore_list_next(cfdata->apps))) 
+
+   EINA_LIST_FREE(cfdata->apps, desk)
 	  {
 	     Evas_Object *icon = NULL;
 
@@ -417,8 +406,6 @@ _fill_list(E_Config_Dialog_Data *cfdata)
 	     e_widget_ilist_append(cfdata->o_sel, icon, desk->name, 
 				   _sel_list_cb_selected, cfdata, desk->orig_path);
 	  }
-	ecore_list_destroy(cfdata->apps);
-     }
    
    cfdata->apps = NULL;
    e_widget_ilist_go(cfdata->o_sel);

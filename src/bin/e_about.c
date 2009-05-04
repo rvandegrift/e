@@ -43,7 +43,7 @@ e_about_new(E_Container *con)
 	FILE *f;
 	char buf[4096], buf2[4096], *tbuf;
 
-	snprintf(buf, sizeof(buf), "%s/AUTHORS", e_prefix_data_get());
+	e_prefix_data_concat_static(buf, "AUTHORS");
 	f = fopen(buf, "r");
 	if (f)
 	  {
@@ -98,5 +98,5 @@ EAPI void
 e_about_show(E_About *about)
 {
    e_obj_dialog_show((E_Obj_Dialog *)about);
-   e_obj_dialog_icon_set((E_Obj_Dialog *)about, "enlightenment/about");
+   e_obj_dialog_icon_set((E_Obj_Dialog *)about, "help-about");
 }

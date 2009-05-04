@@ -47,7 +47,7 @@ e_win_new(E_Container *con)
    win->engine = e_canvas_engine_decide(e_config->evas_engine_win);
    win->ecore_evas = e_canvas_new(e_config->evas_engine_win, con->manager->root,
 				  0, 0, 1, 1, 1, 0,
-				  &(win->evas_win), NULL);
+				  &(win->evas_win));
    e_canvas_add(win->ecore_evas);
    ecore_evas_data_set(win->ecore_evas, "E_Win", win);
    ecore_evas_callback_move_set(win->ecore_evas, _e_win_cb_move);
@@ -90,6 +90,7 @@ e_win_show(E_Win *win)
 	_e_win_prop_update(win);
 	ecore_evas_lower(win->ecore_evas);
 	win->border = e_border_new(win->container, win->evas_win, 1, 1);
+        win->border->ignore_first_unmap = 1;
 	if (!win->placed)
 	  win->border->re_manage = 0;
 	win->border->internal = 1;
@@ -327,10 +328,14 @@ e_win_centered_set(E_Win *win, int centered)
      }
    if ((win->border) && (centered))
      {
+	int x, y, w, h;
+
+	e_zone_useful_geometry_calc(win->border->zone, &x, &y, &w, &h);
+
 	/* The window is visible, move it to the right spot */
 	e_border_move(win->border,
-		      win->border->zone->x + (win->border->zone->w - win->border->w) / 2,
-		      win->border->zone->y + (win->border->zone->h - win->border->h) / 2);
+		      win->border->zone->x + x + (w - win->border->w) / 2,
+		      win->border->zone->y + y + (h - win->border->h) / 2);
      }
 }
 

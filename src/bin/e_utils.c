@@ -335,14 +335,14 @@ e_util_menu_item_edje_icon_list_set(E_Menu_Item *mi, const char *list)
 	  {
 	     strncpy(buf, p, c - p);
 	     buf[c - p] = 0;
-	     if (e_util_menu_item_edje_icon_set(mi, buf)) return 1;
+	     if (e_util_menu_item_theme_icon_set(mi, buf)) return 1;
 	     p = c + 1;
 	     if (!*p) return 0;
 	  }
 	else
 	  {
 	     strcpy(buf, p);
-	     if (e_util_menu_item_edje_icon_set(mi, buf)) return 1;
+	     if (e_util_menu_item_theme_icon_set(mi, buf)) return 1;
 	     return 0;
 	  }
      }
@@ -363,6 +363,10 @@ e_util_edje_icon_check(const char *name)
    return 0;
 }
 
+
+/* WARNING This function is deprecated,. must be made static. 
+ * You should use e_util_theme_icon_set instead 
+ */
 EAPI int
 e_util_edje_icon_set(Evas_Object *obj, const char *name)
 {
@@ -380,6 +384,58 @@ e_util_edje_icon_set(Evas_Object *obj, const char *name)
    return 0;
 }
 
+static int
+_e_util_icon_theme_set(Evas_Object *obj, const char *icon)
+{
+   const char *file;
+   char buf[4096];
+
+   if ((!icon) || (!icon[0])) return 0;
+   snprintf(buf, sizeof(buf), "e/icons/%s", icon);
+   file = e_theme_edje_file_get("base/theme/icons", buf);
+   if (file[0])
+     {
+	e_icon_file_edje_set(obj, file, buf);
+	return 1;
+     }
+   return 0;
+}
+
+static int
+_e_util_icon_fdo_set(Evas_Object *obj, const char *icon)
+{
+   char *path = NULL;
+   unsigned int size;
+
+   if ((!icon) || (!icon[0])) return 0;
+   size = e_util_icon_size_normalize(48 * e_scale);
+   path = efreet_icon_path_find(e_config->icon_theme, icon, size);
+   if (!path) return 0;
+   e_icon_file_set(obj, path);
+   E_FREE(path);
+   return 1;
+}
+
+EAPI int
+e_util_icon_theme_set(Evas_Object *obj, const char *icon)
+{
+   if (e_config->icon_theme_overrides)
+     {
+	if (_e_util_icon_fdo_set(obj, icon))
+	  return 1;
+	return _e_util_icon_theme_set(obj, icon);
+     }
+   else
+     {
+	if (_e_util_icon_theme_set(obj, icon))
+	  return 1;
+	return _e_util_icon_fdo_set(obj, icon);
+     }
+}
+
+/* WARNING This function is deprecated, You should
+ * use e_util_menu_item_theme_icon_set() instead.
+ * It provide fallback (e theme <-> fdo theme) in both direction */
 EAPI int
 e_util_menu_item_edje_icon_set(E_Menu_Item *mi, const char *name)
 {
@@ -395,6 +451,51 @@ e_util_menu_item_edje_icon_set(E_Menu_Item *mi, const char *name)
 	return 1;
      }
    return 0;
+}
+
+EAPI unsigned int
+e_util_icon_size_normalize(unsigned int desired)
+{
+   const unsigned int *itr, known_sizes[] = {
+     16, 22, 24, 32, 36, 48, 64, 72, 96, 128, 192, 256, -1
+   };
+   for (itr = known_sizes; *itr > 0; itr++)
+     if (*itr >= desired)
+       return *itr;
+
+   return 256; /* largest know size? */
+}
+
+static int
+_e_util_menu_item_fdo_icon_set(E_Menu_Item *mi, const char *icon)
+{
+   char *path = NULL;
+   unsigned int size;
+
+   if ((!icon) || (!icon[0])) return 0;
+   size = e_util_icon_size_normalize(16 * e_scale);
+   path = efreet_icon_path_find(e_config->icon_theme, icon, size);
+   if (!path) return 0;
+   e_menu_item_icon_file_set(mi, path);
+   E_FREE(path);
+   return 1;
+}
+
+EAPI int
+e_util_menu_item_theme_icon_set(E_Menu_Item *mi, const char *icon)
+{
+   if (e_config->icon_theme_overrides)
+     {
+	if (_e_util_menu_item_fdo_icon_set(mi, icon))
+	  return 1;
+	return e_util_menu_item_edje_icon_set(mi, icon);
+     }
+   else
+     {
+	if (e_util_menu_item_edje_icon_set(mi, icon))
+	  return 1;
+	return _e_util_menu_item_fdo_icon_set(mi, icon);
+     }
 }
 
 EAPI E_Container *
@@ -537,7 +638,7 @@ e_util_dialog_internal(const char *title, const char *txt)
    if (!dia) return;
    e_dialog_title_set(dia, title);
    e_dialog_text_set(dia, txt);
-   e_dialog_icon_set(dia, "enlightenment/error", 64);
+   e_dialog_icon_set(dia, "dialog-error", 64);
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
    e_dialog_button_focus_num(dia, 0);
    e_win_centered_set(dia->win, 1);
@@ -618,7 +719,9 @@ e_util_shell_env_path_eval(char *path)
     * $HOME/bin/$HOSTNAME/blah -> /home/user/bin/localhost/blah
     * etc. etc.
     */
-   char buf[4096], *pd, *p, *v1, *v2, *s, *v, *vp;
+   char buf[4096], *pd, *p, *v2, *s, *vp;
+   char *v = NULL;
+   char *v1 = NULL;
    int esc = 0, invar = 0;
 
    for (p = path, pd = buf; (pd < (buf + sizeof(buf) - 1)); p++)
@@ -930,6 +1033,20 @@ e_util_winid_str_get(Ecore_X_Window win)
    return id;
 }
 
+static int
+_win_auto_size_calc(int max, int min)
+{
+   const float *itr, scales[] = {0.25, 0.3, 0.5, 0.75, 0.8, 0.9, 0.95, -1};
+   for (itr = scales; *itr > 0; itr++)
+     {
+	int value = *itr * max;
+	if (value > min) /* not >=, try a bit larger */
+	  return value;
+     }
+
+   return min;
+}
+
 EAPI void
 e_util_win_auto_resize_fill(E_Win *win)
 {
@@ -942,12 +1059,12 @@ e_util_win_auto_resize_fill(E_Win *win)
    
    if (zone)
      {
-        int w, h;
-        
-        w = zone->w / 3;
-        h = zone->h / 3;
-        if (w < win->min_w) w = win->min_w;
-        if (h < win->min_h) h = win->min_h;
+	int w, h;
+
+	e_zone_useful_geometry_calc(zone, NULL, NULL, &w, &h);
+
+        w = _win_auto_size_calc(w, win->min_w);
+        h = _win_auto_size_calc(h, win->min_h);
         e_win_resize(win, w, h);
      }
 }

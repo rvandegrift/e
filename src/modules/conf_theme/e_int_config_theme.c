@@ -14,7 +14,6 @@ static Evas_Object *_basic_create_widgets      (E_Config_Dialog *cfd, Evas *evas
 static int          _advanced_apply_data       (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_advanced_create_widgets   (E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static Eina_List   *_get_theme_categories_list (void);
-static Eina_List   *_get_parts_list            (void);
 
 struct _E_Config_Dialog_Data
 {
@@ -27,7 +26,7 @@ struct _E_Config_Dialog_Data
    Evas_Object *o_personal;
    Evas_Object *o_system;
    int fmdir;
-   char *theme;
+   const char *theme;
 
    /* Advanced */
    Evas_Object *o_categories_ilist;
@@ -39,6 +38,36 @@ struct _E_Config_Dialog_Data
    /* Dialog */
    E_Win    *win_import;
    E_Dialog *dia_web;
+};
+
+static const char *parts_list[] = {
+  "about:e/widgets/about/main",
+  "borders:e/widgets/border/default/border",
+  "background:e/desktop/background",
+  "configure:e/widgets/configure/main",
+  "dialog:e/widgets/dialog/main",
+  "dnd:ZZZ",
+  "error:e/error/main",
+  "exebuf:e/widgets/exebuf/main",
+  "fileman:ZZZ",
+  "gadman:e/gadman/control",
+  "icons:ZZZ",
+  "menus:ZZZ",
+  "modules:ZZZ",
+  "modules/pager:e/widgets/pager/popup",
+  "modules/ibar:ZZZ",
+  "modules/ibox:ZZZ",
+  "modules/clock:e/modules/clock/main",
+  "modules/battery:e/modules/battery/main",
+  "modules/cpufreq:e/modules/cpufreq/main",
+  "modules/start:e/modules/start/main",
+  "modules/temperature:e/modules/temperature/main",
+  "pointer:e/pointer",
+  "shelf:e/shelf/default/base",
+  "transitions:ZZZ",
+  "widgets:ZZZ",
+  "winlist:e/widgets/winlist/main",
+  NULL
 };
 
 EAPI E_Config_Dialog *
@@ -60,7 +89,7 @@ e_int_config_theme(E_Container *con, const char *params __UNUSED__)
    cfd = e_config_dialog_new(con,
 			     _("Theme Selector"),
 			     "E", "_config_theme_dialog",
-			     "enlightenment/themes", 0, v, NULL);
+			     "preferences-desktop-theme", 0, v, NULL);
    return cfd;
 }
 
@@ -93,9 +122,9 @@ e_int_config_theme_update(E_Config_Dialog *dia, char *file)
    cfdata->fmdir = 1;
    e_widget_radio_toggle_set(cfdata->o_personal, 1);
 
-   snprintf(path, sizeof(path), "%s/.e/e/themes", e_user_homedir_get());
-   E_FREE(cfdata->theme);
-   cfdata->theme = strdup(file);
+   e_user_dir_concat_static(path, "themes");
+   eina_stringshare_del(cfdata->theme);
+   cfdata->theme = eina_stringshare_add(file);
 
    if (cfdata->o_fm)
      e_widget_flist_path_set(cfdata->o_fm, path, "/");
@@ -151,8 +180,8 @@ _cb_files_selection_change(void *data, Evas_Object *obj, void *event_info)
 
    if (ecore_file_is_dir(buf)) return;
 
-   E_FREE(cfdata->theme);
-   cfdata->theme = strdup(buf);
+   eina_stringshare_del(cfdata->theme);
+   cfdata->theme = eina_stringshare_add(buf);
    if (cfdata->o_preview)
      e_widget_preview_edje_set(cfdata->o_preview, buf, "e/desktop/background");
    if (cfdata->o_fm) e_widget_change(cfdata->o_fm);
@@ -172,6 +201,7 @@ _cb_files_files_changed(void *data, Evas_Object *obj, void *event_info)
    E_Config_Dialog_Data *cfdata;
    const char *p;
    char buf[4096];
+   size_t len;
 
    cfdata = data;
    if ((!cfdata->theme) || (!cfdata->o_fm)) return;
@@ -183,14 +213,14 @@ _cb_files_files_changed(void *data, Evas_Object *obj, void *event_info)
      }
    if (!p) return;
 
-   snprintf(buf, sizeof(buf), "%s/.e/e/themes", e_user_homedir_get());
-   if (!strncmp(cfdata->theme, buf, strlen(buf)))
-     p = cfdata->theme + strlen(buf) + 1;
+   len = e_user_dir_concat_static(buf, "themes");
+   if (!strncmp(cfdata->theme, buf, len))
+     p = cfdata->theme + len + 1;
    else
      {
-	snprintf(buf, sizeof(buf), "%s/data/themes", e_prefix_data_get());
-	if (!strncmp(cfdata->theme, buf, strlen(buf)))
-	  p = cfdata->theme + strlen(buf) + 1;
+	len = e_prefix_data_concat_static(buf, "data/themes");
+	if (!strncmp(cfdata->theme, buf, len))
+	  p = cfdata->theme + len + 1;
 	else
 	  p = cfdata->theme;
      }
@@ -206,9 +236,9 @@ _cb_dir(void *data, Evas_Object *obj, void *event_info)
 
    cfdata = data;
    if (cfdata->fmdir == 1)
-     snprintf(path, sizeof(path), "%s/data/themes", e_prefix_data_get());
+     e_prefix_data_concat_static(path, "data/themes");
    else
-     snprintf(path, sizeof(path), "%s/.e/e/themes", e_user_homedir_get());
+     e_user_dir_concat_static(path, "themes");
    e_widget_flist_path_set(cfdata->o_fm, path, "/");
 }
 
@@ -276,42 +306,40 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 {
    E_Config_Theme * c;
    char path[4096];
+   size_t len;
 
    c = e_theme_config_get("theme");
    if (c)
-     cfdata->theme = strdup(c->file);
+     cfdata->theme = eina_stringshare_add(c->file);
    else
      {
-	snprintf(path, sizeof(path), "%s/data/themes/default.edj", 
-                 e_prefix_data_get());
-	cfdata->theme = strdup(path);
+	e_prefix_data_concat_static(path, "data/themes/default.edj");
+	cfdata->theme = eina_stringshare_add(path);
      }
    if (cfdata->theme[0] != '/')
      {
-        snprintf(path, sizeof(path), "%s/.e/e/themes/%s", 
-                 e_user_homedir_get(), cfdata->theme);
+	e_user_dir_snprintf(path, sizeof(path), "themes/%s", cfdata->theme);
 	if (ecore_file_exists(path))
 	  {
-	     E_FREE(cfdata->theme);
-	     cfdata->theme = strdup(path);
+	     eina_stringshare_del(cfdata->theme);
+	     cfdata->theme = eina_stringshare_add(path);
 	  }
 	else
 	  {
-	     snprintf(path, sizeof(path), "%s/data/themes/%s", 
-                      e_prefix_data_get(), cfdata->theme);
+	     e_prefix_data_snprintf(path, sizeof(path), "data/themes/%s",
+				    cfdata->theme);
 	     if (ecore_file_exists(path))
 	       {
-		  E_FREE(cfdata->theme);
-		  cfdata->theme = strdup(path);
+		  eina_stringshare_del(cfdata->theme);
+		  cfdata->theme = eina_stringshare_add(path);
 	       }
 	  }
      }
 
    cfdata->theme_list = _get_theme_categories_list();
-   cfdata->parts_list = _get_parts_list();
 
-   snprintf(path, sizeof(path), "%s/data/themes", e_prefix_data_get());
-   if (!strncmp(cfdata->theme, path, strlen(path)))
+   len = e_prefix_data_concat_static(path, "data/themes");
+   if (!strncmp(cfdata->theme, path, len))
      cfdata->fmdir = 1;
 }
 
@@ -330,11 +358,18 @@ _create_data(E_Config_Dialog *cfd)
 static void
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
+   E_Config_Theme *t;
+
    if (cfdata->win_import)
      e_int_config_theme_del(cfdata->win_import);
 
-   eina_list_free(cfdata->theme_list);
-   E_FREE(cfdata->theme);
+   EINA_LIST_FREE(cfdata->theme_list, t)
+     {
+	eina_stringshare_del(t->file);
+	eina_stringshare_del(t->category);
+	free(t);
+     }
+
    E_FREE(cfdata);
 }
 
@@ -364,15 +399,15 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 
    e_widget_table_object_append(ol, il, 0, 0, 1, 1, 0, 0, 0, 0);
 
-   o = e_widget_button_add(evas, _("Go up a Directory"), "widget/up_dir",
+   o = e_widget_button_add(evas, _("Go up a Directory"), "go-up",
 			   _cb_button_up, cfdata, NULL);
    cfdata->o_up_button = o;
    e_widget_table_object_append(ol, o, 0, 1, 1, 1, 0, 0, 0, 0);
 
    if (cfdata->fmdir == 1)
-     snprintf(path, sizeof(path), "%s/data/themes", e_prefix_data_get());
+     e_prefix_data_concat_static(path, "data/themes");
    else
-     snprintf(path, sizeof(path), "%s/.e/e/themes", e_user_homedir_get());
+     e_user_dir_concat_static(path, "themes");
 
    o = e_widget_flist_add(evas);
    cfdata->o_fm = o;
@@ -393,11 +428,11 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_list_add(evas, 0, 0);
 
    il = e_widget_list_add(evas, 0, 1);
-   o = e_widget_button_add(evas, _(" Import..."), "enlightenment/themes",
+   o = e_widget_button_add(evas, _(" Import..."), "preferences-desktop-theme",
 			   _cb_import, cfdata, NULL);
    e_widget_list_object_append(il, o, 1, 0, 0.5);
 #ifdef HAVE_EXCHANGE
-   o = e_widget_button_add(evas, _(" Online..."), "enlightenment/website",
+   o = e_widget_button_add(evas, _(" Online..."), "network-website",
 			   _cb_web, cfdata, NULL);
    e_widget_list_object_append(il, o, 1, 0, 0.5);
 #endif
@@ -462,132 +497,99 @@ _cb_sort(const void *data1, const void *data2)
 }
 
 static Eina_List *
-_get_parts_list(void)
-{
-   Eina_List *parts = NULL;
-
-   /*
-    * TODO: Those parts with ZZZ, are the ones I could not find a suitable
-    * part to use as its preview.
-    */
-   parts = eina_list_append(parts, strdup("about:e/widgets/about/main"));
-   parts = eina_list_append(parts, strdup("borders:e/widgets/border/default/border"));
-   parts = eina_list_append(parts, strdup("background:e/desktop/background"));
-   parts = eina_list_append(parts, strdup("configure:e/widgets/configure/main"));
-   parts = eina_list_append(parts, strdup("dialog:e/widgets/dialog/main"));
-   parts = eina_list_append(parts, strdup("dnd:ZZZ"));
-   parts = eina_list_append(parts, strdup("error:e/error/main"));
-   parts = eina_list_append(parts, strdup("exebuf:e/widgets/exebuf/main"));
-   parts = eina_list_append(parts, strdup("fileman:ZZZ"));
-   parts = eina_list_append(parts, strdup("gadman:e/gadman/control"));
-   parts = eina_list_append(parts, strdup("icons:ZZZ"));
-   parts = eina_list_append(parts, strdup("menus:ZZZ"));
-   parts = eina_list_append(parts, strdup("modules:ZZZ"));
-   parts = eina_list_append(parts, strdup("modules/pager:e/widgets/pager/popup"));
-   parts = eina_list_append(parts, strdup("modules/ibar:ZZZ"));
-   parts = eina_list_append(parts, strdup("modules/ibox:ZZZ"));
-   parts = eina_list_append(parts, strdup("modules/clock:e/modules/clock/main"));
-   parts = eina_list_append(parts, strdup("modules/battery:e/modules/battery/main"));
-   parts = eina_list_append(parts, strdup("modules/cpufreq:e/modules/cpufreq/main"));
-   parts = eina_list_append(parts, strdup("modules/start:e/modules/start/main"));
-   parts = eina_list_append(parts, strdup("modules/temperature:e/modules/temperature/main"));
-   parts = eina_list_append(parts, strdup("pointer:e/pointer"));
-   parts = eina_list_append(parts, strdup("shelf:e/shelf/default/base"));
-   parts = eina_list_append(parts, strdup("transitions:ZZZ"));
-   parts = eina_list_append(parts, strdup("widgets:ZZZ"));
-   parts = eina_list_append(parts, strdup("winlist:e/widgets/winlist/main"));
-
-   return parts;
-}
-
-static Eina_List *
 _get_theme_categories_list(void)
 {
    Eina_List *themes, *tcl = NULL;
    Eina_List *cats = NULL, *g = NULL, *cats2 = NULL;
-   const char *category;
+   const char *c;
+   char *category;
 
    /* Setup some default theme categories */
-   cats = eina_list_append(cats, strdup("base/theme/about"));
-   cats = eina_list_append(cats, strdup("base/theme/borders"));
-   cats = eina_list_append(cats, strdup("base/theme/background"));
-   cats = eina_list_append(cats, strdup("base/theme/configure"));
-   cats = eina_list_append(cats, strdup("base/theme/dialog"));
-   cats = eina_list_append(cats, strdup("base/theme/dnd"));
-   cats = eina_list_append(cats, strdup("base/theme/error"));
-   cats = eina_list_append(cats, strdup("base/theme/exebuf"));
-   cats = eina_list_append(cats, strdup("base/theme/fileman"));
-   cats = eina_list_append(cats, strdup("base/theme/gadman"));
-   cats = eina_list_append(cats, strdup("base/theme/icons"));
-   cats = eina_list_append(cats, strdup("base/theme/menus"));
-   cats = eina_list_append(cats, strdup("base/theme/modules"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/pager"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/ibar"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/ibox"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/clock"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/battery"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/cpufreq"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/start"));
-   cats = eina_list_append(cats, strdup("base/theme/modules/temperature"));
-   cats = eina_list_append(cats, strdup("base/theme/pointer"));
-   cats = eina_list_append(cats, strdup("base/theme/shelf"));
-   cats = eina_list_append(cats, strdup("base/theme/transitions"));
-   cats = eina_list_append(cats, strdup("base/theme/widgets"));
-   cats = eina_list_append(cats, strdup("base/theme/winlist"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/about"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/borders"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/background"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/configure"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/dialog"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/dnd"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/error"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/exebuf"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/fileman"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/gadman"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/icons"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/menus"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/pager"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/ibar"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/ibox"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/clock"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/battery"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/cpufreq"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/start"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/modules/temperature"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/pointer"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/shelf"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/transitions"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/widgets"));
+   cats = eina_list_append(cats, eina_stringshare_add("base/theme/winlist"));
+
+   cats = eina_list_sort(cats, 0, _cb_sort);
 
    /*
     * Get a list of registered themes.
     * Add those which are not in the above list
     */
-   for (g = e_theme_category_list(); g; g = g->next)
+   EINA_LIST_FOREACH(e_theme_category_list(), g, c)
      {
-	const char *c;
+	const char *result;
 
-	if (!(c = g->data)) continue;
+	if (!c) continue;
 
-	cats2 = cats;
-	while (cats2)
+	cats2 = eina_list_search_sorted_near_list(cats, _cb_sort, c);
+	result = eina_list_data_get(cats2);
+	if (result)
 	  {
-	     if (!strcmp(c, cats2->data)) break;
-	     cats2 = cats2->next;
-	  }
-	if (!cats2)
-	  cats = eina_list_append(cats, strdup(c));
-     }
-   cats = eina_list_sort(cats, -1, _cb_sort);
+	     int res;
 
-   while (cats)
+	     res = strcmp(c, result);
+	     if (!res) continue;
+	     if (res < 0)
+	       cats = eina_list_prepend_relative_list(cats, eina_stringshare_ref(c), cats2);
+	     else
+	       cats = eina_list_append_relative_list(cats, eina_stringshare_ref(c), cats2);
+	  }
+     }
+
+   EINA_LIST_FREE(cats, category)
      {
 	E_Config_Theme *theme, *newtheme = NULL;
 
-	category = cats->data;
 	/* Not interested in adding "base" */
 	if (strcmp(category, "base"))
 	  {
 	     newtheme = (E_Config_Theme *)malloc(sizeof(E_Config_Theme));
 	     if (!newtheme) break;
 	     if (!strcmp(category, "base/theme"))
-	       newtheme->category = strdup("base/theme/Base Theme");
+	       newtheme->category = eina_stringshare_add("base/theme/Base Theme");
 	     else
-	       newtheme->category = strdup(category);
+	       newtheme->category = eina_stringshare_ref(category);
 	     newtheme->file = NULL;
 
-	     for (themes = e_config->themes; themes; themes = themes->next)
+	     EINA_LIST_FOREACH(e_config->themes, themes, theme)
 	       {
-		  theme = themes->data;
 		  if (!strcmp(category + 5, theme->category))
-                    newtheme->file = strdup(theme->file);
+		    {
+		       newtheme->file = eina_stringshare_add(theme->file);
+		    }
 	       }
 	     tcl = eina_list_append(tcl, newtheme);
 	  }
-	cats = cats->next;
+	eina_stringshare_del(category);
      }
-   cats = eina_list_free(cats);
 
    return tcl;
 }
 
-static char *
+static const char *
 _files_ilist_nth_label_to_file(void *data, int n)
 {
    E_Config_Dialog_Data *cfdata;
@@ -597,15 +599,13 @@ _files_ilist_nth_label_to_file(void *data, int n)
    if (!cfdata->o_files_ilist) return NULL;
 
    if (n > cfdata->personal_file_count)
-     snprintf(file, sizeof(file), "%s/data/themes/%s.edj",
-              e_prefix_data_get(), 
+     e_prefix_data_snprintf(file, sizeof(file), "data/themes/%s.edj",
               e_widget_ilist_nth_label_get(cfdata->o_files_ilist, n));
    else
-     snprintf(file, sizeof(file), "%s/.e/e/themes/%s.edj",
-              e_user_homedir_get(), 
+     e_user_dir_snprintf(file, sizeof(file), "themes/%s.edj",
               e_widget_ilist_nth_label_get(cfdata->o_files_ilist, n));
 
-   return strdup(file);
+   return eina_stringshare_add(file);
 }
 
 static void
@@ -614,8 +614,7 @@ _preview_set(void *data)
    E_Config_Dialog_Data *cfdata;
    const char *theme;
    char c_label[128];
-   int n, ret = 0;
-   Eina_List *p;
+   int n;
 
    if (!(cfdata = data)) return;
 
@@ -625,18 +624,19 @@ _preview_set(void *data)
             e_widget_ilist_selected_label_get(cfdata->o_categories_ilist));
    if (theme)
      {
-	p = cfdata->parts_list;
-	while (p)
-	  {
-	     if (strstr((char *)(p->data), c_label)) break;
-	     p = p->next;
-	  }
-	if (p)
+	int ret = 0;
+	int i;
+
+	for (i = 0; parts_list[i] != NULL; i++)
+	  if (strstr(parts_list[i], c_label)) break;
+
+	if (parts_list[i])
 	  ret = e_widget_preview_edje_set(cfdata->o_preview, theme,
-					  (char *)p->data + strlen(c_label));
+					  parts_list[i] + strlen(c_label));
         if (!ret)
 	  ret = e_widget_preview_edje_set(cfdata->o_preview, theme,
 					  "e/desktop/background");
+	eina_stringshare_del(theme);
      }
 }
 
@@ -648,6 +648,7 @@ _cb_adv_categories_change(void *data, Evas_Object *obj)
    const char *file = NULL;
    char category[256];
    Eina_List *themes = NULL;
+   E_Config_Theme *t;
    Evas_Object *ic = NULL;
    int n;
 
@@ -665,14 +666,11 @@ _cb_adv_categories_change(void *data, Evas_Object *obj)
      }
 
    snprintf(category, sizeof(category), "base/theme/%s", label);
-   for (themes = cfdata->theme_list; themes; themes = themes->next)
+   EINA_LIST_FOREACH(cfdata->theme_list, themes, t)
      {
-	E_Config_Theme *t;
-
-	t = themes->data;
 	if (!strcmp(category, t->category) && (t->file))
 	  {
-	     file = strdup(t->file);
+	     file = t->file;
 	     break;
 	  }
      }
@@ -680,14 +678,16 @@ _cb_adv_categories_change(void *data, Evas_Object *obj)
 
    for (n = 0; n < e_widget_ilist_count(cfdata->o_files_ilist); n++)
      {
-	if (!strcmp(file, _files_ilist_nth_label_to_file(cfdata, n)))
+	const char *tmp;
+
+	tmp = _files_ilist_nth_label_to_file(cfdata, n);
+	eina_stringshare_del(tmp);
+	if (file == tmp) /* We don't need the value, just the adress. */
 	  {
 	     e_widget_ilist_selected_set(cfdata->o_files_ilist, n);
 	     break;
 	  }
      }
-
-   free((void *)file);
 }
 
 static void
@@ -700,15 +700,12 @@ static int
 _theme_file_used(Eina_List *tlist, const char *filename)
 {
    E_Config_Theme *theme;
+   Eina_List *l;
 
    if (!filename) return 0;
 
-   while (tlist)
-     {
-	theme = tlist->data;
-	if (theme->file && !strcmp(theme->file, filename)) return 1;
-	tlist = tlist->next;
-     }
+   EINA_LIST_FOREACH(tlist, l, theme)
+     if (theme->file == filename) return 1;
 
    return 0;
 }
@@ -723,6 +720,7 @@ _ilist_files_add(E_Config_Dialog_Data *cfdata, const char *header, const char *d
    char themename[1024];
    char *tmp;
    Evas_Object *o;
+   const char *theme;
    Evas *evas;
 
    o = cfdata->o_files_ilist;
@@ -738,7 +736,7 @@ _ilist_files_add(E_Config_Dialog_Data *cfdata, const char *header, const char *d
 	       {
 		  snprintf(themename, sizeof(themename), "%s/%s",
 			   dir, dentry->d_name);
-		  themefiles = eina_list_append(themefiles, strdup(themename));
+		  themefiles = eina_list_append(themefiles, eina_stringshare_add(themename));
 	       }
 	  }
 	closedir(d);
@@ -749,22 +747,22 @@ _ilist_files_add(E_Config_Dialog_Data *cfdata, const char *header, const char *d
 	themefiles = eina_list_sort(themefiles, -1, _cb_sort);
 	count = eina_list_count(themefiles);
 
-	while (themefiles)
+	EINA_LIST_FREE(themefiles, theme)
 	  {
 	     Evas_Object *ic = NULL;
 
-	     if (_theme_file_used(cfdata->theme_list, themefiles->data))
+	     if (_theme_file_used(cfdata->theme_list, theme))
 	       {
-		  ic = edje_object_add(evas);
-		  e_util_edje_icon_set(ic, "enlightenment/themes");
+		  ic = e_icon_add(evas);
+		  e_util_icon_theme_set(ic, "preferences-desktop-theme");
 	       }
-	     tmp = strdup(strrchr(themefiles->data, '/') + 1);
+	     tmp = strdup(strrchr(theme, '/') + 1);
 	     strncpy(themename, tmp, strlen(tmp) - 3);
 	     themename[strlen(tmp) - 4] = '\0';
 	     e_widget_ilist_append(o, ic, themename, NULL, NULL, NULL);
 	     free(tmp);
 
-	     themefiles = themefiles->next;
+	     eina_stringshare_del(theme);
 	  }
      }
 
@@ -787,14 +785,12 @@ _fill_files_ilist(E_Config_Dialog_Data *cfdata)
    e_widget_ilist_clear(o);
 
    /* Grab the "Personal" themes. */
-   snprintf(theme_dir, sizeof(theme_dir), "%s/.e/e/themes",
-            e_user_homedir_get());
+   e_user_dir_concat_static(theme_dir, "themes");
    cfdata->personal_file_count = 
      _ilist_files_add(cfdata, _("Personal"), theme_dir);
 
    /* Grab the "System" themes. */
-   snprintf(theme_dir, sizeof(theme_dir),
-            "%s/data/themes", e_prefix_data_get());
+   e_prefix_data_concat_static(theme_dir, "data/themes");
    _ilist_files_add(cfdata, _("System"), theme_dir);
 
    e_widget_ilist_go(o);
@@ -819,19 +815,16 @@ _fill_categories_ilist(E_Config_Dialog_Data *cfdata)
    e_widget_ilist_freeze(o);
    e_widget_ilist_clear(o);
 
-   themes = cfdata->theme_list;
-   while (themes)
+   EINA_LIST_FOREACH(cfdata->theme_list, themes, theme)
      {
 	Evas_Object *ic = NULL;
 
-	theme = themes->data;
 	if (theme->file)
 	  {
-	     ic = edje_object_add(evas);
-	     e_util_edje_icon_set(ic, "enlightenment/check");
+	     ic = e_icon_add(evas);
+	     e_util_icon_theme_set(ic, "dialog-ok-apply");
 	  }
 	e_widget_ilist_append(o, ic, theme->category + 11, NULL, NULL, NULL);
-	themes = themes->next;
      }
 
    e_widget_ilist_go(o);
@@ -859,8 +852,8 @@ _cb_adv_btn_assign(void *data1, void *data2)
 
    evas = evas_object_evas_get(oc);
    n = e_widget_ilist_selected_get(oc);
-   ic = edje_object_add(evas);
-   e_util_edje_icon_set(ic, "enlightenment/e");
+   ic = e_icon_add(evas);
+   e_util_icon_theme_set(ic, "enlightenment");
    e_widget_ilist_nth_icon_set(oc, n, ic);
 
    newtheme = malloc(sizeof(E_Config_Theme));
@@ -868,34 +861,39 @@ _cb_adv_btn_assign(void *data1, void *data2)
 
    label = e_widget_ilist_selected_label_get(oc);
    snprintf(buf, sizeof(buf), "base/theme/%s", label);
-   newtheme->category = strdup(buf);
+   newtheme->category = eina_stringshare_add(buf);
 
    n = e_widget_ilist_selected_get(of);
-   ic = edje_object_add(evas);
-   e_util_edje_icon_set(ic, "enlightenment/themes");
+   ic = e_icon_add(evas);
+   e_util_icon_theme_set(ic, "preferences-desktop-theme");
    e_widget_ilist_nth_icon_set(of, n, ic);
    newtheme->file = _files_ilist_nth_label_to_file(cfdata, n);
 
-   for (themes = cfdata->theme_list; themes; themes = themes->next)
+   EINA_LIST_FOREACH(cfdata->theme_list, themes, t)
      {
 	const char *filename = NULL;
 
-	t = themes->data;
 	if (!strcmp(t->category, newtheme->category))
 	  {
 	     if ((t->file) && (strcmp(t->file, newtheme->file)))
 	       {
-		  filename = eina_stringshare_add(t->file);
-		  free((void *)(t->file));
+		  filename = t->file;
 		  t->file = NULL;
+
 		  if (!_theme_file_used(cfdata->theme_list, filename))
 		    {
 		       for (n = 0; n < e_widget_ilist_count(of); n++)
-			 if (!strcmp(filename, _files_ilist_nth_label_to_file(cfdata, n)))
-			   e_widget_ilist_nth_icon_set(of, n, NULL);
+			 {
+			    const char *tmp;
+
+			    tmp = _files_ilist_nth_label_to_file(cfdata, n);
+			    eina_stringshare_del(tmp);
+			    if (filename == tmp) /* We just need the pointer, not the value. */
+			      e_widget_ilist_nth_icon_set(of, n, NULL);
+			 }
 		    }
 	       }
-	     t->file = strdup(newtheme->file);
+	     t->file = eina_stringshare_add(newtheme->file);
 	     if (filename) eina_stringshare_del(filename);
 	     break;
 	  }
@@ -903,7 +901,11 @@ _cb_adv_btn_assign(void *data1, void *data2)
    if (!themes)
      cfdata->theme_list = eina_list_append(cfdata->theme_list, newtheme);
    else
-     free(newtheme);
+     {
+	eina_stringshare_del(newtheme->category);
+	eina_stringshare_del(newtheme->file);
+	free(newtheme);
+     }
 
    return;
 }
@@ -931,15 +933,13 @@ _cb_adv_btn_clear(void *data1, void *data2)
    label = e_widget_ilist_selected_label_get(oc);
    snprintf(cat, sizeof(cat), "base/theme/%s", label);
 
-   for (themes = cfdata->theme_list; themes; themes = themes->next)
+   EINA_LIST_FOREACH(cfdata->theme_list, themes, t)
      {
-	t = themes->data;
 	if (!strcmp(t->category, cat))
 	  {
 	     if (t->file)
 	       {
-		  filename = eina_stringshare_add(t->file);
-		  free((void *)(t->file));
+		  filename = t->file;
 		  t->file = NULL;
 	       }
 	     break;
@@ -949,8 +949,14 @@ _cb_adv_btn_clear(void *data1, void *data2)
    if ((filename) && (!_theme_file_used(cfdata->theme_list, filename)))
      {
 	for (n = 0; n < e_widget_ilist_count(of); n++)
-	  if (!strcmp(filename, _files_ilist_nth_label_to_file(cfdata, n)))
-	    e_widget_ilist_nth_icon_set(of, n, NULL);
+	  {
+	     const char *tmp;
+
+	     tmp = _files_ilist_nth_label_to_file(cfdata, n);
+	     if (filename == tmp)
+	       e_widget_ilist_nth_icon_set(of, n, NULL);
+	     eina_stringshare_del(tmp);
+	  }
 	eina_stringshare_del(filename);
      }
 
@@ -976,14 +982,10 @@ _cb_adv_btn_clearall(void *data1, void *data2)
    for (n = 0; n < e_widget_ilist_count(of); n++)
      e_widget_ilist_nth_icon_set(of, n, NULL);
 
-   for (themes = cfdata->theme_list; themes; themes = themes->next)
+   EINA_LIST_FOREACH(cfdata->theme_list, themes, t)
      {
-	t = themes->data;
-	if (t->file)
-	  {
-	     free((void *)(t->file));
-	     t->file = NULL;
-	  }
+	eina_stringshare_del(t->file);
+	t->file = NULL;
      }
 
    return;
@@ -1053,20 +1055,20 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 static int
 _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   Eina_List *themes, *ec_themes;
+   E_Config_Theme *theme;
+   Eina_List *themes;
    E_Action *a;
 
-   themes = cfdata->theme_list;
-   while (themes)
+   EINA_LIST_FOREACH(cfdata->theme_list, themes, theme)
      {
-	E_Config_Theme *theme, *ec_theme;
+	E_Config_Theme *ec_theme;
+	Eina_List *ec_themes;
 
-	theme = themes->data;
 	if (!strcmp(theme->category, "base/theme/Base Theme"))
-	      theme->category = strdup("base/theme");
-	for (ec_themes = e_config->themes; ec_themes; ec_themes = ec_themes->next)
+	  theme->category = eina_stringshare_add("base/theme");
+
+	EINA_LIST_FOREACH(e_config->themes, ec_themes, ec_theme)
 	  {
-	     ec_theme = ec_themes->data;
 	     if (!strcmp(theme->category + 5, ec_theme->category))
 	       {
 		  if (theme->file)
@@ -1078,8 +1080,6 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	  }
 	if ((!ec_themes) && (theme->file))
 	  e_theme_config_set(theme->category + 5, theme->file);
-
-	themes = themes->next;
      }
 
    e_config_save_queue();
