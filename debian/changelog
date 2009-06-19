@@ -1,3 +1,10 @@
+e17 (0.16.999.061-1) UNRELEASED; urgency=low
+
+  * New upstream snapshot
+  * Drop 03_config_panel_category_list_is_not_an_ilist.diff, applied upstream
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Fri, 19 Jun 2009 16:52:16 +0200
+
 e17 (0.16.999.060-1) experimental; urgency=low
 
   * New upstream release

@@ -59,4 +59,6 @@ index 68fe2b8..4de2e16 100644
 +      value "is_main" int: 0;
 +    }
 +  }
+   value "mode.presentation" uchar: 0;
+   value "mode.offline" uchar: 0;  
  }
