@@ -35,7 +35,7 @@ typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 0x012f
+#define E_CONFIG_FILE_GENERATION 0x0133
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH << 16) | E_CONFIG_FILE_GENERATION)
 
 #define E_EVAS_ENGINE_DEFAULT         0
@@ -218,16 +218,21 @@ struct _E_Config
    int         desklock_login_box_zone; // GUI
    int         desklock_start_locked; // GUI
    int         desklock_autolock_screensaver; // GUI
+   double      desklock_post_screensaver_time; // GUI
    int         desklock_autolock_idle; // GUI
    double      desklock_autolock_idle_timeout; // GUI
    int         desklock_use_custom_desklock; // GUI
    const char *desklock_custom_desklock_cmd; // GUI
-   
+   Eina_Bool   desklock_ask_presentation; // GUI
+   double      desklock_ask_presentation_timeout; // GUI
+
    int         screensaver_enable; // GUI
    int         screensaver_timeout; // GUI
    int         screensaver_interval; // GUI
    int         screensaver_blanking; // GUI
    int         screensaver_expose; // GUI
+   Eina_Bool   screensaver_ask_presentation; // GUI
+   double      screensaver_ask_presentation_timeout; // GUI
   
    int         dpms_enable; // GUI
    int         dpms_standby_enable; // GUI
@@ -267,6 +272,9 @@ struct _E_Config
    int         desk_flip_animate_mode; // GUI
    int         desk_flip_animate_interpolation; // GUI
    double      desk_flip_animate_time; // GUI
+   Eina_Bool   desk_flip_pan_bg;
+   double      desk_flip_pan_x_axis_factor;
+   double      desk_flip_pan_y_axis_factor;
    
    const char *wallpaper_import_last_dev; // INTERNAL
    const char *wallpaper_import_last_path; // INTERNAL
@@ -294,6 +302,8 @@ struct _E_Config
    double thumbscroll_friction; // GUI
 
    int hal_desktop;
+   int hal_auto_mount;
+   int hal_auto_open;
 
    struct {
       double timeout;
@@ -331,6 +341,11 @@ struct _E_Config
       unsigned char do_input;
       Eina_List *actions;
    } syscon;
+
+   struct {
+      Eina_Bool presentation;
+      Eina_Bool offline;
+   } mode;
 };
 
 struct _E_Config_Syscon_Action
@@ -519,10 +534,12 @@ EAPI E_Config_Binding_Key    *e_config_binding_key_match(E_Config_Binding_Key *e
 EAPI E_Config_Binding_Edge   *e_config_binding_edge_match(E_Config_Binding_Edge *eb_in);
 EAPI E_Config_Binding_Signal *e_config_binding_signal_match(E_Config_Binding_Signal *eb_in);
 EAPI E_Config_Binding_Wheel  *e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in);
-    
+EAPI void                     e_config_mode_changed(void);
+
 extern EAPI E_Config *e_config;
 
 extern EAPI int E_EVENT_CONFIG_ICON_THEME;
+extern EAPI int E_EVENT_CONFIG_MODE_CHANGED;
 
 #endif
 #endif

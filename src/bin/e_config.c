@@ -45,12 +45,14 @@ static E_Config_DD *_e_config_mime_icon_edd = NULL;
 static E_Config_DD *_e_config_syscon_action_edd = NULL;
 
 EAPI int E_EVENT_CONFIG_ICON_THEME = 0;
+EAPI int E_EVENT_CONFIG_MODE_CHANGED = 0;
 
 /* externally accessible functions */
 EAPI int
 e_config_init(void)
 {
    E_EVENT_CONFIG_ICON_THEME = ecore_event_type_new();
+   E_EVENT_CONFIG_MODE_CHANGED = ecore_event_type_new();
 
    _e_config_profile = getenv("E_CONF_PROFILE");
    if (_e_config_profile)
@@ -565,10 +567,14 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, desklock_login_box_zone, INT);
    E_CONFIG_VAL(D, T, desklock_start_locked, INT);
    E_CONFIG_VAL(D, T, desklock_autolock_screensaver, INT);
+   E_CONFIG_VAL(D, T, desklock_post_screensaver_time, DOUBLE);
    E_CONFIG_VAL(D, T, desklock_autolock_idle, INT);
    E_CONFIG_VAL(D, T, desklock_autolock_idle_timeout, DOUBLE);
    E_CONFIG_VAL(D, T, desklock_use_custom_desklock, INT);
    E_CONFIG_VAL(D, T, desklock_custom_desklock_cmd, STR);
+   E_CONFIG_VAL(D, T, desklock_ask_presentation, UCHAR);
+   E_CONFIG_VAL(D, T, desklock_ask_presentation_timeout, DOUBLE);
+
    E_CONFIG_VAL(D, T, display_res_restore, INT);
    E_CONFIG_VAL(D, T, display_res_width, INT);
    E_CONFIG_VAL(D, T, display_res_height, INT);
@@ -580,7 +586,9 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, screensaver_interval, INT);
    E_CONFIG_VAL(D, T, screensaver_blanking, INT);
    E_CONFIG_VAL(D, T, screensaver_expose, INT);
-   
+   E_CONFIG_VAL(D, T, screensaver_ask_presentation, UCHAR);
+   E_CONFIG_VAL(D, T, screensaver_ask_presentation_timeout, DOUBLE);
+
    E_CONFIG_VAL(D, T, dpms_enable, INT);
    E_CONFIG_VAL(D, T, dpms_standby_enable, INT);
    E_CONFIG_VAL(D, T, dpms_suspend_enable, INT);
@@ -614,6 +622,9 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, desk_flip_animate_mode, INT);
    E_CONFIG_VAL(D, T, desk_flip_animate_interpolation, INT);
    E_CONFIG_VAL(D, T, desk_flip_animate_time, DOUBLE);
+   E_CONFIG_VAL(D, T, desk_flip_pan_bg, UCHAR);
+   E_CONFIG_VAL(D, T, desk_flip_pan_x_axis_factor, DOUBLE);
+   E_CONFIG_VAL(D, T, desk_flip_pan_y_axis_factor, DOUBLE);
    
    E_CONFIG_VAL(D, T, wallpaper_import_last_dev, STR);
    E_CONFIG_VAL(D, T, wallpaper_import_last_path, STR);
@@ -645,14 +656,14 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, thumbscroll_friction, DOUBLE);
    
    E_CONFIG_VAL(D, T, hal_desktop, INT);
+   E_CONFIG_VAL(D, T, hal_auto_mount, INT);
+   E_CONFIG_VAL(D, T, hal_auto_open, INT);
 
    E_CONFIG_VAL(D, T, border_keyboard.timeout, DOUBLE);
    E_CONFIG_VAL(D, T, border_keyboard.move.dx, UCHAR);
    E_CONFIG_VAL(D, T, border_keyboard.move.dy, UCHAR);
    E_CONFIG_VAL(D, T, border_keyboard.resize.dx, UCHAR);
    E_CONFIG_VAL(D, T, border_keyboard.resize.dy, UCHAR);
-
-   E_CONFIG_VAL(D, T, hal_desktop, INT);
 
    E_CONFIG_VAL(D, T, scale.min, DOUBLE);
    E_CONFIG_VAL(D, T, scale.max, DOUBLE);
@@ -674,7 +685,10 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, syscon.timeout, DOUBLE);
    E_CONFIG_VAL(D, T, syscon.do_input, UCHAR);
    E_CONFIG_LIST(D, T, syscon.actions, _e_config_syscon_action_edd);
-   
+
+   E_CONFIG_VAL(D, T, mode.presentation, UCHAR);
+   E_CONFIG_VAL(D, T, mode.offline, UCHAR);
+
    e_config_load();
    
    e_config_save_queue();
@@ -809,6 +823,7 @@ e_config_load(void)
           }
      }
 #define IFCFG(v) if ((e_config->config_version & 0xffff) < (v)) {
+#define IFCFGELSE } else {
 #define IFCFGEND }
 #define COPYVAL(x) do {e_config->x = tcfg->x;} while (0)
 #define COPYPTR(x) do {e_config->x = tcfg->x; tcfg->x = NULL;} while (0)
@@ -881,6 +896,34 @@ e_config_load(void)
         IFCFG(0x012f);
         COPYVAL(icon_theme_overrides);
         IFCFGEND;
+
+	IFCFG(0x0130);
+	COPYVAL(mode.presentation);
+	COPYVAL(mode.offline);
+	IFCFGEND;
+
+	IFCFG(0x0131);
+	COPYVAL(desklock_post_screensaver_time);
+	IFCFGEND;
+
+	IFCFG(0x0132);
+	COPYVAL(desklock_ask_presentation);
+	COPYVAL(desklock_ask_presentation_timeout);
+	COPYVAL(screensaver_ask_presentation);
+	COPYVAL(screensaver_ask_presentation_timeout);
+	IFCFGELSE;
+	e_config->desklock_ask_presentation = 1;
+	e_config->desklock_ask_presentation_timeout = 30.0;
+	e_config->screensaver_ask_presentation = 1;
+	e_config->screensaver_ask_presentation_timeout = 30.0;
+	IFCFGEND;
+
+        IFCFG(0x0133);
+        COPYVAL(desk_flip_pan_bg);
+        COPYVAL(desk_flip_pan_x_axis_factor);
+        COPYVAL(desk_flip_pan_y_axis_factor);
+        IFCFGEND;
+
         e_config->config_version = E_CONFIG_FILE_VERSION;   
         _e_config_free(tcfg);
      }
@@ -967,9 +1010,12 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->font_hinting, 0, 2);
    E_CONFIG_LIMIT(e_config->desklock_login_box_zone, -2, 1000);
    E_CONFIG_LIMIT(e_config->desklock_autolock_screensaver, 0, 1);
+   E_CONFIG_LIMIT(e_config->desklock_post_screensaver_time, 0.0, 300.0);
    E_CONFIG_LIMIT(e_config->desklock_autolock_idle, 0, 1);
    E_CONFIG_LIMIT(e_config->desklock_autolock_idle_timeout, 1.0, 5400.0);
    E_CONFIG_LIMIT(e_config->desklock_use_custom_desklock, 0, 1);
+   E_CONFIG_LIMIT(e_config->desklock_ask_presentation, 0, 1);
+   E_CONFIG_LIMIT(e_config->desklock_ask_presentation_timeout, 1.0, 300.0);
    E_CONFIG_LIMIT(e_config->display_res_restore, 0, 1);
    E_CONFIG_LIMIT(e_config->display_res_width, 1, 8192);
    E_CONFIG_LIMIT(e_config->display_res_height, 1, 8192);
@@ -980,6 +1026,9 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->desk_flip_wrap, 0, 1);
    E_CONFIG_LIMIT(e_config->fullscreen_flip, 0, 1);
    E_CONFIG_LIMIT(e_config->icon_theme_overrides, 0, 1);
+   E_CONFIG_LIMIT(e_config->desk_flip_pan_bg, 0, 1);
+   E_CONFIG_LIMIT(e_config->desk_flip_pan_x_axis_factor, 0.0, 1.0);
+   E_CONFIG_LIMIT(e_config->desk_flip_pan_y_axis_factor, 0.0, 1.0);
    E_CONFIG_LIMIT(e_config->remember_internal_windows, 0, 1);
    E_CONFIG_LIMIT(e_config->desk_auto_switch, 0, 1);
 
@@ -995,7 +1044,9 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->screensaver_interval, 0, 5400);
    E_CONFIG_LIMIT(e_config->screensaver_blanking, 0, 2);
    E_CONFIG_LIMIT(e_config->screensaver_expose, 0, 2);
-   
+   E_CONFIG_LIMIT(e_config->screensaver_ask_presentation, 0, 1);
+   E_CONFIG_LIMIT(e_config->screensaver_ask_presentation_timeout, 1.0, 300.0);
+
    E_CONFIG_LIMIT(e_config->clientlist_group_by, 0, 2);
    E_CONFIG_LIMIT(e_config->clientlist_include_all_zones, 0, 1);
    E_CONFIG_LIMIT(e_config->clientlist_separate_with, 0, 2);
@@ -1014,7 +1065,10 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->menu_apps_show, 0, 1);
 
    E_CONFIG_LIMIT(e_config->ping_clients_interval, 16, 1024);
-   
+
+   E_CONFIG_LIMIT(e_config->mode.presentation, 0, 1);
+   E_CONFIG_LIMIT(e_config->mode.offline, 0, 1);
+
    /* FIXME: disabled auto apply because it causes problems */
    e_config->cfgdlg_auto_apply = 0;
    /* FIXME: desklock personalized password id disabled for security reasons */
@@ -1450,6 +1504,12 @@ e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in)
 	  return eb;
      }
    return NULL;
+}
+
+EAPI void
+e_config_mode_changed(void)
+{
+   ecore_event_add(E_EVENT_CONFIG_MODE_CHANGED, NULL, NULL, NULL);
 }
 
 /* local subsystem functions */

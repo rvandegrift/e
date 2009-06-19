@@ -48,6 +48,7 @@ struct _E_Zone
    Evas_Object         *bg_event_object;
    Evas_Object         *bg_clip_object;
    Evas_Object         *prev_bg_object;
+   Evas_Object	       *bg_scrollframe;
    Evas_Object         *transition_object;
    
    int                  desk_x_count, desk_y_count;
@@ -78,6 +79,11 @@ struct _E_Zone
    Evas                *black_evas;
    Ecore_X_Window       black_win;
    int                  id;
+
+   struct {
+      int x, y, w, h;
+      Eina_Bool dirty : 1;
+   } useful_geometry;
 };
 
 struct _E_Event_Zone_Desk_Count_Set
@@ -138,7 +144,8 @@ EAPI void       e_zone_desk_linear_flip_to(E_Zone *zone, int x);
 EAPI void       e_zone_flip_win_disable(void);
 EAPI void       e_zone_flip_win_restore(void);
 
-EAPI void       e_zone_useful_geometry_calc(const E_Zone *zone, int *x, int *y, int *w, int *h);
+EAPI void       e_zone_useful_geometry_dirty(E_Zone *zone);
+EAPI void       e_zone_useful_geometry_get(E_Zone *zone, int *x, int *y, int *w, int *h);
 
 extern EAPI int E_EVENT_ZONE_DESK_COUNT_SET;
 extern EAPI int E_EVENT_ZONE_MOVE_RESIZE;

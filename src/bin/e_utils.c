@@ -364,8 +364,8 @@ e_util_edje_icon_check(const char *name)
 }
 
 
-/* WARNING This function is deprecated,. must be made static. 
- * You should use e_util_theme_icon_set instead 
+/* WARNING This function is deprecated,. must be made static.
+ * You should use e_util_icon_theme_set instead
  */
 EAPI int
 e_util_edje_icon_set(Evas_Object *obj, const char *name)
@@ -652,6 +652,7 @@ e_util_filename_escape(const char *filename)
    char *q;
    static char buf[4096];
 
+   if (!filename) return NULL;
    p = filename;
    q = buf;
    while (*p)
@@ -1061,7 +1062,7 @@ e_util_win_auto_resize_fill(E_Win *win)
      {
 	int w, h;
 
-	e_zone_useful_geometry_calc(zone, NULL, NULL, &w, &h);
+	e_zone_useful_geometry_get(zone, NULL, NULL, &w, &h);
 
         w = _win_auto_size_calc(w, win->min_w);
         h = _win_auto_size_calc(h, win->min_h);
