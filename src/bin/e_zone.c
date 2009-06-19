@@ -77,6 +77,7 @@ e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h)
    zone->h = h;
    zone->num = num;
    zone->id = id;
+   e_zone_useful_geometry_dirty(zone);
 
    cw = w * E_ZONE_CORNER_RATIO;
    ch = h * E_ZONE_CORNER_RATIO;
@@ -234,6 +235,8 @@ e_zone_move(E_Zone *zone, int x, int y)
    zone->x = x;
    zone->y = y;
    evas_object_move(zone->bg_object, x, y);
+   if (zone->bg_scrollframe)
+     evas_object_move(zone->bg_scrollframe, x, y);
    evas_object_move(zone->bg_event_object, x, y);
    evas_object_move(zone->bg_clip_object, x, y);
 
@@ -286,6 +289,8 @@ e_zone_resize(E_Zone *zone, int w, int h)
    zone->w = w;
    zone->h = h;
    evas_object_resize(zone->bg_object, w, h);
+   if (zone->bg_scrollframe)
+     evas_object_resize(zone->bg_scrollframe, w, h);
    evas_object_resize(zone->bg_event_object, w, h);
    evas_object_resize(zone->bg_clip_object, w, h);
 
@@ -344,9 +349,13 @@ e_zone_move_resize(E_Zone *zone, int x, int y, int w, int h)
    zone->h = h;
 
    evas_object_move(zone->bg_object, x, y);
+   if (zone->bg_scrollframe)
+     evas_object_move(zone->bg_scrollframe, x, y);
    evas_object_move(zone->bg_event_object, x, y);
    evas_object_move(zone->bg_clip_object, x, y);
    evas_object_resize(zone->bg_object, w, h);
+   if (zone->bg_scrollframe)
+     evas_object_resize(zone->bg_scrollframe, w, h);
    evas_object_resize(zone->bg_event_object, w, h);
    evas_object_resize(zone->bg_clip_object, w, h);
 
@@ -826,11 +835,8 @@ e_zone_flip_win_restore(void)
      }
 }
 
-/**
- * Calculate the useful (or free, without any shelves) area.
- */
-EAPI void
-e_zone_useful_geometry_calc(const E_Zone *zone, int *x, int *y, int *w, int *h)
+static void
+_e_zone_useful_geometry_calc(E_Zone *zone)
 {
    const Eina_List *l;
    const E_Shelf *shelf;
@@ -891,10 +897,48 @@ e_zone_useful_geometry_calc(const E_Zone *zone, int *x, int *y, int *w, int *h)
 	  }
      }
 
-   if (x) *x = x0;
-   if (y) *y = y0;
-   if (w) *w = x1 - x0;
-   if (h) *h = y1 - y0;
+   zone->useful_geometry.x = zone->x + x0;
+   zone->useful_geometry.y = zone->y + y0;
+   zone->useful_geometry.w = x1 - x0;
+   zone->useful_geometry.h = y1 - y0;
+   zone->useful_geometry.dirty = 0;
+}
+
+
+/**
+ * Get (or calculate) the useful (or free, without any shelves) area.
+ */
+EAPI void
+e_zone_useful_geometry_get(E_Zone *zone, int *x, int *y, int *w, int *h)
+{
+   E_OBJECT_CHECK(zone);
+   E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
+
+   if (zone->useful_geometry.dirty)
+     _e_zone_useful_geometry_calc(zone);
+
+   if (x) *x = zone->useful_geometry.x;
+   if (y) *y = zone->useful_geometry.y;
+   if (w) *w = zone->useful_geometry.w;
+   if (h) *h = zone->useful_geometry.h;
+}
+
+/**
+ * Mark as dirty so e_zone_useful_geometry_get() will need to recalculate.
+ *
+ * Call this function when shelves are added or important properties changed.
+ */
+EAPI void
+e_zone_useful_geometry_dirty(E_Zone *zone)
+{
+   E_OBJECT_CHECK(zone);
+   E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
+
+   zone->useful_geometry.dirty = 1;
+   zone->useful_geometry.x = -1;
+   zone->useful_geometry.y = -1;
+   zone->useful_geometry.w = -1;
+   zone->useful_geometry.h = -1;
 }
 
 /* local subsystem functions */
@@ -903,6 +947,8 @@ _e_zone_free(E_Zone *zone)
 {
    E_Container *con;
    Eina_List *l;
+   Ecore_Animator *anim;
+   void *data;
    int x, y;
 
    /* Delete the edge windows if they exist */
@@ -952,9 +998,14 @@ _e_zone_free(E_Zone *zone)
    con = zone->container;
    if (zone->name) eina_stringshare_del(zone->name);
    con->zones = eina_list_remove(con->zones, zone);
+   anim = evas_object_data_get(zone->bg_object, "switch_animator");
+   if (anim) ecore_animator_del(anim);
+   data = evas_object_data_get(zone->bg_object, "switch_animator_params");
+   if (data) E_FREE(data);
    evas_object_del(zone->bg_event_object);
    evas_object_del(zone->bg_clip_object);
    evas_object_del(zone->bg_object);
+   evas_object_del(zone->bg_scrollframe);
    if (zone->prev_bg_object) evas_object_del(zone->prev_bg_object);
    if (zone->transition_object) evas_object_del(zone->transition_object);
 

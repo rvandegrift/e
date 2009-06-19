@@ -841,11 +841,9 @@ ACT_FN_GO(window_move_to_center)
      }
 
    E_Border *bd;
-   bd = (E_Border *)obj;
-
    int x, y;
-   x = (bd->zone->w - bd->w) / 2;
-   y = (bd->zone->h - bd->h) / 2;
+   bd = (E_Border *)obj;
+   e_border_center_pos_get(bd, &x, &y);
 
    if ((x != bd->x) || (y != bd->y))
      {
@@ -853,8 +851,8 @@ ACT_FN_GO(window_move_to_center)
 
        if (e_config->focus_policy != E_FOCUS_CLICK)
          ecore_x_pointer_warp(bd->zone->container->win,
-			    bd->x + (bd->w / 2),
-			    bd->y + (bd->h / 2));
+			    x + (bd->w / 2),
+			    y + (bd->h / 2));
      }
 }
 
@@ -1800,6 +1798,22 @@ ACT_FN_GO(exit_now)
 ACT_FN_GO(halt_now)
 {
    e_sys_action_do(E_SYS_HALT_NOW, NULL);
+}
+
+/***************************************************************************/
+ACT_FN_GO(mode_presentation_toggle)
+{
+   e_config->mode.presentation = !e_config->mode.presentation;
+   e_config_mode_changed();
+   e_config_save_queue();
+}
+
+/***************************************************************************/
+ACT_FN_GO(mode_offline_toggle)
+{
+   e_config->mode.offline = !e_config->mode.offline;
+   e_config_mode_changed();
+   e_config_save_queue();
 }
 
 /***************************************************************************/
@@ -2788,6 +2802,16 @@ e_actions_init(void)
    ACT_GO(exit_now);
    e_action_predef_name_set(_("Enlightenment"), _("Exit Now"), 
 			    "exit_now", NULL, NULL, 0);
+
+   ACT_GO(mode_presentation_toggle);
+   e_action_predef_name_set(_("Enlightenment : Mode"),
+			    _("Presentation Mode Toggle"),
+			    "mode_presentation_toggle", NULL, NULL, 0);
+
+   ACT_GO(mode_offline_toggle);
+   e_action_predef_name_set(_("Enlightenment : Mode"),
+			    _("Offline Mode Toggle"),
+			    "mode_offline_toggle", NULL, NULL, 0);
 
    ACT_GO(logout);
    e_action_predef_name_set(_("System"), _("Log Out"), "logout", 

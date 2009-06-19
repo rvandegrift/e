@@ -1,9 +1,9 @@
 # get rid of that stupid cache mechanism
 rm -f config.cache
 
-AC_INIT(enlightenment, 0.16.999.060, enlightenment-devel@lists.sourceforge.net)
-AC_PREREQ(2.52)
-AC_CONFIG_SRCDIR(configure.ac)
+AC_INIT([enlightenment], [0.16.999.061], [enlightenment-devel@lists.sourceforge.net])
+AC_PREREQ([2.52])
+AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -26,7 +26,7 @@ define([AC_LIBTOOL_LANG_F77_CONFIG], [:])
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-release="ver-pre-01"
+release="ver-svn-02"
 AC_SUBST(release)
 
 AC_CHECK_FUNCS(setenv)
@@ -271,16 +271,10 @@ AC_SUBST(requirements_e)
 
 profile="SLOW_PC"
 AC_ARG_WITH(profile,
-[  --with-profile=TARGET_PROFILE    specify a target format profile of:
-                                    LOWRES_PDA, MEDIUMRES_PDA, HIRES_PDA, 
-				    SLOW_PC, MEDIUM_PC, FAST_PC ],
-[
-  v=$withval;
-  profile=$v
-  echo "  Enlightenment build profile set to "$profile;
-],[
-  profile="SLOW_PC"
-])
+  AS_HELP_STRING([--with-profile=TARGET_PROFILE], [specify a target format profile of:
+                                    LOWRES_PDA, MEDIUMRES_PDA, HIRES_PDA, SLOW_PC, MEDIUM_PC, FAST_PC]),
+  [profile=$withval])
+AC_MSG_NOTICE([Enlightenment build profile set to $profile])
 EDJE_DEF="-DLOWRES_PDA=1 -DMEDIUMRES_PDA=2 -DHIRES_PDA=3 -DSLOW_PC=4 -DMEDIUM_PC=5 -DFAST_PC=6"
 EDJE_DEF=$EDJE_DEF" -DE17_PROFILE"=$profile
 AC_SUBST(EDJE_DEF)
@@ -429,6 +423,8 @@ AC_E_OPTIONAL_MODULE([mixer], true, [CHECK_MODULE_MIXER])
 AC_E_OPTIONAL_MODULE([connman], false)
 AC_E_OPTIONAL_MODULE([illume], true)
 AC_E_OPTIONAL_MODULE([syscon], true)
+AC_E_OPTIONAL_MODULE([everything], true)
+AC_E_OPTIONAL_MODULE([systray], true)
 
 AC_OUTPUT([
 Makefile
@@ -561,6 +557,10 @@ src/modules/illume/keyboards/Makefile
 src/modules/illume/dicts/Makefile
 src/modules/syscon/Makefile
 src/modules/syscon/module.desktop
+src/modules/everything/Makefile
+src/modules/everything/module.desktop
+src/modules/systray/Makefile
+src/modules/systray/module.desktop
 src/preload/Makefile
 data/Makefile
 data/images/Makefile

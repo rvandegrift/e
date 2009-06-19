@@ -6,19 +6,24 @@
 /* local subsystem functions */
 static void _e_gadcon_popup_free(E_Gadcon_Popup *pop);
 static void _e_gadcon_popup_locked_set(E_Gadcon_Popup *pop, Eina_Bool locked);
+static void _e_gadcon_popup_size_recalc(E_Gadcon_Popup *pop, Evas_Object *obj);
+static void _e_gadcon_popup_position(E_Gadcon_Popup *pop);
+static void _e_gadcon_popup_changed_size_hints_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
 
 /* externally accessible functions */
 
 EAPI E_Gadcon_Popup *
-e_gadcon_popup_new(E_Gadcon_Client *gcc, void (*resize_func) (Evas_Object *obj, int *w, int *h))
+e_gadcon_popup_new(E_Gadcon_Client *gcc)
 {
    E_Gadcon_Popup *pop;
    Evas_Object *o;
    E_Zone *zone;
+   Evas_Coord gx, gy;
 
    pop = E_OBJECT_ALLOC(E_Gadcon_Popup, E_GADCON_POPUP_TYPE, _e_gadcon_popup_free);
    if (!pop) return NULL;
-   zone = e_util_zone_current_get(e_manager_current_get());
+   e_gadcon_client_geometry_get(gcc, &gx, &gy, NULL, NULL);
+   zone = e_container_zone_at_point_get(e_container_current_get(e_manager_current_get()), gx, gy);
    pop->win = e_popup_new(zone, 0, 0, 0, 0);
    e_popup_layer_set(pop->win, 255);
 
@@ -32,7 +37,6 @@ e_gadcon_popup_new(E_Gadcon_Client *gcc, void (*resize_func) (Evas_Object *obj, 
    pop->gcc = gcc;
    pop->gadcon_lock = 1;
    pop->gadcon_was_locked = 0;
-   pop->resize_func = resize_func;
 
    return pop;
 }
@@ -40,7 +44,6 @@ e_gadcon_popup_new(E_Gadcon_Client *gcc, void (*resize_func) (Evas_Object *obj, 
 EAPI void
 e_gadcon_popup_content_set(E_Gadcon_Popup *pop, Evas_Object *o)
 {
-   Evas_Coord w = 0, h = 0;
    Evas_Object *old_o;
 
    if (!pop) return;
@@ -53,116 +56,25 @@ e_gadcon_popup_content_set(E_Gadcon_Popup *pop, Evas_Object *o)
 	edje_object_part_unswallow(pop->o_bg, old_o);
 	evas_object_del(old_o);
      }
-   e_widget_min_size_get(o, &w, &h);
-   if ((!w) || (!h)) edje_object_size_min_calc(o, &w, &h);
-   edje_extern_object_min_size_set(o, w, h);
    edje_object_part_swallow(pop->o_bg, "e.swallow.content", o);
-   edje_object_size_min_calc(pop->o_bg, &pop->w, &pop->h);
-   evas_object_resize(pop->o_bg, pop->w, pop->h);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+	 _e_gadcon_popup_changed_size_hints_cb, pop);
+
+   _e_gadcon_popup_size_recalc(pop, o);
 }
 
 EAPI void
 e_gadcon_popup_show(E_Gadcon_Popup *pop)
 {
-   Evas_Object *o;
-   Evas_Coord gx, gy, gw, gh, zw, zh, zx, zy;
-   Evas_Coord px, py, ww, wh;
-
    if (!pop) return;
    E_OBJECT_CHECK(pop);
    E_OBJECT_TYPE_CHECK(pop, E_GADCON_POPUP_TYPE);
 
    if (pop->win->visible) return;
 
-   if ((o = edje_object_part_swallow_get(pop->o_bg, "e.swallow.content")))
-     {
-	Evas_Coord w = 0, h = 0;
-
-	e_widget_min_size_get(o, &w, &h);
-	if ((!w) || (!h))
-	  {
-	     edje_object_size_min_get(o, &w, &h);
-	     edje_object_size_min_restricted_calc(o, &w, &h, w, h);
-	  }
-	if (pop->resize_func) pop->resize_func(o, &w, &h);
-	edje_extern_object_min_size_set(o, w, h);
-     }
-
-   evas_object_show(pop->o_bg);
-   edje_object_size_min_calc(pop->o_bg, &ww, &wh);
    e_popup_show(pop->win);
 
-   evas_object_resize(pop->o_bg, ww, wh);
-   pop->w = ww;
-   pop->h = wh;
-
-   /* Popup positioning */
-   e_gadcon_client_geometry_get(pop->gcc, &gx, &gy, &gw, &gh);
-   zx = pop->gcc->gadcon->zone->x;
-   zy = pop->gcc->gadcon->zone->y;
-   zw = pop->gcc->gadcon->zone->w;
-   zh = pop->gcc->gadcon->zone->h;
-   switch (pop->gcc->gadcon->orient)
-     {
-      case E_GADCON_ORIENT_CORNER_RT:
-      case E_GADCON_ORIENT_CORNER_RB:
-      case E_GADCON_ORIENT_RIGHT:
-	px = gx - pop->w;
-	py = gy;
-	if (py + pop->h >= (zy + zh))
-	  py = gy + gh - pop->h;
-	break;
-      case E_GADCON_ORIENT_LEFT:
-      case E_GADCON_ORIENT_CORNER_LT:
-      case E_GADCON_ORIENT_CORNER_LB:
-	px = gx + gw;
-	py = gy;
-	if (py + pop->h >= (zy + zh))
-	  py = gy + gh - pop->h;
-	break;
-      case E_GADCON_ORIENT_TOP:
-      case E_GADCON_ORIENT_CORNER_TL:
-      case E_GADCON_ORIENT_CORNER_TR:
-	py = gy + gh;
-	px = (gx + (gw / 2)) - (pop->w / 2);
-	if ((px + pop->w) >= (zx + zw))
-	  px = gx + gw - pop->w;
-        else if (px < zx)
-          px = zx;
-	break;
-      case E_GADCON_ORIENT_BOTTOM:
-      case E_GADCON_ORIENT_CORNER_BL:
-      case E_GADCON_ORIENT_CORNER_BR:
-	py = gy - pop->h;
-	px = (gx + (gw / 2)) - (pop->w / 2);
-	if ((px + pop->w) >= (zx + zw))
-	  px = gx + gw - pop->w;
-        else if (px < zx)
-          px = zx;
-	break;
-      case E_GADCON_ORIENT_FLOAT:
-	px = (gx + (gw / 2)) - (pop->w / 2);
-	if (gy >= (zy + (zh / 2)))
-	  py = gy - pop->h;
-	else
-	  py = gy + gh;
-	if ((px + pop->w) >= (zx + zw))
-	  px = gx + gw - pop->w;
-        else if (px < zx)
-          px = zx;
-	break;
-      default:
-	e_popup_move_resize(pop->win, 50, 50, pop->w, pop->h);
-	return;
-     }
-   if (px - zx < 0)
-     px = zx;
-   if (py - zy < 0)
-     py = zy;
-   e_popup_move_resize(pop->win, px - zx, py - zy, pop->w, pop->h);
-
-   if (pop->gadcon_lock && (!pop->gadcon_was_locked))
-     _e_gadcon_popup_locked_set(pop, 1);
+   _e_gadcon_popup_position(pop);
 }
 
 EAPI void
@@ -231,4 +143,106 @@ _e_gadcon_popup_locked_set(E_Gadcon_Popup *pop, Eina_Bool locked)
 
    e_gadcon_locked_set(pop->gcc->gadcon, locked);
    pop->gadcon_was_locked = locked;
+}
+
+static void
+_e_gadcon_popup_size_recalc(E_Gadcon_Popup *pop, Evas_Object *obj)
+{
+   Evas_Coord w = 0, h = 0;
+
+   e_widget_min_size_get(obj, &w, &h);
+   if ((!w) || (!h)) evas_object_size_hint_min_get(obj, &w, &h);
+   if ((!w) || (!h))
+     {
+	edje_object_size_min_get(obj, &w, &h);
+	edje_object_size_min_restricted_calc(obj, &w, &h, w, h);
+     }
+   edje_extern_object_min_size_set(obj, w, h);
+   edje_object_size_min_calc(pop->o_bg, &pop->w, &pop->h);
+   evas_object_resize(pop->o_bg, pop->w, pop->h);
+
+   if (pop->win->visible)
+     _e_gadcon_popup_position(pop);
+}
+
+static void
+_e_gadcon_popup_position(E_Gadcon_Popup *pop)
+{
+   Evas_Coord gx, gy, gw, gh, zw, zh, zx, zy, px, py;
+
+   /* Popup positioning */
+   e_gadcon_client_geometry_get(pop->gcc, &gx, &gy, &gw, &gh);
+   zx = pop->win->zone->x;
+   zy = pop->win->zone->y;
+   zw = pop->win->zone->w;
+   zh = pop->win->zone->h;
+   switch (pop->gcc->gadcon->orient)
+     {
+      case E_GADCON_ORIENT_CORNER_RT:
+      case E_GADCON_ORIENT_CORNER_RB:
+      case E_GADCON_ORIENT_RIGHT:
+	px = gx - pop->w;
+	py = gy;
+	if (py + pop->h >= (zy + zh))
+	  py = gy + gh - pop->h;
+	break;
+      case E_GADCON_ORIENT_LEFT:
+      case E_GADCON_ORIENT_CORNER_LT:
+      case E_GADCON_ORIENT_CORNER_LB:
+	px = gx + gw;
+	py = gy;
+	if (py + pop->h >= (zy + zh))
+	  py = gy + gh - pop->h;
+	break;
+      case E_GADCON_ORIENT_TOP:
+      case E_GADCON_ORIENT_CORNER_TL:
+      case E_GADCON_ORIENT_CORNER_TR:
+	py = gy + gh;
+	px = (gx + (gw / 2)) - (pop->w / 2);
+	if ((px + pop->w) >= (zx + zw))
+	  px = gx + gw - pop->w;
+        else if (px < zx)
+          px = zx;
+	break;
+      case E_GADCON_ORIENT_BOTTOM:
+      case E_GADCON_ORIENT_CORNER_BL:
+      case E_GADCON_ORIENT_CORNER_BR:
+	py = gy - pop->h;
+	px = (gx + (gw / 2)) - (pop->w / 2);
+	if ((px + pop->w) >= (zx + zw))
+	  px = gx + gw - pop->w;
+        else if (px < zx)
+          px = zx;
+	break;
+      case E_GADCON_ORIENT_FLOAT:
+	px = (gx + (gw / 2)) - (pop->w / 2);
+	if (gy >= (zy + (zh / 2)))
+	  py = gy - pop->h;
+	else
+	  py = gy + gh;
+	if ((px + pop->w) >= (zx + zw))
+	  px = gx + gw - pop->w;
+        else if (px < zx)
+          px = zx;
+	break;
+      default:
+	e_popup_move_resize(pop->win, 50, 50, pop->w, pop->h);
+	return;
+     }
+   if (px - zx < 0)
+     px = zx;
+   if (py - zy < 0)
+     py = zy;
+   e_popup_move_resize(pop->win, px - zx, py - zy, pop->w, pop->h);
+
+   if (pop->gadcon_lock && (!pop->gadcon_was_locked))
+     _e_gadcon_popup_locked_set(pop, 1);
+}
+
+static void
+_e_gadcon_popup_changed_size_hints_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+   E_Gadcon_Popup *pop = data;
+
+   _e_gadcon_popup_size_recalc(pop, obj);
 }

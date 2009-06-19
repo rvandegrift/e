@@ -13,6 +13,7 @@ static int _advanced_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *c
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static void _cb_slider_change(void *data, Evas_Object *obj);
+static void _cb_disable_flip_anim(void *data, Evas_Object *obj);
 
 /* Actual config data we will be playing with whil the dialog is active */
 struct _E_Config_Dialog_Data
@@ -27,10 +28,14 @@ struct _E_Config_Dialog_Data
    int flip_wrap;
    int flip_mode;
    int flip_interp;
+   int flip_pan_bg;
    double flip_speed;
+   double x_axis_pan;
+   double y_axis_pan;
 
    /*- GUI -*/
    Evas_Object *preview;
+   Eina_List *flip_anim_list;
 };
 
 /* a nice easy setup function that does the dirty work */
@@ -71,7 +76,10 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    cfdata->flip_wrap = e_config->desk_flip_wrap;
    cfdata->flip_mode = e_config->desk_flip_animate_mode;
    cfdata->flip_interp = e_config->desk_flip_animate_interpolation;
+   cfdata->flip_pan_bg = e_config->desk_flip_pan_bg;
    cfdata->flip_speed = e_config->desk_flip_animate_time;
+   cfdata->x_axis_pan = e_config->desk_flip_pan_x_axis_factor;
+   cfdata->y_axis_pan = e_config->desk_flip_pan_y_axis_factor;
 }
 
 static void *
@@ -91,6 +99,7 @@ _create_data(E_Config_Dialog *cdd)
 static void
 _free_data(E_Config_Dialog *cdd, E_Config_Dialog_Data *cfdata)
 {
+   eina_list_free(cfdata->flip_anim_list);
    E_FREE(cfdata);
 }
 
@@ -178,7 +187,10 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
    e_config->desk_flip_animate_mode = cfdata->flip_mode;
    e_config->desk_flip_animate_interpolation = cfdata->flip_interp;
+   e_config->desk_flip_pan_bg = cfdata->flip_pan_bg;
    e_config->desk_flip_animate_time = cfdata->flip_speed;
+   e_config->desk_flip_pan_x_axis_factor = cfdata->x_axis_pan;
+   e_config->desk_flip_pan_y_axis_factor = cfdata->y_axis_pan;
    
    e_config->edge_flip_dragging = cfdata->edge_flip_dragging;
    e_config->desk_flip_wrap = cfdata->flip_wrap;
@@ -207,7 +219,10 @@ _advanced_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
    return ((e_config->desk_flip_animate_mode != cfdata->flip_mode) ||
 	   (e_config->desk_flip_animate_interpolation != cfdata->flip_interp) ||
+	   (e_config->desk_flip_pan_bg != cfdata->flip_pan_bg) ||
 	   (e_config->desk_flip_animate_time != cfdata->flip_speed) ||
+	   (e_config->desk_flip_pan_x_axis_factor != cfdata->x_axis_pan) ||
+	   (e_config->desk_flip_pan_y_axis_factor != cfdata->y_axis_pan) ||
 	   (e_config->edge_flip_dragging != cfdata->edge_flip_dragging) ||
 	   (e_config->desk_flip_wrap != cfdata->flip_wrap));
 }
@@ -288,12 +303,30 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    rg = e_widget_radio_group_new(&(cfdata->flip_mode));
    ob = e_widget_radio_add(evas, _("Off"), 0, rg);
    e_widget_framelist_object_append(of, ob);
+   e_widget_on_change_hook_set(ob, _cb_disable_flip_anim, cfdata);
    ob = e_widget_radio_add(evas, _("Pane"), 1, rg);
    e_widget_framelist_object_append(of, ob);
+   e_widget_on_change_hook_set(ob, _cb_disable_flip_anim, cfdata);
    ob = e_widget_radio_add(evas, _("Zoom"), 2, rg);
    e_widget_framelist_object_append(of, ob);
+   e_widget_on_change_hook_set(ob, _cb_disable_flip_anim, cfdata);
    ob = e_widget_slider_add(evas, 1, 0, _("%1.1f sec"), 0.0, 5.0, 0.05, 0, &(cfdata->flip_speed), NULL, 200);
+   e_widget_disabled_set(ob, !cfdata->flip_mode);
+   cfdata->flip_anim_list = eina_list_append(cfdata->flip_anim_list, ob);
    e_widget_framelist_object_append(of, ob);
+   ob = e_widget_check_add(evas, _("Background panning"), &(cfdata->flip_pan_bg));
+   e_widget_disabled_set(ob, !cfdata->flip_mode);
+   cfdata->flip_anim_list = eina_list_append(cfdata->flip_anim_list, ob);
+   e_widget_framelist_object_append(of, ob);
+   ob = e_widget_slider_add(evas, 1, 0, _("%.2f X-axis pan factor"), 0.0, 1.0, 0.01, 0, &(cfdata->x_axis_pan), NULL, 200);
+   e_widget_disabled_set(ob, !cfdata->flip_mode);
+   cfdata->flip_anim_list = eina_list_append(cfdata->flip_anim_list, ob);
+   e_widget_framelist_object_append(of, ob);
+   ob = e_widget_slider_add(evas, 1, 0, _("%.2f Y-axis pan factor"), 0.0, 1.0, 0.01, 0, &(cfdata->y_axis_pan), NULL, 200);
+   e_widget_disabled_set(ob, !cfdata->flip_mode);
+   cfdata->flip_anim_list = eina_list_append(cfdata->flip_anim_list, ob);
+   e_widget_framelist_object_append(of, ob);
+
    e_widget_table_object_append(ott, of, 1, 1, 1, 1, 1, 1, 1, 1);
   
    e_widget_list_object_append(o, ott, 1, 1, 0.5);
@@ -307,4 +340,16 @@ _cb_slider_change(void *data, Evas_Object *obj)
    E_Config_Dialog_Data *cfdata = data;
 
    e_widget_desk_preview_num_desks_set(cfdata->preview, cfdata->x, cfdata->y);
+}
+
+static void
+_cb_disable_flip_anim(void *data, Evas_Object *obj)
+{
+   E_Config_Dialog_Data *cfdata = (E_Config_Dialog_Data*) data;
+   Eina_List *list = cfdata->flip_anim_list;
+   Eina_List *l;
+   Evas_Object *o;
+
+   EINA_LIST_FOREACH(list, l, o)
+      e_widget_disabled_set(o, !cfdata->flip_mode);
 }

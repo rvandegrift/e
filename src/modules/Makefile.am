@@ -246,7 +246,13 @@ if USE_MODULE_SYSCON
 SUBDIRS += syscon
 endif
 
+if USE_MODULE_EVERYTHING
+SUBDIRS += everything
+endif
 
+if USE_MODULE_SYSTRAY
+SUBDIRS += systray
+endif
 
 
 DIST_SUBDIRS = \
@@ -310,5 +316,6 @@ gadman \
 mixer \
 connman \
 illume \
-syscon
-
+syscon \
+everything \
+systray

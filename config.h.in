@@ -284,6 +284,9 @@
 /* Use module dropshadow */
 #undef USE_MODULE_DROPSHADOW
 
+/* Use module everything */
+#undef USE_MODULE_EVERYTHING
+
 /* Use module exebuf */
 #undef USE_MODULE_EXEBUF
 
@@ -319,6 +322,9 @@
 
 /* Use module syscon */
 #undef USE_MODULE_SYSCON
+
+/* Use module systray */
+#undef USE_MODULE_SYSTRAY
 
 /* Use module temperature */
 #undef USE_MODULE_TEMPERATURE

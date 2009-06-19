@@ -92,6 +92,8 @@ host_triplet = @host@
 @USE_MODULE_CONNMAN_TRUE@am__append_59 = connman
 @USE_MODULE_ILLUME_TRUE@am__append_60 = illume
 @USE_MODULE_SYSCON_TRUE@am__append_61 = syscon
+@USE_MODULE_EVERYTHING_TRUE@am__append_62 = everything
+@USE_MODULE_SYSTRAY_TRUE@am__append_63 = systray
 subdir = src/modules
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -292,6 +294,7 @@ USE_MODULE_CONF_WINLIST = @USE_MODULE_CONF_WINLIST@
 USE_MODULE_CONNMAN = @USE_MODULE_CONNMAN@
 USE_MODULE_CPUFREQ = @USE_MODULE_CPUFREQ@
 USE_MODULE_DROPSHADOW = @USE_MODULE_DROPSHADOW@
+USE_MODULE_EVERYTHING = @USE_MODULE_EVERYTHING@
 USE_MODULE_EXEBUF = @USE_MODULE_EXEBUF@
 USE_MODULE_FILEMAN = @USE_MODULE_FILEMAN@
 USE_MODULE_FILEMAN_OPINFO = @USE_MODULE_FILEMAN_OPINFO@
@@ -304,6 +307,7 @@ USE_MODULE_MSGBUS_LANG = @USE_MODULE_MSGBUS_LANG@
 USE_MODULE_PAGER = @USE_MODULE_PAGER@
 USE_MODULE_START = @USE_MODULE_START@
 USE_MODULE_SYSCON = @USE_MODULE_SYSCON@
+USE_MODULE_SYSTRAY = @USE_MODULE_SYSTRAY@
 USE_MODULE_TEMPERATURE = @USE_MODULE_TEMPERATURE@
 USE_MODULE_WINLIST = @USE_MODULE_WINLIST@
 USE_MODULE_WIZARD = @USE_MODULE_WIZARD@
@@ -402,7 +406,7 @@ SUBDIRS = $(am__append_1) $(am__append_2) $(am__append_3) \
 	$(am__append_52) $(am__append_53) $(am__append_54) \
 	$(am__append_55) $(am__append_56) $(am__append_57) \
 	$(am__append_58) $(am__append_59) $(am__append_60) \
-	$(am__append_61)
+	$(am__append_61) $(am__append_62) $(am__append_63)
 DIST_SUBDIRS = \
 ibar \
 dropshadow \
@@ -464,7 +468,9 @@ gadman \
 mixer \
 connman \
 illume \
-syscon
+syscon \
+everything \
+systray
 
 all: all-recursive
 
