@@ -5,6 +5,7 @@ e17 (0.16.999.061-1) UNRELEASED; urgency=low
   * Add 01_menu_extra_path.patch:
     - Previously patched in efreet. Allows the use of an e17-provided fallback
       menu in case efreet doesn't find any.
+  * Update to Standards-Version 3.8.2, no change required
 
  -- Albin Tonnerre <albin.tonnerre@gmail.com>  Fri, 19 Jun 2009 16:52:16 +0200
 
