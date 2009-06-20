@@ -2,6 +2,9 @@ e17 (0.16.999.061-1) UNRELEASED; urgency=low
 
   * New upstream snapshot
   * Drop 03_config_panel_category_list_is_not_an_ilist.diff, applied upstream
+  * Add 01_menu_extra_path.patch:
+    - Previously patched in efreet. Allows the use of an e17-provided fallback
+      menu in case efreet doesn't find any.
 
  -- Albin Tonnerre <albin.tonnerre@gmail.com>  Fri, 19 Jun 2009 16:52:16 +0200
 
