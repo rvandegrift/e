@@ -3,43 +3,63 @@
   PUBLIC '-//freedesktop//DTD Menu 1.0//EN'
   'http://standards.freedesktop.org/menu-spec/menu-1.0.dtd'>
 
-
 <Menu>
-	<Name>Applications</Name>
+    <Name>Applications</Name>
     <DefaultDirectoryDirs/>
     <DefaultAppDirs/>
 
     <Layout>
-          <Menuname>Audio-Video</Menuname>
-          <Menuname>Internet</Menuname>
-          <Menuname>Office</Menuname>
-          <Menuname>Graphics</Menuname>
-          <Menuname>Games</Menuname>
+          <Menuname>Accessories</Menuname>
           <Menuname>Development</Menuname>
+          <Menuname>Education</Menuname>
+          <Menuname>Games</Menuname>
+          <Menuname>Graphics</Menuname>
+          <Menuname>Multimedia</Menuname>
+          <Menuname>Network</Menuname>
+          <Menuname>Office</Menuname>
+          <Menuname>System Tools</Menuname>
           <Separator/>
           <Menuname>Settings</Menuname>
           <Menuname>Administration</Menuname>
     </Layout>
 
     <Menu>
-        <Name>Audio-Video</Name>
-        <Include> <Category>AudioVideo</Category> </Include>
-    </Menu>
-    <Menu>
-        <Name>Internet</Name>
-        <Include> <Category>Network</Category> </Include>
+        <Name>Accessories</Name>
+        <Include><Category>Utility</Category></Include>
     </Menu>
     <Menu>
         <Name>Development</Name>
-        <Include> <Category>Development</Category> </Include>
+        <Include><Category>Development</Category></Include>
     </Menu>
     <Menu>
-        <Name>Office</Name>
-        <Include> <Category>Office</Category> </Include>
+        <Name>Education</Name>
+        <Include><Category>Education</Category></Include>
+    </Menu>
+    <Menu>
+        <Name>Games</Name>
+        <Include><Category>Game</Category></Include>
     </Menu>
     <Menu>
         <Name>Graphics</Name>
-        <Include> <Category>Graphics</Category> </Include>
+        <Include><Category>Graphics</Category></Include>
+    </Menu>
+    <Menu>
+        <Name>Multimedia</Name>
+        <Include><Category>AudioVideo</Category></Include>
+    </Menu>
+    <Menu>
+        <Name>Network</Name>
+        <Include><Category>Network</Category></Include>
+    </Menu>
+    <Menu>
+        <Name>Office</Name>
+        <Include><Category>Office</Category></Include>
+    </Menu>
+    <Menu>
+        <Name>System Tools</Name>
+        <Include><And><Category>System</Category>
+                      <Not><Category>Settings</Category></Not></And>
+        </Include>
     </Menu>
     <Menu>
         <Name>Administration</Name>
@@ -48,9 +68,5 @@
     <Menu>
         <Name>Settings</Name>
         <Include> <And><Category>System</Category><Not><Category>Settings</Category></Not></And> </Include>
-    </Menu>
-    <Menu>
-        <Name>Games</Name>
-        <Include><Category>Game</Category></Include>
     </Menu>
 </Menu>
