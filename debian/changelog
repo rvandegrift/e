@@ -1,4 +1,4 @@
-e17 (0.16.999.061-1) UNRELEASED; urgency=low
+e17 (0.16.999.061-1) unstable; urgency=low
 
   * New upstream snapshot
   * Drop 03_config_panel_category_list_is_not_an_ilist.diff, applied upstream
@@ -7,8 +7,10 @@ e17 (0.16.999.061-1) UNRELEASED; urgency=low
       menu in case efreet doesn't find any.
   * Update to Standards-Version 3.8.2, no change required
   * Improve the e17-provided menu file, thanks Luca Capello (Closes: #532214)
+  * Update e17 deps following the evas engines rename
+  * Upload to unstable
 
- -- Albin Tonnerre <albin.tonnerre@gmail.com>  Fri, 19 Jun 2009 16:52:16 +0200
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Wed, 24 Jun 2009 22:41:41 +0200
 
 e17 (0.16.999.060-1) experimental; urgency=low
 
