@@ -1,3 +1,10 @@
+e17 (0.16.999.061-2) unstable; urgency=low
+
+  * Don't Build-Depend on libasound2-dev on non-linux architectures, fixing an
+    FTBFS. Thanks to Cyril Brulebois. (Closes: #536103)
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Tue, 14 Jul 2009 21:16:57 +0200
+
 e17 (0.16.999.061-1) unstable; urgency=low
 
   * New upstream snapshot
