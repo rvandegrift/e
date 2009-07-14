@@ -6,7 +6,8 @@ include /usr/share/cdbs/1/rules/simple-patchsys.mk
 
 DEB_HOST_GNU_SYSTEM=$(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
 DEB_HOST_GNU_CPU=$(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
-ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)
+SVN_RELEASE=$(shell grep '^release' configure.ac | cut -d\" -f2)
+ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
 
 install/e17-data::
 	gzip -9 debian/tmp/usr/share/enlightenment/doc/*.txt
