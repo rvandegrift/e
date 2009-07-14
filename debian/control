@@ -72,7 +72,7 @@ Description: EFL headers, static libraries and documentation
 
 Package: e17-dbg
 Architecture: any
-Section: devel
+Section: debug
 Depends: ${misc:Depends}, e17 (= ${binary:Version})
 Priority: extra
 Description: The Enlightenment DR17 Window Manager
