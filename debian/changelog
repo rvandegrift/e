@@ -1,3 +1,9 @@
+e17 (0.16.999.062-1) unstable; urgency=low
+
+  * New upstream snapshot
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 02 Aug 2009 19:48:52 +0200
+
 e17 (0.16.999.061-2) unstable; urgency=low
 
   * Don't Build-Depend on libasound2-dev on non-linux architectures, fixing an
