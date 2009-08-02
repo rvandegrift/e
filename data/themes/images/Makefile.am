@@ -558,5 +558,12 @@ wp-tb2.png \
 wp-bot2.png \
 wp-tb3.png \
 wp-tbs.png \
-systray_rounded_corners.png
+systray_rounded_corners.png \
+theme-label.png \
+glow.png \
+icon_efm_file_del.png \
+exq-barglow.png \
+exq-bar.png \
+exq-bglight.png \
+exq-logo.png
 

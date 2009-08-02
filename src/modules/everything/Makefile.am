@@ -21,10 +21,15 @@ pkg_LTLIBRARIES        = module.la
 module_la_SOURCES      = e_mod_main.c \
                          e_mod_main.h \
 			 evry.c \
-                         evry.h \
+                         evry_config.c \
+			 evry_plug_config.c \
+			 evry_plug_dir_browse.c \
 			 evry_plug_apps.c \
+			 evry_plug_tracker.c \
+			 evry_plug_calc.c \
 			 evry_plug_border.c \
-			 evry_plug_config.c
+			 evry_plug_border_act.c 
+
 
 module_la_LIBADD       = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version
@@ -32,3 +37,4 @@ module_la_DEPENDENCIES = $(top_builddir)/config.h
 
 uninstall:
 	rm -rf $(DESTDIR)$(libdir)/enlightenment/modules/$(MODULE)
+

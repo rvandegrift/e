@@ -10,8 +10,8 @@ struct _E_Widget_Data
    Evas_Object *o_base, *o_box, *o_scrollframe0;
    int icon_w, icon_h;
    Eina_List *items;
-   Evas_Bool scrollable : 1;
-   Evas_Bool focus_steal : 1;
+   Eina_Bool scrollable : 1;
+   Eina_Bool focus_steal : 1;
 };
 
 struct _Item
@@ -19,7 +19,7 @@ struct _Item
    Evas_Object *o_toolbar, *o_base, *o_icon;
    void (*func) (void *data1, void *data2);
    const void *data1, *data2;
-   Evas_Bool selected : 1;
+   Eina_Bool selected : 1;
 };
 
 static void _e_wid_del_hook(Evas_Object *obj);
@@ -30,6 +30,8 @@ static void _e_wid_signal_cb1(void *data, Evas_Object *obj, const char *emission
 static void _e_wid_cb_scrollframe_resize(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _e_wid_cb_key_down(void *data, Evas *evas, Evas_Object *obj, void *event_info);
 static void _item_show(Item *it);
+static void _item_select(Item *it);
+static void _item_unselect(Item *it);
 
 /* local subsystem functions */
 
@@ -40,18 +42,18 @@ e_widget_toolbar_add(Evas *evas, int icon_w, int icon_h)
    Evas_Object *obj, *o;
    E_Widget_Data *wd;
    Evas_Coord mw = 0, mh = 0;
-   
+
    obj = e_widget_add(evas);
-   
+
    e_widget_del_hook_set(obj, _e_wid_del_hook);
    e_widget_focus_hook_set(obj, _e_wid_focus_hook);
    e_widget_disable_hook_set(obj, _e_wid_disable_hook);
-   wd = calloc(1, sizeof(E_Widget_Data));
+   wd = E_NEW(E_Widget_Data, 1);
    e_widget_data_set(obj, wd);
    wd->icon_w = icon_w;
    wd->icon_h = icon_h;
-   wd->focus_steal = 1;
-   
+   wd->focus_steal = EINA_TRUE;
+
    o = e_scrollframe_add(evas);
    wd->o_base = o;
    o = e_box_add(evas);
@@ -59,7 +61,8 @@ e_widget_toolbar_add(Evas *evas, int icon_w, int icon_h)
    o = wd->o_base;
    e_scrollframe_custom_theme_set(o, "base/theme/widgets", "e/widgets/toolbar");
    e_scrollframe_single_dir_set(o, 1);
-   e_scrollframe_policy_set(o, E_SCROLLFRAME_POLICY_AUTO, E_SCROLLFRAME_POLICY_OFF);
+   e_scrollframe_policy_set(o, E_SCROLLFRAME_POLICY_AUTO, 
+                            E_SCROLLFRAME_POLICY_OFF);
    e_scrollframe_thumbscroll_force(o, 1);
    evas_object_event_callback_add(o, EVAS_CALLBACK_RESIZE, 
                                   _e_wid_cb_scrollframe_resize, obj);
@@ -78,11 +81,11 @@ e_widget_toolbar_add(Evas *evas, int icon_w, int icon_h)
    e_scrollframe_child_set(wd->o_base, o);
    e_widget_sub_object_add(obj, o);
    evas_object_show(o);
-   
+
    edje_object_size_min_calc
      (e_scrollframe_edje_object_get(wd->o_base), &mw, &mh);
    e_widget_min_size_set(obj, mw, mh);
-   
+
    return obj;
 }
 
@@ -93,7 +96,7 @@ e_widget_toolbar_item_append(Evas_Object *obj, Evas_Object *icon, const char *la
    Evas_Object *o;
    Item *it;
    Evas_Coord mw = 0, mh = 0, vw = 0, vh = 0;
-   
+
    wd = e_widget_data_get(obj);
    o = edje_object_add(evas_object_evas_get(obj));
    e_theme_edje_object_set(o, "base/theme/widgets",
@@ -106,7 +109,7 @@ e_widget_toolbar_item_append(Evas_Object *obj, Evas_Object *icon, const char *la
    it->data1 = data1;
    it->data2 = data2;
    wd->items = eina_list_append(wd->items, it);
-   
+
    edje_object_signal_callback_add(o, "e,action,click", "e",
                                    _e_wid_signal_cb1, it);
    edje_extern_object_min_size_set(icon, wd->icon_w, wd->icon_h);
@@ -147,50 +150,38 @@ e_widget_toolbar_item_remove(Evas_Object *obj, int num)
 	evas_object_del(it->o_base);
 	evas_object_del(it->o_icon);
 	wd->items = eina_list_remove(wd->items, it);
-	free(it);
+	E_FREE(it);
      }
 }
 
 EAPI void
 e_widget_toolbar_item_select(Evas_Object *obj, int num)
 {
-   E_Widget_Data *wd;
-   Eina_List *l;
-   Item *it;
-   int i;
-   
+   E_Widget_Data *wd = NULL;
+   Eina_List *l = NULL;
+   Item *it = NULL;
+   int i = 0;
+
    wd = e_widget_data_get(obj);
-   for (i = 0, l = wd->items; l; l = l->next, i++)
+   EINA_LIST_FOREACH(wd->items, l, it)
      {
-        it = l->data;
         if (i == num)
           {
-             if (!it->selected)
-               {
-                  it->selected = 1;
-                  edje_object_signal_emit(it->o_base, "e,state,selected", "e");
-                  edje_object_signal_emit(it->o_icon, "e,state,selected", "e");
-                  _item_show(it);
-                  if (it->func) it->func(it->data1, it->data2);
-               }
+             if (!it->selected) _item_select(it);
           }
         else
           {
-             if (it->selected)
-               {
-                  it->selected = 0;
-                  edje_object_signal_emit(it->o_base, "e,state,unselected", "e");
-                  edje_object_signal_emit(it->o_icon, "e,state,unselected", "e");
-               }
+             if (it->selected) _item_unselect(it);
           }
+	i++;
      }
 }
 
 EAPI void
 e_widget_toolbar_item_label_set(Evas_Object *obj, int num, const char *label)
 {
-   E_Widget_Data *wd;
-   Item *it;
+   E_Widget_Data *wd = NULL;
+   Item *it = NULL;
 
    wd = e_widget_data_get(obj);
    it = eina_list_nth(wd->items, num);
@@ -211,11 +202,11 @@ e_widget_toolbar_item_label_set(Evas_Object *obj, int num, const char *label)
 }
 
 EAPI void
-e_widget_toolbar_scrollable_set(Evas_Object *obj, Evas_Bool scrollable)
+e_widget_toolbar_scrollable_set(Evas_Object *obj, Eina_Bool scrollable)
 {
    E_Widget_Data *wd;
    Evas_Coord mw = 0, mh = 0, vw = 0, vh = 0;
-   
+
    wd = e_widget_data_get(obj);
    wd->scrollable = scrollable;
    e_box_min_size_get(wd->o_box, &mw, &mh);
@@ -229,7 +220,7 @@ e_widget_toolbar_scrollable_set(Evas_Object *obj, Evas_Bool scrollable)
 }
 
 EAPI void
-e_widget_toolbar_focus_steal_set(Evas_Object *obj, Evas_Bool steal)
+e_widget_toolbar_focus_steal_set(Evas_Object *obj, Eina_Bool steal)
 {
    E_Widget_Data *wd;
 
@@ -240,41 +231,71 @@ e_widget_toolbar_focus_steal_set(Evas_Object *obj, Evas_Bool steal)
 	evas_object_event_callback_add(e_scrollframe_edje_object_get(wd->o_base), 
 				       EVAS_CALLBACK_MOUSE_DOWN,
 				       _e_wid_focus_steal, obj);
-	wd->focus_steal = 1;
+	wd->focus_steal = EINA_TRUE;
      }
    else
      {
 	evas_object_event_callback_del(e_scrollframe_edje_object_get(wd->o_base), 
 				       EVAS_CALLBACK_MOUSE_DOWN,
 				       _e_wid_focus_steal);
-	wd->focus_steal = 0;
+	wd->focus_steal = EINA_FALSE;
      }
 }
 
+EAPI void 
+e_widget_toolbar_clear(Evas_Object *obj) 
+{
+   E_Widget_Data *wd = NULL;
+   Item *it = NULL;
+
+   wd = e_widget_data_get(obj);
+   EINA_LIST_FREE(wd->items, it)
+     {
+        evas_object_del(it->o_base);
+        evas_object_del(it->o_icon);
+        E_FREE(it);
+     }
+}
+
+EAPI int 
+e_widget_toolbar_item_selected_get(Evas_Object *obj) 
+{
+   E_Widget_Data *wd = NULL;
+   Eina_List *l = NULL;
+   Item *it = NULL;
+   int i = 0;
+
+   wd = e_widget_data_get(obj);
+   EINA_LIST_FOREACH(wd->items, l, it) 
+     {
+        if (it->selected) return i;
+        i++;
+     }
+   return 0;
+}
+
+/* local functions */
 static void
 _e_wid_del_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
-   
+   Item *it;
+
    wd = e_widget_data_get(obj);
-   while (wd->items)
+   EINA_LIST_FREE(wd->items, it)
      {
-        Item *it;
-        
-        it = wd->items->data;
         evas_object_del(it->o_base);
         evas_object_del(it->o_icon);
-        free(it);
-        wd->items = eina_list_remove_list(wd->items, wd->items);
+        E_FREE(it);
      }
-   free(wd);
+   E_FREE(wd);
 }
 
 static void
 _e_wid_disable_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    if (e_widget_disabled_get(obj))
      edje_object_signal_emit
@@ -290,26 +311,19 @@ _e_wid_signal_cb1(void *data, Evas_Object *obj, const char *emission, const char
    Item *it, *it2;
    E_Widget_Data *wd;
    Eina_List *l;
-   
-   it = data;
+
+   if (!(it = data)) return;
    if (it->selected) return;
    wd = e_widget_data_get(it->o_toolbar);
-   for (l = wd->items; l; l = l->next)
+   EINA_LIST_FOREACH(wd->items, l, it2)
      {
-        it2 = l->data;
         if (it2->selected)
           {
-             it2->selected = 0;
-             edje_object_signal_emit(it2->o_base, "e,state,unselected", "e");
-             edje_object_signal_emit(it2->o_icon, "e,state,unselected", "e");
+             _item_unselect(it2);
              break;
           }
      }
-   it->selected = 1;
-   edje_object_signal_emit(it->o_base, "e,state,selected", "e");
-   edje_object_signal_emit(it->o_icon, "e,state,selected", "e");
-   _item_show(it);
-   if (it->func) it->func(it->data1, it->data2);
+   _item_select(it);
 }
 
 static void
@@ -319,7 +333,7 @@ _e_wid_cb_scrollframe_resize(void *data, Evas *e, Evas_Object *obj, void *event_
    Evas_Coord mw, mh, vw, vh, w, h;
    Eina_List *l;
    Item *it;
-   
+
    wd = e_widget_data_get(data);
 
    if (wd->o_base == NULL || wd->o_box == NULL) return ;
@@ -331,9 +345,8 @@ _e_wid_cb_scrollframe_resize(void *data, Evas *e, Evas_Object *obj, void *event_
      {
         if (w != vw) evas_object_resize(wd->o_box, vw, h);
      }
-   for (l = wd->items; l; l = l->next)
+   EINA_LIST_FOREACH(wd->items, l, it)
      {
-        it = l->data;
         if (it->selected)
           {
              _item_show(it);
@@ -347,74 +360,67 @@ _e_wid_cb_key_down(void *data, Evas *evas, Evas_Object *obj, void *event_info)
 {
    Evas_Event_Key_Down *ev;
    E_Widget_Data *wd;
-   Eina_List *l;
+   Eina_List *l, *l2;
    Item *it = NULL, *it2 = NULL;
-   
+
    ev = event_info;
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    wd = e_widget_data_get(data);
    if ((!strcmp(ev->keyname, "Up")) || (!strcmp(ev->keyname, "KP_Up")) ||
-       (!strcmp(ev->keyname, "Left")) || (!strcmp(ev->keyname, "KP_Left"))
-       )
+       (!strcmp(ev->keyname, "Left")) || (!strcmp(ev->keyname, "KP_Left")))
      {
-        for (l = wd->items; l; l = l->next)
+	EINA_LIST_FOREACH(wd->items, l, it)
           {
-             it = l->data;
              if (it->selected)
                {
-                  if (l->prev) it2 = l->prev->data;
+		  l2 = eina_list_prev(l);
+                  if (l2) it2 = eina_list_data_get(l2);
                   break;
                }
           }
      }
-   else if ((!strcmp(ev->keyname, "Down")) || (!strcmp(ev->keyname, "KP_Down")) ||
-            (!strcmp(ev->keyname, "Right")) || (!strcmp(ev->keyname, "KP_Right"))
-       )
+   else if ((!strcmp(ev->keyname, "Down")) || 
+            (!strcmp(ev->keyname, "KP_Down")) ||
+            (!strcmp(ev->keyname, "Right")) || 
+            (!strcmp(ev->keyname, "KP_Right")))
      {
-        for (l = wd->items; l; l = l->next)
+	EINA_LIST_FOREACH(wd->items, l, it)
           {
-             it = l->data;
              if (it->selected)
                {
-                  if (l->next) it2 = l->next->data;
+		  l2 = eina_list_next(l);
+                  if (l2) it2 = eina_list_data_get(l2);
                   break;
                }
           }
      }
-   else if ((!strcmp(ev->keyname, "Home")) || (!strcmp(ev->keyname, "KP_Home")))
+   else if ((!strcmp(ev->keyname, "Home")) || 
+            (!strcmp(ev->keyname, "KP_Home")))
      {
-	for (l = wd->items; l; l = l->next)
+	EINA_LIST_FOREACH(wd->items, l, it)
 	  {
-	     it = l->data;
 	     if (it->selected)
 	       {
-		  it2 = wd->items->data;
+		  it2 = eina_list_data_get(wd->items);
 		  break;
 	       }
 	  }
      }
    else if ((!strcmp(ev->keyname, "End")) || (!strcmp(ev->keyname, "KP_End")))
      {
-	for (l = wd->items; l; l = l->next)
-	  {
-	     it = l->data;
+        EINA_LIST_FOREACH(wd->items, l, it) 
+          {
 	     if (it->selected)
 	       {
-		  it2 = eina_list_last(wd->items)->data;
+		  it2 = eina_list_data_get(eina_list_last(wd->items));
 		  break;
 	       }
-	  }
+          }
      }
    if ((it) && (it2) && (it != it2))
      {
-        it->selected = 0;
-        edje_object_signal_emit(it->o_base, "e,state,unselected", "e");
-        edje_object_signal_emit(it->o_icon, "e,state,unselected", "e");
-        it2->selected = 1;
-        edje_object_signal_emit(it2->o_base, "e,state,selected", "e");
-        edje_object_signal_emit(it2->o_icon, "e,state,selected", "e");
-        _item_show(it2);
-        if (it2->func) it->func(it2->data1, it2->data2);
+	_item_unselect(it);
+	_item_select(it2);
      }
 }
 
@@ -422,17 +428,17 @@ static void
 _e_wid_focus_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    if (e_widget_focus_get(obj))
      {
         edje_object_signal_emit(wd->o_base, "e,state,focused", "e");
-        evas_object_focus_set(obj, 1);
+        evas_object_focus_set(obj, EINA_TRUE);
      }
    else
      {
         edje_object_signal_emit(wd->o_base, "e,state,unfocused", "e");
-        evas_object_focus_set(obj, 0);
+        evas_object_focus_set(obj, EINA_FALSE);
      }
 }
 
@@ -447,10 +453,27 @@ _item_show(Item *it)
 {
    E_Widget_Data *wd;
    Evas_Coord x, y, w, h, bx, by;
-   
+
    wd = e_widget_data_get(it->o_toolbar);
    evas_object_geometry_get(wd->o_box, &bx, &by, NULL, NULL);
    evas_object_geometry_get(it->o_base, &x, &y, &w, &h);
    e_scrollframe_child_region_show(wd->o_base, x - bx, y - by, w, h);
 }
 
+static void
+_item_select(Item *it)
+{
+   it->selected = EINA_TRUE;
+   edje_object_signal_emit(it->o_base, "e,state,selected", "e");
+   edje_object_signal_emit(it->o_icon, "e,state,selected", "e");
+   _item_show(it);
+   if (it->func) it->func(it->data1, it->data2);
+}
+
+static void
+_item_unselect(Item *it)
+{
+   it->selected = EINA_FALSE;
+   edje_object_signal_emit(it->o_base, "e,state,unselected", "e");
+   edje_object_signal_emit(it->o_icon, "e,state,unselected", "e");
+}
