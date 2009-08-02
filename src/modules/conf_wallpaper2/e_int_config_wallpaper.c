@@ -5,20 +5,15 @@
 #include "e_mod_main.h"
 
 // FIXME:
-//   need a "add" button (to add exchange, image file or gradient)
-//   need filename display
-//   need "theme wallpaper" image
-//   need to make thumb white rect better (shaded etc.)
-//   need to make "theme wallpaper" have different look
+//   need choice after add (file, gradient, online source)
+//   need delete select mode
+//   need after select on delete an ok/cancel if file or "ok to remove whole online source" if online
 //   need to make "exchange" wallpapers have a different look
-//   need indicator that sort is pending
 //   need signal to emit for popping down slide-up panel
 //   bug: animated wp doesnt workon first show
 //   need to disable "this screen" if multiple containers/zones dont exist
 //   need to disable "this desktop vs all desktops" if only 1 desk exists
-//   need to show busy info while loading files / generating thumbs
-//   need to delete/create objects as neede (not just hide/show)
-//   need to be able to "type name to search/filter
+//   need to be able to "type name to search/filter"
 
 typedef struct _Info Info;
 typedef struct _Smart_Data Smart_Data;
@@ -34,6 +29,7 @@ struct _Info
    char        *curdir;
    DIR         *dir;
    Ecore_Idler *idler;
+   int          scans;
    int          con_num, zone_num, desk_x, desk_y;
    
    int          use_theme_bg;
@@ -43,7 +39,6 @@ struct _Info
 
 struct _Smart_Data
 {
-//   Evas_Object *child_obj;
    Eina_List   *items;
    Ecore_Idle_Enterer *idle_enter;
    Ecore_Animator *animator;
@@ -53,10 +48,12 @@ struct _Smart_Data
    Evas_Coord   cx, cy, cw, ch;
    Evas_Coord   sx, sy;
    int          id_num;
+   int          sort_num;
    double       seltime;
    double       selmove;
-   Evas_Bool    selin : 1;
-   Evas_Bool    selout : 1;
+   Eina_Bool    selin : 1;
+   Eina_Bool    selout : 1;
+   Eina_Bool    jump2hi : 1;
 };
 
 struct _Item
@@ -66,12 +63,13 @@ struct _Item
    const char *file;
    char *sort_id;
    Evas_Object *frame, *image;
-   Evas_Bool selected : 1;
-   Evas_Bool have_thumb : 1;
-   Evas_Bool do_thumb : 1;
-   Evas_Bool remote : 1;
-   Evas_Bool theme : 1;
-   Evas_Bool visible : 1;
+   Eina_Bool selected : 1;
+   Eina_Bool have_thumb : 1;
+   Eina_Bool do_thumb : 1;
+   Eina_Bool remote : 1;
+   Eina_Bool theme : 1;
+   Eina_Bool visible : 1;
+   Eina_Bool hilighted : 1;
 };
 
 static Info *global_info = NULL;
@@ -308,7 +306,7 @@ _e_smart_reconfigure_do(void *data)
                   if (!it->do_thumb)
                     {
                        e_thumb_icon_begin(it->image);
-                       it->do_thumb = 1;
+                       it->do_thumb = EINA_TRUE;
                     }
                }
              else
@@ -325,6 +323,8 @@ _e_smart_reconfigure_do(void *data)
                        else
                          e_theme_edje_object_set(it->frame, "base/theme/widgets",
                                                  "e/conf/wallpaper/main/mini");
+                       if (it->hilighted)
+                         edje_object_signal_emit(it->frame, "e,state,selected", "e");
                        evas_object_event_callback_add(it->frame, EVAS_CALLBACK_MOUSE_DOWN,
                                                       _item_down, it);
                        evas_object_event_callback_add(it->frame, EVAS_CALLBACK_MOUSE_UP,
@@ -354,7 +354,7 @@ _e_smart_reconfigure_do(void *data)
                               yy + dy);
              evas_object_resize(it->frame, it->w, it->h);
              evas_object_show(it->frame);
-             it->visible = 1;
+             it->visible = EINA_TRUE;
           }
         else
           {
@@ -363,24 +363,24 @@ _e_smart_reconfigure_do(void *data)
                   if (it->do_thumb)
                     {
                        e_thumb_icon_end(it->image);
-                       it->do_thumb = 0;
+                       it->do_thumb = EINA_FALSE;
                     }
                   evas_object_del(it->image);
                   it->image = NULL;
                   evas_object_del(it->frame);
                   it->frame = NULL;
                }
-             it->visible = 0;
+             it->visible = EINA_FALSE;
 /*             
              if (it->have_thumb)
                {
                   if (it->do_thumb)
                     {
                        e_thumb_icon_end(it->image);
-                       it->do_thumb = 0;
+                       it->do_thumb = EINA_FALSE;
                     }
                   evas_object_del(it->image);
-                  it->have_thumb = 0;
+                  it->have_thumb = EINA_FALSE;
                   it->image = e_thumb_icon_add(evas_object_evas_get(obj));
                   edje_object_part_swallow(it->frame, "e.swallow.content", it->image);
                   evas_object_smart_callback_add(it->image, "e_thumb_gen", _thumb_gen, it);
@@ -599,13 +599,13 @@ _sel_anim(void *data)
      {
         if (sd->selout)
           {
-             sd->selin = 1;
-             sd->selout = 0;
+             sd->selin = EINA_TRUE;
+             sd->selout = EINA_FALSE;
              sd->seltime = ecore_loop_time_get();
              return 1;
           }
-        sd->selout = 0;
-        sd->selin = 0;
+        sd->selout = EINA_FALSE;
+        sd->selin = EINA_FALSE;
         sd->animator = NULL;
         return 0;
      }
@@ -621,11 +621,42 @@ _sel_timer(void *data)
      {
         sd->seltime = ecore_time_get();
         sd->animator = ecore_animator_add(_sel_anim, obj);
-        sd->selin = 0;
+        sd->selin = EINA_FALSE;
      }
    sd->seltimer = NULL;
    return 0;
 }
+
+static void
+_pan_unhilight(Evas_Object *obj, Item *it)
+{
+   Smart_Data *sd = evas_object_smart_data_get(obj);
+   if (!it->hilighted) return;
+   it->hilighted = 0;
+   if (it->frame)
+     edje_object_signal_emit(it->frame, "e,state,unselected", "e");
+}
+
+static void
+_pan_hilight(Evas_Object *obj, Item *it)
+{
+   Eina_List *l;
+   Item *it2;
+   Smart_Data *sd = evas_object_smart_data_get(obj);
+   if (it->hilighted) return;
+   EINA_LIST_FOREACH(sd->items, l, it2)
+     {
+        if (it2->hilighted)
+          {
+             _pan_unhilight(obj, it2);
+             break;
+          }
+     }
+   it->hilighted = 1;
+   if (it->frame)
+     edje_object_signal_emit(it->frame, "e,state,selected", "e");
+}
+
 
 static void
 _pan_sel(Evas_Object *obj, Item *it)
@@ -642,15 +673,26 @@ _pan_sel(Evas_Object *obj, Item *it)
           {
              if (it2->selected) it2->selected = 0;
           }
-        it->selected = 1;
+        it->selected = EINA_TRUE;
         if (sd->info->bg_file) free(sd->info->bg_file);
         evas_object_hide(sd->info->mini);
         if (it->file)
           {
+             char *name = NULL, *p;
              sd->info->use_theme_bg = 0;
              sd->info->bg_file = strdup(it->file);
              edje_object_file_set(sd->info->mini, sd->info->bg_file,
                                   "e/desktop/background");
+             p = strrchr(sd->info->bg_file, '/');
+             if (p)
+               {
+                  p++;
+                  name = strdup(p);
+                  p = strrchr(name, '.');
+                  if (p) *p = 0;
+               }
+             edje_object_part_text_set(sd->info->bg, "e.text.filename", name);
+             if (name) free(name);
           }
         else
           {
@@ -660,6 +702,7 @@ _pan_sel(Evas_Object *obj, Item *it)
                                   "e/desktop/background");
              sd->info->use_theme_bg = 1;
              sd->info->bg_file = NULL;
+             edje_object_part_text_set(sd->info->bg, "e.text.filename", _("Theme Wallpaper"));
           }
         evas_object_show(sd->info->mini);
      }
@@ -676,12 +719,12 @@ _pan_sel_up(Evas_Object *obj)
      {
         sd->seltime = ecore_loop_time_get();
         sd->animator = ecore_animator_add(_sel_anim, obj);
-        sd->selin = 1;
+        sd->selin = EINA_TRUE;
      }
    else
      {
         if (sd->selin) return;
-        sd->selout = 1;
+        sd->selout = EINA_TRUE;
      }
 }
 
@@ -689,6 +732,7 @@ static int
 _sort_cb(const void *d1, const void *d2)
 {
    Item *it1 = d1, *it2 = d2;
+   if ((!it1->sort_id) || (!it2->sort_id)) return 0;
    return strcmp(it1->sort_id, it2->sort_id);
 }
 
@@ -697,15 +741,41 @@ _item_sort(Item *it)
 {
    Evas_Object *obj = it->obj;
    Smart_Data *sd = evas_object_smart_data_get(obj);
-   int num;
+   int num, dosort = 0;
    Eina_List *l;
    
    sd->id_num++;
+   sd->info->scans--;
    num = eina_list_count(sd->items);
-   if (sd->id_num == num)
+//   if (sd->sort_num < sd->id_num)
+//     {
+//        sd->sort_num = sd->id_num + 10;
+//        dosort = 1;
+//     }
+   if ((sd->id_num == num) || (dosort))
      {
         sd->items = eina_list_sort(sd->items, num, _sort_cb);
-        _e_smart_reconfigure(obj);
+        _e_smart_reconfigure_do(obj);
+         if (sd->jump2hi)
+          {
+             Eina_List *l;
+             Item *it2 = NULL;
+             
+             EINA_LIST_FOREACH(sd->items, l, it2)
+               {
+                  if (it2->hilighted) break;
+                  it2 = NULL;
+               }
+             if (it2)
+               _pan_set(obj, 
+                        it2->x + (it2->w / 2) - (sd->w / 2), 
+                        it2->y + (it2->h / 2) - (sd->h / 2));
+             sd->jump2hi = 1;
+          }
+     }
+   if (sd->info->scans == 0)
+     {
+        edje_object_signal_emit(sd->info->bg, "e,state,busy,off", "e");
      }
 }
 
@@ -723,13 +793,13 @@ _thumb_gen(void *data, Evas_Object *obj, void *event_info)
              _item_sort(it);
           }
      }
-   it->have_thumb = 1;
+   it->have_thumb = EINA_TRUE;
    if (!it->visible)
      {
         if (it->do_thumb)
           {
              e_thumb_icon_end(it->image);
-             it->do_thumb = 0;
+             it->do_thumb = EINA_FALSE;
           }
         evas_object_del(it->image);
         it->image = NULL;
@@ -755,6 +825,7 @@ _item_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
      {
         if (!(ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD))
           {
+             _pan_hilight(it->obj, it);
              _pan_sel(it->obj, it);
              // FIXME: select image!!!
           }
@@ -762,11 +833,11 @@ _item_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
 }
     
 static void
-_pan_file_add(Evas_Object *obj, const char *file, Evas_Bool remote, Evas_Bool theme)
+_pan_file_add(Evas_Object *obj, const char *file, Eina_Bool remote, Eina_Bool theme)
 {
    Smart_Data *sd = evas_object_smart_data_get(obj);
    Item *it = calloc(1, sizeof(Item));
-   if(!it) return;
+   if (!it) return;
    sd->items = eina_list_append(sd->items, it);
    it->obj = obj;
    it->remote = remote;
@@ -782,6 +853,8 @@ _pan_file_add(Evas_Object *obj, const char *file, Evas_Bool remote, Evas_Bool th
    else
      e_theme_edje_object_set(it->frame, "base/theme/widgets",
                              "e/conf/wallpaper/main/mini");
+   if (it->hilighted)
+     edje_object_signal_emit(it->frame, "e,state,selected", "e");
    evas_object_event_callback_add(it->frame, EVAS_CALLBACK_MOUSE_DOWN,
                                   _item_down, it);
    evas_object_event_callback_add(it->frame, EVAS_CALLBACK_MOUSE_UP,
@@ -808,6 +881,48 @@ _pan_file_add(Evas_Object *obj, const char *file, Evas_Bool remote, Evas_Bool th
    it->do_thumb = 1;
 //   e_thumb_icon_begin(it->image);
 
+   if (it->theme)
+     {
+        if (sd->info->use_theme_bg)
+          {
+             _pan_hilight(it->obj, it);
+             edje_object_part_text_set(sd->info->bg, "e.text.filename", _("Theme Wallpaper"));
+          }
+     }
+   else
+     {
+        if (sd->info->bg_file)
+          {
+             int match = 0;
+             
+             if (!strcmp(sd->info->bg_file, it->file)) match = 1;
+             if (!match)
+               {
+                  const char *p1, *p2;
+                  
+                  p1 = ecore_file_file_get(sd->info->bg_file);
+                  p2 = ecore_file_file_get(it->file);
+                  if (!strcmp(p1, p2)) match = 1;
+               }
+             if (match)
+               {
+                  char *name = NULL, *p;
+
+                  sd->jump2hi = 1;
+                  _pan_hilight(it->obj, it);
+                  p = strrchr(sd->info->bg_file, '/');
+                  if (p)
+                    {
+                       p++;
+                       name = strdup(p);
+                       p = strrchr(name, '.');
+                       if (p) *p = 0;
+                    }
+                  edje_object_part_text_set(sd->info->bg, "e.text.filename", name);
+                  if (name) free(name);
+               }
+          }
+     }
    _e_smart_reconfigure(obj);
 }
 
@@ -879,19 +994,13 @@ _ok(void *data, void *data2)
 }
 
 static void
-_add_file(void *data, void *data2)
+_wp_add(void *data, void *data2)
 {
    Info *info = data;
 }
 
 static void
-_add_grad(void *data, void *data2)
-{
-   Info *info = data;
-}
-
-static void
-_add_online(void *data, void *data2)
+_wp_delete(void *data, void *data2)
 {
    Info *info = data;
 }
@@ -931,6 +1040,7 @@ _idler(void *data)
         info->dirs = eina_list_append(info->dirs, strdup(buf));
         return 1;
      }
+   info->scans++;
    _pan_file_add(info->span, buf, 0, 0);
    
    e_util_wakeup();
@@ -942,6 +1052,13 @@ _scan(Info *info)
 {
    if (info->dirs)
      {
+        if (info->scans <= 0)
+          {
+             info->scans = 0;
+             printf("START\n");
+             edje_object_signal_emit(info->bg, "e,state,busy,on", "e");
+             edje_object_part_text_set(info->bg, "e.text.busy_label", _("Loading files..."));
+          }
         if (info->curdir) free(info->curdir);
         info->curdir = info->dirs->data;
         info->dirs = eina_list_remove_list(info->dirs, info->dirs);
@@ -959,7 +1076,7 @@ wp_browser_new(E_Container *con)
    E_Desk *desk;
    const E_Config_Desktop_Background *cfbg;
    Evas_Coord mw, mh;
-   Evas_Object *o, *o2;
+   Evas_Object *o, *o2, *ob;
    E_Radio_Group *rg;
    char buf[PATH_MAX];   
    
@@ -1073,54 +1190,45 @@ wp_browser_new(E_Container *con)
    evas_object_show(info->sframe);
    evas_object_show(info->span);
    
-   o = e_widget_table_add(info->win->evas, 0);
+   ob = e_widget_list_add(info->win->evas, 0, 1);
 
+   o = e_widget_list_add(info->win->evas, 1, 0);
+   
    rg = e_widget_radio_group_new(&(info->mode));
    o2 = e_widget_radio_add(info->win->evas, _("All Desktops"), 0, rg);
-   e_widget_table_object_align_append(o, o2, 
-                                      0, 1, 1, 1,
-                                      1, 1, 0, 0,
-                                      0.0, 0.5);
+   e_widget_list_object_append(o, o2, 1, 0, 0.5);
    evas_object_show(o2);
+   
    o2 = e_widget_radio_add(info->win->evas, _("This Desktop"), 1, rg);
-   e_widget_table_object_align_append(o, o2, 
-                                      0, 2, 1, 1,
-                                      1, 1, 0, 0,
-                                      0.0, 0.5);
+   e_widget_list_object_append(o, o2, 1, 0, 0.5);
    evas_object_show(o2);
+   
    o2 = e_widget_radio_add(info->win->evas, _("This Screen"), 2, rg);
-   e_widget_table_object_align_append(o, o2, 
-                                      0, 3, 1, 1,
-                                      1, 1, 0, 0,
-                                      0.0, 0.5);
+   e_widget_list_object_append(o, o2, 1, 0, 0.5);
    evas_object_show(o2);
    
-   o2 =  e_widget_button_add(info->win->evas, _("Add File"), NULL, 
-                             _add_file, info, NULL);
-   e_widget_table_object_align_append(o, o2, 
-                                      1, 1, 1, 1,
-                                      1, 1, 0, 0,
-                                      0.0, 0.5);
-   evas_object_show(o2);
-   o2 =  e_widget_button_add(info->win->evas, _("Add Gradient"), NULL, 
-                             _add_grad, info, NULL);
-   e_widget_table_object_align_append(o, o2, 
-                                      1, 2, 1, 1,
-                                      1, 1, 0, 0,
-                                      0.0, 0.5);
-   evas_object_show(o2);
-   o2 =  e_widget_button_add(info->win->evas, _("Add Online"), NULL, 
-                             _add_online, info, NULL);
-   e_widget_table_object_align_append(o, o2, 
-                                      1, 3, 1, 1,
-                                      1, 1, 0, 0,
-                                      0.0, 0.5);
-   evas_object_show(o2);
-   
-   e_widget_min_size_get(o, &mw, &mh);
-   edje_extern_object_min_size_set(o, mw, mh);
-   edje_object_part_swallow(info->bg, "e.swallow.extras", o);
+   e_widget_list_object_append(ob, o, 1, 0, 0.5);
    evas_object_show(o);
+   
+   o = e_widget_list_add(info->win->evas, 1, 0);
+   
+   o2 =  e_widget_button_add(info->win->evas, _("Add"), NULL, 
+                             _wp_add, info, NULL);
+   e_widget_list_object_append(o, o2, 1, 0, 0.5);
+   evas_object_show(o2);
+   
+   o2 =  e_widget_button_add(info->win->evas, _("Delete"), NULL, 
+                             _wp_delete, info, NULL);
+   e_widget_list_object_append(o, o2, 1, 0, 0.5);
+   evas_object_show(o2);
+   
+   e_widget_list_object_append(ob, o, 1, 0, 0.5);
+   evas_object_show(o);
+   
+   e_widget_min_size_get(ob, &mw, &mh);
+   edje_extern_object_min_size_set(ob, mw, mh);
+   edje_object_part_swallow(info->bg, "e.swallow.extras", ob);
+   evas_object_show(ob);
    
 
    // min size calc

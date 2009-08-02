@@ -60,8 +60,10 @@ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(filesdir)"
 pkgLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(pkg_LTLIBRARIES)
-am_module_la_OBJECTS = e_mod_main.lo evry.lo evry_plug_apps.lo \
-	evry_plug_border.lo evry_plug_config.lo
+am_module_la_OBJECTS = e_mod_main.lo evry.lo evry_config.lo \
+	evry_plug_config.lo evry_plug_dir_browse.lo evry_plug_apps.lo \
+	evry_plug_tracker.lo evry_plug_calc.lo evry_plug_border.lo \
+	evry_plug_border_act.lo
 module_la_OBJECTS = $(am_module_la_OBJECTS)
 module_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -369,10 +371,14 @@ pkg_LTLIBRARIES = module.la
 module_la_SOURCES = e_mod_main.c \
                          e_mod_main.h \
 			 evry.c \
-                         evry.h \
+                         evry_config.c \
+			 evry_plug_config.c \
+			 evry_plug_dir_browse.c \
 			 evry_plug_apps.c \
+			 evry_plug_tracker.c \
+			 evry_plug_calc.c \
 			 evry_plug_border.c \
-			 evry_plug_config.c
+			 evry_plug_border_act.c 
 
 module_la_LIBADD = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS = -module -avoid-version
@@ -450,9 +456,14 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_mod_main.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_config.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_plug_apps.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_plug_border.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_plug_border_act.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_plug_calc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_plug_config.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_plug_dir_browse.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evry_plug_tracker.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

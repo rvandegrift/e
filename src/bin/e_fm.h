@@ -71,6 +71,7 @@ struct _E_Fm2_Config
       unsigned char   always_order;
       unsigned char   link_drop;
       unsigned char   fit_custom_pos;
+	  unsigned int    single_click_delay;
    } view;
    /* display of icons */
    struct {
@@ -166,6 +167,8 @@ EAPI void                  e_fm2_pan_max_get(Evas_Object *obj, Evas_Coord *x, Ev
 EAPI void                  e_fm2_pan_child_size_get(Evas_Object *obj, Evas_Coord *w, Evas_Coord *h);
 
 EAPI void                  e_fm2_all_icons_update(void);
+
+EAPI void                  e_fm2_operation_abort(int id);
 
 EAPI Evas_Object *
   e_fm2_icon_get(Evas *evas, E_Fm2_Icon *ic,
