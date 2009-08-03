@@ -17,7 +17,6 @@
           <Menuname>Multimedia</Menuname>
           <Menuname>Network</Menuname>
           <Menuname>Office</Menuname>
-          <Menuname>System Tools</Menuname>
           <Separator/>
           <Menuname>Settings</Menuname>
           <Menuname>Administration</Menuname>
@@ -54,12 +53,6 @@
     <Menu>
         <Name>Office</Name>
         <Include><Category>Office</Category></Include>
-    </Menu>
-    <Menu>
-        <Name>System Tools</Name>
-        <Include><And><Category>System</Category>
-                      <Not><Category>Settings</Category></Not></And>
-        </Include>
     </Menu>
     <Menu>
         <Name>Administration</Name>

@@ -1,6 +1,8 @@
 e17 (0.16.999.062-1) unstable; urgency=low
 
   * New upstream snapshot
+  * Remove the 'System tools' entry in enlightenment-applications.menu, it's a
+    duplicate of the 'Settings' entry
 
  -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 02 Aug 2009 19:48:52 +0200
 
