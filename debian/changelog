@@ -8,6 +8,8 @@ e17 (0.16.999.062-1) unstable; urgency=low
       no such key in Debian, use XF86PowerOff instead (Closes: #538186)
   * Update Standards-Version to 3.8.3
   * Fix the short description for e17-dbg
+  * remove DEB_DH_STRIP_ARGS from debian/rules, since CDBS computes the name
+    of the debug package automatically
 
  -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 29 Aug 2009 21:41:31 +0200
 
