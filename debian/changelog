@@ -6,8 +6,9 @@ e17 (0.16.999.062-1) unstable; urgency=low
   * New patch 03_bind_XF86PowerOff_instead_of_Execute_in_illume.diff
     - In illume, the poweroff action is bound to the Execute key. As there's
       no such key in Debian, use XF86PowerOff instead (Closes: #538186)
+  * Update Standards-Version to 3.8.3
 
- -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sun, 02 Aug 2009 19:48:52 +0200
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 29 Aug 2009 21:41:31 +0200
 
 e17 (0.16.999.061-2) unstable; urgency=low
 
