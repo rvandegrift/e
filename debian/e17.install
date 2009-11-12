@@ -16,3 +16,4 @@ debian/tmp/usr/lib/enlightenment/modules/wizard/*/page*.so
 debian/tmp/usr/lib/enlightenment/modules/illume/*/wifiget
 debian/tmp/usr/lib/enlightenment/modules/illume/dicts
 debian/tmp/usr/lib/enlightenment/modules/illume/keyboards
+debian/tmp/usr/lib/enlightenment/everything_plugins/core/*/*.so
