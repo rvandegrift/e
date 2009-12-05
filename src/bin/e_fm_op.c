@@ -128,7 +128,7 @@ main(int argc, char **argv)
    E_Fm_Op_Type type;
 
    ecore_init();
-   eina_stringshare_init();
+   eina_init();
 
    _e_fm_op_stdin_buffer = malloc(READBUFSIZE);
 
@@ -304,7 +304,7 @@ main(int argc, char **argv)
    ecore_main_loop_begin();
 
 quit:
-   eina_stringshare_shutdown();
+   eina_shutdown();
    ecore_shutdown();
 
    free(_e_fm_op_stdin_buffer);
@@ -1416,7 +1416,7 @@ _e_fm_op_scan_atom(E_Fm_Op_Task * task)
 
         _e_fm_op_work_queue = eina_list_append_relative_list(_e_fm_op_work_queue, rtask, _e_fm_op_separator);
 
-        ctask->link = _e_fm_op_separator->next;
+        ctask->link = eina_list_next(_e_fm_op_separator);
      }
    else if (task->type == E_FM_OP_SYMLINK)
      {

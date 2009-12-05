@@ -88,6 +88,15 @@ typedef enum _E_Border_Hook_Point
    E_BORDER_HOOK_EVAL_PRE_NEW_BORDER,
    E_BORDER_HOOK_EVAL_POST_NEW_BORDER,
    E_BORDER_HOOK_EVAL_END,
+   E_BORDER_HOOK_CONTAINER_LAYOUT,
+   E_BORDER_HOOK_NEW_BORDER,
+   E_BORDER_HOOK_SET_DESK,
+   E_BORDER_HOOK_MOVE_BEGIN,
+   E_BORDER_HOOK_MOVE_UPDATE,
+   E_BORDER_HOOK_MOVE_END,
+   E_BORDER_HOOK_RESIZE_BEGIN,
+   E_BORDER_HOOK_RESIZE_UPDATE,
+   E_BORDER_HOOK_RESIZE_END
 } E_Border_Hook_Point;
 
 typedef struct _E_Border                     E_Border;
@@ -516,12 +525,13 @@ struct _E_Border_Pending_Move_Resize
    unsigned char move : 1;
    unsigned char resize : 1;
    unsigned char without_border : 1;
+   unsigned int  serial;
 };
 
 struct _E_Border_Hook
 {
    E_Border_Hook_Point   hookpoint;
-   void                (*func) (void *data, E_Border *bd);
+   void                (*func) (void *data, void *bd);
    void                 *data;
    unsigned char         delete_me : 1;
 };
@@ -638,7 +648,7 @@ EAPI void e_border_signal_resize_begin(E_Border *bd, const char *dir, const char
 EAPI void e_border_signal_resize_end(E_Border *bd, const char *dir, const char *sig, const char *src);
 EAPI void e_border_resize_limit(E_Border *bd, int *w, int *h);
 
-EAPI E_Border_Hook *e_border_hook_add(E_Border_Hook_Point hookpoint, void (*func) (void *data, E_Border *bd), void *data);
+EAPI E_Border_Hook *e_border_hook_add(E_Border_Hook_Point hookpoint, void (*func) (void *data, void *bd), void *data);
 EAPI void e_border_hook_del(E_Border_Hook *bh);
 EAPI void e_border_focus_track_freeze(void);
 EAPI void e_border_focus_track_thaw(void);

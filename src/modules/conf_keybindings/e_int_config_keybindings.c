@@ -80,7 +80,7 @@ e_int_config_keybindings(E_Container *con, const char *params)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_keybindings_dialog")) return NULL;
+   if (e_config_dialog_find("E", "keyboard_and_mouse/key_bindings")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
 
    v->create_cfdata = _create_data;
@@ -90,7 +90,7 @@ e_int_config_keybindings(E_Container *con, const char *params)
    v->override_auto_apply = 1;
 
    cfd = e_config_dialog_new(con, _("Key Binding Settings"), "E", 
-			     "_config_keybindings_dialog",
+			     "keyboard_and_mouse/key_bindings",
 			     "preferences-desktop-keyboard", 0, v, NULL);
    if ((params) && (params[0]))
      {
@@ -223,7 +223,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_frametable_add(evas, _("Key Bindings"), 0);
    ob = e_widget_ilist_add(evas, 32, 32, &(cfdata->locals.binding));
    cfdata->gui.o_binding_list = ob;   
-   e_widget_min_size_set(ob, 200, 200);
+   e_widget_size_min_set(ob, 200, 200);
    e_widget_frametable_object_append(of, ob, 0, 0, 2, 1, 1, 1, 1, 1);
    ob = e_widget_button_add(evas, _("Add Key"), NULL, _add_key_binding_cb, cfdata, NULL);
    cfdata->gui.o_add = ob;
@@ -248,7 +248,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_framelist_add(evas, _("Action"), 0);
    ob = e_widget_ilist_add(evas, 24, 24, &(cfdata->locals.action));
    cfdata->gui.o_action_list = ob;
-   e_widget_min_size_set(ob, 200, 280);
+   e_widget_size_min_set(ob, 200, 280);
    e_widget_framelist_object_append(of, ob);
    e_widget_table_object_append(ot, of, 0, 0, 1, 1, 1, 1, 1, 1);
    

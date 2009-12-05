@@ -3,6 +3,10 @@
  */
 #include "e.h"
 
+/* local function prototypes */
+static int _e_init_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *event);
+
+/* local variables */
 static const char *title = NULL;
 static const char *version = NULL;
 static Ecore_Exe *init_exe = NULL;
@@ -12,27 +16,13 @@ static int done = 0;
 static int undone = 0;
 static Eina_List *stats = NULL;
 
-static int
-_e_init_cb_exe_event_del(void *data, int type, void *event)
-{
-   Ecore_Exe_Event_Del *ev;
-
-   ev = event;
-   if (ev->exe == init_exe)
-     {
-	/* init exited */
-//	ecore_exe_free(init_exe);
-	init_exe = NULL;
-     }
-   return 1;
-}
-
+/* public functions */
 EAPI int
 e_init_init(void)
 {
-   exe_del_handler = ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
-					      _e_init_cb_exe_event_del,
-					      NULL);
+   exe_del_handler = 
+     ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
+                             _e_init_cb_exe_event_del, NULL);
    client = NULL;
    done = 0;
    return 1;
@@ -77,12 +67,11 @@ e_init_show(void)
    if (version) ver = strdup(e_util_filename_escape(version));
    else ver = strdup("XvX");
 
-   snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_init \'%s\' \'%i\' \'%i\' \'%s\' \'%s\'",
-	    e_prefix_lib_get(),
-	    theme,
+   snprintf(buf, sizeof(buf), 
+            "%s/enlightenment/utils/enlightenment_init \'%s\' \'%i\' \'%i\' \'%s\' \'%s\'",
+	    e_prefix_lib_get(), theme,
 	    e_canvas_engine_decide(e_config->evas_engine_init),
-	    e_config->font_hinting,
-	    tit, ver);
+	    e_config->font_hinting, tit, ver);
    printf("RUN INIT: %s\n", buf);
    free(theme);
    free(tit);
@@ -145,7 +134,6 @@ e_init_undone(void)
    undone++;
 }
 
-
 EAPI void
 e_init_client_data(Ecore_Ipc_Event_Client_Data *e)
 {
@@ -163,12 +151,10 @@ e_init_client_data(Ecore_Ipc_Event_Client_Data *e)
 	     for (i = 0; i < num; i+= 2)
 	       {
 		  Eina_List *l;
+		  E_Manager *man;
 
-		  for (l = e_manager_list(); l; l = l->next)
+		  EINA_LIST_FOREACH(e_manager_list(), l, man)
 		    {
-		       E_Manager *man;
-
-		       man = l->data;
 		       if (man->root == initwins[i + 0])
 			 {
 			    man->initwin = initwins[i + 1];
@@ -203,14 +189,28 @@ e_init_client_del(Ecore_Ipc_Event_Client_Del *e)
    if (e->client == client)
      {
 	Eina_List *l;
+	E_Manager *man;
 
 	client = NULL;
-	for (l = e_manager_list(); l; l = l->next)
+	EINA_LIST_FOREACH(e_manager_list(), l, man)
 	  {
-	     E_Manager *man;
-
-	     man = l->data;
 	     man->initwin = 0;
 	  }
      }
+}
+
+/* local functions */
+static int
+_e_init_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   Ecore_Exe_Event_Del *ev;
+
+   ev = event;
+   if (ev->exe == init_exe)
+     {
+	/* init exited */
+//	ecore_exe_free(init_exe);
+	init_exe = NULL;
+     }
+   return 1;
 }

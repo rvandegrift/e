@@ -143,16 +143,15 @@ static void
 _fill_data(E_Config_Dialog_Data *cfdata) 
 {
    Eina_List *mdirs = NULL, *l = NULL;
+   E_Path_Dir *epd = NULL;
 
    if (!cfdata) return;
 
    /* loop each path_modules dir and load modules for that path */
    mdirs = e_path_dir_list_get(path_modules);
-   for (l = mdirs; l; l = l->next) 
+   EINA_LIST_FOREACH(mdirs, l, epd)
      {
-	E_Path_Dir *epd = NULL;
-
-	if (!(epd = l->data)) continue;
+	if (!epd) continue;
 	if (!ecore_file_is_dir(epd->dir)) continue;
 	_load_modules(epd->dir);
      }
@@ -207,7 +206,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_table_object_append(o, of, 1, 0, 1, 1, 1, 1, 1, 1);
 
    ol = e_widget_textblock_add(evas);
-   e_widget_min_size_set(ol, 200, 70);
+   e_widget_size_min_set(ol, 200, 70);
    cfdata->o_desc = ol;
    e_widget_textblock_markup_set(ol, _("Description: Unavailable"));
    e_widget_table_object_append(o, ol, 0, 1, 2, 1, 1, 0, 1, 0);
@@ -339,8 +338,8 @@ _fill_list(Evas_Object *obj, int enabled)
      }
 
    e_widget_ilist_go(obj);
-   e_widget_min_size_get(obj, &w, NULL);
-   e_widget_min_size_set(obj, w > 180 ? w : 180, 200);
+   e_widget_size_min_get(obj, &w, NULL);
+   e_widget_size_min_set(obj, w > 180 ? w : 180, 200);
    e_widget_ilist_thaw(obj);
    edje_thaw();
    evas_event_thaw(evas);
@@ -612,16 +611,16 @@ static void
 _select_all_modules(Evas_Object *obj, void *data)
 {
    Eina_List *l = NULL;
+   E_Ilist_Item *item = NULL;
    E_Config_Dialog_Data *cfdata = NULL;
-   int i = 0;
+   int i = -1;
 
    if (!(cfdata = data)) return;
-   for (i = 0, l = e_widget_ilist_items_get(obj); l; l = l->next, i++)
+   EINA_LIST_FOREACH(e_widget_ilist_items_get(obj), l, item)
      {
-	E_Ilist_Item *item = NULL;
 	CFModule *mod = NULL;
+	i++;
 
-	item = l->data;
 	if ((!item) || (!item->selected)) continue;
 	if (!(mod = e_widget_ilist_nth_data_get(obj, i))) continue;
 	mod->selected = 1;

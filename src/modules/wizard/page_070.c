@@ -1,6 +1,7 @@
 /*
  * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
  */
+/* Adding application icons */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -83,6 +84,8 @@ static App apps[] =
    // loaded and parsed to make it easier to add more in some dir somewhere
 };
 
+/* FIXME unused*/
+#if 0
 static int
 _cb_sort_desks(Efreet_Desktop *d1, Efreet_Desktop *d2)
 {
@@ -90,6 +93,7 @@ _cb_sort_desks(Efreet_Desktop *d1, Efreet_Desktop *d2)
    if (!d2->name) return -1;
    return strcmp(d1->name, d2->name);
 }
+#endif
 
 static void
 _app_write(App *a)
@@ -201,7 +205,7 @@ wizard_page_show(E_Wizard_Page *pg)
 
    li = e_widget_list_add(pg->evas, 1, 0);
    ob = e_widget_scrollframe_simple_add(pg->evas, li);
-   e_widget_min_size_set(ob, 140 * e_scale, 140 * e_scale);
+   e_widget_size_min_set(ob, 140 * e_scale, 140 * e_scale);
 
    for (i = 0; i < (sizeof(apps) / sizeof(App)); i++)
      {
@@ -221,7 +225,7 @@ wizard_page_show(E_Wizard_Page *pg)
           }
      }
 
-   e_widget_min_size_get(li, &mw, &mh);
+   e_widget_size_min_get(li, &mw, &mh);
    evas_object_resize(li, mw, mh);
    
    e_widget_framelist_object_append(of, ob);

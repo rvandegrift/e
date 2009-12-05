@@ -50,11 +50,11 @@ e_widget_slider_add(Evas *evas, int horiz, int rev, const char *fmt, double min,
    if (dval) e_slider_value_set(o, *dval);
    else if (ival) e_slider_value_set(o, *ival);
    
-   e_slider_min_size_get(o, &mw, &mh);
+   e_slider_size_min_get(o, &mw, &mh);
    if (horiz)
-     e_widget_min_size_set(obj, mw + size, mh);
+     e_widget_size_min_set(obj, mw + size, mh);
    else
-     e_widget_min_size_set(obj, mw, mh + size);
+     e_widget_size_min_set(obj, mw, mh + size);
    
    wd->dval = dval;
    wd->ival = ival;

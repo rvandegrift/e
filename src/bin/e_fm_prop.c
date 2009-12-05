@@ -173,16 +173,16 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    snprintf(buf, sizeof(buf), "%s/%s", 
 	    e_fm2_real_path_get(cfdata->fi->fm), cfdata->fi->file);
    if (((cfdata->fi->statinfo.st_mode & S_IRUSR) && (cfdata->owner_read)) ||
-       ((!cfdata->fi->statinfo.st_mode & S_IRUSR) && (!cfdata->owner_read)))
+       ((!(cfdata->fi->statinfo.st_mode & S_IRUSR)) && (!cfdata->owner_read)))
      fperm = 1;
    if (((cfdata->fi->statinfo.st_mode & S_IWUSR) && (cfdata->owner_write)) ||
-       ((!cfdata->fi->statinfo.st_mode & S_IWUSR) && (!cfdata->owner_write)))
+       ((!(cfdata->fi->statinfo.st_mode & S_IWUSR)) && (!cfdata->owner_write)))
      fperm = 1;
    if (((cfdata->fi->statinfo.st_mode & S_IROTH) && (cfdata->others_read)) ||
-       ((!cfdata->fi->statinfo.st_mode & S_IROTH) && (!cfdata->others_read)))
+       ((!(cfdata->fi->statinfo.st_mode & S_IROTH)) && (!cfdata->others_read)))
      fperm = 1;
    if (((cfdata->fi->statinfo.st_mode & S_IWOTH) && (cfdata->others_write)) ||
-       ((!cfdata->fi->statinfo.st_mode & S_IWOTH) && (!cfdata->others_write)))
+       ((!(cfdata->fi->statinfo.st_mode & S_IWOTH)) && (!cfdata->others_write)))
      fperm = 1;
    if (fperm)
      {
@@ -226,9 +226,8 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	     
 	     if (!cfdata->picon_mime) /* remove previous custom icon info */
 	       e_fm2_custom_file_del(buf);
-	     for (l = e_config->mime_icons; l; l = l->next)
+	     EINA_LIST_FOREACH(e_config->mime_icons, l, mi)
 	       {
-		  mi = l->data;
 		  if (!mi) continue;
 		  if (strcmp(mi->mime, cfdata->mime)) continue;
 		  if (mi->icon)
@@ -338,28 +337,28 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    ob = e_widget_label_add(evas, _("File:"));
    e_widget_table_object_append(ot, ob, 0, 0, 1, 1, 1, 0, 1, 0);
    ob = e_widget_entry_add(evas, &(cfdata->file), NULL, NULL, NULL);
-   e_widget_min_size_set(ob, 140, -1);
+   e_widget_size_min_set(ob, 140, -1);
    e_widget_entry_readonly_set(ob, 1);
    e_widget_table_object_append(ot, ob, 1, 0, 1, 1, 1, 0, 1, 0);
    
    ob = e_widget_label_add(evas, _("Size:"));
    e_widget_table_object_append(ot, ob, 0, 1, 1, 1, 1, 0, 1, 0);
    ob = e_widget_entry_add(evas, &(cfdata->size), NULL, NULL, NULL);
-   e_widget_min_size_set(ob, 140, -1);
+   e_widget_size_min_set(ob, 140, -1);
    e_widget_entry_readonly_set(ob, 1);
    e_widget_table_object_append(ot, ob, 1, 1, 1, 1, 1, 0, 1, 0);
 
    ob = e_widget_label_add(evas, _("Last Modified:"));
    e_widget_table_object_append(ot, ob, 0, 2, 1, 1, 1, 0, 1, 0);
    ob = e_widget_entry_add(evas, &(cfdata->mod_date), NULL, NULL, NULL);
-   e_widget_min_size_set(ob, 140, -1);
+   e_widget_size_min_set(ob, 140, -1);
    e_widget_entry_readonly_set(ob, 1);
    e_widget_table_object_append(ot, ob, 1, 2, 1, 1, 1, 0, 1, 0);
 
    ob = e_widget_label_add(evas, _("File Type:"));
    e_widget_table_object_append(ot, ob, 0, 3, 1, 1, 1, 0, 1, 0);
    ob = e_widget_entry_add(evas, &(cfdata->mime), NULL, NULL, NULL);
-   e_widget_min_size_set(ob, 140, -1);
+   e_widget_size_min_set(ob, 140, -1);
    e_widget_entry_readonly_set(ob, 1);
    e_widget_table_object_append(ot, ob, 1, 3, 1, 1, 1, 0, 1, 0);
 
@@ -367,7 +366,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    ob = e_widget_label_add(evas, _("Owner:"));
    e_widget_frametable_object_append(of, ob, 0, 0, 1, 1, 1, 1, 1, 1);
    ob = e_widget_entry_add(evas, &(cfdata->owner), NULL, NULL, NULL);
-   e_widget_min_size_set(ob, 60, -1);
+   e_widget_size_min_set(ob, 60, -1);
    e_widget_entry_readonly_set(ob, 1);
    e_widget_frametable_object_append(of, ob, 1, 0, 1, 1, 1, 1, 1, 1);
    ob = e_widget_check_add(evas, _("Others can read"), &(cfdata->others_read));
@@ -507,7 +506,7 @@ _cb_icon_sel(void *data, void *data2)
    
    cfdata->gui.fsel_wid = o;
    evas_object_show(o);
-   e_widget_min_size_get(o, &w, &h);
+   e_widget_size_min_get(o, &w, &h);
    e_dialog_content_set(dia, o, w, h);
    
    e_dialog_button_add(dia, _("OK"), NULL, _cb_fsel_ok, cfdata);

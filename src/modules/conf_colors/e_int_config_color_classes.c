@@ -116,7 +116,7 @@ e_int_config_color_classes(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
    
-   if (e_config_dialog_find("E", "_config_color_classes_dialog")) return NULL;
+   if (e_config_dialog_find("E", "appearance/colors")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
    if (!v) return NULL;
    
@@ -127,7 +127,7 @@ e_int_config_color_classes(E_Container *con, const char *params __UNUSED__)
    v->advanced.apply_cfdata = _adv_apply_data;
    v->advanced.create_widgets = _adv_create_widgets;
    
-   cfd = e_config_dialog_new(con, _("Colors"), "E", "_config_color_classes_dialog",
+   cfd = e_config_dialog_new(con, _("Colors"), "E", "appearance/colors",
 			     "preferences-desktop-color", 0, v, NULL);
    return cfd;
 }
@@ -597,8 +597,8 @@ _load_color_classes(Evas_Object *obj, E_Config_Dialog_Data *cfdata)
 	  }
      }
    e_widget_ilist_go(obj);
-   e_widget_min_size_get(obj, &w, &h);
-   e_widget_min_size_set(obj, w, 300);
+   e_widget_size_min_get(obj, &w, &h);
+   e_widget_size_min_set(obj, w, 300);
    e_widget_ilist_thaw(obj);
    edje_thaw();
    evas_event_thaw(evas_object_evas_get(obj));

@@ -562,7 +562,7 @@ _cb_resize(void)
    h -= flaunch->height;
    if (bx)
      {
-	e_box_min_size_get(bx, &mw, &mh);
+	e_box_size_min_get(bx, &mw, &mh);
 	if (mw < w) mw = w;
 	evas_object_move(sf, x, y);
 	evas_object_resize(bx, mw, mh);
@@ -1011,7 +1011,7 @@ _apps_fm_config(Evas_Object *o)
 static void
 _apps_populate(void)
 {
-   Evas_Coord mw, mh, sfw, sfh;
+   Evas_Coord sfw, sfh;
    Evas_Object *o = NULL;
    char buf[PATH_MAX];
    int num = 0;

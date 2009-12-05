@@ -1,0 +1,9 @@
+1. acpi event listener - translate to e internal messages (e_msg)
+   (especially button/lid, ac_adaptor, battery, sony/hotkey s1, av mode,
+   brightness +, brightness -, sleep, wifi on/off)
+   
+acpi_listen is a good one (unix socket /var/run/acpid.socket - just cleartext
+newline by newline)
+
+2. /proc/acpi/**/**/.../*/brightness controls
+   (look at sony and asus - different)

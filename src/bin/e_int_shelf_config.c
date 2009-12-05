@@ -11,6 +11,7 @@ static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Co
 static int _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static void _cb_disable_check_list(void *data, Evas_Object *obj);
+static void _calibrate_binginds(void);
 
 #define MODE_CUSTOM 0
 #define MODE_BOTTOM_MIDDLE 1
@@ -180,16 +181,15 @@ _desk_sel_list_load(E_Config_Dialog_Data *cfdata)
      {
 	E_Desk *desk;
 	Eina_List *l = NULL;
+	E_Config_Shelf_Desk *sd;
 
 	desk = e_desk_at_xy_get(cfdata->es->zone, x, y);
 	e_widget_ilist_append(cfdata->desk_sel_list, NULL, desk->name, 
                               NULL, NULL, NULL);
 
-	for (l = cfdata->desk_list; l; l = l->next)
+	EINA_LIST_FOREACH(cfdata->desk_list, l, sd)
 	    {
-	       E_Config_Shelf_Desk *sd;
-
-	       if (!(sd = l->data)) continue;
+	       if (!sd) continue;
 	       if ((sd->x != x) || (sd->y != y)) continue;
 
 	       e_widget_ilist_multi_select(cfdata->desk_sel_list, 
@@ -301,6 +301,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    e_shelf_populate(cfdata->es);
    e_shelf_toggle(cfdata->es, 1);
    e_shelf_show(cfdata->es);
+   _calibrate_binginds();
    e_config_save_queue();
    cfdata->es->config_dialog = cfd;
    return 1; /* Apply was OK */
@@ -413,14 +414,15 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
      {
 	Eina_List *l = NULL;
 	Eina_List *desk_list = NULL;
+	E_Ilist_Item *item;
 
-	for (idx = 0, l = e_widget_ilist_items_get(cfdata->desk_sel_list); l; l = l->next, idx++)
+	idx = -1;
+	EINA_LIST_FOREACH(e_widget_ilist_items_get(cfdata->desk_sel_list), l, item)
 	  {
-	     E_Ilist_Item *item;
 	     E_Desk *desk;
 	     E_Config_Shelf_Desk *sd;
 
-	     item = l->data;
+	     idx++;
 	     if ((!item) || (!item->selected)) continue;
 
 	     desk = e_desk_at_pos_get(cfdata->es->zone, idx);
@@ -456,14 +458,12 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
      {
 	E_Desk *desk;
 	Eina_List *l;
+	E_Config_Shelf_Desk *sd;
 	int show_shelf=0;
 
 	desk = e_desk_current_get(cfdata->es->zone);
-	for (l = cfdata->escfg->desk_list; l; l = l->next)
+	EINA_LIST_FOREACH(cfdata->escfg->desk_list, l, sd)
           {
-             E_Config_Shelf_Desk *sd;
-
-             sd = l->data;
              if ((desk->x == sd->x) && (desk->y == sd->y))
                {
 	          show_shelf=1;
@@ -484,6 +484,7 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
      e_shelf_toggle(cfdata->es, 1);
 
    e_zone_useful_geometry_dirty(cfdata->es->zone);
+   _calibrate_binginds();
    e_config_save_queue();   
    cfdata->es->config_dialog = cfd;
    return 1; /* Apply was OK */
@@ -497,6 +498,68 @@ _cb_configure(void *data, void *data2)
    cfdata = data;
    if (!cfdata->es->gadcon->config_dialog)
      e_int_gadcon_config_shelf(cfdata->es->gadcon);
+}
+
+static void
+_calibrate_binginds(void)
+{
+   E_Binding_Edge *bind;
+   Eina_List *l;
+   E_Shelf *es;
+
+#define EDGE_BINDING_REMOVE(type, click, delay) \
+   bind = e_bindings_edge_get("shelf_show", type, click); \
+   if (bind) \
+     e_bindings_edge_del(E_BINDING_CONTEXT_ZONE, type, \
+	   0, 1, "shelf_show", NULL, delay);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_LEFT, 0, 0.0);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_RIGHT, 0, 0.0);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_TOP, 0, 0.0);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_BOTTOM, 0, 0.0);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_LEFT, 1, -1.0);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_RIGHT, 1, -1.0);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_TOP, 1, -1.0);
+   EDGE_BINDING_REMOVE(E_ZONE_EDGE_BOTTOM, 1, -1.0);
+#undef EDGE_BINDING_REMOVE
+
+#define EDGE_BINDING_ADD(es, type) \
+   if (es->cfg->autohide) \
+     { \
+	if (es->cfg->autohide_show_action) \
+	  e_bindings_edge_add(E_BINDING_CONTEXT_ZONE, type, \
+		0, 1, "shelf_show", NULL, -1.0); \
+	else \
+	  e_bindings_edge_add(E_BINDING_CONTEXT_ZONE, type, \
+		0, 1, "shelf_show", NULL, 0.0); \
+     }
+
+   EINA_LIST_FOREACH(e_shelf_list(), l, es)
+     {
+	switch(es->gadcon->orient)
+	  {
+	   case E_GADCON_ORIENT_LEFT:
+	   case E_GADCON_ORIENT_CORNER_LT:
+	   case E_GADCON_ORIENT_CORNER_LB:
+	      EDGE_BINDING_ADD(es, E_ZONE_EDGE_LEFT)
+	      break;
+	   case E_GADCON_ORIENT_RIGHT:
+	   case E_GADCON_ORIENT_CORNER_RT:
+	   case E_GADCON_ORIENT_CORNER_RB:
+	      EDGE_BINDING_ADD(es, E_ZONE_EDGE_RIGHT)
+	      break;
+	   case E_GADCON_ORIENT_TOP:
+	   case E_GADCON_ORIENT_CORNER_TL:
+	   case E_GADCON_ORIENT_CORNER_TR:
+	      EDGE_BINDING_ADD(es, E_ZONE_EDGE_TOP)
+	      break;
+	   case E_GADCON_ORIENT_BOTTOM:
+	   case E_GADCON_ORIENT_CORNER_BL:
+	   case E_GADCON_ORIENT_CORNER_BR:
+	      EDGE_BINDING_ADD(es, E_ZONE_EDGE_BOTTOM)
+	      break;
+	  }
+     }
+#undef EDGE_BINDING_ADD
 }
     
 /**--GUI--**/
@@ -565,6 +628,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    E_Radio_Group *rg;
    Evas_Coord wmw, wmh;
    Eina_List *styles, *l;
+   char *style;
    int sel, n;
    
    /* FIXME: this is just raw config now - it needs UI improvments */
@@ -650,21 +714,23 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    sel = 0;
    styles = e_theme_shelf_list();
 
-   for (n = 0, l = styles; l; l = l->next, n++)
+   n = 0;
+   EINA_LIST_FOREACH(styles, l, style)
      {
 	char buf[4096];
 	
 	ob = e_livethumb_add(evas);
 	e_livethumb_vsize_set(ob, 120, 40);
 	oj = edje_object_add(e_livethumb_evas_get(ob));
-	snprintf(buf, sizeof(buf), "e/shelf/%s/base", (char *)l->data);
+	snprintf(buf, sizeof(buf), "e/shelf/%s/base", style);
 	e_theme_edje_object_set(oj, "base/theme/shelf", buf);
 	e_livethumb_thumb_set(ob, oj);
-	e_widget_ilist_append(oi, ob, (char *)l->data, NULL, NULL, l->data);
-	if (!strcmp(cfdata->es->style, (char *)l->data)) sel = n;
+	e_widget_ilist_append(oi, ob, style, NULL, NULL, style);
+	if (!strcmp(cfdata->es->style, style)) sel = n;
+	n++;
      }
-   e_widget_min_size_get(oi, &wmw, &wmh);
-   e_widget_min_size_set(oi, wmw, 160);
+   e_widget_size_min_get(oi, &wmw, &wmh);
+   e_widget_size_min_set(oi, wmw, 160);
    
    e_widget_ilist_go(oi);
    e_widget_ilist_selected_set(oi, sel);
@@ -729,8 +795,8 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    cfdata->desk_sel_list = ob;
    e_widget_ilist_multi_select_set(ob, 1);
    _desk_sel_list_load(cfdata);
-   e_widget_min_size_get(ob, &wmw, &wmh);
-   e_widget_min_size_set(ob, wmw, 64);
+   e_widget_size_min_get(ob, &wmw, &wmh);
+   e_widget_size_min_set(ob, wmw, 64);
    e_widget_framelist_object_append(of, ob);
 
    e_widget_list_object_append(o2, of, 1, 1, 0.5);

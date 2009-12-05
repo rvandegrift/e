@@ -83,7 +83,7 @@ _e_int_config_wallpaper_desk(E_Container *con, int con_num, int zone_num, int de
    E_Config_Dialog_View *v;
    E_Config_Wallpaper *cw;
 
-   if (e_config_dialog_find("E", "_config_wallpaper_dialog")) return NULL;
+   if (e_config_dialog_find("E", "appearance/wallpaper")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
    cw = E_NEW(E_Config_Wallpaper, 1);
 
@@ -108,7 +108,7 @@ _e_int_config_wallpaper_desk(E_Container *con, int con_num, int zone_num, int de
    cw->desk_y = desk_y;
 
    cfd = e_config_dialog_new(con, _("Wallpaper Settings"), "E", 
-			     "_config_wallpaper_dialog",
+			     "appearance/wallpaper",
 			     "preferences-desktop-wallpaper", 0, v, cw);
    return cfd;
 }
@@ -538,7 +538,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 				  _cb_files_files_deleted, cfdata);
    e_widget_flist_path_set(ow, path, "/");
 
-   e_widget_min_size_set(ow, 160, 160);
+   e_widget_size_min_set(ow, 160, 160);
    e_widget_table_object_append(ot, ow, 0, 2, 1, 1, 1, 1, 1, 1);
    e_widget_list_object_append(o, ot, 1, 1, 0.0);
 
@@ -574,6 +574,8 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
      f = e_theme_edje_file_get("base/theme/backgrounds", "e/desktop/background");
    e_widget_preview_edje_set(ow, f, "e/desktop/background");
    e_widget_aspect_child_set(oa, ow);
+   evas_object_show(ow);
+   evas_object_show(oa);
    e_widget_table_object_append(ot, oa, 0, 2, 2 + online, 1, 1, 1, 1, 1);
    e_widget_list_object_append(o, ot, 1, 1, 0.5);
    e_dialog_resizable_set(cfd->dia, 1);
@@ -666,7 +668,7 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
                                   _cb_files_files_changed, cfdata);
    e_widget_flist_path_set(ow, path, "/");
 
-   e_widget_min_size_set(ow, 160, 160);
+   e_widget_size_min_set(ow, 160, 160);
    e_widget_table_object_append(ot, ow, 0, 2, 1, 1, 1, 1, 1, 1);
    e_widget_list_object_append(o, ot, 1, 1, 0.0);
 

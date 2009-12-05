@@ -8,19 +8,14 @@ static void _e_test_internal(E_Container *con);
 EAPI void
 e_test(void)
 {
-   Eina_List *managers, *l, *ll;
+   Eina_List *l, *ll;
+   E_Manager *man;
+   E_Container *con;
    
-   managers = e_manager_list();
-   for (l = managers; l; l = l->next)
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
      {
-	E_Manager *man;
-	
-	man = l->data;
-	for (ll = man->containers; ll; ll = ll->next)
+	EINA_LIST_FOREACH(man->containers, ll, con)
 	  {
-	     E_Container *con;
-	     
-	     con = ll->data;
 	     _e_test_internal(con);
 	  }
      }
@@ -32,6 +27,7 @@ _e_test_timer(void *data)
 {
    E_Menu *m;
    Eina_List *managers, *l;
+   E_Manager *man;
    
    m = data;
    if (m)
@@ -42,11 +38,8 @@ _e_test_timer(void *data)
 	return 0;
      }
    managers = e_manager_list();
-   for (l = managers; l; l = l->next)
+   EINA_LIST_FOREACH(managers, l, man)
      {
-	E_Manager *man;
-	
-	man = l->data;
 	m = e_int_menus_main_new();
 	e_menu_activate_mouse(m,
 			      e_container_zone_number_get(e_container_current_get(man), 0),
@@ -122,14 +115,11 @@ static void
 _e_test_internal(E_Container *con)
 {
    E_Menu *m;
-   Eina_List *managers, *l;
+   Eina_List *l;
+   E_Manager *man;
    
-   managers = e_manager_list();
-   for (l = managers; l; l = l->next)
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
      {
-	E_Manager *man;
-	
-	man = l->data;
 	m = e_int_menus_main_new();
 	e_menu_activate_mouse(m,
 			      e_container_zone_number_get(e_container_current_get(man), 0),
@@ -272,7 +262,7 @@ _e_test_resize(void *data, Evas *e, Evas_Object *obj, void *event_info)
    Evas_Coord mw, mh, vw, vh, w, h;
    
    e_scrollframe_child_viewport_size_get(obj, &vw, &vh);
-   e_ilist_min_size_get(data, &mw, &mh);
+   e_ilist_size_min_get(data, &mw, &mh);
    evas_object_geometry_get(data, NULL, NULL, &w, &h);
    if (vw >= mw)
      {
@@ -337,7 +327,7 @@ _e_test_internal(E_Container *con)
    e_icon_file_set(o3, "/home/raster/C/stuff/icons/cd.png");
    e_ilist_append(o, o3, "Norbert", 0, _e_test_sel, NULL, NULL, NULL);
    
-   e_ilist_min_size_get(o, &mw, &mh);
+   e_ilist_size_min_get(o, &mw, &mh);
    evas_object_resize(o, mw, mh);
    evas_object_focus_set(o, 1);
    evas_object_show(o);
@@ -382,7 +372,7 @@ _e_test_internal(E_Container *con)
    e_slider_value_set(o, 0.5);
    e_slider_value_step_count_set(o, 4);
    e_slider_value_format_display_set(o, "%1.2f V");
-   e_slider_min_size_get(o, &mw, &mh);
+   e_slider_size_min_get(o, &mw, &mh);
    evas_object_smart_callback_add(o, "changed", _e_test_cb_e_smart_pan_changed_hook, NULL);
    evas_object_show(o);
    
@@ -463,7 +453,7 @@ _e_test_cb_favorites_selected(void *data, Evas_Object *obj, void *event_info)
    printf("FAV SELECTED\n");
    selected = e_fm2_selected_list_get(obj);
    if (!selected) return;
-   ici = selected->data;
+   ici = eina_list_data_get(selected);
    if ((ici->link) && (ici->mount))
      e_fm2_path_set(data, ici->link, "/");
    else if (ici->link)
@@ -487,9 +477,8 @@ _e_test_cb_favorites_files_changed(void *data, Evas_Object *obj, void *event_inf
    realpath = e_fm2_real_path_get(data);
    p1 = ecore_file_realpath(realpath);
    if (!p1) goto done;
-   for (l = icons; l; l = l->next)
+   EINA_LIST_FOREACH(icons, l, ici)
      {
-	ici = l->data;
 	if (ici->link)
 	  {
 	     p2 = ecore_file_realpath(ici->link);
@@ -559,7 +548,7 @@ _e_test_internal(E_Container *con)
    of = e_widget_scrollframe_pan_add(dia->win->evas, ofm,
 				     e_fm2_pan_set, e_fm2_pan_get,
 				     e_fm2_pan_max_get, e_fm2_pan_child_size_get);
-   e_widget_min_size_set(of, 128, 128);
+   e_widget_size_min_set(of, 128, 128);
    e_widget_table_object_append(ot, of, 1, 1, 1, 1, 1, 1, 1, 1);
    evas_object_show(ofm);
    evas_object_show(of);
@@ -594,14 +583,14 @@ _e_test_internal(E_Container *con)
    of = e_widget_scrollframe_pan_add(dia->win->evas, ofm,
 				     e_fm2_pan_set, e_fm2_pan_get,
 				     e_fm2_pan_max_get, e_fm2_pan_child_size_get);
-   e_widget_min_size_set(of, 128, 128);
+   e_widget_size_min_set(of, 128, 128);
    e_widget_table_object_append(ot, of, 0, 1, 1, 1, 0, 1, 0, 1);
    evas_object_show(ofm);
    evas_object_show(of);
    
    /* show and pack table */
    evas_object_show(ot);
-   e_widget_min_size_get(ot, &mw, &mh);
+   e_widget_size_min_get(ot, &mw, &mh);
    e_dialog_content_set(dia, ot, mw, mh);
    
    /* buttons at the bottom */
@@ -640,7 +629,7 @@ _e_test_internal(E_Container *con)
 			 _e_test_cb_selected, dia,
 			 _e_test_cb_changed, dia, 0);
    evas_object_show(o);
-   e_widget_min_size_get(o, &mw, &mh);
+   e_widget_size_min_get(o, &mw, &mh);
    e_dialog_content_set(dia, o, mw, mh);
    
    /* buttons at the bottom */
@@ -721,12 +710,12 @@ _e_test_internal(E_Container *con)
      }
    
    /* fixme... more */
-   e_box_min_size_get(ob, &mw, &mh);
+   e_box_size_min_get(ob, &mw, &mh);
    evas_object_resize(ob, mw, mh);
 
    e_scrollframe_child_set(of, ob);
    evas_object_show(ob);
-//   e_widget_min_size_get(o, &mw, &mh);
+//   e_widget_size_min_get(o, &mw, &mh);
    mw = 300; mh = 300;
    e_dialog_content_set(dia, of, mw, mh);
    evas_object_show(of);
@@ -739,7 +728,15 @@ _e_test_internal(E_Container *con)
    e_win_resize(dia->win, 400, 400);
    
 }
+
+static void
+_e_test_internal(E_Container *con)
+{
+   ecore_timer_add(1.0, _e_test_timer, con);
+}
+
 #elif 0
+
 static int
 _e_test_timer(void *data)
 {
@@ -785,7 +782,7 @@ _e_test_timer(void *data)
    e_widget_toolbar_item_select(o, 1);
    
    /* fixme... more */
-   e_widget_min_size_get(o, &mw, &mh);
+   e_widget_size_min_get(o, &mw, &mh);
    e_dialog_content_set(dia, o, mw, mh);
    evas_object_show(o);
    
@@ -798,11 +795,80 @@ _e_test_timer(void *data)
    
    return 0;
 }
+
 static void
 _e_test_internal(E_Container *con)
 {
    ecore_timer_add(1.0, _e_test_timer, con);
 }
+
+#elif 0
+
+static int
+_e_test_timer(void *data)
+{
+   E_Container *con;
+   E_Dialog *dia;
+   Evas_Object *o, *ic;
+   Evas_Coord mw, mh;
+   
+   con = data;
+   dia = e_dialog_new(con, "E", "_test");
+   e_dialog_title_set(dia, "A Test Dialog");
+
+   o = e_widget_toolbar_add(dia->win->evas, 48, 48);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_efm_hdd.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_efm_cd.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_efm_desktop.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_efm_home.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_efm_root.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_efm_tmp.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_globe.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_mixer.png");
+   e_widget_toolbar_item_append(o, ic, NULL, NULL, NULL, NULL);
+   ic = e_icon_add(dia->win->evas);
+   e_icon_file_set(ic, "/home/raster/C/e17/data/themes/images/icon_performance.png");
+   e_widget_toolbar_item_append(o, ic, "x", NULL, NULL, NULL);
+
+   e_widget_toolbar_scrollable_set(o, 1);
+   e_widget_toolbar_item_select(o, 1);
+   
+   /* fixme... more */
+   e_widget_size_min_get(o, &mw, &mh);
+   e_dialog_content_set(dia, o, mw, mh);
+   evas_object_show(o);
+   
+   /* buttons at the bottom */
+   e_dialog_button_add(dia, "OK", NULL, NULL, NULL);
+   e_dialog_resizable_set(dia, 1);
+   e_win_centered_set(dia->win, 1);
+   e_dialog_show(dia);
+   e_win_resize(dia->win, 400, 200);
+   
+   return 0;
+}
+
+static void
+_e_test_internal(E_Container *con)
+{
+   ecore_timer_add(1.0, _e_test_timer, con);
+}
+
 #else
 static void
 _e_test_internal(E_Container *con)

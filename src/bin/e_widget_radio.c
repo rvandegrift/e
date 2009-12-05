@@ -64,7 +64,7 @@ e_widget_radio_add(Evas *evas, const char *label, int valnum, E_Radio_Group *gro
    edje_object_part_text_set(o, "e.text.label", label);
    evas_object_show(o);
    edje_object_size_min_calc(o, &mw, &mh);
-   e_widget_min_size_set(obj, mw, mh);
+   e_widget_size_min_set(obj, mw, mh);
    if ((wd->group) && (wd->group->valptr))
      {
 	if (*(wd->group->valptr) == valnum) edje_object_signal_emit(o, "e,state,on", "e");
@@ -125,7 +125,7 @@ e_widget_radio_icon_add(Evas *evas, const char *label, const char *icon, int ico
      }
   
    edje_object_size_min_calc(o, &mw, &mh);
-   e_widget_min_size_set(obj, mw, mh);
+   e_widget_size_min_set(obj, mw, mh);
    if ((wd->group) && (wd->group->valptr))
      {
 	if (*(wd->group->valptr) == valnum) edje_object_signal_emit(o, "e,state,on", "e");
@@ -153,12 +153,13 @@ e_widget_radio_toggle_set(Evas_Object *obj, int toggle)
    if (toggle)
      {
 	Eina_List *l;
+	Evas_Object *sobj;
 	
-	for (l = wd->group->radios; l; l = l->next)
+	EINA_LIST_FOREACH(wd->group->radios, l, sobj)
 	  {
-	     if (l->data != obj)
+	     if (sobj != obj)
 	       {
-		  wd = e_widget_data_get(l->data);
+		  wd = e_widget_data_get(sobj);
 		  if (wd->valnum == *(wd->group->valptr))
 		    {
 		       edje_object_signal_emit(wd->o_radio, "e,state,off", "e");
@@ -217,13 +218,14 @@ _e_wid_do(Evas_Object *obj)
    if ((wd->group) && (wd->group->valptr))
      {
 	Eina_List *l;
+	Evas_Object *sobj;
 	int toggled = 0;
 	
-	for (l = wd->group->radios; l; l = l->next)
+	EINA_LIST_FOREACH(wd->group->radios, l, sobj)
 	  {
-	     if (l->data != obj)
+	     if (sobj != obj)
 	       {
-		  wd = e_widget_data_get(l->data);
+		  wd = e_widget_data_get(sobj);
 		  if (wd->valnum == *(wd->group->valptr))
 		    {
 		       edje_object_signal_emit(wd->o_radio, "e,state,off", "e");

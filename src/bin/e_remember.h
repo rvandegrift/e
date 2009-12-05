@@ -29,15 +29,18 @@ typedef struct _E_Remember E_Remember;
 #define E_REMEMBER_SET_FOCUS_ON_START (1 << 14)
 #define E_REMEMBER_APPLY_FULLSCREEN (1 << 15)
 
+#define E_REMEMBER_INTERNAL_DIALOGS   (1 << 0)
+#define E_REMEMBER_INTERNAL_FM_WINS   (1 << 1)
+
 #else
 #ifndef E_REMEMBER_H
 #define E_REMEMBER_H
 
 struct _E_Remember
 {
-   unsigned char  delete_me;
    int            match;
    unsigned char  apply_first_only;
+   unsigned char  keep_settings;
    int            used_count;
    const char    *name;
    const char    *class;
@@ -54,7 +57,7 @@ struct _E_Remember
 	int           pos_w, pos_h;
 	int           w, h;      
 	int           layer;
-      
+
 	unsigned char lock_user_location; 
 	unsigned char lock_client_location; 
 	unsigned char lock_user_size; 
@@ -78,9 +81,9 @@ struct _E_Remember
 	unsigned char lock_focus_in; 
 	unsigned char lock_focus_out; 
 	unsigned char lock_life;
-      
+
 	const char   *border;
-      
+
 	unsigned char sticky;
 	unsigned char shaded;
 	unsigned char fullscreen;
@@ -93,6 +96,7 @@ struct _E_Remember
 	int           zone;
 	int           head;
 	const char   *command;
+	const char   *desktop_file;
      } prop;
 };
 
@@ -106,8 +110,8 @@ EAPI void         e_remember_del(E_Remember *rem);
 EAPI E_Remember  *e_remember_find(E_Border *bd);
 EAPI E_Remember  *e_remember_find_usable(E_Border *bd);
 EAPI void         e_remember_match_update(E_Remember *rem);
-EAPI void         e_remember_update(E_Remember *rem, E_Border *bd);
-EAPI int	  e_remember_default_match(E_Border *bd);
-    
+EAPI void         e_remember_update(E_Border *bd);
+EAPI int	  e_remember_default_match_set(E_Remember *rem, E_Border *bd);
+EAPI void         e_remember_internal_save(void);
 #endif
 #endif

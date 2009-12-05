@@ -1,7 +1,8 @@
 # get rid of that stupid cache mechanism
 rm -f config.cache
 
-AC_INIT([enlightenment], [0.16.999.062], [enlightenment-devel@lists.sourceforge.net])
+AC_INIT([enlightenment], [0.16.999.063], [enlightenment-devel@lists.sourceforge.net])
+release="ver-svn-05"
 AC_PREREQ([2.52])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_MACRO_DIR([m4])
@@ -9,8 +10,9 @@ AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_ISC_POSIX
 
-AM_INIT_AUTOMAKE(1.6 dist-bzip2)
-AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE([1.6 dist-bzip2])
+AM_CONFIG_HEADER([config.h])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_GNU_SOURCE
 AC_C_BIGENDIAN
@@ -26,7 +28,6 @@ define([AC_LIBTOOL_LANG_F77_CONFIG], [:])
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-release="ver-svn-03"
 AC_SUBST(release)
 
 AC_CHECK_FUNCS(setenv)
@@ -148,6 +149,56 @@ CPPFLAGS="${PCPPFLAGS}"
 AC_SUBST(cf_cflags)
 AC_SUBST(cf_libs)
 
+
+execinfo_libs=""
+AC_CHECK_HEADERS([execinfo.h], [have_execinfo="yes"], [have_execinfo="no"])
+if test "x${have_execinfo}" = "xyes" ; then
+   AC_MSG_CHECKING([whether backtrace_symbols_fd() is in libc])
+
+   AC_LINK_IFELSE(
+      [AC_LANG_PROGRAM(
+         [[
+#include <stdlib.h>
+#include <execinfo.h>
+         ]],
+         [[
+backtrace_symbols_fd(NULL, 0, 0);
+         ]])],
+      [link_execinfo="yes"],
+      [link_execinfo="no"])
+
+   AC_MSG_RESULT([${link_execinfo}])
+fi
+
+if test "x${link_execinfo}" = "xno" ; then
+   AC_MSG_CHECKING([whether backtrace_symbols_fd() is in libexecinfo])
+
+   LDFLAGS_save="${LDFLAGS}"
+   LDFLAGS="${LDFLAGS} -lexecinfo"
+   AC_LINK_IFELSE(
+      [AC_LANG_PROGRAM(
+         [[
+#include <stdlib.h>
+#include <execinfo.h>
+         ]],
+         [[
+backtrace_symbols_fd(NULL, 0, 0);
+         ]])],
+      [
+       linkexec_info="yes"
+       execinfo_libs="-lexecinfo"
+      ],
+      [linkexec_info="no"])
+   LDFLAGS="${LDFLAGS_save}"
+
+   AC_MSG_RESULT([${link_execinfo}])
+fi
+
+if test "x${link_execinfo}" = "xno" ; then
+   AC_MSG_ERROR([Cannot use backtrace_symbols_fd()])
+fi
+
+
 #ALL_LINGUAS="bg de eo es fi fr ja pl pt ru zh_CN hu sl it cs da sk sv nb nl zh_TW ko"
 #ALL_LINGUAS="bg de eo es fi fr ja pt ru zh_CN hu sl it cs da sk sv nb nl zh_TW"
 # a lot of .po's are broken
@@ -165,7 +216,7 @@ AC_SUBST(dlopen_libs)
 
 AC_MSG_CHECKING([whether to enable Files menu item])
 AC_ARG_ENABLE([files],
-   AS_HELP_STRING([--enable-files],[enable Files menu item @<:@yes@:>@]),
+   AS_HELP_STRING([--enable-files],[enable Files menu item @<:@default=yes@:>@]),
    [e_cv_enable_files=$enableval],
    AC_CACHE_VAL([e_cv_enable_files], [e_cv_enable_files=yes]))
 if test "[${e_cv_enable_files}]" = yes; then
@@ -259,8 +310,7 @@ requirements_e="evas ecore ecore-x ecore-evas ecore-con ecore-ipc ecore-job ecor
 
 AC_E_CHECK_PKG(ECORE_IMF, [ecore-imf ecore-imf-evas], [], [:])
 
-
-e_libs=$E_LIBS" "$LIBINTL" "$fnmatch_libs" "$ECORE_IMF_LIBS
+e_libs=$E_LIBS" "$LIBINTL" "$fnmatch_libs" "$ECORE_IMF_LIBS" "$execinfo_libs
 e_cflags="-DUSE_E_CONFIG_H "$E_CFLAGS" "$ECORE_IMF_CFLAGS
 e_configflags="-DUSE_E_CONFIG_H"
 
@@ -361,7 +411,6 @@ fi
 AC_SUBST(SOUND_CFLAGS)
 AC_SUBST(SOUND_LIBS)
 
-AC_E_OPTIONAL_MODULE([ibar], true)
 AC_E_OPTIONAL_MODULE([ibar], true)
 AC_E_OPTIONAL_MODULE([dropshadow], true)
 AC_E_OPTIONAL_MODULE([clock], true)
@@ -555,10 +604,27 @@ src/modules/illume/Makefile
 src/modules/illume/module.desktop
 src/modules/illume/keyboards/Makefile
 src/modules/illume/dicts/Makefile
+src/modules/illume2/Makefile
+src/modules/illume2/module.desktop
+src/modules/illume2/keyboards/Makefile
+src/modules/illume-home/Makefile
+src/modules/illume-home/module.desktop
+src/modules/illume-softkey/Makefile
+src/modules/illume-softkey/module.desktop
+src/modules/illume-keyboard/Makefile
+src/modules/illume-keyboard/module.desktop
+src/modules/illume-keyboard/keyboards/Makefile
+src/modules/illume-keyboard/dicts/Makefile
+src/modules/illume-indicator/Makefile
+src/modules/illume-indicator/module.desktop
 src/modules/syscon/Makefile
 src/modules/syscon/module.desktop
 src/modules/everything/Makefile
+src/modules/everything/sources/Makefile
+src/modules/everything/actions/Makefile
+src/modules/everything/views/Makefile
 src/modules/everything/module.desktop
+src/modules/everything/everything.pc
 src/modules/systray/Makefile
 src/modules/systray/module.desktop
 src/preload/Makefile
@@ -570,6 +636,7 @@ data/themes/images/Makefile
 data/other/Makefile
 data/xsession/Makefile
 data/xsession/enlightenment.desktop
+data/tools/Makefile
 data/etc/Makefile
 data/icons/Makefile
 data/backgrounds/Makefile
@@ -581,6 +648,7 @@ config/minimalist/Makefile
 config/scaleable/Makefile
 config/netbook/Makefile
 config/illume/Makefile
+config/illume-home/Makefile
 po/Makefile.in
 ])
 

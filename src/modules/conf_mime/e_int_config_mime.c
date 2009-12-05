@@ -54,14 +54,14 @@ e_int_config_mime(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
    
-   if (e_config_dialog_find("E", "_config_mime_dialog")) return NULL;
+   if (e_config_dialog_find("E", "fileman/file_icons")) return NULL;
    
    v = E_NEW(E_Config_Dialog_View, 1);
    v->create_cfdata = _create_data;
    v->free_cfdata = _free_data;
    v->basic.create_widgets = _basic_create;
    
-   cfd = e_config_dialog_new(con, _("File Icons"), "E", "_config_mime_dialog",
+   cfd = e_config_dialog_new(con, _("File Icons"), "E", "fileman/file_icons",
 			     "preferences-file-icons", 0, v, NULL);
    return cfd;
 }
@@ -187,7 +187,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    ol = e_widget_ilist_add(evas, 16, 16, NULL);
    cfdata->gui.list = ol;
    e_widget_ilist_go(ol);
-   e_widget_min_size_set(cfdata->gui.list, 250, 200);
+   e_widget_size_min_set(cfdata->gui.list, 250, 200);
    e_widget_frametable_object_append(of, ol, 0, 0, 3, 1, 1, 1, 1, 1);
 
    ob = e_widget_button_add(evas, _("Set"), "configure", _cb_config, cfdata, NULL);
@@ -255,8 +255,8 @@ _fill_list(E_Config_Dialog_Data *cfdata, const char *mtype)
 	e_widget_ilist_append(cfdata->gui.list, icon, m->mime, NULL, NULL, NULL);
      }
    e_widget_ilist_go(cfdata->gui.list);
-   e_widget_min_size_get(cfdata->gui.list, &w, &h);
-   e_widget_min_size_set(cfdata->gui.list, w, 200);
+   e_widget_size_min_get(cfdata->gui.list, &w, &h);
+   e_widget_size_min_set(cfdata->gui.list, w, 200);
    e_widget_ilist_thaw(cfdata->gui.list);
    edje_thaw();
    evas_event_thaw(evas);
@@ -290,8 +290,8 @@ _fill_tlist(E_Config_Dialog_Data *cfdata)
      }
    
    e_widget_ilist_go(cfdata->gui.tlist);
-   e_widget_min_size_get(cfdata->gui.tlist, &w, &h);
-   e_widget_min_size_set(cfdata->gui.tlist, w, 225);
+   e_widget_size_min_get(cfdata->gui.tlist, &w, &h);
+   e_widget_size_min_set(cfdata->gui.tlist, w, 225);
    e_widget_ilist_thaw(cfdata->gui.tlist);
    edje_thaw();
    evas_event_thaw(evas_object_evas_get(cfdata->gui.tlist));

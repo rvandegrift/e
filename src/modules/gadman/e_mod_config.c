@@ -42,7 +42,7 @@ _config_gadman_module(E_Container *con, const char *params __UNUSED__)
    char buf[4096];
 
    /* check if config dialog exists ... */
-   if (e_config_dialog_find("E", "_e_modules_gadman_config_dialog"))
+   if (e_config_dialog_find("E", "extensions/gadman"))
      return NULL;
 
    /* ... else create it */
@@ -56,7 +56,7 @@ _config_gadman_module(E_Container *con, const char *params __UNUSED__)
 
    snprintf(buf, sizeof(buf), "%s/e-module-gadman.edj", Man->module->dir);
    cfd = e_config_dialog_new(con, _("Gadgets Manager"),
-                             "E", "_e_modules_gadman_config_dialog",
+                             "E", "extensions/gadman",
                              buf, 0, v, Man);
 
    Man->config_dialog = cfd;
@@ -128,7 +128,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 static int
 _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   gadman_gadget_edit_end();
+   gadman_gadget_edit_end(NULL, NULL, NULL, NULL);
    e_config_save_queue();
    return 1;
 }
@@ -232,7 +232,7 @@ _adv_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfda
 					       e_fm2_pan_get,
 					       e_fm2_pan_max_get, 
 					       e_fm2_pan_child_size_get);
-   e_widget_min_size_set(cfdata->o_sf, 200, 250);
+   e_widget_size_min_set(cfdata->o_sf, 200, 250);
    e_widget_frametable_object_append(of, cfdata->o_sf, 0, 2, 2, 1, 1, 1, 1, 1);
    e_widget_table_object_append(ft, of, 1, 0, 1, 3, 1, 1, 1, 1);
 
@@ -306,9 +306,9 @@ _fill_gadgets_list(Evas_Object *ilist)
      }
 
    e_widget_ilist_go(ilist);
-   e_widget_min_size_get(ilist, &w, NULL);
+   e_widget_size_min_get(ilist, &w, NULL);
    if (w < 200) w = 200;
-   e_widget_min_size_set(ilist, w, 250);
+   e_widget_size_min_set(ilist, w, 250);
    e_widget_ilist_thaw(ilist);
 }
 

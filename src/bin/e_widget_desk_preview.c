@@ -36,16 +36,15 @@ _e_wid_del_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
    Eina_List *l;
+   Evas_Object *o;
 
    wd = e_widget_data_get(obj);
    if (!wd) return;
 
    if (wd->update_handler) ecore_event_handler_del(wd->update_handler);
-   for (l = wd->desks; l; l = l->next)
+   EINA_LIST_FOREACH(wd->desks, l, o)
      {
-	Evas_Object *o;
 	E_Widget_Desk_Data *dd;
-	o = l->data;
 	dd = e_widget_data_get(o);
 	e_thumb_icon_end(o);
      }
@@ -124,6 +123,7 @@ static void
 _e_wid_reconfigure(E_Widget_Data *wd)
 {
    Eina_List *l, *delete = NULL;
+   Evas_Object *dw;
    int x, y;
    int aw, ah; /* available */
    int mw, mh; /* min size for each desk */
@@ -166,13 +166,12 @@ _e_wid_reconfigure(E_Widget_Data *wd)
      tw = 300;
    th = (tw * zone->h) / zone->w;
 
-   for (l = wd->desks; l; l = l->next)
+   EINA_LIST_FOREACH(wd->desks, l, dw)
      {
-	Evas_Object *dw = l->data;
 	E_Widget_Desk_Data *dd = e_widget_data_get(dw);
 	if (dd->x < nx && dd->y < ny)
 	  {
-	     e_widget_min_size_set(dw, mw, mh);
+	     e_widget_size_min_set(dw, mw, mh);
 	     e_widget_table_object_repack(wd->table, dw, dd->x, dd->y, 1, 1, 1, 1, 1, 1);
 	     e_thumb_icon_size_set(dd->thumb, tw, th);
 	     e_thumb_icon_rethumb(dd->thumb); 
@@ -182,13 +181,11 @@ _e_wid_reconfigure(E_Widget_Data *wd)
 	     delete = eina_list_append(delete, dw);
 	  }
      }
-   while (delete)
+   EINA_LIST_FREE(delete, dw)
      {
-	Evas_Object *dw = delete->data;
 	e_widget_table_unpack(wd->table, dw);
 	evas_object_del(dw);
 	wd->desks = eina_list_remove(wd->desks, dw);
-	delete = eina_list_remove_list(delete, delete);
      }
 
    for (y = 0; y < ny; y++)
@@ -201,7 +198,7 @@ _e_wid_reconfigure(E_Widget_Data *wd)
 	     Evas_Object *dw;
 
 	     dw = e_widget_deskpreview_desk_add(evas_object_evas_get(wd->obj), zone, x, y, tw, th);
-	     e_widget_min_size_set(dw, mw, mh);
+	     e_widget_size_min_set(dw, mw, mh);
 
 	     e_widget_table_object_append(wd->table, dw, x, y, 1, 1, 1, 1, 1, 1);
 	     wd->desks = eina_list_append(wd->desks, dw);
@@ -272,17 +269,16 @@ _e_wid_cb_bg_update(void *data, int type, void *event)
    E_Event_Bg_Update *ev;
    E_Widget_Data *wd;
    Eina_List *l;
+   Evas_Object *o;
 
    if (type != E_EVENT_BG_UPDATE) return 1;
 
    wd = data;
    ev = event;
 
-   for (l = wd->desks; l; l = l->next)
+   EINA_LIST_FOREACH(wd->desks, l, o)
      {
-	Evas_Object *o;
 	E_Widget_Desk_Data *dd;
-	o = l->data;
 	dd = e_widget_data_get(o);
 
 	if (!dd) 

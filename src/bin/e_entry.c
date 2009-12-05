@@ -206,7 +206,7 @@ e_entry_password_set(Evas_Object *entry, int password_mode)
  * @param minh the location where to store the minimun height of the entry
  */
 EAPI void
-e_entry_min_size_get(Evas_Object *entry, Evas_Coord *minw, Evas_Coord *minh)
+e_entry_size_min_get(Evas_Object *entry, Evas_Coord *minw, Evas_Coord *minh)
 {
    E_Entry_Smart_Data *sd;
    
@@ -1061,7 +1061,7 @@ _e_entry_smart_add(Evas_Object *object)
    if (sd->imf_context)
      {
         ecore_imf_context_client_window_set(sd->imf_context,
-					    ecore_evas_window_get(ecore_evas_ecore_evas_get(evas)));
+					    (long *)ecore_evas_window_get(ecore_evas_ecore_evas_get(evas)));
         ecore_imf_context_client_canvas_set(sd->imf_context, evas);
         ecore_imf_context_retrieve_surrounding_callback_set(sd->imf_context,
                                                             _e_entry_cb_imf_retrieve_surrounding,

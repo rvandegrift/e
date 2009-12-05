@@ -11,7 +11,7 @@
 
 EAPI E_Config *e_config = NULL;
 
-static int _e_config_revisions = 9;
+static int _e_config_revisions = 0;
 
 /* local subsystem functions */
 static void _e_config_save_cb(void *data);
@@ -328,6 +328,7 @@ e_config_init(void)
 #define D _e_config_remember_edd
    E_CONFIG_VAL(D, T, match, INT);
    E_CONFIG_VAL(D, T, apply_first_only, UCHAR);
+   E_CONFIG_VAL(D, T, keep_settings, UCHAR);
    E_CONFIG_VAL(D, T, name, STR);
    E_CONFIG_VAL(D, T, class, STR);
    E_CONFIG_VAL(D, T, title, STR);
@@ -381,7 +382,8 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, prop.head, INT);
    E_CONFIG_VAL(D, T, prop.command, STR);
    E_CONFIG_VAL(D, T, prop.icon_preference, UCHAR);
-   
+   E_CONFIG_VAL(D, T, prop.desktop_file, STR);
+
    _e_config_color_class_edd = E_CONFIG_DD_NEW("E_Color_Class", E_Color_Class);
 #undef T
 #undef D
@@ -1044,7 +1046,7 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->desk_flip_pan_bg, 0, 1);
    E_CONFIG_LIMIT(e_config->desk_flip_pan_x_axis_factor, 0.0, 1.0);
    E_CONFIG_LIMIT(e_config->desk_flip_pan_y_axis_factor, 0.0, 1.0);
-   E_CONFIG_LIMIT(e_config->remember_internal_windows, 0, 1);
+   E_CONFIG_LIMIT(e_config->remember_internal_windows, 0, 3);
    E_CONFIG_LIMIT(e_config->desk_auto_switch, 0, 1);
 
    E_CONFIG_LIMIT(e_config->dpms_enable, 0, 1);
@@ -1303,8 +1305,6 @@ e_config_domain_load(const char *domain, E_Config_DD *edd)
    
    for (i =1; i <= _e_config_revisions; i++)
      {
-        char buf2[4096];
-        
         e_user_dir_snprintf(buf, sizeof(buf), "config/%s/%s.%i.cfg",
                             _e_config_profile, domain, i);
         ef = eet_open(buf, EET_FILE_MODE_READ);
@@ -1450,12 +1450,10 @@ EAPI E_Config_Binding_Mouse *
 e_config_binding_mouse_match(E_Config_Binding_Mouse *eb_in)
 {
    Eina_List *l;
-   
-   for (l = e_config->mouse_bindings; l; l = l->next)
+   E_Config_Binding_Mouse *eb;
+
+   EINA_LIST_FOREACH(e_config->mouse_bindings, l, eb)   
      {
-	E_Config_Binding_Mouse *eb;
-	
-	eb = l->data;
 	if ((eb->context == eb_in->context) &&
 	    (eb->button == eb_in->button) &&
 	    (eb->modifiers == eb_in->modifiers) &&
@@ -1473,12 +1471,10 @@ EAPI E_Config_Binding_Key *
 e_config_binding_key_match(E_Config_Binding_Key *eb_in)
 {
    Eina_List *l;
+   E_Config_Binding_Key *eb;
    
-   for (l = e_config->key_bindings; l; l = l->next)
+   EINA_LIST_FOREACH(e_config->mouse_bindings, l, eb)   
      {
-	E_Config_Binding_Key *eb;
-	
-	eb = l->data;
 	if ((eb->context == eb_in->context) &&
 	    (eb->modifiers == eb_in->modifiers) &&
 	    (eb->any_mod == eb_in->any_mod) &&
@@ -1497,12 +1493,10 @@ EAPI E_Config_Binding_Edge *
 e_config_binding_edge_match(E_Config_Binding_Edge *eb_in)
 {
    Eina_List *l;
+   E_Config_Binding_Edge *eb;
    
-   for (l = e_config->edge_bindings; l; l = l->next)
+   EINA_LIST_FOREACH(e_config->edge_bindings, l, eb)
      {
-	E_Config_Binding_Edge *eb;
-	
-	eb = l->data;
 	if ((eb->context == eb_in->context) &&
 	    (eb->modifiers == eb_in->modifiers) &&
 	    (eb->any_mod == eb_in->any_mod) &&
@@ -1521,12 +1515,10 @@ EAPI E_Config_Binding_Signal *
 e_config_binding_signal_match(E_Config_Binding_Signal *eb_in)
 {
    Eina_List *l;
+   E_Config_Binding_Signal *eb;
    
-   for (l = e_config->signal_bindings; l; l = l->next)
+   EINA_LIST_FOREACH(e_config->signal_bindings, l, eb)
      {
-	E_Config_Binding_Signal *eb;
-	
-	eb = l->data;
 	if ((eb->context == eb_in->context) &&
 	    (eb->modifiers == eb_in->modifiers) &&
 	    (eb->any_mod == eb_in->any_mod) &&
@@ -1547,12 +1539,10 @@ EAPI E_Config_Binding_Wheel *
 e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in)
 {
    Eina_List *l;
-   
-   for (l = e_config->wheel_bindings; l; l = l->next)
+   E_Config_Binding_Wheel *eb;
+  
+   EINA_LIST_FOREACH(e_config->wheel_bindings, l, eb)
      {
-	E_Config_Binding_Wheel *eb;
-	
-	eb = l->data;
 	if ((eb->context == eb_in->context) &&
 	    (eb->direction == eb_in->direction) &&
 	    (eb->z == eb_in->z) &&

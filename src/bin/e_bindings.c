@@ -87,26 +87,11 @@ e_bindings_init(void)
 EAPI int
 e_bindings_shutdown(void)
 {
-   E_Binding_Signal *binds;
-   E_Binding_Mouse *bindm;
-   E_Binding_Wheel *bindw;
-   E_Binding_Edge *binde;
-   E_Binding_Key *bindk;
-
-   EINA_LIST_FREE(mouse_bindings, bindm)
-     _e_bindings_mouse_free(bindm);
-
-   EINA_LIST_FREE(key_bindings, bindk)
-     _e_bindings_key_free(bindk);
-
-   EINA_LIST_FREE(edge_bindings, binde)
-     _e_bindings_edge_free(binde);
-
-   EINA_LIST_FREE(signal_bindings, binds)
-     _e_bindings_signal_free(binds);
-
-   EINA_LIST_FREE(wheel_bindings, bindw)
-     _e_bindings_wheel_free(bindw);
+   E_FREE_LIST(mouse_bindings, _e_bindings_mouse_free);
+   E_FREE_LIST(key_bindings, _e_bindings_key_free);
+   E_FREE_LIST(edge_bindings, _e_bindings_edge_free);
+   E_FREE_LIST(signal_bindings, _e_bindings_signal_free);
+   E_FREE_LIST(wheel_bindings, _e_bindings_wheel_free);
 
    return 1;
 }
@@ -439,18 +424,23 @@ e_bindings_edge_add(E_Binding_Context ctxt, E_Zone_Edge edge, E_Binding_Modifier
    if (action) bind->action = eina_stringshare_add(action);
    if (params) bind->params = eina_stringshare_add(params);
    edge_bindings = eina_list_append(edge_bindings, bind);
+
+   e_util_zone_edge_toggle(edge, 1);
 }
 
 EAPI E_Binding_Edge *
-e_bindings_edge_get(const char *action, E_Zone_Edge edge)
+e_bindings_edge_get(const char *action, E_Zone_Edge edge, Eina_Bool click)
 {
    E_Binding_Edge *bind;
    Eina_List *l;
 
    EINA_LIST_FOREACH(edge_bindings, l, bind)
      {
-	if ((bind->edge == edge) && bind->action &&
-	      action && !strcmp(action, bind->action))
+	if ((bind->edge == edge) &&
+	      ((click && (bind->delay == -1.0))
+	       || (!click && (bind->delay >= 0.0))) &&
+	      bind->action && action &&
+	      !strcmp(action, bind->action))
 	  return bind;
      }
    return NULL;
@@ -461,24 +451,30 @@ e_bindings_edge_del(E_Binding_Context ctxt, E_Zone_Edge edge, E_Binding_Modifier
 {
    E_Binding_Edge *bind;
    Eina_List *l;
+   int ref_count = 0;
 
    EINA_LIST_FOREACH(edge_bindings, l, bind)
      {
-	if ((bind->ctxt == ctxt) &&
-	    (bind->edge == edge) &&
-	    (bind->mod == mod) &&
-	    ((bind->delay * 1000) == (delay * 1000)) &&
-	    (bind->any_mod == any_mod) &&
-	    (((bind->action) && (action) && (!strcmp(bind->action, action))) ||
-	     ((!bind->action) && (!action))) &&
-	    (((bind->params) && (params) && (!strcmp(bind->params, params))) ||
-	     ((!bind->params) && (!params))))
+	if ((bind->edge == edge))
 	  {
-	     _e_bindings_edge_free(bind);
-	     edge_bindings = eina_list_remove_list(edge_bindings, l);
-	     break;
+	     if ((bind->ctxt == ctxt) &&
+		 (bind->mod == mod) &&
+		 ((bind->delay * 1000) == (delay * 1000)) &&
+		 (bind->any_mod == any_mod) &&
+		 (((bind->action) && (action) && (!strcmp(bind->action, action))) ||
+		  ((!bind->action) && (!action))) &&
+		 (((bind->params) && (params) && (!strcmp(bind->params, params))) ||
+		  ((!bind->params) && (!params))))
+	       {
+		  _e_bindings_edge_free(bind);
+		  edge_bindings = eina_list_remove_list(edge_bindings, l);
+	       }
+	     else ref_count++;
 	  }
      }
+
+   if (!ref_count)
+     e_util_zone_edge_toggle(edge, 0);
 }
 
 EAPI E_Action *
@@ -499,7 +495,8 @@ e_bindings_edge_in_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Z
    if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
    EINA_LIST_FOREACH(edge_bindings, l, bind)
      {
-	if (((bind->edge == ev->edge)) &&
+	/* A value of -1.0 for the delay indicates it as a mouse-click binding on that edge */
+	if (((bind->edge == ev->edge)) && (bind->delay >= 0.0) &&
 	    ((bind->any_mod) || (bind->mod == mod)))
 	  {
 	     if (_e_bindings_context_match(bind->ctxt, ctxt))
@@ -543,7 +540,8 @@ e_bindings_edge_out_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_
    if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
    EINA_LIST_FOREACH(edge_bindings, l, bind)
      {
-	if ((bind->edge == ev->edge) &&
+	/* A value of -1.0 for the delay indicates it as a mouse-click binding on that edge */
+	if ((bind->edge == ev->edge) && (bind->delay >= 0.0) &&
 	    ((bind->any_mod) || (bind->mod == mod)))
 	  {
 	     if (_e_bindings_context_match(bind->ctxt, ctxt))
@@ -561,6 +559,71 @@ e_bindings_edge_out_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_
 		    }
 		  bind->timer = NULL;
 
+		  act = e_action_find(bind->action);
+		  if (act && act->func.end)
+		    act->func.end(obj, bind->params);
+	       }
+	  }
+     }
+   return act;
+}
+
+EAPI E_Action *
+e_bindings_edge_down_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Zone_Edge *ev)
+{
+   E_Binding_Modifier mod = 0;
+   E_Binding_Edge *bind;
+   E_Desk *current = NULL;
+   E_Action *act = NULL;
+   Eina_List *l;
+   
+   current = e_desk_at_xy_get(ev->zone, ev->zone->desk_x_current, ev->zone->desk_y_current);
+   if (current->fullscreen_borders && (!e_config->fullscreen_flip)) return NULL;
+
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT) mod |= E_BINDING_MODIFIER_SHIFT;
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_CTRL) mod |= E_BINDING_MODIFIER_CTRL;
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
+   EINA_LIST_FOREACH(edge_bindings, l, bind)
+     {
+	if (((bind->edge == ev->edge)) && (bind->delay == -1.0) &&
+	    ((bind->any_mod) || (bind->mod == mod)))
+	  {
+	     if (_e_bindings_context_match(bind->ctxt, ctxt))
+	       {
+		  act = e_action_find(bind->action);
+		  if (act)
+		    {
+		       if (act->func.go_edge)
+			 act->func.go_edge(obj, bind->params, ev);
+		       else if (act->func.go)
+			 act->func.go(obj, bind->params);
+		    }
+	       }
+	  }
+     }
+   return act;
+}
+
+EAPI E_Action *
+e_bindings_edge_up_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Zone_Edge *ev)
+{
+   E_Binding_Modifier mod = 0;
+   E_Binding_Edge *bind;
+   E_Action *act = NULL;
+   Eina_List *l;
+
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT) mod |= E_BINDING_MODIFIER_SHIFT;
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_CTRL) mod |= E_BINDING_MODIFIER_CTRL;
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
+   if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN) mod |= E_BINDING_MODIFIER_WIN;
+   EINA_LIST_FOREACH(edge_bindings, l, bind)
+     {
+	if ((bind->edge == ev->edge) && (bind->delay == -1.0) &&
+	      ((bind->any_mod) || (bind->mod == mod)))
+	  {
+	     if (_e_bindings_context_match(bind->ctxt, ctxt))
+	       {
 		  act = e_action_find(bind->action);
 		  if (act && act->func.end)
 		    act->func.end(obj, bind->params);

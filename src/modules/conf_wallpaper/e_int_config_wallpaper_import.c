@@ -204,7 +204,7 @@ e_int_config_wallpaper_import(void *data, const char *path)
 
    e_widget_list_object_append(o, ot, 0, 0, 0.5);
 
-   e_widget_min_size_get(o, &w, &h);
+   e_widget_size_min_get(o, &w, &h);
    edje_extern_object_min_size_set(o, w, h);
    edje_object_part_swallow(import->bg_obj, "e.swallow.content", o);
    evas_object_show(o);
@@ -220,7 +220,7 @@ e_int_config_wallpaper_import(void *data, const char *path)
    e_win_centered_set(win, 1);
 
    o = import->box_obj;
-   e_widget_min_size_get(o, &w, &h);
+   e_widget_size_min_get(o, &w, &h);
    edje_extern_object_min_size_set(o, w, h);
    edje_object_part_swallow(import->bg_obj, "e.swallow.buttons", o);
 
@@ -250,6 +250,7 @@ e_int_config_wallpaper_fsel(E_Config_Dialog *parent)
    Evas_Coord w, h;
    Evas_Modifier_Mask mask;
    const char *fdev, *fpath;
+   char buf[4096];
 
    fsel = E_NEW(FSel, 1);
    if (!fsel) return NULL;
@@ -306,23 +307,29 @@ e_int_config_wallpaper_fsel(E_Config_Dialog *parent)
    fsel->content_obj = o;
 
    fdev = e_config->wallpaper_import_last_dev;
-   fpath = e_config->wallpaper_import_last_path;
+   snprintf(buf, sizeof(buf), "%s%s",fdev,e_config->wallpaper_import_last_path);
+
+   if(!ecore_file_exists(ecore_file_realpath(buf)))
+     fpath = "/";
+   else
+     fpath = e_config->wallpaper_import_last_path;
+
    if ((!fdev) && (!fpath))
      {
 	fdev = "~/";
 	fpath = "/";
      }
+
    ofm = e_widget_fsel_add(evas, fdev, fpath, NULL, NULL, NULL, NULL,
 			   NULL, NULL, 1);
    e_widget_fsel_window_object_set(ofm, E_OBJECT(win));
    fsel->fsel_obj = ofm;
    e_widget_list_object_append(o, ofm, 1, 1, 0.5);
 
-   e_widget_min_size_get(o, &w, &h);
+   e_widget_size_min_get(o, &w, &h);
    edje_extern_object_min_size_set(o, w, h);
    edje_object_part_swallow(fsel->bg_obj, "e.swallow.content", o);
    evas_object_show(o);
-
 
    fsel->ok_obj = e_widget_button_add(evas, _("OK"), NULL,
 					_fsel_cb_ok, win, NULL);
@@ -335,10 +342,9 @@ e_int_config_wallpaper_fsel(E_Config_Dialog *parent)
    e_win_centered_set(win, 1);
 
    o = fsel->box_obj;
-   e_widget_min_size_get(o, &w, &h);
+   e_widget_size_min_get(o, &w, &h);
    edje_extern_object_min_size_set(o, w, h);
    edje_object_part_swallow(fsel->bg_obj, "e.swallow.buttons", o);
-
 
    edje_object_size_min_calc(fsel->bg_obj, &w, &h);
    evas_object_resize(fsel->bg_obj, w, h);
@@ -615,10 +621,8 @@ _import_cb_edje_cc_exit(void *data, int type, void *event)
    e_int_config_wallpaper_import_del(import->win);
    if (fsel)
      {
-	if (r && fsel->parent)
-	  {
-	     e_int_config_wallpaper_update(fsel->parent, fdest);
-	  }
+	if ((r) && (fsel->parent))
+          e_int_config_wallpaper_update(fsel->parent, fdest);
 	e_int_config_wallpaper_fsel_del(fsel->win);
      }
    else
@@ -718,7 +722,7 @@ _import_cb_ok(void *data, void *data2)
    e_int_config_wallpaper_import_del(win);
    if (fsel)
      {
-	if (r && fsel->parent)
+	if ((r) && (fsel->parent))
 	  e_int_config_wallpaper_update(fsel->parent, buf);
 	e_int_config_wallpaper_fsel_del(fsel->win);
      }
@@ -780,20 +784,18 @@ _fsel_cb_ok(void *data, void *data2)
 	file = ecore_file_file_get(path);
 	e_user_dir_snprintf(buf, sizeof(buf), "backgrounds/%s", file);
 
-	is_bg = edje_file_group_exists(path,
-	      "e/desktop/background");
+	is_bg = edje_file_group_exists(path, "e/desktop/background");
 	is_theme =
-	   edje_file_group_exists(path,
-		 "e/widgets/border/default/border");
+          edje_file_group_exists(path, "e/widgets/border/default/border");
 
 	if ((is_bg) && (!is_theme))
 	  {
 	     if (!ecore_file_cp(path, buf))
 	       {
 		  e_util_dialog_show(_("Wallpaper Import Error"),
-			_("Enlightenment was unable to "
-			   "import the wallpaper<br>due to a "
-			   "copy error."));
+                                     _("Enlightenment was unable to "
+                                       "import the wallpaper<br>due to a "
+                                       "copy error."));
 	       }
 	     else
 	       r = 1;
@@ -801,13 +803,13 @@ _fsel_cb_ok(void *data, void *data2)
 	else
 	  {
 	     e_util_dialog_show(_("Wallpaper Import Error"),
-		   _("Enlightenment was unable to "
-		      "import the wallpaper.<br><br>"
-		      "Are you sure this is a valid "
-		      "wallpaper?"));
+                                _("Enlightenment was unable to "
+                                  "import the wallpaper.<br><br>"
+                                  "Are you sure this is a valid "
+                                  "wallpaper?"));
 	  }
 
-	if (r && fsel->parent)
+	if ((r) && (fsel->parent))
 	  e_int_config_wallpaper_update(fsel->parent, buf);
 	e_int_config_wallpaper_fsel_del(fsel->win);
      }

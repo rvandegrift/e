@@ -310,7 +310,7 @@ _e_kbd_int_matches_update(E_Kbd_Int *ki)
 	for (i = 0, l = matches; l; l = l->next, i++)
 	  {
 	     _e_kbd_int_matches_add(ki, l->data, i);
-	     e_box_min_size_get(ki->box_obj, &mw, &mh);
+	     e_box_size_min_get(ki->box_obj, &mw, &mh);
 	     edje_object_part_geometry_get(ki->base_obj, "e.swallow.label", 
 					   NULL, NULL, &vw, &vh);
 	     if (mw > vw) break;
@@ -330,7 +330,7 @@ _e_kbd_int_matches_update(E_Kbd_Int *ki)
 	  }
      }
    e_box_thaw(ki->box_obj);
-   e_box_min_size_get(ki->box_obj, &mw, &mh);
+   e_box_size_min_get(ki->box_obj, &mw, &mh);
    edje_extern_object_min_size_set(ki->box_obj, 0, mh);
    edje_object_part_swallow(ki->base_obj, "e.swallow.label", ki->box_obj);
    evas_event_thaw(ki->win->evas);
@@ -440,6 +440,16 @@ _e_kbd_int_key_press_handle(E_Kbd_Int *ki, Evas_Coord dx, Evas_Coord dy)
 static void
 _e_kbd_int_stroke_handle(E_Kbd_Int *ki, int dir)
 {
+   /* If the keyboard direction is RTL switch dir 3 and 1
+    * i.e, make forward backwards and the other way around */
+   if (ki->layout.direction == E_KBD_INT_DIRECTION_RTL)
+     {
+        if (dir == 3)
+		dir = 1;
+	else if (dir == 1)
+		dir = 3;
+     }
+     
    if (dir == 4) // up
      {
 	_e_kbd_int_layout_next(ki);
@@ -897,6 +907,10 @@ _e_kbd_int_layout_parse(E_Kbd_Int *ki, const char *layout)
    if (!f) return;
    ki->layout.directory = ecore_file_dir_get(layout);
    ki->layout.file = eina_stringshare_add(layout);
+
+   /* Make the default direction LTR */
+   ki->layout.direction = E_KBD_INT_DIRECTION_LTR;
+   
    while (fgets(buf, sizeof(buf), f))
      {
 	int len;
@@ -922,6 +936,17 @@ _e_kbd_int_layout_parse(E_Kbd_Int *ki, const char *layout)
 	if (!strcmp(str, "fuzz"))
 	  {
 	     sscanf(buf, "%*s %i\n", &(ki->layout.fuzz));
+	     continue;
+	  }
+	if (!strcmp(str, "direction"))
+	  {
+	     char direction[4];
+	     sscanf(buf, "%*s %3s\n", direction);
+	     /* If rtl mark as rtl, otherwise make it ltr */
+	     if (!strcmp(direction, "rtl"))
+	     	ki->layout.direction = E_KBD_INT_DIRECTION_RTL;
+	     else
+	     	ki->layout.direction = E_KBD_INT_DIRECTION_LTR;
 	     continue;
 	  }
 	if (!strcmp(str, "key"))

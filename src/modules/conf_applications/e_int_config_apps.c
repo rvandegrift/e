@@ -27,7 +27,7 @@ static Eina_List *_load_menu(const char *path);
 static Eina_List *_load_order(const char *path);
 static void _fill_apps(E_Config_Dialog_Data *cfdata);
 static void _fill_list(E_Config_Dialog_Data *cfdata);
-static int _cb_sort_desks(Efreet_Desktop *d1, Efreet_Desktop *d2);
+static int _cb_sort_desks(const void *d1, const void *d2);
 static void _all_list_cb_change(void *data, Evas_Object *obj);
 static void _sel_list_cb_change(void *data, Evas_Object *obj);
 static void _all_list_cb_selected(void *data);
@@ -48,7 +48,7 @@ e_int_config_apps_favs(E_Container *con, const char *params __UNUSED__)
    e_user_dir_concat_static(buf, "applications/menu/favorite.menu");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("Favorites Menu"));
-   data->dialog = eina_stringshare_add("_config_apps_favs_dialog");
+   data->dialog = eina_stringshare_add("menus/favorites_menu");
    data->icon = eina_stringshare_add("user-bookmarks");
    data->filename = eina_stringshare_add(buf);
 
@@ -102,7 +102,7 @@ e_int_config_apps_ibar(E_Container *con, const char *params __UNUSED__)
    e_user_dir_concat_static(buf, "applications/bar/default/.order");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("IBar Applications"));
-   data->dialog = eina_stringshare_add("_config_apps_ibar_dialog");
+   data->dialog = eina_stringshare_add("applications/ibar_applications");
    data->icon = eina_stringshare_add("preferences-applications-ibar");
    data->filename = eina_stringshare_add(buf);
 
@@ -117,7 +117,7 @@ e_int_config_apps_ibar_other(E_Container *con, const char *path)
    if (!path) return NULL;
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("IBar Applications"));
-   data->dialog = eina_stringshare_add("_config_apps_ibar_dialog");
+   data->dialog = eina_stringshare_add("internal/ibar_other");
    data->icon = eina_stringshare_add("preferences-applications-ibar");
    data->filename = eina_stringshare_add(path);
 
@@ -133,7 +133,7 @@ e_int_config_apps_startup(E_Container *con, const char *params __UNUSED__)
    e_user_dir_concat_static(buf, "applications/startup/.order");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("Startup Applications"));
-   data->dialog = eina_stringshare_add("_config_apps_startup_dialog");
+   data->dialog = eina_stringshare_add("applications/startup_applications");
    data->icon = eina_stringshare_add("preferences-applications-startup");
    data->filename = eina_stringshare_add(buf);
 
@@ -149,7 +149,7 @@ e_int_config_apps_restart(E_Container *con, const char *params __UNUSED__)
    e_user_dir_concat_static(buf, "applications/restart/.order");
    data = E_NEW(E_Config_Data, 1);
    data->title = eina_stringshare_add(_("Restart Applications"));
-   data->dialog = eina_stringshare_add("_config_apps_restart_dialog");
+   data->dialog = eina_stringshare_add("applications/restart_applications");
    data->icon = eina_stringshare_add("preferences-applications-restart");
    data->filename = eina_stringshare_add(buf);
 
@@ -380,8 +380,8 @@ _fill_apps(E_Config_Dialog_Data *cfdata)
    e_widget_ilist_thaw(cfdata->o_all);
    edje_thaw();
    evas_event_thaw(evas);
-   e_widget_min_size_get(cfdata->o_all, &w, NULL);
-   e_widget_min_size_set(cfdata->o_all, w, 240);
+   e_widget_size_min_get(cfdata->o_all, &w, NULL);
+   e_widget_size_min_set(cfdata->o_all, w, 240);
 }
 
 static void 
@@ -409,8 +409,8 @@ _fill_list(E_Config_Dialog_Data *cfdata)
    
    cfdata->apps = NULL;
    e_widget_ilist_go(cfdata->o_sel);
-   e_widget_min_size_get(cfdata->o_sel, &w, NULL);
-   e_widget_min_size_set(cfdata->o_sel, w, 240);
+   e_widget_size_min_get(cfdata->o_sel, &w, NULL);
+   e_widget_size_min_set(cfdata->o_sel, w, 240);
    e_widget_ilist_thaw(cfdata->o_sel);
    edje_thaw();
    evas_event_thaw(evas);
@@ -418,8 +418,11 @@ _fill_list(E_Config_Dialog_Data *cfdata)
 }
 
 static int 
-_cb_sort_desks(Efreet_Desktop *d1, Efreet_Desktop *d2) 
+_cb_sort_desks(const void *data1, const void *data2) 
 {
+   const Efreet_Desktop *d1 = data1;
+   const Efreet_Desktop *d2 = data2;
+   
    if (!d1->name) return 1;
    if (!d2->name) return -1;
    return strcmp(d1->name, d2->name);
@@ -518,8 +521,8 @@ _cb_add(void *data, void *data2)
      }
 
    e_widget_ilist_go(cfdata->o_sel);
-   e_widget_min_size_get(cfdata->o_sel, &w, NULL);
-   e_widget_min_size_set(cfdata->o_sel, w, 240);
+   e_widget_size_min_get(cfdata->o_sel, &w, NULL);
+   e_widget_size_min_set(cfdata->o_sel, w, 240);
    e_widget_ilist_thaw(cfdata->o_sel);
    e_widget_ilist_unselect(cfdata->o_all);
    edje_thaw();
@@ -549,8 +552,8 @@ _cb_del(void *data, void *data2)
      }
    e_widget_ilist_unselect(cfdata->o_sel);
    e_widget_ilist_go(cfdata->o_sel);
-   e_widget_min_size_get(cfdata->o_sel, &w, NULL);
-   e_widget_min_size_set(cfdata->o_sel, w, 240);
+   e_widget_size_min_get(cfdata->o_sel, &w, NULL);
+   e_widget_size_min_set(cfdata->o_sel, w, 240);
    e_widget_ilist_thaw(cfdata->o_sel);
    edje_thaw();
    evas_event_thaw(evas);
@@ -589,8 +592,8 @@ _cb_up(void *data, void *data2)
 	  }
      }
    e_widget_ilist_go(cfdata->o_sel);
-   e_widget_min_size_get(cfdata->o_sel, &w, NULL);
-   e_widget_min_size_set(cfdata->o_sel, w, 240);
+   e_widget_size_min_get(cfdata->o_sel, &w, NULL);
+   e_widget_size_min_set(cfdata->o_sel, w, 240);
    e_widget_ilist_thaw(cfdata->o_sel);
    edje_thaw();
    evas_event_thaw(evas);
@@ -629,8 +632,8 @@ _cb_down(void *data, void *data2)
 	  }
      }
    e_widget_ilist_go(cfdata->o_sel);
-   e_widget_min_size_get(cfdata->o_sel, &w, NULL);
-   e_widget_min_size_set(cfdata->o_sel, w, 240);
+   e_widget_size_min_get(cfdata->o_sel, &w, NULL);
+   e_widget_size_min_set(cfdata->o_sel, w, 240);
    e_widget_ilist_thaw(cfdata->o_sel);
    edje_thaw();
    evas_event_thaw(evas);

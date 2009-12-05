@@ -126,13 +126,12 @@ EAPI E_Container *
 e_util_container_number_get(int num)
 {
    Eina_List *l;
+   E_Manager *man;
 
-   for (l = e_manager_list(); l; l = l->next)
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
      {
-	E_Manager *man;
 	E_Container *con;
 
-	man = l->data;
 	con = e_container_number_get(man, num);
 	if (con) return con;
      }
@@ -478,7 +477,7 @@ _e_util_menu_item_fdo_icon_set(E_Menu_Item *mi, const char *icon)
    unsigned int size;
 
    if ((!icon) || (!icon[0])) return 0;
-   size = e_util_icon_size_normalize(16 * e_scale);
+   size = e_util_icon_size_normalize(24 * e_scale);
    path = efreet_icon_path_find(e_config->icon_theme, icon, size);
    if (!path) return 0;
    e_menu_item_icon_file_set(mi, path);
@@ -507,17 +506,13 @@ EAPI E_Container *
 e_util_container_window_find(Ecore_X_Window win)
 {
    Eina_List *l, *ll;
+   E_Manager *man;
+   E_Container *con;
 
-   for (l = e_manager_list(); l; l = l->next)
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
      {
-	E_Manager *man;
-
-	man = l->data;
-	for (ll = man->containers; ll; ll = ll->next)
+	EINA_LIST_FOREACH(man->containers, ll, con)
           {
-	     E_Container *con;
-
-	     con = ll->data;
 	     if ((con->win == win) || (con->bg_win == win) ||
 		 (con->event_win == win))
 	       return con;
@@ -529,7 +524,7 @@ e_util_container_window_find(Ecore_X_Window win)
 EAPI E_Border *
 e_util_desk_border_above(E_Border *bd)
 {
-   E_Border *above = NULL;
+   E_Border *bd2, *above = NULL;
    Eina_List *l;
    int pos, i;
 
@@ -543,11 +538,10 @@ e_util_desk_border_above(E_Border *bd)
    else if ((bd->layer > 150) && (bd->layer <= 200)) pos = 4;
    else pos = 5;
 
-   for (l = eina_list_data_find_list(bd->zone->container->layers[pos].clients, bd);
-	(l) && (l->next) && (!above);
-	l = l->next)
+   EINA_LIST_FOREACH(eina_list_data_find_list(bd->zone->container->layers[pos].clients, bd), l, bd2)
      {
-	above = l->next->data;
+	if(!eina_list_next(l) || above) break;
+	above = eina_list_data_get(eina_list_next(l));
 	if ((above->desk != bd->desk) && (!above->sticky))
 	  above = NULL;
      }
@@ -556,11 +550,10 @@ e_util_desk_border_above(E_Border *bd)
 	/* Need to check the layers above */
 	for (i = pos + 1; (i < 7) && (!above); i++)
 	  {
-	     for (l = bd->zone->container->layers[i].clients;
-		  (l) && (!above);
-		  l = l->next)
+	     EINA_LIST_FOREACH(bd->zone->container->layers[i].clients, l, bd2)
 	       {
-		  above = l->data;
+		  if (above) break;
+		  above = bd2;
 		  if ((above->desk != bd->desk) && (!above->sticky))
 		    above = NULL;
 	       }
@@ -572,7 +565,7 @@ e_util_desk_border_above(E_Border *bd)
 EAPI E_Border *
 e_util_desk_border_below(E_Border *bd)
 {
-   E_Border *below = NULL;
+   E_Border *below = NULL, *bd2;
    Eina_List *l;
    int pos, i;
 
@@ -586,11 +579,10 @@ e_util_desk_border_below(E_Border *bd)
    else if ((bd->layer > 150) && (bd->layer <= 200)) pos = 4;
    else pos = 5;
 
-   for (l = eina_list_data_find_list(bd->zone->container->layers[pos].clients, bd);
-	(l) && (l->prev) && (!below);
-	l = l->prev)
+   for (l = eina_list_data_find_list(bd->zone->container->layers[pos].clients, bd); l; l = l->prev)
      {
-	below = l->prev->data;
+        if (!eina_list_prev(l) || below) break;
+	below = eina_list_data_get(eina_list_prev(l));
 	if ((below->desk != bd->desk) && (!below->sticky))
 	  below = NULL;
      }
@@ -601,11 +593,11 @@ e_util_desk_border_below(E_Border *bd)
 	  {
 	     if (bd->zone->container->layers[i].clients)
 	       {
-		  for (l = eina_list_last(bd->zone->container->layers[i].clients);
-		       (l) && (!below);
-		       l = l->prev)
+		  l = eina_list_data_find_list(bd->zone->container->layers[pos].clients, bd);
+		  for (; l && !below; l = l->prev)
 		    {
-		       below = l->data;
+		       bd2 = l->data;
+		       below = bd2;
 		       if ((below->desk != bd->desk) && (!below->sticky))
 			 below = NULL;
 		    }
@@ -620,11 +612,12 @@ EAPI int
 e_util_edje_collection_exists(const char *file, const char *coll)
 {
    Eina_List *clist, *l;
+   char *str;
 
    clist = edje_file_collection_list(file);
-   for (l = clist; l; l = l->next)
+   EINA_LIST_FOREACH(clist, l, str)
      {
-	if (!strcmp(coll, l->data))
+	if (!strcmp(coll, str))
 	  {
 	     edje_file_collection_list_free(clist);
 	     return 1;
@@ -916,6 +909,7 @@ e_util_icon_add(const char *path, Evas *evas)
    if (!ecore_file_exists(path)) return NULL;
 
    o = e_icon_add(evas);
+   e_icon_preload_set(o, 1);
    ext = strrchr(path, '.');
    if (ext)
      {
@@ -1072,6 +1066,102 @@ e_util_win_auto_resize_fill(E_Win *win)
         w = _win_auto_size_calc(w, win->min_w);
         h = _win_auto_size_calc(h, win->min_h);
         e_win_resize(win, w, h);
+     }
+}
+
+EAPI void
+e_util_zone_edge_toggle(E_Zone_Edge edge, Eina_Bool show)
+{
+   
+   Eina_List *l, *ll, *lll;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
+
+   /* Update all zones to show the edge */
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
+     {
+	EINA_LIST_FOREACH(man->containers, ll, con)
+	  {
+	     EINA_LIST_FOREACH(con->zones, lll, zone)
+	       {
+		  switch(edge)
+		    {
+		     case E_ZONE_EDGE_LEFT:
+			if (show)
+			  ecore_x_window_show(zone->edge.left);
+			else
+			  ecore_x_window_hide(zone->edge.left);
+			break;
+		     case E_ZONE_EDGE_TOP:
+			if (show)
+			  ecore_x_window_show(zone->edge.top);
+			else
+			  ecore_x_window_hide(zone->edge.top);
+			break;
+		     case E_ZONE_EDGE_RIGHT:
+			if (show)
+			  ecore_x_window_show(zone->edge.right);
+			else
+			  ecore_x_window_hide(zone->edge.right);
+			break;
+		     case E_ZONE_EDGE_BOTTOM:
+			if (show)
+			  ecore_x_window_show(zone->edge.bottom);
+			else
+			  ecore_x_window_hide(zone->edge.bottom);
+			break;
+		     case E_ZONE_EDGE_TOP_LEFT:
+			if (show)
+			  {
+			     ecore_x_window_show(zone->corner.top_left);
+			     ecore_x_window_show(zone->corner.left_top);
+			  }
+			else
+			  {
+			     ecore_x_window_hide(zone->corner.top_left);
+			     ecore_x_window_hide(zone->corner.left_top);
+			  }
+			break;
+		     case E_ZONE_EDGE_TOP_RIGHT:
+			if (show)
+			  {
+			     ecore_x_window_show(zone->corner.top_right);
+			     ecore_x_window_show(zone->corner.right_top);
+			  }
+			else
+			  {
+			     ecore_x_window_hide(zone->corner.top_right);
+			     ecore_x_window_hide(zone->corner.right_top);
+			  }
+			break;
+		     case E_ZONE_EDGE_BOTTOM_RIGHT:
+			if (show)
+			  {
+			     ecore_x_window_show(zone->corner.bottom_right);
+			     ecore_x_window_show(zone->corner.right_bottom);
+			  }
+			else
+			  {
+			     ecore_x_window_hide(zone->corner.bottom_right);
+			     ecore_x_window_hide(zone->corner.right_bottom);
+			  }
+			break;
+		     case E_ZONE_EDGE_BOTTOM_LEFT:
+			if (show)
+			  {
+			     ecore_x_window_show(zone->corner.bottom_left);
+			     ecore_x_window_show(zone->corner.left_bottom);
+			  }
+			else
+			  {
+			     ecore_x_window_hide(zone->corner.bottom_left);
+			     ecore_x_window_hide(zone->corner.left_bottom);
+			  }
+			break;
+		    }
+	       }
+	  }
      }
 }
 

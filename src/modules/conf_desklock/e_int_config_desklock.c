@@ -79,7 +79,7 @@ e_int_config_desklock(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_desklock_dialog")) return NULL;
+   if (e_config_dialog_find("E", "screen/screen_lock")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
    if (!v) return NULL;
    v->create_cfdata = _create_data;
@@ -94,7 +94,7 @@ e_int_config_desklock(E_Container *con, const char *params __UNUSED__)
    v->override_auto_apply = 1;
 
    cfd = e_config_dialog_new(con, _("Screen Lock Settings"), "E",
-			     "_config_desklock_dialog", "preferences-desklock",
+			     "screen/screen_lock", "preferences-desklock",
 			     0, v, NULL);
    return cfd;
 }
@@ -345,7 +345,7 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 					       e_fm2_pan_get,
 					       e_fm2_pan_max_get,
 					       e_fm2_pan_child_size_get);
-   e_widget_min_size_set(cfdata->o_sf, 100, 100);
+   e_widget_size_min_set(cfdata->o_sf, 100, 100);
    e_widget_table_object_append(ft, cfdata->o_sf, 0, 2, 1, 1, 1, 1, 1, 1);
    e_widget_table_object_append(mt, ft, 0, 0, 1, 3, 1, 1, 1, 1);
 

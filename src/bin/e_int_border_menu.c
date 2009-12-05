@@ -143,7 +143,10 @@ e_int_border_menu_create(E_Border *bd)
 	  (bd->client.icccm.min_h == bd->client.icccm.max_h)) ||
 	 (bd->lock_user_maximize)))
      {
-	if ((!bd->lock_user_maximize) && (!bd->shaded) && (!bd->fullscreen))
+	if ((!bd->lock_user_maximize) && (!bd->shaded) && (!bd->fullscreen) && 
+            ((bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL) ||
+             (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UNKNOWN))
+            )
 	  {
 	     separator = 0;
 	     mi = e_menu_item_new(m);
@@ -158,7 +161,10 @@ e_int_border_menu_create(E_Border *bd)
 
    if (!bd->internal)
      {
-	if ((!bd->lock_user_iconify) && (!bd->fullscreen))
+	if ((!bd->lock_user_iconify) && (!bd->fullscreen) && 
+            ((bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL) ||
+             (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UNKNOWN))
+            )
 	  {
 	     separator = 0;
 	     mi = e_menu_item_new(m);
@@ -672,7 +678,7 @@ _e_border_menu_cb_skip_winlist(void *data, E_Menu *m, E_Menu_Item *mi)
    else
      bd->user_skip_winlist = 0;
    bd->changed = 1;
-   if (bd->remember) e_remember_update(bd->remember, bd);
+   e_remember_update(bd);
 }
 
 static void
@@ -687,7 +693,7 @@ _e_border_menu_cb_skip_pager(void *data, E_Menu *m, E_Menu_Item *mi)
    else
      bd->client.netwm.state.skip_pager = 0;
    bd->changed = 1;
-   if (bd->remember) e_remember_update(bd->remember, bd);
+   e_remember_update(bd);
 }
 
 static void
@@ -702,7 +708,7 @@ _e_border_menu_cb_skip_taskbar(void *data, E_Menu *m, E_Menu_Item *mi)
    else
      bd->client.netwm.state.skip_taskbar = 0;
    bd->changed = 1;
-   if (bd->remember) e_remember_update(bd->remember, bd);
+   e_remember_update(bd);
 }
 
 static void 
@@ -1032,7 +1038,10 @@ _e_border_menu_cb_state_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 				  "e/widgets/border/default/stick");
      }
 
-   if ((!bd->lock_user_fullscreen) && (!bd->shaded))
+   if ((!bd->lock_user_fullscreen) && (!bd->shaded) && 
+       ((bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL) ||
+        (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UNKNOWN))
+       )
      {
 	submi = e_menu_item_new(subm);
 	e_menu_item_label_set(submi, _("Fullscreen"));
