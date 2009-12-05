@@ -30,18 +30,18 @@ e_int_config_icon_themes(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_icon_theme_dialog")) return NULL;
+   if (e_config_dialog_find("E", "appearance/icon_theme")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
 
-   v->create_cfdata           = _create_data;
-   v->free_cfdata             = _free_data;
-   v->basic.create_widgets    = _basic_create_widgets;
-   v->basic.apply_cfdata      = _basic_apply_data;
-   v->basic.check_changed     = _basic_check_changed;
+   v->create_cfdata = _create_data;
+   v->free_cfdata = _free_data;
+   v->basic.create_widgets = _basic_create_widgets;
+   v->basic.apply_cfdata = _basic_apply_data;
+   v->basic.check_changed = _basic_check_changed;
 
    cfd = e_config_dialog_new(con,
 			     _("Icon Theme Settings"),
-			     "E", "_config_icon_theme_dialog",
+			     "E", "appearance/icon_theme",
 			     "preferences-icon-theme", 0, v, NULL);
    return cfd;
 }
@@ -191,7 +191,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    ilist = e_widget_ilist_add(evas, 24, 24, &(cfdata->themename));
    cfdata->gui.list = ilist;
 
-   e_widget_min_size_set(ilist, 200, 240);
+   e_widget_size_min_set(ilist, 200, 240);
 
    e_widget_framelist_object_append(of, ilist);
 

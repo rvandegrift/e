@@ -24,12 +24,14 @@ static Ecore_Idler *_e_module_idler = NULL;
 static Eina_List *_e_modules_delayed = NULL;
 
 EAPI int E_EVENT_MODULE_UPDATE = 0;
+EAPI int E_EVENT_MODULE_INIT_END = 0;
 
 /* externally accessible functions */
 EAPI int
 e_module_init(void)
 {
    E_EVENT_MODULE_UPDATE = ecore_event_type_new();
+   E_EVENT_MODULE_INIT_END = ecore_event_type_new();
    return 1;
 }
 
@@ -37,7 +39,7 @@ EAPI int
 e_module_shutdown(void)
 {
    E_Module *m;
-
+   
 #ifdef HAVE_VALGRIND
    /* do a leak check now before we dlclose() all those plugins, cause
     * that means we won't get a decent backtrace to leaks in there
@@ -45,10 +47,11 @@ e_module_shutdown(void)
    VALGRIND_DO_LEAK_CHECK
 #endif
 
-   _e_modules = eina_list_reverse(_e_modules);
-
-   EINA_LIST_FREE(_e_modules, m)
+   /* do not use EINA_LIST_FREE! e_object_del modifies list */
+   while (_e_modules)
      {
+	m = _e_modules->data;
+	
 	if (m && m->enabled && !m->error)
 	  {
 	     m->func.save(m);
@@ -90,6 +93,11 @@ e_module_all_load(void)
 	     if (m) e_module_enable(m);
 	  }
      }
+   
+   if (!_e_modules_delayed)
+     {
+	ecore_event_add(E_EVENT_MODULE_INIT_END, NULL, NULL, NULL);
+     }
 }
 
 EAPI E_Module *
@@ -101,6 +109,7 @@ e_module_new(const char *name)
    const char *modpath;
    char *s;
    Eina_List *l;
+   E_Config_Module *em;
    int in_list = 0;
 
    if (!name) return NULL;
@@ -199,11 +208,9 @@ init_done:
 	       }
 	  }
      }
-   for (l = e_config->modules; l; l = l->next)
+   EINA_LIST_FOREACH(e_config->modules, l, em)
      {
-	E_Config_Module *em;
-
-	if (!(em = l->data)) continue;
+	if (!em) continue;
 	if (!e_util_strcmp(em->name, m->name))
 	  {
 	     in_list = 1;
@@ -408,12 +415,10 @@ EAPI void
 e_module_delayed_set(E_Module *m, int delayed)
 {
    Eina_List *l;
+   E_Config_Module *em;
    
-   for (l = e_config->modules; l; l = l->next)
+   EINA_LIST_FOREACH(e_config->modules, l, em)
      {
-        E_Config_Module *em;
-	
-	em = l->data;
 	if (!em) continue;
 	if (!e_util_strcmp(m->name, em->name))
 	  {
@@ -433,12 +438,11 @@ e_module_priority_set(E_Module *m, int priority)
    /* Set the loading order for a module.
       More priority means load earlier */
    Eina_List *l;
+   E_Config_Module *em;
 
-   for (l = e_config->modules; l; l = l->next)
+   EINA_LIST_FOREACH(e_config->modules, l, em)
      {
-	E_Config_Module *em;
-
-	if (!(em = l->data)) continue;
+	if (!em) continue;
 	if (!e_util_strcmp(m->name, em->name))
 	  {
 	     if (em->priority != priority)
@@ -517,16 +521,6 @@ _e_module_cb_dialog_disable(void *data, E_Dialog *dia)
    e_config_save_queue();
 }
 
-static void 
-_e_module_event_update_free(void *data, void *event) 
-{
-   E_Event_Module_Update *ev;
-   
-   if (!(ev = event)) return;
-   E_FREE(ev->name);
-   E_FREE(ev);
-}
-
 static int
 _e_module_cb_idler(void *data)
 {
@@ -535,14 +529,21 @@ _e_module_cb_idler(void *data)
 	const char *name;
 	E_Module *m;
 
-	name = _e_modules_delayed->data;
+	name = eina_list_data_get(_e_modules_delayed);
 	_e_modules_delayed = eina_list_remove_list(_e_modules_delayed, _e_modules_delayed);
 	m = NULL;
 	if (name) m = e_module_new(name);
 	if (m) e_module_enable(m);
 	eina_stringshare_del(name);
      }
-   if (_e_modules_delayed) return 1;
+   if (_e_modules_delayed)
+     {
+       e_util_wakeup();
+       return 1;
+     }
+
+   ecore_event_add(E_EVENT_MODULE_INIT_END, NULL, NULL, NULL);
+
    _e_module_idler = NULL;
    return 0;
 }
@@ -555,4 +556,15 @@ _e_module_sort_priority(const void *d1, const void *d2)
    m1 = d1;
    m2 = d2;
    return (m2->priority - m1->priority);
+}
+
+
+static void 
+_e_module_event_update_free(void *data, void *event) 
+{
+   E_Event_Module_Update *ev;
+   
+   if (!(ev = event)) return;
+   E_FREE(ev->name);
+   E_FREE(ev);
 }

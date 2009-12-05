@@ -7,6 +7,10 @@
 #include "e.h"
 #include <X11/Xlib.h>
 
+#ifdef HAVE_EXECINFO_H
+# include <execinfo.h> 
+#endif
+
 static volatile Eina_Bool _e_x_composite_shutdown_try = 0;
 static void
 _e_x_composite_shutdown(void)
@@ -56,6 +60,17 @@ _e_gdb_print_backtrace(int fd)
    char cmd[1024];
    size_t size;
 
+   // FIXME: we are in a segv'd state. do as few function calls and things
+   // depending on a known working state as possible. this also prevents the
+   // white box allowing recovery or deeper gdbing, thus until this works
+   // properly, it's disabled (properly means always reliable, always
+   // printf bt and allows e to continue and pop up box, perferably allowing
+   // debugging in the gui etc. etc.
+   return;
+   
+   if (getenv("E_NO_GDB_BACKTRACE"))
+     return;
+
    size = snprintf(cmd, sizeof(cmd),
 		   "gdb --pid=%d "
 		   "-ex 'thread apply all bt' "
@@ -78,6 +93,8 @@ _e_backtrace_int(int fd, const char *msg, size_t msg_len)
    void *array[255];
    size_t size;
 
+   return; // disable. causes hangs and problems
+   
    _e_write_safe_int(fd, msg, msg_len);
    _e_write_safe(fd, "\nBEGIN TRACEBACK\n");
    size = backtrace(array, 255);

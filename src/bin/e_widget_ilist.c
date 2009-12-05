@@ -69,7 +69,7 @@ _queue_timer(void *data)
      {
         E_Widget_Queue_Item *qi;
 
-        qi = wd->queue.queue->data;
+        qi = eina_list_data_get(wd->queue.queue);
         if (qi->command == 0)
           {
              E_Widget_Callback *wcb, *rcb;
@@ -246,7 +246,7 @@ _queue_clear(Evas_Object *obj)
 
    wd = e_widget_data_get(obj);
    while (wd->queue.queue)
-     _queue_remove(obj, wd->queue.queue->data, 1);
+     _queue_remove(obj, eina_list_data_get(wd->queue.queue), 1);
    if (wd->queue.timer) ecore_timer_del(wd->queue.timer);
    wd->queue.timer = NULL;
 }
@@ -286,7 +286,7 @@ e_widget_ilist_add(Evas *evas, int icon_w, int icon_h, const char **value)
    evas_object_smart_callback_add(o, "selected", _e_wid_cb_selected, obj);
 
    evas_object_resize(obj, 32, 32);
-   e_widget_min_size_set(obj, 32, 32);
+   e_widget_size_min_set(obj, 32, 32);
    return obj;
 }
 
@@ -449,7 +449,7 @@ e_widget_ilist_go(Evas_Object *obj)
 
    wd = e_widget_data_get(obj);
    wd->o_widget = obj;
-   e_ilist_min_size_get(wd->o_ilist, &mw, &mh);
+   e_ilist_size_min_get(wd->o_ilist, &mw, &mh);
    evas_object_resize(wd->o_ilist, mw, mh);
    e_scrollframe_child_viewport_size_get(wd->o_scrollframe, &vw, &vh);
    evas_object_geometry_get(wd->o_scrollframe, NULL, NULL, &w, &h);
@@ -457,8 +457,8 @@ e_widget_ilist_go(Evas_Object *obj)
      {
 	Evas_Coord wmw, wmh;
 
-	e_widget_min_size_get(obj, &wmw, &wmh);
-	e_widget_min_size_set(obj, mw + (w - vw), wmh);
+	e_widget_size_min_get(obj, &wmw, &wmh);
+	e_widget_size_min_set(obj, mw + (w - vw), wmh);
      }
    else if (mw < vw)
      evas_object_resize(wd->o_ilist, vw,mh);
@@ -468,19 +468,16 @@ EAPI void
 e_widget_ilist_clear(Evas_Object *obj)
 {
    E_Widget_Data *wd;
+   E_Widget_Callback *wcb;
 
    wd = e_widget_data_get(obj);
    _queue_clear(obj);
    e_ilist_clear(wd->o_ilist);
    e_scrollframe_child_pos_set(wd->o_scrollframe, 0, 0);
-   while (wd->callbacks)
+   EINA_LIST_FREE(wd->callbacks, wcb)
      {
-	E_Widget_Callback *wcb;
-
-	wcb = wd->callbacks->data;
 	if (wcb->value) free(wcb->value);
 	free(wcb);
-	wd->callbacks = eina_list_remove_list(wd->callbacks, wd->callbacks);
      }
 }
 
@@ -729,7 +726,7 @@ e_widget_ilist_preferred_size_get(Evas_Object *obj, Evas_Coord *w, Evas_Coord *h
    evas_object_geometry_get(wd->o_scrollframe, NULL, NULL, &ww, &hh);
    evas_object_resize(wd->o_scrollframe, 200, 200);
    e_scrollframe_child_viewport_size_get(wd->o_scrollframe, &vw, &vh);
-   e_ilist_min_size_get(wd->o_ilist, &mw, &mh);
+   e_ilist_size_min_get(wd->o_ilist, &mw, &mh);
    evas_object_resize(wd->o_scrollframe, ww, hh);
    if (w) *w = 200 - vw + mw;
    if (h) *h = 200 - vh + mh;
@@ -739,17 +736,14 @@ static void
 _e_wid_del_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
+   E_Widget_Callback *wcb;
 
    wd = e_widget_data_get(obj);
    _queue_clear(obj);
-   while (wd->callbacks)
+   EINA_LIST_FREE(wd->callbacks, wcb)
      {
-	E_Widget_Callback *wcb;
-
-	wcb = wd->callbacks->data;
 	if (wcb->value) free(wcb->value);
 	free(wcb);
-	wd->callbacks = eina_list_remove_list(wd->callbacks, wd->callbacks);
      }
    free(wd);
 }
@@ -778,7 +772,7 @@ _e_wid_cb_scrollframe_resize(void *data, Evas *e, Evas_Object *obj, void *event_
    Evas_Coord mw, mh, vw, vh, w, h;
 
    e_scrollframe_child_viewport_size_get(obj, &vw, &vh);
-   e_ilist_min_size_get(data, &mw, &mh);
+   e_ilist_size_min_get(data, &mw, &mh);
    evas_object_geometry_get(data, NULL, NULL, &w, &h);
    if (vw >= mw)
      {

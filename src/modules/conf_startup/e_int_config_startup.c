@@ -27,7 +27,7 @@ e_int_config_startup(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
    
-   if (e_config_dialog_find("E", "_config_startup_dialog")) return NULL;
+   if (e_config_dialog_find("E", "appearance/startup")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
    
    v->create_cfdata = _create_data;
@@ -37,7 +37,7 @@ e_int_config_startup(E_Container *con, const char *params __UNUSED__)
    
    cfd = e_config_dialog_new(con,
 			     _("Startup Settings"),
-			     "E", "_config_startup_dialog",
+			     "E", "appearance/startup",
 			     "preferences-startup", 0, v, NULL);
    return cfd;
 }
@@ -319,7 +319,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 				     e_fm2_pan_max_get,
 				     e_fm2_pan_child_size_get);
    cfdata->o_frame = of;
-   e_widget_min_size_set(of, 160, 160);
+   e_widget_size_min_set(of, 160, 160);
    e_widget_table_object_append(ol, of, 0, 2, 1, 1, 1, 1, 1, 1);
    e_widget_table_object_append(ot, ol, 0, 0, 1, 1, 1, 1, 1, 1);
    

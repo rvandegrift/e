@@ -76,7 +76,7 @@ e_int_config_theme(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_theme_dialog")) return NULL;
+   if (e_config_dialog_find("E", "appearance/theme")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
 
    v->create_cfdata           = _create_data;
@@ -88,7 +88,7 @@ e_int_config_theme(E_Container *con, const char *params __UNUSED__)
    v->override_auto_apply = 1;
    cfd = e_config_dialog_new(con,
 			     _("Theme Selector"),
-			     "E", "_config_theme_dialog",
+			     "E", "appearance/theme",
 			     "preferences-desktop-theme", 0, v, NULL);
    return cfd;
 }
@@ -187,6 +187,8 @@ _cb_files_selection_change(void *data, Evas_Object *obj, void *event_info)
    if (cfdata->o_fm) e_widget_change(cfdata->o_fm);
 }
 
+#if 0
+/* FIXME unused */
 static void
 _cb_files_selected(void *data, Evas_Object *obj, void *event_info)
 {
@@ -194,6 +196,7 @@ _cb_files_selected(void *data, Evas_Object *obj, void *event_info)
 
    cfdata = data;
 }
+#endif
 
 static void
 _cb_files_files_changed(void *data, Evas_Object *obj, void *event_info)
@@ -287,10 +290,10 @@ _cb_import(void *data1, void *data2)
      cfdata->win_import = e_int_config_theme_import(cfdata->cfd);
 }
 
+#ifdef HAVE_EXCHANGE
 static void
 _cb_web(void *data1, void *data2)
 {
-#ifdef HAVE_EXCHANGE
    E_Config_Dialog_Data *cfdata;
 
    cfdata = data1;
@@ -298,8 +301,8 @@ _cb_web(void *data1, void *data2)
      e_win_raise(cfdata->dia_web->win);
    else
      cfdata->dia_web = e_int_config_theme_web(cfdata->cfd);
-#endif
 }
+#endif
 
 static void
 _fill_data(E_Config_Dialog_Data *cfdata)
@@ -421,7 +424,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 				  _cb_files_files_deleted, cfdata);
    e_widget_flist_path_set(o, path, "/");
 
-   e_widget_min_size_set(o, 160, 160);
+   e_widget_size_min_set(o, 160, 160);
    e_widget_table_object_append(ol, o, 0, 2, 1, 1, 1, 1, 1, 1);
    e_widget_table_object_append(ot, ol, 0, 0, 1, 1, 1, 1, 1, 1);
 
@@ -451,7 +454,8 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 	e_widget_preview_edje_set(o, cfdata->theme, "e/desktop/background");
       e_widget_aspect_child_set(oa, o);
       e_widget_list_object_append(of, oa, 1, 1, 0);
-
+      evas_object_show(o);
+      evas_object_show(oa);
    }
    e_widget_table_object_append(ot, of, 1, 0, 1, 1, 1, 1, 1, 1);
 
@@ -540,23 +544,16 @@ _get_theme_categories_list(void)
     */
    EINA_LIST_FOREACH(e_theme_category_list(), g, c)
      {
-	const char *result;
+	int res;
 
 	if (!c) continue;
 
-	cats2 = eina_list_search_sorted_near_list(cats, _cb_sort, c);
-	result = eina_list_data_get(cats2);
-	if (result)
-	  {
-	     int res;
-
-	     res = strcmp(c, result);
-	     if (!res) continue;
-	     if (res < 0)
-	       cats = eina_list_prepend_relative_list(cats, eina_stringshare_ref(c), cats2);
-	     else
-	       cats = eina_list_append_relative_list(cats, eina_stringshare_ref(c), cats2);
-	  }
+	cats2 = eina_list_search_sorted_near_list(cats, _cb_sort, c, &res);
+	if (!res) continue;
+	if (res < 0)
+	  cats = eina_list_prepend_relative_list(cats, eina_stringshare_ref(c), cats2);
+	else
+	  cats = eina_list_append_relative_list(cats, eina_stringshare_ref(c), cats2);
      }
 
    EINA_LIST_FREE(cats, category)
@@ -1006,7 +1003,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    e_widget_on_change_hook_set(ob, _cb_adv_categories_change, cfdata);
    cfdata->o_categories_ilist = ob;
    e_widget_ilist_multi_select_set(ob, 0);
-   e_widget_min_size_set(ob, 150, 250);
+   e_widget_size_min_set(ob, 150, 250);
    e_widget_framelist_object_append(of, ob);
    e_widget_table_object_append(ot, of, 0, 0, 1, 1, 1, 1, 0, 1);
 
@@ -1014,7 +1011,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    ob = e_widget_ilist_add(evas, 16, 16, NULL);
    e_widget_on_change_hook_set(ob, _cb_adv_theme_change, cfdata);
    cfdata->o_files_ilist = ob;
-   e_widget_min_size_set(ob, 150, 250);
+   e_widget_size_min_set(ob, 150, 250);
    e_widget_framelist_object_append(of, ob);
    e_widget_table_object_append(ot, of, 1, 0, 1, 1, 1, 1, 1, 1);
 

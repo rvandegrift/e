@@ -216,7 +216,7 @@ e_int_config_display(E_Container *con, const char *params __UNUSED__)
         return NULL;
      }
 
-   if (e_config_dialog_find("E", "_config_display_dialog")) return NULL;
+   if (e_config_dialog_find("E", "screen/screen_resolution")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
    v->create_cfdata = _create_data;
    v->free_cfdata = _free_data;
@@ -226,7 +226,7 @@ e_int_config_display(E_Container *con, const char *params __UNUSED__)
    v->override_auto_apply = 1;
 
    cfd = e_config_dialog_new(con, _("Screen Resolution Settings"),
-			     "E", "_config_display_dialog",
+			     "E", "screen/screen_resolution",
 			     "preferences-system-screen-resolution", 0, v, NULL);
    return cfd;
 }
@@ -281,7 +281,6 @@ _create_data(E_Config_Dialog *cfd)
 static void
 _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata) 
 {
-   Eina_List *l, *ll;
    Resolution *r;
 
    if (cfdata->surebox)
@@ -405,7 +404,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_framelist_add(evas, _("Resolution"), 0);   
    ob = e_widget_ilist_add(evas, 16, 16, NULL);
    cfdata->res_list = ob;
-   e_widget_min_size_set(ob, 170, 215);
+   e_widget_size_min_set(ob, 170, 215);
    e_widget_framelist_object_append(of, ob);
    e_widget_table_object_append(o, of, 0, 0, 1, 1, 1, 1, 1, 1);
 
@@ -416,7 +415,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_framelist_add(evas, _("Refresh"), 0);   
    ob = e_widget_ilist_add(evas, 16, 16, NULL);
    cfdata->rate_list = ob;
-   e_widget_min_size_set(ob, 100, 80);
+   e_widget_size_min_set(ob, 100, 80);
    e_widget_framelist_object_append(of, ob);
    e_widget_table_object_append(ot, of, 0, 0, 1, 1, 1, 1, 1, 1);
 

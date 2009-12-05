@@ -1,0 +1,32 @@
+MAINTAINERCLEANFILES = Makefile.in
+
+EET_EET = @eet_eet@
+
+EXTRA_DIST = \
+        profile.desktop \
+        icon.png \
+        e.src \
+	module.battery.src \
+	module.pager.src \
+	module.illume-home.src \
+	module.illume-keyboard.src \
+	module.illume-softkey.src
+
+filesdir = $(datadir)/enlightenment/data/config/illume-home
+files_DATA = \
+        profile.desktop \
+        icon.png \
+	e.cfg \
+	module.battery.cfg \
+	module.pager.cfg \
+	module.illume-home.cfg \
+        module.illume-keyboard.cfg \
+        module.illume-softkey.cfg
+
+%.cfg: %.src
+	$(EET_EET) -e \
+	$(top_builddir)/config/illume-home/$@ config \
+	$< 1
+
+clean-local:
+	rm -rf *.cfg *~

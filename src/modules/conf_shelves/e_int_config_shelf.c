@@ -33,7 +33,7 @@ e_int_config_shelf(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_shelf_dialog")) return NULL;
+   if (e_config_dialog_find("E", "extensions/shelves")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
    if (!v) return NULL; 
    v->create_cfdata = _create_data;
@@ -41,7 +41,7 @@ e_int_config_shelf(E_Container *con, const char *params __UNUSED__)
    v->basic.create_widgets = _basic_create;
 
    cfd = e_config_dialog_new(con, _("Shelf Settings"), "E", 
-			     "_config_shelf_dialog",
+			     "extensions/shelves",
 			     "preferences-desktop-shelf", 0, v, NULL);
    return cfd;
 }
@@ -71,7 +71,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    of = e_widget_framelist_add(evas, _("Configured Shelves"), 0);
    cfdata->o_list = e_widget_ilist_add(evas, 24, 24, &(cfdata->cur_shelf));
    e_widget_ilist_selector_set(cfdata->o_list, 1);
-   e_widget_min_size_set(cfdata->o_list, 155, 250);
+   e_widget_size_min_set(cfdata->o_list, 155, 250);
    e_widget_framelist_object_append(of, cfdata->o_list);   
    e_widget_list_object_append(o, of, 1, 1, 0.5);
 
@@ -179,7 +179,7 @@ _ilist_fill(E_Config_Dialog_Data *cfdata)
 			      _ilist_cb_selected, cfdata, buf);
      }
 
-   e_widget_min_size_set(cfdata->o_list, 155, 250);
+   e_widget_size_min_set(cfdata->o_list, 155, 250);
    e_widget_ilist_go(cfdata->o_list);
    e_widget_ilist_thaw(cfdata->o_list);
    edje_thaw();

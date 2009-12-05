@@ -6,7 +6,8 @@
 #define TEXT_NONE_ACTION_EDGE _("<None>")
 #define TEXT_PRESS_EDGE_SEQUENCE _("Please select an edge,<br>" \
       "or click <hilight>Close</hilight> to abort.<br><br>" \
-      "To change the delay of this action,<br>use the slider:" \
+      "You can either specify a delay of this<br> action using " \
+      "the slider, or make it<br>respond to edge clicks:" \
       )
 
 #define TEXT_NO_PARAMS _("<None>")
@@ -48,6 +49,7 @@ static void _edge_grab_wnd_show(E_Config_Dialog_Data *cfdata);
 static void _edge_grab_wnd_cb_apply(void *data, E_Dialog *dia);
 static void _edge_grab_wnd_cb_close(void *data, E_Dialog *dia);
 static void _edge_grab_wnd_slider_changed_cb(void *data, Evas_Object *obj);
+static void _edge_grab_wnd_check_changed_cb(void *data, Evas_Object *obj);
 static void _edge_grab_wnd_selected_edge_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _edge_grab_wnd_selection_apply(E_Config_Dialog_Data *cfdata);
 
@@ -64,6 +66,7 @@ struct _E_Config_Dialog_Data
 	char *params;
 	const char *cur;
 	double delay;
+	int click;
 	int cur_act, add;
 	E_Zone_Edge edge;
 	int modifiers;
@@ -74,7 +77,7 @@ struct _E_Config_Dialog_Data
      {
 	Evas_Object *o_add, *o_mod, *o_del, *o_del_all;
 	Evas_Object *o_binding_list, *o_action_list;
-	Evas_Object *o_params, *o_selector, *o_slider;
+	Evas_Object *o_params, *o_selector, *o_slider, *o_check;
      } gui;
 
    const char *params;
@@ -90,7 +93,7 @@ e_int_config_edgebindings(E_Container *con, const char *params)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_edgebindings_dialog")) return NULL;
+   if (e_config_dialog_find("E", "keyboard_and_mouse/edge_bindings")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
 
    v->create_cfdata = _create_data;
@@ -100,7 +103,7 @@ e_int_config_edgebindings(E_Container *con, const char *params)
    v->override_auto_apply = 1;
 
    cfd = e_config_dialog_new(con, _("Edge Binding Settings"), "E", 
-			     "_config_edgebindings_dialog",
+			     "keyboard_and_mouse/edge_bindings",
 			     "enlightenment/edges", 0, v, NULL);
    if ((params) && (params[0]))
      {
@@ -123,6 +126,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    cfdata->locals.cur = NULL;
    cfdata->locals.dia = NULL;
    cfdata->locals.delay = 0.3;
+   cfdata->locals.click = 0;
    cfdata->binding.edge = NULL;
 
    EINA_LIST_FOREACH(e_config->edge_bindings, l, bi)
@@ -180,15 +184,19 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 static int
 _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   Eina_List *l = NULL;
+   Eina_List *l, *ll, *lll;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
    E_Config_Binding_Edge *bi, *bi2;
+   int layer;
 
    _auto_apply_changes(cfdata);
 
    EINA_LIST_FREE(e_config->edge_bindings, bi)
      {
 	e_bindings_edge_del(bi->context, bi->edge, bi->modifiers, bi->any_mod, 
-			   bi->action, bi->params, bi->delay);
+	      bi->action, bi->params, bi->delay);
 	eina_stringshare_del(bi->action);
 	eina_stringshare_del(bi->params);
 	E_FREE(bi);
@@ -213,6 +221,24 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	e_bindings_edge_add(bi->context, bi->edge, bi->modifiers, bi->any_mod,
 			   bi->action, bi->params, bi->delay);
      }
+
+   if (cfdata->fullscreen_flip != e_config->fullscreen_flip)
+     {
+	if(cfdata->fullscreen_flip)
+	  layer = 250;
+	else
+	  layer = 200;
+
+	EINA_LIST_FOREACH(e_manager_list(), l, man)
+	  {
+	     EINA_LIST_FOREACH(man->containers, ll, con)
+	       {
+		  EINA_LIST_FOREACH(con->zones, lll, zone)
+		     e_zone_edge_win_layer_set(zone, layer);
+	       }
+	  }
+     }
+
    e_config->fullscreen_flip = cfdata->fullscreen_flip;
 
    e_config_save_queue();
@@ -232,7 +258,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_frametable_add(evas, _("Edge Bindings"), 0);
    ob = e_widget_ilist_add(evas, 32, 32, &(cfdata->locals.binding));
    cfdata->gui.o_binding_list = ob;   
-   e_widget_min_size_set(ob, 200, 160);
+   e_widget_size_min_set(ob, 200, 160);
    e_widget_frametable_object_append(of, ob, 0, 0, 2, 1, 1, 1, 1, 1);
    ob = e_widget_button_add(evas, _("Add Edge"), NULL, _add_edge_binding_cb, cfdata, NULL);
    cfdata->gui.o_add = ob;
@@ -257,7 +283,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_framelist_add(evas, _("Action"), 0);
    ob = e_widget_ilist_add(evas, 24, 24, &(cfdata->locals.action));
    cfdata->gui.o_action_list = ob;
-   e_widget_min_size_set(ob, 200, 240);
+   e_widget_size_min_set(ob, 200, 240);
    e_widget_framelist_object_append(of, ob);
    e_widget_table_object_append(ot, of, 0, 0, 1, 1, 1, 1, 1, 1);
    
@@ -356,6 +382,8 @@ _modify_edge_binding_cb(void *data, void *data2)
 	bi = eina_list_nth(cfdata->binding.edge, n);
 	cfdata->locals.edge = bi->edge;
 	cfdata->locals.delay = ((double) bi->delay);
+	if (bi->delay == -1.0) cfdata->locals.click = 1;
+	else cfdata->locals.click = 0;
 	cfdata->locals.modifiers = bi->modifiers;
      }
    else return;
@@ -805,6 +833,7 @@ _edge_grab_wnd_show(E_Config_Dialog_Data *cfdata)
    Evas_Coord minw, minh;
    const char *bgfile;
    int tw, th;
+   char *label = NULL;
    
    if (cfdata->locals.dia != 0) return;
 
@@ -830,11 +859,22 @@ _edge_grab_wnd_show(E_Config_Dialog_Data *cfdata)
    e_widget_on_change_hook_set(os, _edge_grab_wnd_slider_changed_cb, cfdata);
    evas_object_show(os);
 
+   cfdata->gui.o_check = os = e_widget_check_add(evas, _("Clickable edge"), &(cfdata->locals.click));
+   e_widget_size_min_resize(os);
+   edje_object_part_swallow(o, "e.swallow.check", os);
+   e_widget_on_change_hook_set(os, _edge_grab_wnd_check_changed_cb, cfdata);
+   evas_object_show(os);
+   if (cfdata->locals.click)
+     e_widget_disabled_set(cfdata->gui.o_slider, 1);
+
    edje_object_part_text_set(o, "e.text.description", TEXT_PRESS_EDGE_SEQUENCE);
 
    edje_object_size_min_get(o, &minw, &minh);
    if (!minw || !minh)
-     edje_object_size_min_calc(o, &minw, &minh);
+     {
+	edje_object_calc_force(o);
+	edje_object_size_min_calc(o, &minw, &minh);
+     }
 
    e_dialog_content_set(cfdata->locals.dia, o, minw, minh);
    
@@ -847,6 +887,13 @@ _edge_grab_wnd_show(E_Config_Dialog_Data *cfdata)
    edje_object_part_swallow(o, "e.swallow.background", obg);
    e_thumb_icon_begin(obg);
    evas_object_show(obg);
+
+   if (cfdata->locals.edge)
+     {
+	label = _edge_binding_text_get(cfdata->locals.edge, ((float) cfdata->locals.delay), cfdata->locals.modifiers);
+	edje_object_part_text_set(cfdata->gui.o_selector, "e.text.selection", label);
+	if (label) E_FREE(label);
+     }
 
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
                                   _edge_grab_wnd_selected_edge_cb, cfdata);
@@ -884,12 +931,34 @@ _edge_grab_wnd_cb_close(void *data, E_Dialog *dia)
 static void
 _edge_grab_wnd_slider_changed_cb(void *data, Evas_Object *obj)
 {
-   E_Config_Dialog_Data *cfdata;
-   cfdata = data;
+   E_Config_Dialog_Data *cfdata = data;
    char *label = NULL;
 
    if (!cfdata->locals.edge) return;
    label = _edge_binding_text_get(cfdata->locals.edge, ((float) cfdata->locals.delay), cfdata->locals.modifiers);
+   edje_object_part_text_set(cfdata->gui.o_selector, "e.text.selection", label);
+   if (label) E_FREE(label);
+}
+
+static void
+_edge_grab_wnd_check_changed_cb(void *data, Evas_Object *obj)
+{
+   E_Config_Dialog_Data *cfdata = data;
+   char *label = NULL;
+
+   if (cfdata->locals.click)
+     {
+	if (cfdata->locals.edge)
+	  label = _edge_binding_text_get(cfdata->locals.edge, -1.0, cfdata->locals.modifiers);
+	e_widget_disabled_set(cfdata->gui.o_slider, 1);
+     }
+   else
+     {
+	if (cfdata->locals.edge)
+	  label = _edge_binding_text_get(cfdata->locals.edge, ((float) cfdata->locals.delay), cfdata->locals.modifiers);
+	e_widget_disabled_set(cfdata->gui.o_slider, 0);
+     }
+
    edje_object_part_text_set(cfdata->gui.o_selector, "e.text.selection", label);
    if (label) E_FREE(label);
 }
@@ -971,7 +1040,9 @@ stop:
    if (evas_key_modifier_is_set(event->modifiers, "Win"))
      cfdata->locals.modifiers |= E_BINDING_MODIFIER_WIN;
 
-   label = _edge_binding_text_get(cfdata->locals.edge, ((float) cfdata->locals.delay), cfdata->locals.modifiers);
+   label = _edge_binding_text_get(cfdata->locals.edge,
+	 cfdata->locals.click ? -1.0 : ((float) cfdata->locals.delay),
+	 cfdata->locals.modifiers);
    edje_object_part_text_set(cfdata->gui.o_selector, "e.text.selection", label);
    if (label) E_FREE(label);
 }
@@ -984,6 +1055,8 @@ _edge_grab_wnd_selection_apply(E_Config_Dialog_Data *cfdata)
    char *label;
    int found = 0, n = -1;
 
+
+   if (cfdata->locals.click) cfdata->locals.delay = -1.0;
    if (cfdata->locals.add)
      {
 	EINA_LIST_FOREACH(cfdata->binding.edge, l, bi)
@@ -1287,6 +1360,8 @@ _edge_binding_text_get(E_Zone_Edge edge, float delay, int mod)
 	   case E_ZONE_EDGE_BOTTOM_LEFT:
 	      strcat(b, "Bottom Left Edge");
 	      break;
+	   default:
+	      break;
 	  }
      }
 
@@ -1295,7 +1370,10 @@ _edge_binding_text_get(E_Zone_Edge edge, float delay, int mod)
 	char buf[20];
 
 	if (b[0]) strcat(b, " ");
-	snprintf(buf, 20, "%.2fs", delay);
+	if (delay == -1.0)
+	  snprintf(buf, 20, "(clickable)");
+	else
+	  snprintf(buf, 20, "%.2fs", delay);
 	strcat(b, buf);
      }
 

@@ -163,14 +163,16 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    ow = e_widget_check_add(evas, _("Show desktop names"),
                            &(cfdata->show_desk_names));
    e_widget_frametable_object_append(of, ow, 0, 1, 2, 1, 1, 0, 1, 0);
-
+#if 0
+   /* FIXME: disable move in pager for now, as dropping in between
+      desks causes lost window */
    ow = e_widget_label_add(evas, _("Select and Slide button"));
    e_widget_frametable_object_append(of, ow, 0, 2, 1, 1, 1, 0, 1, 0);
    ow = e_widget_button_add(evas, _("Click to set"), NULL,
                             _grab_wnd_show, (void *)BUTTON_DRAG, cfdata);
    cfdata->gui.o_btn1 = ow;
    e_widget_frametable_object_append(of, ow, 1, 2, 1, 1, 0, 0, 1, 0);
-
+#endif
    ow = e_widget_label_add(evas, _("Drag and Drop button"));
    e_widget_frametable_object_append(of, ow, 0, 3, 1, 1, 1, 0, 1, 0);
    ow = e_widget_button_add(evas, _("Click to set"), NULL,
@@ -275,9 +277,9 @@ _grab_wnd_show(void *data1, void *data2)
    man = e_manager_current_get();
 
    cfdata->grab.btn = 0;
-   if ((int)data1 == BUTTON_DRAG)
+   if ((long)data1 == BUTTON_DRAG)
      cfdata->grab.btn = 1;
-   else if ((int)data1 == BUTTON_NOPLACE)
+   else if ((long)data1 == BUTTON_NOPLACE)
      cfdata->grab.btn = 2;
 
    cfdata->grab.dia = e_dialog_new(e_container_current_get(man), "Pager",
@@ -397,12 +399,12 @@ static void
 _adv_update_btn_lbl(E_Config_Dialog_Data *cfdata)
 {
    char lbl[256] = "";
-
+#if 0
    snprintf(lbl, sizeof(lbl), _("Click to set"));
    if (cfdata->btn.drag)
      snprintf(lbl, sizeof(lbl), _("Button %i"), cfdata->btn.drag);
    e_widget_button_label_set(cfdata->gui.o_btn1, lbl);
-   
+#endif   
    snprintf(lbl, sizeof(lbl), _("Click to set"));
    if (cfdata->btn.noplace)
      snprintf(lbl, sizeof(lbl), _("Button %i"), cfdata->btn.noplace);

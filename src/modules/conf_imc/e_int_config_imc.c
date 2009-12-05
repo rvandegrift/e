@@ -95,7 +95,7 @@ e_int_config_imc(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_imc_dialog")) return NULL;
+   if (e_config_dialog_find("E", "language/input_method_settings")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
 
    v->create_cfdata           = _create_data;
@@ -107,7 +107,7 @@ e_int_config_imc(E_Container *con, const char *params __UNUSED__)
 
    cfd = e_config_dialog_new(con,
 			     _("Input Method Settings"),
-			    "E", "_config_imc_dialog",
+			     "E", "language/input_method_settings",
 			     "preferences-imc", 0, v, NULL);
    return cfd;
 }
@@ -309,7 +309,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    /* Input method List */
    ob = e_widget_ilist_add(evas, 16, 16, &(cfdata->imc_current));
    e_widget_on_change_hook_set(ob, _e_imc_list_change_cb, cfdata);
-   e_widget_min_size_set(ob, 175, 175);
+   e_widget_size_min_set(ob, 175, 175);
    cfdata->gui.imc_basic_list = ob;
 
    evas_event_freeze(evas_object_evas_get(ob));
@@ -881,7 +881,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 				     e_fm2_pan_max_get,
 				     e_fm2_pan_child_size_get);
    cfdata->o_frame = of;
-   e_widget_min_size_set(of, 160, 160);
+   e_widget_size_min_set(of, 160, 160);
    e_widget_table_object_append(ol, of, 0, 2, 1, 1, 1, 1, 1, 1);
    e_widget_table_object_append(ot, ol, 0, 0, 1, 1, 1, 1, 1, 1);
 

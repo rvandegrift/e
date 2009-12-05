@@ -55,6 +55,7 @@ static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Co
 static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_dialog_scrolltext_create(Evas *evas, char *title, Ecore_Exe_Event_Data_Line *lines);
 static void _dialog_save_cb(void *data, void *data2);
+static void _e_exec_instance_free(E_Exec_Instance *inst);
 
 /* local subsystem globals */
 static Eina_List *e_exec_start_pending = NULL;
@@ -117,9 +118,12 @@ e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
      {
 	if (exec)
 	  inst = _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
-	else
-	  inst = 
-          efreet_desktop_command_get(desktop, files, _e_exec_cb_exec, launch);
+	else 
+          {
+             inst = 
+               efreet_desktop_command_get(desktop, files, 
+                                          _e_exec_cb_exec, launch);
+          }
      }
    else
      inst = _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
@@ -226,7 +230,8 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 	return NULL;
      }
    /* reset env vars */
-   if (launch->launch_method && !desktop) e_exehist_add(launch->launch_method, exec);
+   if (launch->launch_method && !desktop) 
+     e_exehist_add(launch->launch_method, exec);
    free(exec);
    /* 20 lines at start and end, 20x100 limit on bytes at each end. */
 //// FIXME: seem to be some issues with the pipe and filling up ram - need to
@@ -288,10 +293,43 @@ _e_exec_cb_expire_timer(void *data)
    return 0;
 }
 
+static void
+_e_exec_instance_free(E_Exec_Instance *inst)
+{
+   Eina_List *instances;
+   
+   if (inst->desktop)
+     {
+	instances = eina_hash_find(e_exec_instances, inst->desktop->orig_path);
+	if (instances)
+	  {
+	     instances = eina_list_remove(instances, inst);
+	     if (instances)
+	       eina_hash_modify(e_exec_instances, inst->desktop->orig_path, instances);
+	     else
+	       eina_hash_del(e_exec_instances, inst->desktop->orig_path, NULL);
+	  }
+     }
+   e_exec_start_pending = eina_list_remove(e_exec_start_pending, inst->desktop);
+   if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
+   if (inst->desktop) efreet_desktop_free(inst->desktop);
+   free(inst); 
+}
+
+
+
+static int
+_e_exec_cb_instance_finish(void *data)
+{
+   _e_exec_instance_free(data);
+   
+   return 0;
+}
+
+
 static int
 _e_exec_cb_exit(void *data, int type, void *event)
 {
-   Eina_List *instances;
    Ecore_Exe_Event_Del *ev;
    E_Exec_Instance *inst;
 
@@ -347,22 +385,17 @@ _e_exec_cb_exit(void *data, int type, void *event)
 				  ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_READ));
 	  }
      }
-   if (inst->desktop)
+
+   /* maybe better 1 minute? it might be openoffice */
+   if (ecore_time_get() - inst->launch_time < 5.0)
      {
-	instances = eina_hash_find(e_exec_instances, inst->desktop->orig_path);
-	if (instances)
-	  {
-	     instances = eina_list_remove(instances, inst);
-	     if (instances)
-	       eina_hash_modify(e_exec_instances, inst->desktop->orig_path, instances);
-	     else
-	       eina_hash_del(e_exec_instances, inst->desktop->orig_path, NULL);
-	  }
+	if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
+	inst->expire_timer = ecore_timer_add(30.0, _e_exec_cb_instance_finish, inst); 
+        inst->exe = NULL;
      }
-   e_exec_start_pending = eina_list_remove(e_exec_start_pending, inst->desktop);
-   if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
-   if (inst->desktop) efreet_desktop_free(inst->desktop);
-   free(inst);
+   else
+     _e_exec_instance_free(inst);
+
    return 1;
 }
 
@@ -570,7 +603,7 @@ _dialog_scrolltext_create(Evas *evas, char *title, Ecore_Exe_Event_Data_Line *li
 
 	e_widget_textblock_plain_set(obj, text);
      }
-   e_widget_min_size_set(obj, 240, 120);
+   e_widget_size_min_set(obj, 240, 120);
 
    e_widget_framelist_object_append(os, obj);
 

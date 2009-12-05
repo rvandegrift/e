@@ -132,9 +132,8 @@ _e_wid_fsel_favorites_files_changed(void *data, Evas_Object *obj, void *event_in
    realpath = e_fm2_real_path_get(wd->o_files_fm);
    p1 = ecore_file_realpath(realpath);
    if (!p1) goto done;
-   for (l = icons; l; l = l->next)
+   EINA_LIST_FOREACH(icons, l, ici)
      {
-	ici = l->data;
 	if (ici->link)
 	  {
 	     p2 = ecore_file_realpath(ici->link);
@@ -168,7 +167,7 @@ _e_wid_fsel_favorites_selected(void *data, Evas_Object *obj, void *event_info)
    if (!wd->o_files_frame) return;
    selected = e_fm2_selected_list_get(wd->o_favorites_fm);
    if (!selected) return;
-   ici = selected->data;
+   ici = eina_list_data_get(selected);
    if ((ici->link) && (ici->mount))
      e_fm2_path_set(wd->o_files_fm, ici->link, "/");
    else if (ici->real_link)
@@ -219,7 +218,7 @@ _e_wid_fsel_files_selection_change(void *data, Evas_Object *obj, void *event_inf
    if (!wd->o_files_fm) return;
    selected = e_fm2_selected_list_get(wd->o_files_fm);
    if (!selected) return;
-   ici = selected->data;
+   ici = eina_list_data_get(selected);
    E_FREE(wd->path);
    realpath = e_fm2_real_path_get(wd->o_files_fm);
    if (!strcmp(realpath, "/"))
@@ -336,7 +335,7 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
 	e_widget_entry_readonly_set(o, 1);
         wd->o_preview_size_entry = o;
         e_widget_sub_object_add(obj, o);
-        e_widget_min_size_set(o, 100, -1);
+        e_widget_size_min_set(o, 100, -1);
         e_widget_table_object_append(wd->o_preview_table,
 				     wd->o_preview_size_entry,
 				     1, 0, 1, 1, 1, 1, 1, 1);
@@ -352,7 +351,7 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
 	e_widget_entry_readonly_set(o, 1);
         wd->o_preview_owner_entry = o;
         e_widget_sub_object_add(obj, o);
-        e_widget_min_size_set(o, 100, -1);
+        e_widget_size_min_set(o, 100, -1);
         e_widget_table_object_append(wd->o_preview_table,
 				     wd->o_preview_owner_entry, 
 				     1, 1, 1, 1, 1, 1, 1, 1);
@@ -368,7 +367,7 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
 	e_widget_entry_readonly_set(o, 1);
         wd->o_preview_perms_entry = o;
         e_widget_sub_object_add(obj, o);
-        e_widget_min_size_set(o, 100, -1);
+        e_widget_size_min_set(o, 100, -1);
         e_widget_table_object_append(wd->o_preview_table,
 				     wd->o_preview_perms_entry,
 				     1, 2, 1, 1, 1, 1, 1, 1);
@@ -384,7 +383,7 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
 	e_widget_entry_readonly_set(o, 1);
         wd->o_preview_time_entry = o;
         e_widget_sub_object_add(obj, o); 
-        e_widget_min_size_set(o, 100, -1);
+        e_widget_size_min_set(o, 100, -1);
         e_widget_table_object_append(wd->o_preview_table,
 				     wd->o_preview_time_entry,
 				     1, 3, 1, 1, 1, 1, 1, 1);
@@ -429,7 +428,7 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
    
    wd->o_favorites_frame = o;
    e_widget_sub_object_add(obj, o);
-   e_widget_min_size_set(o, 128, 128);
+   e_widget_size_min_set(o, 128, 128);
    e_widget_table_object_append(wd->o_table2, o, 0, 1, 1, 1, 1, 1, 0, 1);
 
    o = e_fm2_add(evas);
@@ -471,7 +470,7 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
    
    wd->o_files_frame = o;
    e_widget_sub_object_add(obj, o);
-   e_widget_min_size_set(o, 128, 128);
+   e_widget_size_min_set(o, 128, 128);
    e_widget_table_object_append(wd->o_table2, o, 1, 1, 1, 1, 1, 1, 1, 1);
 
    o = e_widget_entry_add(evas, &(wd->entry_text), NULL, NULL, NULL);
@@ -496,8 +495,8 @@ e_widget_fsel_add(Evas *evas, const char *dev, const char *path, char *selected,
    e_widget_table_object_append(wd->o_table, wd->o_entry,
                                 0, 1, 1, 1, 1, 0, 1, 0);
 
-   e_widget_min_size_get(wd->o_table, &mw, &mh);
-   e_widget_min_size_set(obj, mw, mh);
+   e_widget_size_min_get(wd->o_table, &mw, &mh);
+   e_widget_size_min_set(obj, mw, mh);
   
    evas_object_show(wd->o_favorites_add); 
    evas_object_show(wd->o_up_button);
@@ -533,7 +532,7 @@ e_widget_fsel_path_get(Evas_Object *obj, const char **dev, const char **path)
 
    if (!obj) return;
    wd = e_widget_data_get(obj);
-   return e_fm2_path_get(wd->o_files_fm, dev, path);
+   e_fm2_path_get(wd->o_files_fm, dev, path);
 }
 
 EAPI const char *

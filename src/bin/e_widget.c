@@ -10,24 +10,23 @@ typedef struct _E_Smart_Data E_Smart_Data;
 
 struct _E_Smart_Data
 { 
-   Evas_Object   *parent_obj;
-   Evas_Coord     x, y, w, h;
-   Evas_Coord     minw, minh;
-   Eina_List     *subobjs;
-   Evas_Object   *resize_obj;
-   void         (*del_func) (Evas_Object *obj);
-   void         (*focus_func) (Evas_Object *obj);
-   void         (*activate_func) (Evas_Object *obj);
-   void         (*disable_func) (Evas_Object *obj);
-   void         (*on_focus_func) (void *data, Evas_Object *obj);
-   void          *on_focus_data;
-   void         (*on_change_func) (void *data, Evas_Object *obj);
-   void          *on_change_data;
-   void          *data;
-   unsigned char  can_focus : 1;
-   unsigned char  child_can_focus : 1;
-   unsigned char  focused : 1;
-   unsigned char  disabled : 1;
+   Evas_Object *parent_obj;
+   Evas_Coord x, y, w, h, minw, minh;
+   Eina_List *subobjs;
+   Evas_Object *resize_obj;
+   void (*del_func) (Evas_Object *obj);
+   void (*focus_func) (Evas_Object *obj);
+   void (*activate_func) (Evas_Object *obj);
+   void (*disable_func) (Evas_Object *obj);
+   void (*on_focus_func) (void *data, Evas_Object *obj);
+   void *on_focus_data;
+   void (*on_change_func) (void *data, Evas_Object *obj);
+   void *on_change_data;
+   void *data;
+   unsigned char can_focus : 1;
+   unsigned char child_can_focus : 1;
+   unsigned char focused : 1;
+   unsigned char disabled : 1;
 };
 
 /* local subsystem functions */
@@ -113,7 +112,7 @@ e_widget_data_get(Evas_Object *obj)
 }
 
 EAPI void
-e_widget_min_size_set(Evas_Object *obj, Evas_Coord minw, Evas_Coord minh)
+e_widget_size_min_set(Evas_Object *obj, Evas_Coord minw, Evas_Coord minh)
 {
    API_ENTRY return;
    if (minw >= 0) sd->minw = minw;
@@ -121,7 +120,7 @@ e_widget_min_size_set(Evas_Object *obj, Evas_Coord minw, Evas_Coord minh)
 }
 
 EAPI void
-e_widget_min_size_get(Evas_Object *obj, Evas_Coord *minw, Evas_Coord *minh)
+e_widget_size_min_get(Evas_Object *obj, Evas_Coord *minw, Evas_Coord *minh)
 {
    API_ENTRY return;
    if (minw) *minw = sd->minw;
@@ -196,15 +195,14 @@ EAPI Evas_Object *
 e_widget_focused_object_get(Evas_Object *obj)
 {
    Eina_List *l = NULL;
+   Evas_Object *sobj = NULL;
 
    API_ENTRY return NULL;
    if (!sd->focused) return NULL;
-   for (l = sd->subobjs; l; l = l->next)
+   EINA_LIST_FOREACH(sd->subobjs, l, sobj)
      {
-	Evas_Object *fobj = NULL;
-
-	fobj = e_widget_focused_object_get(l->data);
-	if (fobj) return fobj;
+	sobj = e_widget_focused_object_get(sobj);
+	if (sobj) return sobj;
      }
    return obj;
 }
@@ -228,6 +226,7 @@ e_widget_focus_jump(Evas_Object *obj, int forward)
    else
      {
 	Eina_List *l = NULL;
+	Evas_Object *sobj = NULL;
 	int focus_next = 0;
 
 	if (!sd->focused)
@@ -241,25 +240,25 @@ e_widget_focus_jump(Evas_Object *obj, int forward)
 	  {
 	     if (forward)
 	       {
-		  for (l = sd->subobjs; l; l = l->next)
+		  EINA_LIST_FOREACH(sd->subobjs, l, sobj)
 		    {
-		       if (e_widget_can_focus_get(l->data))
+		       if (e_widget_can_focus_get(sobj))
 			 {
 			    if ((focus_next) &&
-				(!e_widget_disabled_get(l->data)))
+				(!e_widget_disabled_get(sobj)))
 			      {
 				 /* the previous focused item was unfocused - so focus
 				  * the next one (that can be focused) */
-				 if (e_widget_focus_jump(l->data, forward)) 
+				 if (e_widget_focus_jump(sobj, forward)) 
                                    return 1;
 				 else break;
 			      }
 			    else
 			      {
-				 if (e_widget_focus_get(l->data))
+				 if (e_widget_focus_get(sobj))
 				   {
 				      /* jump to the next focused item or focus this item */
-				      if (e_widget_focus_jump(l->data, forward)) 
+				      if (e_widget_focus_jump(sobj, forward)) 
                                         return 1;
 				      /* it returned 0 - it got to the last item and is past it */
 				      focus_next = 1;
@@ -270,25 +269,25 @@ e_widget_focus_jump(Evas_Object *obj, int forward)
 	       }
 	     else
 	       {
-		  for (l = eina_list_last(sd->subobjs); l; l = l->prev)
+		  EINA_LIST_REVERSE_FOREACH(sd->subobjs, l, sobj)
 		    {
-		       if (e_widget_can_focus_get(l->data))
+		       if (e_widget_can_focus_get(sobj))
 			 {
 			    if ((focus_next) &&
-				(!e_widget_disabled_get(l->data)))
+				(!e_widget_disabled_get(sobj)))
 			      {
 				 /* the previous focused item was unfocused - so focus
 				  * the next one (that can be focused) */
-				 if (e_widget_focus_jump(l->data, forward)) 
+				 if (e_widget_focus_jump(sobj, forward)) 
                                    return 1;
 				 else break;
 			      }
 			    else
 			      {
-				 if (e_widget_focus_get(l->data))
+				 if (e_widget_focus_get(sobj))
 				   {
 				      /* jump to the next focused item or focus this item */
-				      if (e_widget_focus_jump(l->data, forward)) 
+				      if (e_widget_focus_jump(sobj, forward)) 
                                         return 1;
 				      /* it returned 0 - it got to the last item and is past it */
 				      focus_next = 1;
@@ -321,27 +320,28 @@ e_widget_focus_set(Evas_Object *obj, int first)
    else
      {
 	Eina_List *l = NULL;
+	Evas_Object *sobj;
 
 	if (first)
 	  {
-	     for (l = sd->subobjs; l; l = l->next)
+	     EINA_LIST_FOREACH(sd->subobjs, l, sobj)
 	       {
-		  if ((e_widget_can_focus_get(l->data)) &&
-		      (!e_widget_disabled_get(l->data)))
+		  if ((e_widget_can_focus_get(sobj)) &&
+		      (!e_widget_disabled_get(sobj)))
 		    {
-		       e_widget_focus_set(l->data, first);
+		       e_widget_focus_set(sobj, first);
 		       break;
 		    }
 	       }
 	  }
 	else
 	  {
-	     for (l = eina_list_last(sd->subobjs); l; l = l->prev)
+	     EINA_LIST_REVERSE_FOREACH(sd->subobjs, l, sobj)
 	       {
-		  if ((e_widget_can_focus_get(l->data)) &&
-		      (!e_widget_disabled_get(l->data)))
+		  if ((e_widget_can_focus_get(sobj)) &&
+		      (!e_widget_disabled_get(sobj)))
 		    {
-		       e_widget_focus_set(l->data, first);
+		       e_widget_focus_set(sobj, first);
 		       break;
 		    }
 	       }
@@ -360,15 +360,16 @@ EAPI void
 e_widget_focused_object_clear(Evas_Object *obj)
 {
    Eina_List *l = NULL;
+   Evas_Object *sobj = NULL;
 
    API_ENTRY return;
    if (!sd->focused) return;
    sd->focused = 0;
-   for (l = sd->subobjs; l; l = l->next)
+   EINA_LIST_FOREACH(sd->subobjs, l, sobj)
      {
-	if (e_widget_focus_get(l->data))
+	if (e_widget_focus_get(sobj))
 	  {
-	     e_widget_focused_object_clear(l->data);
+	     e_widget_focused_object_clear(sobj);
 	     break;
 	  }
      }
@@ -416,7 +417,7 @@ EAPI void
 e_widget_change(Evas_Object *obj)
 {
    API_ENTRY return;
-   e_widget_change(e_widget_parent_get(obj));
+   if (sd->parent_obj) e_widget_change(sd->parent_obj);
    if (sd->on_change_func) sd->on_change_func(sd->on_change_data, obj);
 }
 
@@ -424,8 +425,7 @@ EAPI void
 e_widget_disabled_set(Evas_Object *obj, int disabled)
 {
    API_ENTRY return;
-   if (((sd->disabled) && (disabled)) ||
-       ((!sd->disabled) && (!disabled))) return;
+   if (sd->disabled == disabled) return;
    sd->disabled = disabled;
    if (sd->focused)
      {
@@ -462,7 +462,7 @@ e_widget_pointer_get(Evas_Object *obj)
 }
 
 EAPI void
-e_widget_min_size_resize(Evas_Object *obj)
+e_widget_size_min_resize(Evas_Object *obj)
 {
    API_ENTRY return;
    evas_object_resize(obj, sd->minw, sd->minh);
@@ -497,16 +497,9 @@ _e_smart_add(Evas_Object *obj)
 static void
 _e_smart_del(Evas_Object *obj)
 {
-   Evas_Object *sobj = NULL;
-
    INTERNAL_ENTRY;
    if (sd->del_func) sd->del_func(obj);
-   while (sd->subobjs)
-     {
-	sobj = sd->subobjs->data;
-	sd->subobjs = eina_list_remove_list(sd->subobjs, sd->subobjs);
-	evas_object_del(sobj);
-     }
+   E_FREE_LIST(sd->subobjs, evas_object_del);
    free(sd);
 }
 
@@ -532,35 +525,40 @@ static void
 _e_smart_show(Evas_Object *obj)
 {
    INTERNAL_ENTRY;
-   evas_object_show(sd->resize_obj);
+   if (sd->resize_obj)
+     evas_object_show(sd->resize_obj);
 }
 
 static void
 _e_smart_hide(Evas_Object *obj)
 {
    INTERNAL_ENTRY;
-   evas_object_hide(sd->resize_obj);
+   if (sd->resize_obj)
+     evas_object_hide(sd->resize_obj);
 }
 
 static void
 _e_smart_color_set(Evas_Object *obj, int r, int g, int b, int a)
 {
    INTERNAL_ENTRY;
-   evas_object_color_set(sd->resize_obj, r, g, b, a);
+   if (sd->resize_obj)
+     evas_object_color_set(sd->resize_obj, r, g, b, a);
 }
 
 static void
 _e_smart_clip_set(Evas_Object *obj, Evas_Object *clip)
 {
    INTERNAL_ENTRY;
-   evas_object_clip_set(sd->resize_obj, clip);
+   if (sd->resize_obj)
+     evas_object_clip_set(sd->resize_obj, clip);
 }
 
 static void
 _e_smart_clip_unset(Evas_Object *obj)
 {
    INTERNAL_ENTRY;
-   evas_object_clip_unset(sd->resize_obj);
+   if (sd->resize_obj)
+     evas_object_clip_unset(sd->resize_obj);
 }  
 
 /* never need to touch this */

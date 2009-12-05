@@ -51,7 +51,7 @@ e_int_config_paths(E_Container *con, const char *params __UNUSED__)
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_paths_dialog")) return NULL;
+   if (e_config_dialog_find("E", "advanced/search_directories")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
    
    v->create_cfdata           = _create_data;
@@ -60,7 +60,7 @@ e_int_config_paths(E_Container *con, const char *params __UNUSED__)
    v->basic.apply_cfdata      = _basic_apply_data;
    
    cfd = e_config_dialog_new(con, _("Search Path Settings"),
-			    "E", "_config_paths_dialog",
+			     "E", "advanced/search_directories",
 			     "preferences-directories", 0, v, NULL);
    return cfd;
 }
@@ -168,7 +168,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_framelist_add(evas, _("E Paths"), 0);
    ob = e_widget_ilist_add(evas, 0, 0, NULL);
    cfdata->gui.path_list = ob;
-   e_widget_min_size_set(ob, 170, 100);
+   e_widget_size_min_set(ob, 170, 100);
 
    evas_event_freeze(evas_object_evas_get(cfdata->gui.path_list));
    edje_freeze();
@@ -199,7 +199,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    of = e_widget_framelist_add(evas, _("Default Directories"), 0);
    ob = e_widget_ilist_add(evas, 0, 0, NULL);
    cfdata->gui.default_list = ob;
-   e_widget_min_size_set(ob, 100, 100);
+   e_widget_size_min_set(ob, 100, 100);
    e_widget_framelist_object_append(of, ob);
    e_widget_table_object_append(o, of, 0, 1, 1, 1, 1, 1, 1, 1);
 

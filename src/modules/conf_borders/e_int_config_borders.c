@@ -28,7 +28,7 @@ e_int_config_borders(E_Container *con, const char *params __UNUSED__)
    v = _config_view_new();
    if (!v) return NULL;
    cfd = e_config_dialog_new(con, _("Default Border Style"), 
-			     "E", "_config_border_style_dialog", 
+			     "E", "appearance/borders", 
 			     "preferences-system-windows", 0, v, con);
    return cfd;
 }
@@ -48,7 +48,7 @@ e_int_config_borders_border(E_Container *con __UNUSED__, const char *params)
    if (!v) return NULL;
    cfd = e_config_dialog_new(bd->zone->container, 
 			     _("Window Border Selection"), 
-			     "E", "_config_border_border_style_dialog", 
+			     "E", "internal/borders_border", 
 			     "preferences-system-windows", 0, v, bd);
    bd->border_border_dialog = cfd;
    return cfd;
@@ -151,17 +151,22 @@ _basic_apply_border(E_Config_Dialog_Data *cfdata)
      }
    if (cfdata->remember_border) 
      {
-	if (!cfdata->border->remember) 
+	E_Remember *rem = cfdata->border->remember;
+
+	if (!rem) 
 	  {
-             cfdata->border->remember = e_remember_new();
-             if (cfdata->border->remember)
-	       e_remember_use(cfdata->border->remember);
+             rem = e_remember_new();
+             if (rem)
+	       e_remember_use(rem);
 	  }
-	if (cfdata->border->remember) 
+	if (rem) 
 	  {
-	     cfdata->border->remember->apply |= E_REMEMBER_APPLY_BORDER;
-             cfdata->border->remember->match = e_remember_default_match(cfdata->border);
-             e_remember_update(cfdata->border->remember, cfdata->border);
+	     rem->apply |= E_REMEMBER_APPLY_BORDER;
+             e_remember_default_match_set(rem, cfdata->border);
+	     if (rem->prop.border) eina_stringshare_del(rem->prop.border);
+	     rem->prop.border = eina_stringshare_add(cfdata->border->bordername);
+	     cfdata->border->remember = rem;
+             e_remember_update(cfdata->border);
 	  }
      }
    else 
@@ -225,8 +230,8 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 	  sel = n;
      }
    
-   e_widget_min_size_get(ol, &w, &h);
-   e_widget_min_size_set(ol, w > 200 ? w : 200, 200);
+   e_widget_size_min_get(ol, &w, &h);
+   e_widget_size_min_set(ol, w > 200 ? w : 200, 200);
 
    e_widget_ilist_go(ol);
    e_widget_ilist_selected_set(ol, sel);

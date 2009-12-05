@@ -30,6 +30,7 @@ e_msgbus_init(void)
    _e_msgbus_data = E_NEW(E_Msgbus_Data, 1);
 
    e_dbus_init();
+   e_hal_init();
 
    _e_msgbus_data->conn = e_dbus_bus_get(DBUS_BUS_SESSION);
    if (!_e_msgbus_data->conn)
@@ -96,6 +97,7 @@ e_msgbus_shutdown(void)
      {
         e_dbus_connection_close(_e_msgbus_data->conn);
      }
+   e_hal_shutdown();
    e_dbus_shutdown();
 
    E_FREE(_e_msgbus_data);
@@ -216,8 +218,8 @@ _e_msgbus_module_disable_cb(E_DBus_Object *obj, DBusMessage *msg)
 static DBusMessage* 
 _e_msgbus_module_list_cb(E_DBus_Object *obj, DBusMessage *msg)
 {
-   Eina_List *mod_list;
-   Eina_List * l;
+   Eina_List *l;
+   E_Module *mod;
    DBusMessage *reply;
    DBusMessageIter iter;
    DBusMessageIter arr;
@@ -226,16 +228,12 @@ _e_msgbus_module_list_cb(E_DBus_Object *obj, DBusMessage *msg)
    dbus_message_iter_init_append(reply, &iter);
    dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY, "(si)", &arr);
 
-   mod_list = e_module_list();
-
-   for (l = mod_list; l; l = l->next) 
+   EINA_LIST_FOREACH(e_module_list(), l, mod)
      {
 	DBusMessageIter sub;
-	E_Module *mod;
 	const char *name;
 	int enabled;
 
-	mod = l->data;
 	name = mod->name;
 	enabled = mod->enabled;
 	dbus_message_iter_open_container(&arr, DBUS_TYPE_STRUCT, NULL, &sub);
@@ -286,8 +284,8 @@ _e_msgbus_profile_get_cb(E_DBus_Object *obj, DBusMessage *msg)
 static DBusMessage* 
 _e_msgbus_profile_list_cb(E_DBus_Object *obj, DBusMessage *msg)
 {
-   Eina_List *profiles;
-   Eina_List * l;
+   Eina_List *l;
+   const char *name;
    DBusMessage *reply;
    DBusMessageIter iter;
    DBusMessageIter arr;
@@ -296,13 +294,8 @@ _e_msgbus_profile_list_cb(E_DBus_Object *obj, DBusMessage *msg)
    dbus_message_iter_init_append(reply, &iter);
    dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY, "s", &arr);
 
-   profiles = e_config_profile_list();
-
-   for (l = profiles; l; l = l->next) 
+   EINA_LIST_FOREACH(e_config_profile_list(), l, name)
      {
-	const char *name;
-
-	name = l->data;
 	dbus_message_iter_append_basic(&arr, DBUS_TYPE_STRING, &name);
      }
    dbus_message_iter_close_container(&iter, &arr);

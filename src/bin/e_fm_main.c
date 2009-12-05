@@ -260,7 +260,7 @@ main(int argc, char **argv)
      }
 
    ecore_init();
-   eina_stringshare_init();
+   eina_init();
    ecore_app_args_set(argc, (const char **)argv);
    ecore_file_init();
    ecore_ipc_init();
@@ -271,6 +271,7 @@ main(int argc, char **argv)
 
    _e_storage_volume_edd_init();
    e_dbus_init();
+   e_hal_init();
    _e_dbus_conn = e_dbus_bus_get(DBUS_BUS_SYSTEM);
    if (_e_dbus_conn)
      {
@@ -303,12 +304,13 @@ main(int argc, char **argv)
      }
 
    if (_e_dbus_conn) e_dbus_connection_close(_e_dbus_conn);
+   e_hal_shutdown();
    e_dbus_shutdown();
    _e_storage_volume_edd_shutdown();
    
    ecore_ipc_shutdown();
    ecore_file_shutdown();
-   eina_stringshare_shutdown();
+   eina_shutdown();
    ecore_shutdown();
    
    return 0;
@@ -432,13 +434,11 @@ _e_dbus_cb_dev_add(void *data, DBusMessage *msg)
 {
    DBusError err;
    char *udi = NULL;
-   int ret;
-   
+
    dbus_error_init(&err);
    dbus_message_get_args(msg, &err, DBUS_TYPE_STRING, &udi, DBUS_TYPE_INVALID);
    if (!udi) return;
-//   printf("DB DEV+: %s\n", udi);
-   ret = e_hal_device_query_capability(_e_dbus_conn, udi, "storage", 
+   e_hal_device_query_capability(_e_dbus_conn, udi, "storage", 
 				       _e_dbus_cb_store_is, strdup(udi));
    e_hal_device_query_capability(_e_dbus_conn, udi, "volume",
 				 _e_dbus_cb_vol_is, strdup(udi));
@@ -633,12 +633,10 @@ E_Storage *
 e_storage_find(const char *udi)
 {
    Eina_List *l;
+   E_Storage  *s;
    
-   for (l = _e_stores; l; l = l->next)
+   EINA_LIST_FOREACH(_e_stores, l, s)
      {
-	E_Storage  *s;
-	
-	s = l->data;
 	if (!strcmp(udi, s->udi)) return s;
      }
    return NULL;
@@ -865,12 +863,10 @@ EAPI E_Volume *
 e_volume_find(const char *udi)
 {
    Eina_List *l;
+   E_Volume *v;
    
-   for (l = _e_vols; l; l = l->next)
+   EINA_LIST_FOREACH(_e_vols, l, v)
      {
-	E_Volume *v;
-	
-	v = l->data;
 	if (!strcmp(udi, v->udi)) return v;
      }
    return NULL;
@@ -919,7 +915,7 @@ _e_dbus_cb_vol_mounted(void *user_data, void *method_return, DBusError *error)
         return;
      }
 
-/*
+#if 0
    v->mounted = 1;
 //   printf("MOUNT: %s from %s\n", v->udi, v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
@@ -927,10 +923,10 @@ _e_dbus_cb_vol_mounted(void *user_data, void *method_return, DBusError *error)
    strcpy(buf, v->udi);
    strcpy(buf + strlen(buf) + 1, v->mount_point);
    ecore_ipc_server_send(_e_ipc_server,
-			 6/*E_IPC_DOMAIN_FM*//*,
+			 6/*E_IPC_DOMAIN_FM*/,
 			 E_FM_OP_MOUNT_DONE,
 			 0, 0, 0, buf, size);
-*/
+#endif
 }
 
 EAPI void
@@ -1002,7 +998,7 @@ _e_dbus_cb_vol_unmounted(void *user_data, void *method_return, DBusError *error)
         return;
      }
 
-/*
+#if 0
    v->mounted = 0;
 //   printf("UNMOUNT: %s from %s\n", v->udi, v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
@@ -1010,10 +1006,10 @@ _e_dbus_cb_vol_unmounted(void *user_data, void *method_return, DBusError *error)
    strcpy(buf, v->udi);
    strcpy(buf + strlen(buf) + 1, v->mount_point);
    ecore_ipc_server_send(_e_ipc_server,
-			 6/*E_IPC_DOMAIN_FM*//*,
+			 6/*E_IPC_DOMAIN_FM*/,
 			 E_FM_OP_UNMOUNT_DONE,
 			 0, 0, 0, buf, size);
-*/
+#endif
 }
 
 EAPI void
@@ -1208,11 +1204,8 @@ _e_fm_monitor_start_try(E_Fm_Task *task)
    Eina_List *l;
    
    /* look for any previous dir entries monitoring this dir */
-   for (l = _e_dirs; l; l = l->next)
+   EINA_LIST_FOREACH(_e_dirs, l, ed)
      {
-	E_Dir *ed;
-	
-	ed = l->data;
 	if ((ed->mon) && (!strcmp(ed->dir, task->src)))
 	  {
 	     /* found a previous dir - save it in ped */
@@ -1611,13 +1604,11 @@ _e_ipc_cb_server_data(void *data, int type, void *event)
       case E_FM_OP_MONITOR_SYNC: /* mon list sync */
 	  {
 	     Eina_List *l;
+	     E_Dir *ed;
 	     double stime;
 	     
-             for (l = _e_dirs; l; l = l->next)
+	     EINA_LIST_FOREACH(_e_dirs, l, ed)
 	       {
-		  E_Dir *ed;
-		  
-		  ed = l->data;
 		  if (ed->fq)
 		    {
 		       if (ed->sync == e->response)
@@ -1728,17 +1719,13 @@ static int _e_fm_slave_run(E_Fm_Op_Type type, const char *args, int id)
 
 static E_Fm_Slave *_e_fm_slave_get(int id)
 {
-   Eina_List *l = _e_fm_slaves;
+   Eina_List *l;
    E_Fm_Slave *slave;
 
-   while (l)
+   EINA_LIST_FOREACH(_e_fm_slaves, l, slave)
      {
-	slave = eina_list_data_get(l);
-
 	if (slave->id == id)
 	  return slave;
-
-	l = eina_list_next(l);
      }
 
    return NULL;
@@ -1867,9 +1854,8 @@ _e_cb_file_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, c
        (event == ECORE_FILE_EVENT_CREATED_DIRECTORY))
      {
 	rp = ecore_file_realpath(dir);
-	for (l = _e_dirs; l; l = l->next)
+	EINA_LIST_FOREACH(_e_dirs, l, ed)
 	  {
-	     ed = l->data;
 	     drp = ecore_file_realpath(ed->dir);
 	     if (drp)
 	       {
@@ -1884,9 +1870,8 @@ _e_cb_file_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, c
 	    (event == ECORE_FILE_EVENT_DELETED_DIRECTORY))
      {
 	rp = ecore_file_realpath(dir);
-	for (l = _e_dirs; l; l = l->next)
+	EINA_LIST_FOREACH(_e_dirs, l, ed)
 	  {
-	     ed = l->data;
 	     drp = ecore_file_realpath(ed->dir);
 	     if (drp)
 	       {
@@ -1900,9 +1885,8 @@ _e_cb_file_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, c
    else if (event == ECORE_FILE_EVENT_MODIFIED)
      {
 	rp = ecore_file_realpath(dir);
-	for (l = _e_dirs; l; l = l->next)
+	EINA_LIST_FOREACH(_e_dirs, l, ed)
 	  {
-	     ed = l->data;
 	     drp = ecore_file_realpath(ed->dir);
 	     if (drp)
 	       {
@@ -1916,9 +1900,8 @@ _e_cb_file_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, c
    else if (event == ECORE_FILE_EVENT_DELETED_SELF)
      {
 	rp = ecore_file_realpath(path);
-	for (l = _e_dirs; l; l = l->next)
+	EINA_LIST_FOREACH(_e_dirs, l, ed)
 	  {
-	     ed = l->data;
 	     drp = ecore_file_realpath(ed->dir);
 	     if (drp)
 	       {
@@ -1980,9 +1963,8 @@ _e_file_add_mod(E_Dir *ed, const char *path, E_Fm_Op_Type op, int listing)
 	int skip = 0;
 	
 	t_now = ecore_time_get();
-	for (l = ed->recent_mods; l; l = l->next)
+	EINA_LIST_FOREACH(ed->recent_mods, l, m)
 	  {
-	     m = l->data;
 	     if ((m->mod) && (!strcmp(m->path, path)))
 	       {
 		  if ((t_now - m->timestamp) < DEF_MOD_BACKOFF)
@@ -2113,22 +2095,14 @@ _e_cb_file_mon_list_idler(void *data)
    /* FIXME: spool off files in idlers and handle sync req's */
    while (ed->fq)
      {
-	file = ed->fq->data;
+	file = eina_list_data_get(ed->fq);
 	if (!((ed->dot_order) && (!strcmp(file, ".order"))))
 	  {
 	     if (!strcmp(ed->dir, "/"))
 	       snprintf(buf, sizeof(buf), "/%s", file);
 	     else
 	       snprintf(buf, sizeof(buf), "%s/%s", ed->dir, file);
-/*	     
-	     if (//(!ed->fq->next) ||
-		 ((!strcmp(ed->fq->next->data, ".order"))
-		  //&& (!ed->fq->next->next)
-		  ))
-	       _e_file_add(ed, buf, 1);
-	     else
- */
-	       _e_file_add(ed, buf, 1);
+	     _e_file_add(ed, buf, 1);
 	  }
 	free(file);
 	ed->fq = eina_list_remove_list(ed->fq, ed->fq);

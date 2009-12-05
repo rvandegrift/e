@@ -264,8 +264,8 @@ static void _e_fm2_icon_sel_up(Evas_Object *obj);
 
 static void _e_fm2_typebuf_show(Evas_Object *obj);
 static void _e_fm2_typebuf_hide(Evas_Object *obj);
-static void _e_fm2_typebuf_history_prev(Evas_Object *obj);
-static void _e_fm2_typebuf_history_next(Evas_Object *obj);
+//static void _e_fm2_typebuf_history_prev(Evas_Object *obj);
+//static void _e_fm2_typebuf_history_next(Evas_Object *obj);
 static void _e_fm2_typebuf_run(Evas_Object *obj);
 static void _e_fm2_typebuf_match(Evas_Object *obj, int next);
 static void _e_fm2_typebuf_complete(Evas_Object *obj);
@@ -396,7 +396,7 @@ static E_Fm2_Client *_e_fm2_client_get(void);
 static int _e_fm2_client_monitor_add(const char *path);
 static void _e_fm2_client_monitor_del(int id, const char *path);
 static int _e_fm_client_file_del(const char *args, Evas_Object *e_fm);
-static int _e_fm2_client_file_trash(const char *path, Evas_Object *e_fm);
+//static int _e_fm2_client_file_trash(const char *path, Evas_Object *e_fm);
 static int _e_fm2_client_file_mkdir(const char *path, const char *rel, int rel_to, int x, int y, int res_w, int res_h, Evas_Object *e_fm);
 static int _e_fm_client_file_move(const char *args, Evas_Object *e_fm);
 static int _e_fm2_client_file_symlink(const char *path, const char *dest, const char *rel, int rel_to, int x, int y, int res_w, int res_h, Evas_Object *e_fm);
@@ -550,7 +550,9 @@ _e_fm2_icon_w_get(const E_Fm2_Smart_Data *sd)
 {
    if (sd->icon_size > -1)
      return sd->icon_size * e_scale;
-   return sd->config->icon.icon.w;
+   if (sd->config->icon.icon.w)
+     return sd->config->icon.icon.w;
+   return sd->config->icon.list.w;
 }
 
 static inline Evas_Coord
@@ -558,7 +560,9 @@ _e_fm2_icon_h_get(const E_Fm2_Smart_Data *sd)
 {
    if (sd->icon_size > -1)
      return sd->icon_size * e_scale;
-   return sd->config->icon.icon.h;
+   if (sd->config->icon.icon.h)
+     return sd->config->icon.icon.h;
+   return sd->config->icon.list.h;
 }
 
 static int
@@ -685,7 +689,7 @@ e_fm2_init(void)
 {
    char  path[PATH_MAX];
 
-   eina_stringshare_init();
+   eina_init();
    ecore_job_init();
    _e_storage_volume_edd_init();
    e_user_dir_concat_static(path, "fileman/metadata");
@@ -726,7 +730,7 @@ e_fm2_init(void)
    _e_fm2_icon_thumb_str = eina_stringshare_add("THUMB");
    _e_fm2_mime_inode_directory = eina_stringshare_add("inode/directory");
    _e_fm2_mime_app_desktop = eina_stringshare_add("application/x-desktop");
-   _e_fm2_mime_app_edje = eina_stringshare_add("application/x-edje");
+   _e_fm2_mime_app_edje = eina_stringshare_add("application/x-extension-edj");
    _e_fm2_mime_text_uri_list = eina_stringshare_add("text/uri-list");
 
    /// DBG
@@ -788,7 +792,7 @@ e_fm2_shutdown(void)
    e_fm2_op_registry_shutdown();
    efreet_mime_shutdown();
    ecore_job_shutdown();
-   eina_stringshare_shutdown();
+   eina_shutdown();
    return 1;
 }
 
@@ -1857,43 +1861,6 @@ _e_fm2_icon_explicit_get(Evas *evas, const E_Fm2_Icon *ic, const char *icon, con
 }
 
 /**
- * Find out a good fallback to use for given file.
- *
- * It will find out if it is a folder, file or like and set it accordingly.
- */
-static Evas_Object *
-_e_fm2_icon_fallback_get(Evas *evas, const E_Fm2_Icon *ic, const char **type_ret)
-{
-   const char *name;
-
-   if (S_ISDIR(ic->info.statinfo.st_mode))
-     name = "folder";
-   else if (S_ISCHR(ic->info.statinfo.st_mode))
-     name = "chrdev";
-   else if (S_ISBLK(ic->info.statinfo.st_mode))
-     name = "blkdev";
-   else if (S_ISFIFO(ic->info.statinfo.st_mode))
-     name = "fifo";
-   else if (S_ISSOCK(ic->info.statinfo.st_mode))
-     name = "socket";
-   else
-     {
-	char buf[PATH_MAX];
-	if (!_e_fm2_icon_realpath(ic, buf, sizeof(buf)))
-	  name = "file";
-	else
-	  {
-	     if (ecore_file_can_exec(buf))
-	       name = "executable";
-	     else
-	       name = "file";
-	  }
-     }
-
-   return _e_fm2_icon_explicit_theme_get(evas, ic, name, type_ret);
-}
-
-/**
  * Creates an icon that generates a thumbnail if required.
  *
  * @param group if given, will be used in e_thumb_icon_file_set()
@@ -1964,7 +1931,7 @@ _e_fm2_icon_thumb_edje_get(Evas *evas, const E_Fm2_Icon *ic, void (*cb) (void *d
 	Eina_List *l = edje_file_collection_list(buf);
 	if (!l)
 	  return NULL;
-	group = l->data;
+	group = eina_list_data_get(l);
 	edje_file_collection_list_free(l);
      }
 
@@ -2063,7 +2030,7 @@ _e_fm2_icon_mime_theme_get(Evas *evas, const E_Fm2_Icon *ic, const char **type_r
    char buf[1024];
    const char *file;
 
-   if (snprintf(buf, sizeof(buf), "e/icons/mimetypes/%s", ic->info.mime) >= sizeof(buf))
+   if (snprintf(buf, sizeof(buf), "e/icons/fileman/mime/%s", ic->info.mime) >= sizeof(buf))
      return NULL;
 
    file = e_theme_edje_file_get("base/theme/icons", buf);
@@ -2091,6 +2058,21 @@ _e_fm2_icon_mime_get(Evas *evas, const E_Fm2_Icon *ic, void (*gen_func) (void *d
    Evas_Object *o;
    const char *icon;
 
+   /* create thumbnails for edje files */
+   if (_e_fm2_file_is_edje(ic->info.file))
+     {
+	o = _e_fm2_icon_thumb_edje_get
+	  (evas, ic, gen_func, data, force_gen, type_ret);
+	if (o) return o;
+     }
+
+   /* disabled until everyone has edje in mime.types:
+    *  use mimetype to identify edje.
+    * if (ic->info.mime == _e_fm2_mime_app_edje)
+    *   return _e_fm2_icon_thumb_edje_get
+    *     (evas, ic, gen_func, data, force_gen, type_ret); */
+
+   /* check user preferences */
    icon = _e_fm2_icon_mime_type_special_match(ic);
    if (icon)
      {
@@ -2098,15 +2080,11 @@ _e_fm2_icon_mime_get(Evas *evas, const E_Fm2_Icon *ic, void (*gen_func) (void *d
 	  return _e_fm2_icon_desktop_get(evas, ic, type_ret);
 	else if (icon == _e_fm2_icon_thumb_str)
 	  {
-	     if (ic->info.mime == _e_fm2_mime_app_edje)
-	       return _e_fm2_icon_thumb_edje_get
-		 (evas, ic, gen_func, data, force_gen, type_ret);
-	     else
-	       return _e_fm2_icon_thumb_get
-		 (evas, ic, NULL, gen_func, data, force_gen, type_ret);
+	     return _e_fm2_icon_thumb_get
+	       (evas, ic, NULL, gen_func, data, force_gen, type_ret);
 	  }
-	else if (strncmp(icon, "e/icons/fileman/mime/", 21) == 0)
-	  return _e_fm2_icon_explicit_theme_get(evas, ic, icon + 21 - 5, type_ret);
+	else if (strncmp(icon, "e/icons/fileman/", 16) == 0)
+	  return _e_fm2_icon_explicit_theme_get(evas, ic, icon + 16, type_ret);
 	else
 	  return _e_fm2_icon_explicit_get(evas, ic, icon, type_ret);
      }
@@ -2125,19 +2103,21 @@ _e_fm2_icon_mime_get(Evas *evas, const E_Fm2_Icon *ic, void (*gen_func) (void *d
 
    if (o) return o;
 
+   return NULL;
+   
    /* XXX REMOVE/DEPRECATED below here */
-   icon = e_fm_mime_icon_get(ic->info.mime);
-   if (!icon) return NULL;
-
-   if (icon == _e_fm2_icon_desktop_str)
-     return _e_fm2_icon_desktop_get(evas, ic, type_ret);
-   else if (icon == _e_fm2_icon_thumb_str)
-     return _e_fm2_icon_thumb_get(evas, ic, NULL,
-				  gen_func, data, force_gen, type_ret);
-   else if (strncmp(icon, "e/icons/fileman/mime/", 21) == 0)
-     return _e_fm2_icon_explicit_theme_get(evas, ic, icon + 21 - 5, type_ret);
-   else
-     return _e_fm2_icon_explicit_get(evas, ic, icon, type_ret);
+   /* icon = e_fm_mime_icon_get(ic->info.mime);
+    * if (!icon) return NULL;
+    * 
+    * if (icon == _e_fm2_icon_desktop_str)
+    *   return _e_fm2_icon_desktop_get(evas, ic, type_ret);
+    * else if (icon == _e_fm2_icon_thumb_str)
+    *   return _e_fm2_icon_thumb_get(evas, ic, NULL,
+    * 				  gen_func, data, force_gen, type_ret);
+    * else if (strncmp(icon, "e/icons/fileman/", 16) == 0)
+    *   return _e_fm2_icon_explicit_theme_get(evas, ic, icon + 16, type_ret);
+    * else
+    * return _e_fm2_icon_explicit_get(evas, ic, icon, type_ret); */
 }
 
 /**
@@ -2278,7 +2258,7 @@ e_fm2_icon_get(Evas *evas, E_Fm2_Icon *ic,
      }
 
  fallback:
-   return _e_fm2_icon_fallback_get(evas, ic, type_ret);
+   return _e_fm2_icon_explicit_theme_get(evas, ic, "text/plain", type_ret);
 }
 
 EAPI E_Fm2_Icon_Info *
@@ -2402,7 +2382,7 @@ _e_fm2_client_messages_flush(void)
 
 	cl = _e_fm2_client_get();
 	if (!cl) break;
-	_e_fm2_client_message_flush(cl, _e_fm2_messages->data);
+	_e_fm2_client_message_flush(cl, eina_list_data_get(_e_fm2_messages));
      }
 }
 
@@ -2474,6 +2454,7 @@ _e_fm_client_file_del(const char *files, Evas_Object *e_fm)
    return id;
 }
 
+#if 0
 static int
 _e_fm2_client_file_trash(const char *path, Evas_Object *e_fm)
 {
@@ -2481,6 +2462,7 @@ _e_fm2_client_file_trash(const char *path, Evas_Object *e_fm)
    e_fm2_op_registry_entry_add(id, e_fm, E_FM_OP_TRASH, _e_fm2_operation_abort_internal);
    return id;
 }
+#endif
 
 static int
 _e_fm2_client_file_mkdir(const char *path, const char *rel, int rel_to, int x, int y, int res_w, int res_h, Evas_Object *e_fm)
@@ -2684,7 +2666,7 @@ _e_fm2_file_force_update(const char *path)
 	  {
 	     E_Fm2_Icon *ic;
 
-	     ic = _e_fm2_icon_find(l->data, ecore_file_file_get(path));
+	     ic = _e_fm2_icon_find(o, ecore_file_file_get(path));
 	     if (ic)
 	       {
 		  E_Fm2_Finfo finf;
@@ -2696,7 +2678,7 @@ _e_fm2_file_force_update(const char *path)
 		  finf.lnk = ic->info.link;
 		  finf.rlnk = ic->info.real_link;
 		  ic->removable_state_change = 1;
-		  _e_fm2_live_file_changed(l->data, ecore_file_file_get(path),
+		  _e_fm2_live_file_changed(o, ecore_file_file_get(path),
 					   &finf);
 	       }
 	  }
@@ -2898,14 +2880,11 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
 	     break;
 	  }
      }
-   while (dels)
+   EINA_LIST_FREE(dels, obj)
      {
-	Evas_Object *obj;
 	E_Fm2_Smart_Data *sd;
 
-	obj = dels->data;
         sd = evas_object_smart_data_get(obj);
-	dels = eina_list_remove_list(dels, dels);
 	if ((_e_fm2_list_walking > 0) &&
 	    (eina_list_data_find(_e_fm2_list_remove, obj))) continue;
 	if (sd->config->view.open_dirs_in_place)
@@ -2916,10 +2895,9 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
    _e_fm2_list_walking--;
    if (_e_fm2_list_walking == 0)
      {
-	while (_e_fm2_list_remove)
+	EINA_LIST_FREE(_e_fm2_list_remove, obj)
 	  {
-	     _e_fm2_list = eina_list_remove(_e_fm2_list, _e_fm2_list_remove->data);
-	     _e_fm2_list_remove = eina_list_remove_list(_e_fm2_list_remove, _e_fm2_list_remove);
+	     _e_fm2_list = eina_list_remove(_e_fm2_list, obj);
 	  }
      }
    switch (e->minor)
@@ -3000,8 +2978,8 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
 
 	                a = e_action_find("fileman");
 	                m = e_manager_list();
-	                if (a && a->func.go && m && m->data)
-	                   a->func.go(E_OBJECT(m->data), mountpoint);
+	                if (a && a->func.go && m && eina_list_data_get(m))
+	                   a->func.go(E_OBJECT(eina_list_data_get(m)), mountpoint);
 	             }
 	        }
 	  }
@@ -3633,19 +3611,19 @@ _e_fm2_queue_process(Evas_Object *obj)
 	if (sd->tmp.list_index)
 	  {
 	     ll = sd->tmp.list_index;
-	     for (l = sd->icons; l; l = l->next)
+	     for (l = sd->icons; l; l = eina_list_next(l))
 	       {
 		  *ll = l;
 		  ll++;
 	       }
 	     /* binary search first queue */
-	     ic = sd->queue->data;
+	     ic = eina_list_data_get(sd->queue);
 	     p0 = 0; p1 = n;
 	     i = (p0 + p1) / 2;
 	     ll = sd->tmp.list_index;
 	     do
 	       {
-		  ic2 = ll[i]->data;
+		  ic2 = eina_list_data_get(ll[i]);
 		  v = _e_fm2_cb_icon_sort(ic, ic2);
 		  if (v < 0) /* ic should go before ic2 */
 		    p1 = i;
@@ -3676,9 +3654,8 @@ _e_fm2_queue_process(Evas_Object *obj)
 	  }
 	else
 	  {
-	     for (; l; l = l->next)
+	     EINA_LIST_FOREACH(l, l, ic2)
 	       {
-		  ic2 = l->data;
 		  if (_e_fm2_cb_icon_sort(ic, ic2) < 0)
 		    {
 		       if (l == sd->icons)
@@ -3936,7 +3913,6 @@ _e_fm2_icons_place_icon(E_Fm2_Icon *ic)
  _e_fm2_icon_place_relative(ic, ic2, 0, 1, 1, 0);
  if (_e_fm2_icons_icon_row_ok(ic) && !_e_fm2_icons_icon_overlaps(ic)) return;
  */
-//   for (l = ic->sd->icons_place; l; l = l->next)
    EINA_LIST_FOREACH(ic->sd->icons, l, ic2)
      {
 	if ((ic2 != ic) && (ic2->saved_pos))
@@ -4111,11 +4087,7 @@ _e_fm2_icons_free(Evas_Object *obj)
    if (!sd) return;
    _e_fm2_queue_free(obj);
    /* free all icons */
-   while (sd->icons)
-     {
-	_e_fm2_icon_free(sd->icons->data);
-        sd->icons = eina_list_remove_list(sd->icons, sd->icons);
-     }
+   E_FREE_LIST(sd->icons, _e_fm2_icon_free);
    eina_list_free(sd->icons_place);
    sd->icons_place = NULL;
    sd->tmp.last_insert = NULL;
@@ -4849,8 +4821,8 @@ _e_fm2_icon_select(E_Fm2_Icon *ic)
      {
 	const char *selectraise;
 
-        if(ic->sd->iop_icon)
-           _e_fm2_icon_entry_widget_accept(ic->sd->iop_icon);
+        if (ic->sd->iop_icon)
+          _e_fm2_icon_entry_widget_accept(ic->sd->iop_icon);
 
 	edje_object_signal_emit(ic->obj, "e,state,selected", "e");
 	edje_object_signal_emit(ic->obj_icon, "e,state,selected", "e");
@@ -4871,8 +4843,8 @@ _e_fm2_icon_deselect(E_Fm2_Icon *ic)
      {
 	const char *stacking, *selectraise;
 
-	if(ic->entry_widget)
-	   _e_fm2_icon_entry_widget_accept(ic);
+	if (ic->entry_widget)
+          _e_fm2_icon_entry_widget_accept(ic);
 
 	edje_object_signal_emit(ic->obj, "e,state,unselected", "e");
 	edje_object_signal_emit(ic->obj_icon, "e,state,unselected", "e");
@@ -5127,7 +5099,7 @@ _e_fm2_icon_sel_first(Evas_Object *obj)
    if (!sd) return;
    if (!sd->icons) return;
    _e_fm2_icon_desel_any(obj);
-   ic = sd->icons->data;
+   ic = eina_list_data_get(sd->icons);
    _e_fm2_icon_select(ic);
    evas_object_smart_callback_call(sd->obj, "selection_change", NULL);
    _e_fm2_icon_make_visible(ic);
@@ -5143,7 +5115,7 @@ _e_fm2_icon_sel_last(Evas_Object *obj)
    if (!sd) return;
    if (!sd->icons) return;
    _e_fm2_icon_desel_any(obj);
-   ic = eina_list_last(sd->icons)->data;
+   ic = eina_list_data_get(eina_list_last(sd->icons));
    _e_fm2_icon_select(ic);
    evas_object_smart_callback_call(sd->obj, "selection_change", NULL);
    _e_fm2_icon_make_visible(ic);
@@ -5278,13 +5250,13 @@ _e_fm2_icon_next_find(Evas_Object *obj, int next, int match_func(E_Fm2_Icon *ic,
      {
 	if (next == 1)
 	  {
-	     if (!l->next) return NULL;
-	     ic_next = l->next->data;
+	     if (!eina_list_next(l)) return NULL;
+	     ic_next = eina_list_data_get(eina_list_next(l));
 	  }
 	if (next == -1)
 	  {
-	     if (!l->prev) return NULL;
-	     ic_next = l->prev->data;
+	     if (!eina_list_prev(l)) return NULL;
+	     ic_next = eina_list_data_get(eina_list_prev(l));
 	  }
      }
 
@@ -5507,6 +5479,7 @@ _e_fm2_typebuf_hide(Evas_Object *obj)
    sd->typebuf_visible = 0;
 }
 
+#if 0
 static void
 _e_fm2_typebuf_history_prev(Evas_Object *obj)
 {
@@ -5526,6 +5499,7 @@ _e_fm2_typebuf_history_next(Evas_Object *obj)
    if (!sd) return;
    /* FIXME: do */
 }
+#endif
 
 static int
 _e_fm2_inplace_open(const E_Fm2_Icon *ic)
@@ -6187,10 +6161,10 @@ _e_fm2_cb_dnd_drop(void *data, const char *type, void *event)
    if (sd->drop_all) /* drop arbitarily into the dir */
      {
 	/* move file into this fm dir */
-	for (ll = fsel, il = isel; ll && il; ll = ll->next, il = il->next)
+	for (ll = fsel, il = isel; ll && il; ll = eina_list_next(ll), il = eina_list_next(il))
 	  {
-	     ic = il->data;
-	     fp = ll->data;
+	     ic = eina_list_data_get(il);
+	     fp = eina_list_data_get(ll);
 	     if (!fp) continue;
 
 	     if ((ic) && (_e_fm2_view_mode_get(sd) == E_FM2_VIEW_MODE_CUSTOM_ICONS))
@@ -6232,9 +6206,8 @@ _e_fm2_cb_dnd_drop(void *data, const char *type, void *event)
 	  {
 	     sd->max.w = 0;
 	     sd->max.h = 0;
-	     for (l = sd->icons; l; l = l->next)
+	     EINA_LIST_FOREACH(sd->icons, l, ic)
 	       {
-		  ic = l->data;
 		  if ((ic->x + ic->w) > sd->max.w) sd->max.w = ic->x + ic->w;
 		  if ((ic->y + ic->h) > sd->max.h) sd->max.h = ic->y + ic->h;
 	       }
@@ -6249,10 +6222,10 @@ _e_fm2_cb_dnd_drop(void *data, const char *type, void *event)
 	if (sd->drop_after == -1) /* put into subdir/file in icon */
 	  {
 	     /* move file into dir that this icon is for */
-	     for (ll = fsel, il = isel; ll && il; ll = ll->next, il = il->next)
+	     for (ll = fsel, il = isel; ll && il; ll = eina_list_next(ll), il = eina_list_next(il))
 	       {
-		  ic = il->data;
-		  fp = ll->data;
+		  ic = eina_list_data_get(il);
+		  fp = eina_list_data_get(ll);
 		  if (!fp) continue;
 
 		  args = _e_fm_string_append_quoted(args, &size, &length, fp);
@@ -6272,10 +6245,10 @@ _e_fm2_cb_dnd_drop(void *data, const char *type, void *event)
 	  {
 	     if (_e_fm2_view_mode_get(sd) == E_FM2_VIEW_MODE_LIST && sd->order_file) /* list */
 	       {
-		  for (ll = fsel, il = isel; ll && il; ll = ll->next, il = il->next)
+		  for (ll = fsel, il = isel; ll && il; ll = eina_list_next(ll), il = eina_list_next(il))
 		    {
-		       ic = il->data;
-		       fp = ll->data;
+		       ic = eina_list_data_get(il);
+		       fp = eina_list_data_get(ll);
 		       if (!fp) continue;
 		       snprintf(buf, sizeof(buf), "%s/%s",
 			     sd->realpath, ecore_file_file_get(fp));
@@ -6298,10 +6271,10 @@ _e_fm2_cb_dnd_drop(void *data, const char *type, void *event)
 	       }
 	     else
 	       {
-		  for (ll = fsel, il = isel; ll && il; ll = ll->next, il = il->next)
+		  for (ll = fsel, il = isel; ll && il; ll = eina_list_next(ll), il = eina_list_next(il))
 		    {
-		       ic = il->data;
-		       fp = ll->data;
+		       ic = eina_list_data_get(il);
+		       fp = eina_list_data_get(ll);
 		       if (!fp) continue;
 
 		       args = _e_fm_string_append_quoted(args, &size, &length, fp);
@@ -6347,7 +6320,7 @@ _e_fm2_cb_dnd_drop(void *data, const char *type, void *event)
      {
 	EINA_LIST_FREE(_e_fm2_list_remove, obj)
 	  {
-	     _e_fm2_list = eina_list_remove(_e_fm2_list, _e_fm2_list_remove->data);
+	     _e_fm2_list = eina_list_remove(_e_fm2_list, obj);
 	  }
      }
    eina_list_free(fsel);
@@ -6365,14 +6338,17 @@ _e_fm2_mouse_1_handler(E_Fm2_Icon *ic, int up, void *evas_event)
    static unsigned int down_timestamp = 0;
 
    if (!evas_event) return;
-   
-   if (!up) {
-     ed = evas_event;
-   	modifiers = ed->modifiers;
-   } else {
-   	eu = evas_event;
-   	modifiers = eu->modifiers;
-   }
+
+   if (!up) 
+     {
+        ed = evas_event;
+        modifiers = ed->modifiers;
+     } 
+   else 
+     {
+        eu = evas_event;
+        modifiers = eu->modifiers;
+     }
 
    if (ic->sd->config->selection.windows_modifiers)
      {
@@ -6407,9 +6383,9 @@ _e_fm2_mouse_1_handler(E_Fm2_Icon *ic, int up, void *evas_event)
 		  ic2->last_selected = 0;
 		  if (seen)
 		    {
-		       for (; (l) && (l->data != ic); l = l->prev)
+		       EINA_LIST_REVERSE_FOREACH(l, l, ic2)
 			 {
-			    ic2 = l->data;
+			    if (ic == ic2) break;
 			    if (!ic2->selected) sel_change = 1;
 			    _e_fm2_icon_select(ic2);
 			    ic2->last_selected = 0;
@@ -6417,9 +6393,9 @@ _e_fm2_mouse_1_handler(E_Fm2_Icon *ic, int up, void *evas_event)
 		    }
 		  else
 		    {
-		       for (; (l) && (l->data != ic); l = l->next)
+		       EINA_LIST_FOREACH(l, l, ic2)
 			 {
-			    ic2 = l->data;
+			    if (ic == ic2) break;
 			    if (!ic2->selected) sel_change = 1;
 			    _e_fm2_icon_select(ic2);
 			    ic2->last_selected = 0;
@@ -6453,9 +6429,7 @@ _e_fm2_mouse_1_handler(E_Fm2_Icon *ic, int up, void *evas_event)
 	     const Eina_List *l;
 	     E_Fm2_Icon *ic2;
 	     EINA_LIST_FOREACH(ic->sd->icons, l, ic2)
-	       {
-		  ic2->last_selected = 0;
-	       }
+               ic2->last_selected = 0;
 	  }
      }
    if ((multi_sel) && (ic->selected))
@@ -6481,20 +6455,20 @@ _e_fm2_mouse_1_handler(E_Fm2_Icon *ic, int up, void *evas_event)
      evas_object_smart_callback_call(ic->sd->obj, "selection_change", NULL);
    if ((!(S_ISDIR(ic->info.statinfo.st_mode)) ||
 	(ic->sd->config->view.no_subdir_jump)) &&
-       (ic->sd->config->view.single_click)
-       )
+       (ic->sd->config->view.single_click))
      {
 	if (ed && ic->sd->config->view.single_click_delay)
-	    down_timestamp = ed->timestamp;
+          down_timestamp = ed->timestamp;
 
-     if (eu && (eu->timestamp - down_timestamp) > ic->sd->config->view.single_click_delay) {
-	    int icon_pos_x = ic->x + ic->sd->x - ic->sd->pos.x;
-	    int icon_pos_y = ic->y + ic->sd->y - ic->sd->pos.y;
+        if (eu && (eu->timestamp - down_timestamp) > ic->sd->config->view.single_click_delay) 
+          {
+             int icon_pos_x = ic->x + ic->sd->x - ic->sd->pos.x;
+             int icon_pos_y = ic->y + ic->sd->y - ic->sd->pos.y;
 
-	    if (eu->output.x >= icon_pos_x && eu->output.x <= (icon_pos_x + ic->w) &&
-	        eu->output.y >= icon_pos_y && eu->output.y <= (icon_pos_y + ic->h))
-	       evas_object_smart_callback_call(ic->sd->obj, "selected", NULL);
-	  }
+             if (eu->output.x >= icon_pos_x && eu->output.x <= (icon_pos_x + ic->w) &&
+                 eu->output.y >= icon_pos_y && eu->output.y <= (icon_pos_y + ic->h))
+               evas_object_smart_callback_call(ic->sd->obj, "selected", NULL);
+          }
      }
 }
 
@@ -6553,8 +6527,7 @@ _e_fm2_cb_icon_mouse_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
    ic = data;
    ev = event_info;
 
-   if (ic->entry_widget)
-      return;
+   if (ic->entry_widget) return;
 
    if ((ev->button == 1) && (!ic->drag.dnd))
      {
@@ -6641,17 +6614,11 @@ _e_fm_drag_key_up_cb(E_Drag *drag, Ecore_Event_Key *e)
    /* Default action would be move. ;) */
 
    if (!strncmp(e->keyname, "Alt", 3))
-     {
-	ecore_x_dnd_source_action_set(ECORE_X_ATOM_XDND_ACTION_MOVE);
-     }
+     ecore_x_dnd_source_action_set(ECORE_X_ATOM_XDND_ACTION_MOVE);
    else if (!strncmp(e->keyname, "Shift", 5))
-     {
-	ecore_x_dnd_source_action_set(ECORE_X_ATOM_XDND_ACTION_MOVE);
-     }
+     ecore_x_dnd_source_action_set(ECORE_X_ATOM_XDND_ACTION_MOVE);
    else if (!strncmp(e->keyname, "Control", 7))
-     {
-	ecore_x_dnd_source_action_set(ECORE_X_ATOM_XDND_ACTION_MOVE);
-     }
+     ecore_x_dnd_source_action_set(ECORE_X_ATOM_XDND_ACTION_MOVE);
 
    edje_object_signal_emit(drag->object, "e,state,move", "e");
 }
@@ -6666,8 +6633,7 @@ _e_fm2_cb_icon_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_inf
    ic = data;
    ev = event_info;
 
-   if (ic->entry_widget)
-      return;
+   if (ic->entry_widget) return;
 
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    if ((ic->drag.start) && (ic->sd->eobj))
@@ -6758,8 +6724,7 @@ _e_fm2_cb_icon_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_inf
 	     if (!sel) return;
 	     sel[sel_length] = '\0';
 
-	     d = e_drag_new(con,
-			    x, y, drag_types, 1,
+	     d = e_drag_new(con, x, y, drag_types, 1,
 			    sel, sel_length, NULL, _e_fm2_cb_drag_finished);
 	     o = edje_object_add(e_drag_evas_get(d));
 	     if (_e_fm2_view_mode_get(ic->sd) == E_FM2_VIEW_MODE_LIST)
@@ -6830,8 +6795,7 @@ _e_fm2_cb_icon_thumb_dnd_gen(void *data, Evas_Object *obj, void *event_info)
    have_alpha = e_icon_alpha_get(obj);
 //   if (_e_fm2_view_mode_get(ic->sd) == E_FM2_VIEW_MODE_LIST)
      {
-	edje_extern_object_aspect_set(obj,
-				      EDJE_ASPECT_CONTROL_BOTH, w, h);
+	edje_extern_object_aspect_set(obj, EDJE_ASPECT_CONTROL_BOTH, w, h);
      }
    edje_object_part_swallow(o, "e.swallow.icon", obj);
    if (have_alpha)
@@ -6876,8 +6840,7 @@ _e_fm2_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
    sd = data;
    ev = event_info;
 
-   if(sd->iop_icon)
-      return;
+   if (sd->iop_icon) return;
 
    if (evas_key_modifier_is_set(ev->modifiers, "Control"))
      {
@@ -6906,7 +6869,7 @@ _e_fm2_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 	 * typebuf mode: cursor left
 	 */
 	_e_fm2_icon_sel_prev(obj);
-    }
+     }
    else if (!strcmp(ev->key, "Right"))
      {
 	/* FIXME: icon mode, typebuf extras */
@@ -8571,7 +8534,7 @@ _e_fm2_view_image_sel(E_Fm2_Smart_Data *sd, const char *title,
    
    o = e_widget_fsel_add(dia->win->evas, "/", sd->realpath, NULL, NULL, NULL, sd, NULL, sd, 1);
    evas_object_show(o);
-   e_widget_min_size_get(o, &w, &h);
+   e_widget_size_min_get(o, &w, &h);
    e_dialog_content_set(dia, o, w, h);
    dia->data = o;
 
@@ -9394,7 +9357,8 @@ _e_fm2_file_delete_yes_cb(void *data, E_Dialog *dialog)
 	     if (e_filereg_file_protected(buf)) continue;
 
 	     files = _e_fm_string_append_quoted(files, &size, &len, buf);
-	     if (l->next) files = _e_fm_string_append_char(files, &size, &len, ' ');
+	     if (eina_list_next(l))
+	       files = _e_fm_string_append_char(files, &size, &len, ' ');
 	  }
 
 	eina_list_free(sel);
@@ -9545,7 +9509,7 @@ _e_fm2_live_process(Evas_Object *obj)
 
    sd = evas_object_smart_data_get(obj);
    if (!sd->live.actions) return;
-   a = sd->live.actions->data;
+   a = eina_list_data_get(sd->live.actions);
    sd->live.actions = eina_list_remove_list(sd->live.actions, sd->live.actions);
    switch (a->type)
      {
@@ -9816,7 +9780,7 @@ _e_fm2_volume_icon_update(E_Volume *v)
         rp = e_fm2_real_path_get(o);
         if (strcmp(rp, fav) && strcmp(rp, desk)) continue;
         
-        ic = _e_fm2_icon_find(l->data, file);
+        ic = _e_fm2_icon_find(o, file);
         if (ic)
            _update_volume_icon(v, ic);
      }

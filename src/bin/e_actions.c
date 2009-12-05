@@ -1233,6 +1233,8 @@ ACT_FN_GO_EDGE(desk_flip_in_direction)
 	     wev->curr.x = offset;
 	  }
 	 break;
+      default:
+	 break;
      }
 
    current = e_desk_current_get(zone);
@@ -1286,12 +1288,9 @@ ACT_FN_GO(desk_linear_flip_to)
   E_Container *con;		   \
   E_Manager *man;				\
   \
-  for (lm = e_manager_list(); lm; lm = lm->next) {		 \
-    man = lm->data;					   \
-    for (lc = man->containers; lc; lc = lc->next) {	   \
-      con = lc->data;					   \
-      for (lz = con->zones; lz; lz = lz->next) {	   \
-	zone = lz->data;				   \
+  EINA_LIST_FOREACH(e_manager_list(), lm, man) {	   \
+    EINA_LIST_FOREACH(man->containers, lc, con) {	   \
+      EINA_LIST_FOREACH(con->zones, lz, zone) {		   \
 	act;						   \
       }							   \
     }							   \
@@ -1441,26 +1440,20 @@ if ((con_num < 0) || (zone_num < 0)) { \
    E_Manager *man; \
    if ((con_num >= 0) && (zone_num < 0)) /* con=1 zone=all */ { \
 	con = e_util_container_number_get(con_num); \
-	for (l = con->zones; l; l = l->next) { \
-	   zone = l->data; \
+	EINA_LIST_FOREACH(con->zones, l, zone) { \
 	   act; \
 	} } \
    else if ((con_num < 0) && (zone_num >= 0)) /* con=all zone=1 */ { \
-	for (l = e_manager_list(); l; l = l->next) { \
-	   man = l->data; \
-	   for (ll = man->containers; ll; ll = ll->next) { \
-	      con = ll->data; \
+	EINA_LIST_FOREACH(e_manager_list(), l, man) { \
+	   EINA_LIST_FOREACH(man->containers, ll, con) { \
 	      zone = e_container_zone_number_get(con, zone_num); \
 	      if (zone) \
 		act; \
 	   } } } \
    else if ((con_num < 0) && (zone_num < 0)) /* con=all zone=all */ { \
-      for (l = e_manager_list(); l; l = l->next) { \
-	 man = l->data; \
-	 for (ll = man->containers; ll; ll = ll->next) { \
-	    con = ll->data; \
-	    for (lll = con->zones; lll; lll = lll->next) { \
-	       zone = lll->data; \
+      EINA_LIST_FOREACH(e_manager_list(), l, man) { \
+	 EINA_LIST_FOREACH(man->containers, ll, con) { \
+	    EINA_LIST_FOREACH(con->zones, lll, zone) { \
 	       act; \
 	    } } } } } \
 else { \
@@ -2212,6 +2205,65 @@ ACT_FN_GO(shelf_show)
      }
 }
 /***************************************************************************/
+#define ACT_SHELF_SHOW(params, es) \
+if ((!params) || (params && (fnmatch(params, es->name, 0) == 0))) \
+  { \
+     e_shelf_toggle(es, 1); \
+     e_shelf_toggle(es, 0); \
+  }
+ACT_FN_GO_EDGE(shelf_show)
+{
+   Eina_List *l;
+   E_Shelf *es;
+
+   if (params)
+     {
+	for (; *params != '\0'; params++)
+	  if (!isspace(*params))
+	    break;
+	if (*params == '\0')
+	  params = NULL;
+     }
+
+   EINA_LIST_FOREACH(e_shelf_list(), l, es)
+     {
+	switch(ev->edge)
+	  {
+	   case E_ZONE_EDGE_LEFT:
+	      if ((es->gadcon->orient == E_GADCON_ORIENT_LEFT ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_LT ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_LB) &&
+		  (ev->y >= es->y) && (ev->y <= (es->y + es->h)))
+		ACT_SHELF_SHOW(params, es);
+	      break;
+	   case E_ZONE_EDGE_RIGHT:
+	      if ((es->gadcon->orient == E_GADCON_ORIENT_RIGHT ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_RT ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_RB) &&
+		  (ev->y >= es->y) && (ev->y <= (es->y + es->h)))
+		ACT_SHELF_SHOW(params, es);
+	      break;
+	   case E_ZONE_EDGE_TOP:
+	      if ((es->gadcon->orient == E_GADCON_ORIENT_TOP ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_TL ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_TR) &&
+		  (ev->x >= es->x) && (ev->x <= (es->x + es->w)))
+		ACT_SHELF_SHOW(params, es);
+	      break;
+	   case E_ZONE_EDGE_BOTTOM:
+	      if ((es->gadcon->orient == E_GADCON_ORIENT_BOTTOM ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_BL ||
+		   es->gadcon->orient == E_GADCON_ORIENT_CORNER_BR) &&
+		  (ev->x >= es->x) && (ev->x <= (es->x + es->w)))
+		ACT_SHELF_SHOW(params, es);
+	      break;
+	   default:
+	      break;
+	  }
+     }
+}
+#undef ACT_SHELF_SHOW
+/***************************************************************************/
 
 typedef struct _Delayed_Action     Delayed_Action;
 
@@ -2367,12 +2419,10 @@ static void
 _delayed_action_key_del(E_Object *obj, const char *params, Ecore_Event_Key *ev)
 {
    Eina_List *l;
-   
-   for (l = _delayed_actions; l; l = l->next)
+   Delayed_Action *da;
+  
+   EINA_LIST_FOREACH(_delayed_actions, l, da) 
      {
-	Delayed_Action *da;
-	
-	da = l->data;
 	if ((da->obj == obj) && (!da->mouse) && 
 	    (!strcmp(da->keyname, ev->keyname)))
 	  {
@@ -2406,12 +2456,10 @@ static void
 _delayed_action_mouse_del(E_Object *obj, const char *params, Ecore_Event_Mouse_Button *ev)
 {
    Eina_List *l;
+   Delayed_Action *da;
    
-   for (l = _delayed_actions; l; l = l->next)
+   EINA_LIST_FOREACH(_delayed_actions, l, da)
      {
-	Delayed_Action *da;
-	
-	da = l->data;
 	if ((da->obj == obj) && (da->mouse) && 
 	    (ev->buttons == da->button))
 	  {
@@ -2592,6 +2640,7 @@ e_actions_init(void)
 
    /* shelf_show */
    ACT_GO(shelf_show);
+   ACT_GO_EDGE(shelf_show);
    e_action_predef_name_set(_("Desktop"), _("Show The Shelf"), "shelf_show",
 			    NULL, "shelf name glob: Shelf-* ", 1);
 
@@ -2928,7 +2977,6 @@ e_action_predef_label_get(const char *action, const char *params)
      {
 	EINA_LIST_FOREACH(actg->acts, l2, actd)
           {
-             actd = l2->data;
              if (!strcmp(actd->act_cmd, action))
                {
                   if ((params) && (actd->act_params))
@@ -3002,9 +3050,8 @@ e_action_predef_name_del(const char *act_grp, const char *act_name)
    E_Action_Description *actd = NULL;
    Eina_List *l;
 
-   for (l = action_groups; l; l = l->next)
+   EINA_LIST_FOREACH(action_groups, l, actg)
      {
-	actg = l->data;
 	if (!strcmp(actg->act_grp, act_grp))
 	  break;
 	actg = NULL;
@@ -3012,9 +3059,8 @@ e_action_predef_name_del(const char *act_grp, const char *act_name)
 
    if (!actg) return;
 
-   for (l = actg->acts; l; l = l->next)
+   EINA_LIST_FOREACH(actg->acts, l, actd)
      {
-	actd = l->data;
 	if (!strcmp(actd->act_name, act_name))
 	  {
 	     actg->acts = eina_list_remove(actg->acts, actd);
@@ -3043,27 +3089,19 @@ e_action_predef_name_all_del(void)
    E_Action_Group *actg = NULL;
    E_Action_Description *actd = NULL;
 
-   while (action_groups)
+   EINA_LIST_FREE(action_groups, actg)
      {
-	actg = action_groups->data;
-
-	while (actg->acts)
+	EINA_LIST_FREE(actg->acts, actd)
 	  {
-	     actd = actg->acts->data;
-
 	     if (actd->act_name) eina_stringshare_del(actd->act_name);
 	     if (actd->act_cmd) eina_stringshare_del(actd->act_cmd);
 	     if (actd->act_params) eina_stringshare_del(actd->act_params);
 	     if (actd->param_example) eina_stringshare_del(actd->param_example);
 
 	     E_FREE(actd);
-
-	     actg->acts = eina_list_remove_list(actg->acts, actg->acts);
 	  }
 	if (actg->act_grp) eina_stringshare_del(actg->act_grp);
 	E_FREE(actg);
-
-	action_groups = eina_list_remove_list(action_groups, action_groups);
      }
    action_groups = NULL;
 }
