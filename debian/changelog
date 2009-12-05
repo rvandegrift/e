@@ -1,3 +1,10 @@
+e17 (0.16.999.063-1) unstable; urgency=low
+
+  * New upstream snapshot
+  * Add new modules to the install files
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 05 Dec 2009 12:56:10 +0100
+
 e17 (0.16.999.062-1) unstable; urgency=low
 
   * New upstream snapshot
