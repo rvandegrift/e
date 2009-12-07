@@ -11,3 +11,14 @@ e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume/keyboards/right.
 e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume/keyboards/shift.png
 e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume/keyboards/tab.png
 e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume/keyboards/up.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/alpha.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/backspace.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/down.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/enter.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/left.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/numeric.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/qwerty.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/right.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/shift.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/tab.png
+e17: image-file-in-usr-lib usr/lib/enlightenment/modules/illume-keyboard/keyboards/up.png
