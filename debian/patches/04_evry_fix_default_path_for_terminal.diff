@@ -1,13 +1,13 @@
-diff --git a/src/modules/everything/e_mod_main.c b/src/modules/everything/e_mod_main.c
-index 6e2b33d..c633064 100644
---- a/src/modules/everything/e_mod_main.c
-+++ b/src/modules/everything/e_mod_main.c
-@@ -223,7 +223,7 @@ _config_init()
- 	evry_conf->conf_actions = NULL;
- 	evry_conf->conf_objects = NULL;
- 	evry_conf->conf_views   = NULL;
--	evry_conf->cmd_terminal = eina_stringshare_add("/usr/bin/xterm");
-+	evry_conf->cmd_terminal = eina_stringshare_add("/usr/bin/x-terminal-emulator");
- 	evry_conf->cmd_sudo = eina_stringshare_add("/usr/bin/gksudo --preserve-env");
- 	evry_conf->view_mode = 0;
- 	evry_conf->view_zoom = 0;
+diff --git a/src/modules/everything-apps/e_mod_main.c b/src/modules/everything-apps/e_mod_main.c
+index 0085502..c6a70e7 100644
+--- a/src/modules/everything-apps/e_mod_main.c
++++ b/src/modules/everything-apps/e_mod_main.c
+@@ -1190,7 +1190,7 @@ _conf_new(void)
+ 
+    /* setup defaults */
+    IFMODCFG(0x009d);
+-   _conf->cmd_terminal = eina_stringshare_add("/usr/bin/xterm");
++   _conf->cmd_terminal = eina_stringshare_add("/usr/bin/x-terminal-emulator");
+    _conf->cmd_sudo = eina_stringshare_add("/usr/bin/gksudo --preserve-env");
+    IFMODCFGEND;
+ 
