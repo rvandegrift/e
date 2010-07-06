@@ -5,9 +5,9 @@ Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
  Xavier Oswald <x.oswald@free.fr>, Jan Lübbe <jluebbe@debian.org>
 Build-Depends: debhelper (>= 6), cdbs, libeet-dev (>= 1.0.1),
- libedje-dev (>= 0.9.93.063), libefreet-dev (>= 0.5.0.063),
- libecore-dev (>= 0.9.9.063), libedbus-dev (>= 0.5.0.063),
- libevas-dev (>= 0.9.9.063), libeina-dev (>= 0.9.9.063),
+ libedje-dev (>= 0.9.93.49898), libefreet-dev (>= 0.5.0.49898),
+ libecore-dev (>= 0.9.9.49898), libedbus-dev (>= 0.5.0.49898),
+ libevas-dev (>= 0.9.9.49898), libeina-dev (>= 0.9.9.49898),
  libasound2-dev [!kfreebsd-amd64 !kfreebsd-i386 !hurd-i386], libxext-dev, libeet-bin, libpam0g-dev
 Standards-Version: 3.8.3
 Vcs-Git: git://git.debian.org/pkg-e/apps/e.git
@@ -16,7 +16,7 @@ Homepage: http://www.enlightenment.org
 
 Package: e17
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, e17-data (= ${source:Version}), libevas-svn-05-engine-software-x11, libedje-bin
+Depends: ${misc:Depends}, ${shlibs:Depends}, e17-data (= ${source:Version}), libevas-svn-06-engine-software-x11, libedje-bin
 Conflicts: enlightenment
 Provides: x-window-manager
 Description: The Enlightenment DR17 Window Manager
@@ -58,9 +58,9 @@ Package: efl-dev
 Architecture: any
 Section: devel
 Depends: ${misc:Depends}, libeet-dev (>= 1.0.1),
- libedje-dev (>= 0.9.93.063), libefreet-dev (>= 0.5.0.063),
- libecore-dev (>= 0.9.9.063), libedbus-dev (>= 0.5.0.063),
- libevas-dev (>= 0.9.9.063), libeina-dev (>= 0.9.9.063)
+ libedje-dev (>= 0.9.93.49898), libefreet-dev (>= 0.5.0.49898),
+ libecore-dev (>= 0.9.9.49898), libedbus-dev (>= 0.5.0.49898),
+ libevas-dev (>= 0.9.9.49898), libeina-dev (>= 0.9.9.49898)
 Description: EFL headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
