@@ -19,7 +19,7 @@ static Evas_Object *_theme_obj_new(Evas *e, const char *custom_dir, const char *
 
 static void _e_kbd_int_layout_next(E_Kbd_Int *ki);
 static void _e_kbd_int_zoomkey_down(E_Kbd_Int *ki);
-static void _e_kbd_int_matches_update(E_Kbd_Int *ki);
+static void _e_kbd_int_matches_update(void *data);
 static void _e_kbd_int_dictlist_down(E_Kbd_Int *ki);
 static void _e_kbd_int_matchlist_down(E_Kbd_Int *ki);
 static void _e_kbd_int_layoutlist_down(E_Kbd_Int *ki);
@@ -288,12 +288,14 @@ _e_kbd_int_matches_free(E_Kbd_Int *ki)
 }
 
 static void
-_e_kbd_int_matches_update(E_Kbd_Int *ki)
+_e_kbd_int_matches_update(void *data)
 {
+   E_Kbd_Int *ki;
    const Eina_List *l, *matches;
    const char *actual;
    Evas_Coord mw, mh, vw, vh;
-   
+
+   ki = data;
    evas_event_freeze(ki->win->evas);
    e_box_freeze(ki->box_obj);
    _e_kbd_int_matches_free(ki);
@@ -653,7 +655,7 @@ _e_kbd_int_zoomkey_update(E_Kbd_Int *ki)
      }
 }
 
-static int
+static Eina_Bool
 _e_kbd_int_cb_hold_timeout(void *data)
 {
    E_Kbd_Int *ki;
@@ -670,7 +672,7 @@ _e_kbd_int_cb_hold_timeout(void *data)
      }
    _e_kbd_int_zoomkey_up(ki);
    _e_kbd_int_zoomkey_update(ki);
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
@@ -1111,7 +1113,7 @@ _e_kbd_int_layouts_list_update(E_Kbd_Int *ki)
 	p = strrchr(file, '.');
 	if ((p) && (!strcmp(p, ".kbd")))
 	  {
-	     if (ecore_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
+	     if (eina_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
 	       continue;
 	     kbs = eina_list_append(kbs, eina_stringshare_add(buf));
 	  }
@@ -1142,7 +1144,7 @@ _e_kbd_int_layouts_list_update(E_Kbd_Int *ki)
 	       }
 	     if (ok)
 	       {
-		  if (ecore_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
+		  if (eina_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
 		    continue;
 		  kbs = eina_list_append(kbs, eina_stringshare_add(buf));
 	       }
@@ -1283,8 +1285,8 @@ _e_kbd_int_layout_next(E_Kbd_Int *ki)
    _e_kbd_int_layout_select(ki, kil);
 }
 
-static int
-_e_kbd_int_cb_client_message(void *data, int type, void *event)
+static Eina_Bool
+_e_kbd_int_cb_client_message(void *data, __UNUSED__ int type, void *event)
 {
    Ecore_X_Event_Client_Message *ev;
    E_Kbd_Int *ki;
@@ -1343,7 +1345,7 @@ _e_kbd_int_cb_client_message(void *data, int type, void *event)
 	     if (kil) _e_kbd_int_layout_select(ki, kil);
 	  }
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 static void

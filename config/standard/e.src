@@ -1,5 +1,5 @@
 group "E_Config" struct {
-  value "config_version" int: 65842;
+  value "config_version" int: 65847;
   value "show_splash" int: 1;
   value "init_default_theme" string: "default.edj";
   value "desktop_default_name" string: "Desktop %i, %i";
@@ -9,7 +9,7 @@ group "E_Config" struct {
   value "border_shade_animate" int: 1;
   value "border_shade_transition" int: 3;
   value "border_shade_speed" double: 3000.0000000000000000000000000;
-  value "framerate" double: 30.0000000000000000000000000;
+  value "framerate" double: 60.0000000000000000000000000;
   value "priority" int: 1;
   value "image_cache" int: 4096;
   value "font_cache" int: 512;
@@ -274,14 +274,6 @@ group "E_Config" struct {
   }
   group "modules" list {
     group "E_Config_Module" struct {
-      value "name" string: "conf_exebuf";
-      value "enabled" uchar: 1;
-      value "delayed" uchar: 1;
-      value "priority" int: 0;
-    }
-  }
-  group "modules" list {
-    group "E_Config_Module" struct {
       value "name" string: "conf_dpms";
       value "enabled" uchar: 1;
       value "delayed" uchar: 1;
@@ -378,14 +370,6 @@ group "E_Config" struct {
   }
   group "modules" list {
     group "E_Config_Module" struct {
-      value "name" string: "exebuf";
-      value "enabled" uchar: 1;
-      value "delayed" uchar: 1;
-      value "priority" int: 0;
-    }
-  }
-  group "modules" list {
-    group "E_Config_Module" struct {
       value "name" string: "pager";
       value "enabled" uchar: 1;
       value "delayed" uchar: 0;
@@ -475,6 +459,62 @@ group "E_Config" struct {
   group "modules" list {
     group "E_Config_Module" struct {
       value "name" string: "everything";
+      value "enabled" uchar: 1;
+      value "delayed" uchar: 0;
+      value "priority" int: -1000;
+    }
+  }
+  group "modules" list {
+    group "E_Config_Module" struct {
+      value "name" string: "everything-files";
+      value "enabled" uchar: 1;
+      value "delayed" uchar: 1;
+      value "priority" int: 0;
+    }
+  }
+  group "modules" list {
+    group "E_Config_Module" struct {
+      value "name" string: "everything-apps";
+      value "enabled" uchar: 1;
+      value "delayed" uchar: 1;
+      value "priority" int: 0;
+    }
+  }
+  group "modules" list {
+    group "E_Config_Module" struct {
+      value "name" string: "everything-calc";
+      value "enabled" uchar: 1;
+      value "delayed" uchar: 1;
+      value "priority" int: 0;
+    }
+  }
+  group "modules" list {
+    group "E_Config_Module" struct {
+      value "name" string: "everything-aspell";
+      value "enabled" uchar: 1;
+      value "delayed" uchar: 1;
+      value "priority" int: 0;
+    }
+  }
+  group "modules" list {
+    group "E_Config_Module" struct {
+      value "name" string: "everything-settings";
+      value "enabled" uchar: 1;
+      value "delayed" uchar: 1;
+      value "priority" int: 0;
+    }
+  }
+  group "modules" list {
+    group "E_Config_Module" struct {
+      value "name" string: "everything-windows";
+      value "enabled" uchar: 1;
+      value "delayed" uchar: 1;
+      value "priority" int: 0;
+    }
+  }
+  group "modules" list {
+    group "E_Config_Module" struct {
+      value "name" string: "conf_acpibindings";
       value "enabled" uchar: 1;
       value "delayed" uchar: 1;
       value "priority" int: 0;
@@ -927,7 +967,7 @@ group "E_Config" struct {
       value "context" int: 9;
       value "modifiers" int: 4;
       value "key" string: "Escape";
-      value "action" string: "exebuf";
+      value "action" string: "everything";
       value "any_mod" uchar: 0;
     }
   }
@@ -1009,6 +1049,33 @@ group "E_Config" struct {
       value "any_mod" uchar: 0;
     }
   }
+  group "key_bindings" list {
+    group "E_Config_Binding_Key" struct {
+      value "context" int: 9;
+      value "modifiers" int: 0;
+      value "key" string: "XF86AudioLowerVolume";
+      value "action" string: "volume_decrease";
+      value "any_mod" uchar: 0;
+    }
+  }
+  group "key_bindings" list {
+    group "E_Config_Binding_Key" struct {
+      value "context" int: 9;
+      value "modifiers" int: 0;
+      value "key" string: "XF86AudioRaiseVolume";
+      value "action" string: "volume_increase";
+      value "any_mod" uchar: 0;
+    }
+  }
+  group "key_bindings" list {
+    group "E_Config_Binding_Key" struct {
+      value "context" int: 9;
+      value "modifiers" int: 0;
+      value "key" string: "XF86AudioMute";
+      value "action" string: "volume_mute";
+      value "any_mod" uchar: 0;
+    }
+  }
   group "edge_bindings" list {
     group "E_Config_Binding_Edge" struct {
       value "context" int: 3;
@@ -1045,16 +1112,6 @@ group "E_Config" struct {
       value "modifiers" int: 0;
       value "action" string: "desk_flip_in_direction";
       value "edge" uchar: 4;
-      value "any_mod" uchar: 0;
-      value "delay" float: 0.3000000000000000000000000;
-    }
-  }
-  group "edge_bindings" list {
-    group "E_Config_Binding_Edge" struct {
-      value "context" int: 3;
-      value "modifiers" int: 0;
-      value "action" string: "desk_deskshow_toggle";
-      value "edge" uchar: 6;
       value "any_mod" uchar: 0;
       value "delay" float: 0.3000000000000000000000000;
     }
@@ -1489,6 +1546,41 @@ group "E_Config" struct {
       value "params" string: "1";
     }
   }
+    group "acpi_bindings" list {
+        group "E_Config_Binding_Acpi" struct {
+            value "context" int: 0;
+            value "type" int: 1;
+            value "status" int: 0;
+            value "action" string: "dim_screen";
+        }
+        group "E_Config_Binding_Acpi" struct {
+            value "context" int: 0;
+            value "type" int: 1;
+            value "status" int: 1;
+            value "action" string: "undim_screen";
+        }
+        group "E_Config_Binding_Acpi" struct {
+            value "context" int: 0;
+            value "type" int: 5;
+            value "status" int: 0;
+            value "action" string: "suspend";
+            value "params" string: "now";
+        }
+        group "E_Config_Binding_Acpi" struct {
+            value "context" int: 0;
+            value "type" int: 6;
+            value "status" int: -1;
+            value "action" string: "halt_now";
+            value "params" string: "now";
+        }
+        group "E_Config_Binding_Acpi" struct {
+            value "context" int: 0;
+            value "type" int: 8;
+            value "status" int: -1;
+            value "action" string: "suspend";
+            value "params" string: "now";
+        }
+    }
   value "window_placement_policy" int: 0;
   value "focus_policy" int: 2;
   value "focus_setting" int: 3;
@@ -1558,19 +1650,6 @@ group "E_Config" struct {
   value "menu_eap_generic_show" int: 1;
   value "menu_eap_comment_show" int: 0;
   value "fullscreen_policy" int: 0;
-  value "exebuf_max_exe_list" int: 20;
-  value "exebuf_max_eap_list" int: 20;
-  value "exebuf_max_hist_list" int: 20;
-  value "exebuf_scroll_animate" int: 1;
-  value "exebuf_scroll_speed" double: 0.1000000000000000055511151;
-  value "exebuf_pos_align_x" double: 0.5000000000000000000000000;
-  value "exebuf_pos_align_y" double: 0.5000000000000000000000000;
-  value "exebuf_pos_size_w" double: 0.7500000000000000000000000;
-  value "exebuf_pos_size_h" double: 0.2500000000000000000000000;
-  value "exebuf_pos_min_w" int: 200;
-  value "exebuf_pos_min_h" int: 160;
-  value "exebuf_pos_max_w" int: 400;
-  value "exebuf_pos_max_h" int: 320;
   value "exebuf_term_cmd" string: "xterm -hold -e";
   value "use_app_icon" int: 0;
   value "cnfmdlg_disabled" int: 0;
@@ -1964,6 +2043,7 @@ group "E_Config" struct {
   value "desklock_auth_method" int: 0;
   value "desklock_login_box_zone" int: -1;
   value "desklock_start_locked" int: 0;
+  value "desklock_on_suspend" int: 0;
   value "desklock_autolock_screensaver" int: 0;
   value "desklock_post_screensaver_time" double: 0.0;
   value "desklock_autolock_idle" int: 0;
@@ -2084,13 +2164,13 @@ group "E_Config" struct {
   value "thumbscroll_threshhold" int: 8;
   value "thumbscroll_momentum_threshhold" double: 100.0000000000000000000000000;
   value "thumbscroll_friction" double: 1.0000000000000000000000000;
-  value "hal_desktop" int: 1;
+  value "dbus_desktop" int: 1;
   value "border_keyboard.timeout" double: 5.0000000000000000000000000;
   value "border_keyboard.move.dx" uchar: 5;
   value "border_keyboard.move.dy" uchar: 5;
   value "border_keyboard.resize.dx" uchar: 5;
   value "border_keyboard.resize.dy" uchar: 5;
-  value "hal_desktop" int: 1;
+  value "dbus_desktop" int: 1;
   value "scale.min" double: 1.0000000000000000000000000;
   value "scale.max" double: 3.0000000000000000000000000;
   value "scale.factor" double: 1.0000000000000000000000000;
@@ -2161,4 +2241,7 @@ group "E_Config" struct {
   }
   value "mode.presentation" uchar: 0;
   value "mode.offline" uchar: 0;
+  value "exec.expire_timeout" double: 30.0;
+  value "exec.show_run_dialog" uchar: 1;
+  value "exec.show_exit_dialog" uchar: 1;
 }

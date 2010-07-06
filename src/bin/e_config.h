@@ -13,6 +13,7 @@ typedef struct _E_Config_Binding_Key        E_Config_Binding_Key;
 typedef struct _E_Config_Binding_Edge       E_Config_Binding_Edge;
 typedef struct _E_Config_Binding_Signal     E_Config_Binding_Signal;
 typedef struct _E_Config_Binding_Wheel      E_Config_Binding_Wheel;
+typedef struct _E_Config_Binding_Acpi       E_Config_Binding_Acpi;
 typedef struct _E_Config_Desktop_Background E_Config_Desktop_Background;
 typedef struct _E_Config_Desktop_Name       E_Config_Desktop_Name;
 typedef struct _E_Config_Gadcon             E_Config_Gadcon;
@@ -21,7 +22,6 @@ typedef struct _E_Config_Shelf              E_Config_Shelf;
 typedef struct _E_Config_Shelf_Desk         E_Config_Shelf_Desk;
 typedef struct _E_Config_Mime_Icon          E_Config_Mime_Icon;
 typedef struct _E_Config_Syscon_Action      E_Config_Syscon_Action;
-
 typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 
 #else
@@ -35,7 +35,7 @@ typedef struct _E_Event_Config_Icon_Theme   E_Event_Config_Icon_Theme;
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 0x0133
+#define E_CONFIG_FILE_GENERATION 0x0137
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH << 16) | E_CONFIG_FILE_GENERATION)
 
 #define E_EVAS_ENGINE_DEFAULT         0
@@ -104,6 +104,7 @@ struct _E_Config
    Eina_List  *edge_bindings; // GUI
    Eina_List  *signal_bindings;
    Eina_List  *wheel_bindings; // GUI
+   Eina_List  *acpi_bindings; // GUI
    Eina_List  *path_append_data; // GUI
    Eina_List  *path_append_images; // GUI
    Eina_List  *path_append_fonts; // GUI
@@ -189,19 +190,6 @@ struct _E_Config
    int         menu_favorites_show; // GUI
    int         menu_apps_show; // GUI
    int         fullscreen_policy; // GUI
-   int         exebuf_max_exe_list; // GUI
-   int         exebuf_max_eap_list; // GUI
-   int         exebuf_max_hist_list; // GUI
-   int         exebuf_scroll_animate; // GUI
-   double      exebuf_scroll_speed; // GUI
-   double      exebuf_pos_align_x; // GUI
-   double      exebuf_pos_align_y; // GUI
-   double      exebuf_pos_size_w; // GUI
-   double      exebuf_pos_size_h; // GUI
-   int         exebuf_pos_min_w; // GUI
-   int         exebuf_pos_min_h; // GUI
-   int         exebuf_pos_max_w; // GUI
-   int         exebuf_pos_max_h; // GUI
    const char *exebuf_term_cmd; // GUI
    Eina_List  *color_classes; // GUI
    int         use_app_icon; // GUI
@@ -217,6 +205,7 @@ struct _E_Config
    int         desklock_auth_method; // GUI
    int         desklock_login_box_zone; // GUI
    int         desklock_start_locked; // GUI
+   int         desklock_on_suspend; // GUI
    int         desklock_autolock_screensaver; // GUI
    double      desklock_post_screensaver_time; // GUI
    int         desklock_autolock_idle; // GUI
@@ -301,9 +290,9 @@ struct _E_Config
    double thumbscroll_momentum_threshhold; // GUI
    double thumbscroll_friction; // GUI
 
-   int hal_desktop;
-   int hal_auto_mount;
-   int hal_auto_open;
+   int dbus_desktop;
+   int dbus_auto_mount;
+   int dbus_auto_open;
 
    struct {
       double timeout;
@@ -346,6 +335,12 @@ struct _E_Config
       Eina_Bool presentation;
       Eina_Bool offline;
    } mode;
+   
+   struct {
+      double    expire_timeout;
+      Eina_Bool show_run_dialog;
+      Eina_Bool show_exit_dialog;
+   } exec;
 };
 
 struct _E_Config_Syscon_Action
@@ -422,6 +417,12 @@ struct _E_Config_Binding_Wheel
    unsigned char  any_mod;
    const char    *action;
    const char    *params;
+};
+
+struct _E_Config_Binding_Acpi 
+{
+   int context, type, status;
+   const char *action, *params;
 };
 
 struct _E_Config_Desktop_Background
@@ -535,6 +536,7 @@ EAPI E_Config_Binding_Key    *e_config_binding_key_match(E_Config_Binding_Key *e
 EAPI E_Config_Binding_Edge   *e_config_binding_edge_match(E_Config_Binding_Edge *eb_in);
 EAPI E_Config_Binding_Signal *e_config_binding_signal_match(E_Config_Binding_Signal *eb_in);
 EAPI E_Config_Binding_Wheel  *e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in);
+EAPI E_Config_Binding_Acpi   *e_config_binding_acpi_match(E_Config_Binding_Acpi *eb_in);
 EAPI void                     e_config_mode_changed(void);
 
 extern EAPI E_Config *e_config;

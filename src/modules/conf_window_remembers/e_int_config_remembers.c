@@ -16,7 +16,7 @@ struct _E_Config_Dialog_Data
    int remember_fm_wins;
 };
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_remembers(E_Container *con, const char *params __UNUSED__) 
 {
    E_Config_Dialog *cfd;
@@ -43,8 +43,8 @@ _cb_sort(const void *data1, const void *data2)
 {
    const E_Remember *rem1 = NULL;
    const E_Remember *rem2 = NULL;
-   const char *d1 = NULL;
-   const char *d2 = NULL;
+   const char *d1 = "";
+   const char *d2 = "";
 
    if (!(rem1 = data1)) return 1;
    if (!(rem2 = data2)) return -1;
@@ -74,7 +74,7 @@ _cb_sort(const void *data1, const void *data2)
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd) 
+_create_data(E_Config_Dialog *cfd __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -86,13 +86,13 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void 
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    E_FREE(cfdata);
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->remember_dialogs)
      e_config->remember_internal_windows |= E_REMEMBER_INTERNAL_DIALOGS;
@@ -109,23 +109,25 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata) 
+_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
-   Evas_Object *o, *of, *of2, *ow;
+   Evas_Object *ol, *of2, *ow;
+   Evas_Coord mw, mh;
 
-   o = e_widget_list_add(evas, 0, 0);
-   of = e_widget_frametable_add(evas, _("Window Remembers"), 0);
+   ol = e_widget_list_add(evas, 0, 0);
 
-   ow = e_widget_check_add(evas, _("Remember internal dialogs"), &(cfdata->remember_dialogs));
-   e_widget_frametable_object_append(of, ow, 0, 0, 1, 1, 1, 1, 1, 0);
-   ow = e_widget_check_add(evas, _("Remember fileman windows"),  &(cfdata->remember_fm_wins));
-   e_widget_frametable_object_append(of, ow, 0, 1, 1, 1, 1, 1, 1, 0);
+   ow = e_widget_check_add(evas, _("Remember internal dialogs"),
+                           &(cfdata->remember_dialogs));
+   e_widget_list_object_append(ol, ow, 1, 0, 0.0);
+   ow = e_widget_check_add(evas, _("Remember file manager windows"),
+                           &(cfdata->remember_fm_wins));
+   e_widget_list_object_append(ol, ow, 1, 0, 0.0);
 
    ow = e_widget_button_add(evas, _("Delete Remember(s)"), "list-remove",
 			    _cb_delete, cfdata, NULL);
    cfdata->btn = ow;
 
-   ow = e_widget_ilist_add(evas, 24, 24, NULL);
+   ow = e_widget_ilist_add(evas, 1, 1, NULL);
    cfdata->list = ow;
    e_widget_ilist_multi_select_set(ow, 1);
    e_widget_on_change_hook_set(ow, _cb_list_change, cfdata);
@@ -133,33 +135,40 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 
    of2 = e_widget_frametable_add(evas, _("Details"), 0);
    ow = e_widget_label_add(evas, _("Name:"));
-   e_widget_frametable_object_append(of2, ow, 0, 0, 1, 1, 1, 1, 0, 0);
+   e_widget_size_min_get(ow, &mw, &mh);
+   e_widget_frametable_object_append_full
+     (of2, ow, 0, 0, 1, 1, 0, 0, 0, 0, 1.0, 1.0, mw, mh, 9999, 9999);
    ow = e_widget_label_add(evas, _("<No Name>"));
    cfdata->name = ow;
    e_widget_frametable_object_append(of2, cfdata->name, 1, 0, 1, 1, 1, 1, 1, 0);
    ow = e_widget_label_add(evas, _("Class:"));
-   e_widget_frametable_object_append(of2, ow, 0, 1, 1, 1, 1, 1, 0, 0);
+   e_widget_size_min_get(ow, &mw, &mh);
+   e_widget_frametable_object_append_full
+     (of2, ow, 0, 1, 1, 1, 0, 0, 0, 0, 1.0, 1.0, mw, mh, 9999, 9999);
    ow = e_widget_label_add(evas, _("<No Class>"));
    cfdata->class = ow;
    e_widget_frametable_object_append(of2, cfdata->class, 1, 1, 1, 1, 1, 1, 1, 0);
    ow = e_widget_label_add(evas, _("Title:"));
-   e_widget_frametable_object_append(of2, ow, 0, 2, 1, 1, 1, 1, 0, 0);
+   e_widget_size_min_get(ow, &mw, &mh);
+   e_widget_frametable_object_append_full
+     (of2, ow, 0, 2, 1, 1, 0, 0, 0, 0, 1.0, 1.0, mw, mh, 9999, 9999);
    ow = e_widget_label_add(evas, _("<No Title>"));
    cfdata->title = ow;
    e_widget_frametable_object_append(of2, cfdata->title, 1, 2, 1, 1, 1, 1, 1, 0);
    ow = e_widget_label_add(evas, _("Role:"));
-   e_widget_frametable_object_append(of2, ow, 0, 3, 1, 1, 1, 1, 0, 0);
+   e_widget_size_min_get(ow, &mw, &mh);
+   e_widget_frametable_object_append_full
+     (of2, ow, 0, 3, 1, 1, 0, 0, 0, 0, 1.0, 1.0, mw, mh, 9999, 9999);
    ow = e_widget_label_add(evas, _("<No Role>"));
    cfdata->role = ow;
    e_widget_frametable_object_append(of2, cfdata->role, 1, 3, 1, 1, 1, 1, 1, 0);
 
-   e_widget_frametable_object_append(of, cfdata->list, 0, 2, 1, 1, 1, 1, 1, 1);
-   e_widget_frametable_object_append(of, of2, 0, 3, 1, 1, 1, 1, 1, 0);
-   e_widget_frametable_object_append(of, cfdata->btn, 0, 4, 1, 1, 1, 1, 1, 0);
-   e_widget_list_object_append(o, of, 1, 1, 0.5);
-   
+   e_widget_list_object_append(ol, cfdata->list, 1, 1, 0.0);
+   e_widget_list_object_append(ol, of2, 1, 0, 0.0);
+   e_widget_list_object_append(ol, cfdata->btn, 1, 0, 0.0);
+
    e_widget_disabled_set(cfdata->btn, 1);
-   return o;
+   return ol;
 }
 
 static void 
@@ -239,11 +248,11 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
 
    e_widget_ilist_go(cfdata->list);
    e_widget_size_min_get(cfdata->list, &w, NULL);
-
-   /* NB: make the window look a bit better by not being so small */
-//   if (w < 300) w = 300;
-
-   e_widget_size_min_set(cfdata->list, 400, 200);
+   if (w < 100 * e_scale)
+     w = 100 * e_scale;
+   else if (w > 200 * e_scale)
+     w = 200 * e_scale;
+   e_widget_size_min_set(cfdata->list, w, 150);
    e_widget_ilist_thaw(cfdata->list);
    edje_thaw();
    evas_event_thaw(evas);
@@ -251,8 +260,8 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
    e_widget_disabled_set(cfdata->btn, 1);
 }
 
-static void 
-_cb_delete(void *data, void *data2) 
+static void
+_cb_delete(void *data, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    Eina_List *l = NULL;
@@ -271,7 +280,7 @@ _cb_delete(void *data, void *data2)
         e_remember_del(rem);
 	last_selected = i;
         changed = 1;
-	++ deleted;
+	++deleted;
      }
 
    if (changed) e_config_save_queue();
@@ -281,8 +290,8 @@ _cb_delete(void *data, void *data2)
      e_widget_ilist_selected_set(cfdata->list, last_selected - deleted + 1);
 }
 
-static void 
-_cb_list_change(void *data, Evas_Object *obj) 
+static void
+_cb_list_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    E_Remember *rem = NULL;

@@ -3,4 +3,6 @@ Type=Link
 Name=Illume-Keyboard
 Icon=e-module-illume-keyboard
 X-Enlightenment-ModuleType=system
-Comment=<title>Illume Keyboard for Embedded</title>
+Comment=
+Comment[fr]=
+Comment[it]=

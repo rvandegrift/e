@@ -3,13 +3,12 @@
  */
 #include "e.h"
 
-EAPI Ecore_X_Atom _QTOPIA_SOFT_MENU = 0;
-EAPI Ecore_X_Atom _QTOPIA_SOFT_MENUS = 0;
-
-static Ecore_X_Atom gnome_atom = 0;
-static Ecore_X_Atom enlightenment_comms = 0;
-static Ecore_X_Atom enlightenment_version = 0;
-static Ecore_X_Atom enlightenment_scale = 0;
+EAPI Ecore_X_Atom ATM__QTOPIA_SOFT_MENU = 0;
+EAPI Ecore_X_Atom ATM__QTOPIA_SOFT_MENUS = 0;
+EAPI Ecore_X_Atom ATM_GNOME_SM_PROXY = 0;
+EAPI Ecore_X_Atom ATM_ENLIGHTENMENT_COMMS = 0;
+EAPI Ecore_X_Atom ATM_ENLIGHTENMENT_VERSION = 0;
+EAPI Ecore_X_Atom ATM_ENLIGHTENMENT_SCALE = 0;
 
 EAPI void
 e_hints_init(void)
@@ -27,12 +26,12 @@ e_hints_init(void)
    Ecore_X_Atom atoms[6];
    
    ecore_x_atoms_get(atom_names, 6, atoms);
-   _QTOPIA_SOFT_MENU = atoms[0];
-   _QTOPIA_SOFT_MENUS = atoms[1];
-   gnome_atom = atoms[2];
-   enlightenment_comms = atoms[3];
-   enlightenment_version = atoms[4];
-   enlightenment_scale = atoms[5];
+   ATM__QTOPIA_SOFT_MENU = atoms[0];
+   ATM__QTOPIA_SOFT_MENUS = atoms[1];
+   ATM_GNOME_SM_PROXY = atoms[2];
+   ATM_ENLIGHTENMENT_COMMS = atoms[3];
+   ATM_ENLIGHTENMENT_VERSION = atoms[4];
+   ATM_ENLIGHTENMENT_SCALE = atoms[5];
    
    roots = ecore_x_window_root_list(&num);
    if (roots)
@@ -138,12 +137,15 @@ e_hints_init(void)
 		       if (twin != win) break;
 		       if (ecore_x_netwm_name_get(win, &name))
 			 {
-			    if (strcmp(name, "Enlightenment"))
+			    if (name)
 			      {
+				 if (strcmp(name, "Enlightenment"))
+				   {
+				      free(name);
+				      break;
+				   }
 				 free(name);
-				 break;
 			      }
-			    free(name);
 			 }
 		       ecore_x_sync();
 		       if ((ecore_time_get() - ts) > 2.0)
@@ -204,13 +206,13 @@ e_hints_e16_comms_pretend(E_Manager *man)
 
    /* to help detect this is NOT e16 */
    snprintf(buf, sizeof(buf), "Enlightenment %s", VERSION);
-   ecore_x_window_prop_property_set(win, enlightenment_version, ECORE_X_ATOM_STRING, 8, buf, strlen(buf));
-   ecore_x_window_prop_property_set(man->root, enlightenment_version, ECORE_X_ATOM_STRING, 8, buf, strlen(buf));
+   ecore_x_window_prop_property_set(win, ATM_ENLIGHTENMENT_VERSION, ECORE_X_ATOM_STRING, 8, buf, strlen(buf));
+   ecore_x_window_prop_property_set(man->root, ATM_ENLIGHTENMENT_VERSION, ECORE_X_ATOM_STRING, 8, buf, strlen(buf));
    
    snprintf(buf, sizeof(buf), "WINID %8x", (int)win);
-   ecore_x_window_prop_property_set(win, enlightenment_comms, ECORE_X_ATOM_STRING, 8, buf, 14);
+   ecore_x_window_prop_property_set(win, ATM_ENLIGHTENMENT_COMMS, ECORE_X_ATOM_STRING, 8, buf, 14);
    
-   ecore_x_window_prop_property_set(man->root, enlightenment_comms, ECORE_X_ATOM_STRING, 8, buf, 14);
+   ecore_x_window_prop_property_set(man->root, ATM_ENLIGHTENMENT_COMMS, ECORE_X_ATOM_STRING, 8, buf, 14);
 }
 
 EAPI void
@@ -520,7 +522,7 @@ e_hints_window_init(E_Border *bd)
      }
    if (bd->client.netwm.state.shaded)
      {
-if (!bd->lock_client_shade)
+        if (!bd->lock_client_shade)
 	  e_border_shade(bd, e_hints_window_shade_direction_get(bd));
 	else
 	  e_hints_window_shaded_set(bd, 0);
@@ -1113,9 +1115,6 @@ e_hints_allowed_action_get(E_Border *bd)
      }
 }
 
-
-
-
 EAPI void
 e_hints_window_visible_set(E_Border *bd)
 {
@@ -1243,7 +1242,6 @@ e_hints_window_size_get(E_Border *bd)
 EAPI void
 e_hints_window_maximized_set(E_Border *bd, int horizontal, int vertical)
 {
-
    if ((horizontal) && (!bd->client.netwm.state.maximized_h))
      {
 	bd->client.netwm.update.state = 1;
@@ -1367,7 +1365,7 @@ e_hints_window_qtopia_soft_menu_get(E_Border *bd)
 {
    unsigned int val;
    
-   if (ecore_x_window_prop_card32_get(bd->client.win, _QTOPIA_SOFT_MENU, &val, 1))
+   if (ecore_x_window_prop_card32_get(bd->client.win, ATM__QTOPIA_SOFT_MENU, &val, 1))
      bd->client.qtopia.soft_menu = val;
    else
      bd->client.qtopia.soft_menu = 0;
@@ -1378,7 +1376,7 @@ e_hints_window_qtopia_soft_menus_get(E_Border *bd)
 {
    unsigned int val;
 
-   if (ecore_x_window_prop_card32_get(bd->client.win, _QTOPIA_SOFT_MENUS, &val, 1))
+   if (ecore_x_window_prop_card32_get(bd->client.win, ATM__QTOPIA_SOFT_MENUS, &val, 1))
      bd->client.qtopia.soft_menus = val;
    else
      bd->client.qtopia.soft_menus = 0;
@@ -1399,9 +1397,9 @@ e_hints_window_virtual_keyboard_get(E_Border *bd)
 EAPI void
 e_hints_openoffice_gnome_fake(Ecore_X_Window root)
 {
-   const char *string = "GNOME_SM_PROXY";
+   const char *string = "ATM_GNOME_SM_PROXY";
    
-   ecore_x_window_prop_property_set(root, gnome_atom, ECORE_X_ATOM_STRING, 
+   ecore_x_window_prop_property_set(root, ATM_GNOME_SM_PROXY, ECORE_X_ATOM_STRING, 
 				    8, (void *)string, strlen(string));
 }
 
@@ -1414,7 +1412,8 @@ e_hints_openoffice_kde_fake(Ecore_X_Window root)
    ecore_x_netwm_wm_identify(root, win2, "KWin");
 }
 
-EAPI void e_hints_scale_update(void)
+EAPI void 
+e_hints_scale_update(void)
 {
    Ecore_X_Window *roots = NULL;
    int i, num;
@@ -1425,7 +1424,7 @@ EAPI void e_hints_scale_update(void)
      {
 	scale = e_scale * 1000;
 	for (i = 0; i < num; i++)
-	  ecore_x_window_prop_card32_set(roots[i], enlightenment_scale, &scale, 1);
+	  ecore_x_window_prop_card32_set(roots[i], ATM_ENLIGHTENMENT_SCALE, &scale, 1);
 	free(roots);
      }
 }

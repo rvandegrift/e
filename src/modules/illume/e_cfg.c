@@ -161,10 +161,13 @@ e_cfg_save(void)
 
 ///////////////////////////////////////////////////////////////////////////////
 Ecore_Timer *_e_cfg_launcher_change_timer = NULL;
-static int _e_cfg_launcher_change_timeout(void *data) {
+static Eina_Bool
+_e_cfg_launcher_change_timeout(__UNUSED__ void *data)
+{
    _e_mod_win_cfg_update();
    e_config_save_queue();
-   _e_cfg_launcher_change_timer = NULL; return 0;
+   _e_cfg_launcher_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_launcher_change(void *data, Evas_Object *obj, void *event_info) {
@@ -269,7 +272,9 @@ e_cfg_launcher(E_Container *con, const char *params)
 
 ///////////////////////////////////////////////////////////////////////////////
 Ecore_Timer *_e_cfg_power_change_timer = NULL;
-static int _e_cfg_power_change_timeout(void *data) {
+static Eina_Bool
+_e_cfg_power_change_timeout(void *data)
+{
    if (e_config->screensaver_timeout > 0)
      {
 	e_config->screensaver_enable = 1;
@@ -290,7 +295,8 @@ static int _e_cfg_power_change_timeout(void *data) {
      }
    e_pwr_cfg_update();
    e_config_save_queue();
-   _e_cfg_power_change_timer = NULL; return 0;
+   _e_cfg_power_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_power_change(void *data, Evas_Object *obj, void *event_info) {
@@ -392,9 +398,12 @@ e_cfg_power(E_Container *con, const char *params)
 
 ///////////////////////////////////////////////////////////////////////////////
 Ecore_Timer *_e_cfg_animation_change_timer = NULL;
-static int _e_cfg_animation_change_timeout(void *data) {
+static Eina_Bool
+_e_cfg_animation_change_timeout(__UNUSED__ void *data)
+{
    e_config_save_queue();
-   _e_cfg_animation_change_timer = NULL; return 0;
+   _e_cfg_animation_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_animation_change(void *data, Evas_Object *obj, void *event_info) {
@@ -522,10 +531,13 @@ e_cfg_animation(E_Container *con, const char *params)
 
 ///////////////////////////////////////////////////////////////////////////////
 Ecore_Timer *_e_cfg_slipshelf_change_timer = NULL;
-static int _e_cfg_slipshelf_change_timeout(void *data) {
+static Eina_Bool
+_e_cfg_slipshelf_change_timeout(__UNUSED__ void *data)
+{
    _e_mod_win_slipshelf_cfg_update();
    e_config_save_queue();
-   _e_cfg_slipshelf_change_timer = NULL; return 0;
+   _e_cfg_slipshelf_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_slipshelf_change(void *data, Evas_Object *obj, void *event_info) {
@@ -639,7 +651,9 @@ e_cfg_slipshelf(E_Container *con, const char *params)
 
 ///////////////////////////////////////////////////////////////////////////////
 Ecore_Timer *_e_cfg_thumbscroll_change_timer = NULL;
-static int _e_cfg_thumbscroll_change_timeout(void *data) {
+static Eina_Bool
+_e_cfg_thumbscroll_change_timeout(__UNUSED__ void *data)
+{
    if (e_config->thumbscroll_threshhold == 0)
      {
 	e_config->thumbscroll_enable = 0;
@@ -651,7 +665,8 @@ static int _e_cfg_thumbscroll_change_timeout(void *data) {
 	e_config->thumbscroll_friction = 1.0;
      }
    e_config_save_queue();
-   _e_cfg_thumbscroll_change_timer = NULL; return 0;
+   _e_cfg_thumbscroll_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_thumbscroll_change(void *data, Evas_Object *obj, void *event_info) {
@@ -728,11 +743,14 @@ e_cfg_thumbscroll(E_Container *con, const char *params)
 
 ///////////////////////////////////////////////////////////////////////////////
 Ecore_Timer *_e_cfg_fps_change_timer = NULL;
-static int _e_cfg_fps_change_timeout(void *data) {
+static Eina_Bool
+_e_cfg_fps_change_timeout(__UNUSED__ void *data)
+{
    e_config->framerate = illume_cfg->performance.fps;
    edje_frametime_set(1.0 / e_config->framerate);
    e_config_save_queue();
-   _e_cfg_fps_change_timer = NULL; return 0;
+   _e_cfg_fps_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_fps_change(void *data, Evas_Object *obj, void *event_info) {
@@ -822,7 +840,9 @@ struct _Gadit
 E_Slipshelf *local_slipshelf = NULL;
 Eina_List *gadits = NULL;
 Ecore_Timer *_e_cfg_gadgets_change_timer = NULL;
-static int _e_cfg_gadgets_change_timeout(void *data) {
+static Eina_Bool
+_e_cfg_gadgets_change_timeout(__UNUSED__ void *data)
+{
    Eina_List *l2;
 	Gadit *gi;
    int update = 0;
@@ -855,7 +875,8 @@ static int _e_cfg_gadgets_change_timeout(void *data) {
         e_gadcon_populate(local_slipshelf->gadcon_extra);
      }
    e_config_save_queue();
-   _e_cfg_gadgets_change_timer = NULL; return 0;
+   _e_cfg_gadgets_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_gadgets_change(void *data, Evas_Object *obj, void *event_info) {
@@ -985,7 +1006,8 @@ e_cfg_gadgets(E_Container *con, const char *params)
 int external_keyboard = 0;
 Ecore_Timer *_e_cfg_keyboard_change_timer = NULL;
 
-static int _e_cfg_keyboard_change_timeout(void *data)
+static Eina_Bool
+_e_cfg_keyboard_change_timeout(__UNUSED__ void *data)
 {
    Eina_List *l;
 
@@ -1013,7 +1035,7 @@ static int _e_cfg_keyboard_change_timeout(void *data)
 	if (kbds)
 	  {
 	     nn = 2;
-	     EINA_LIST_FOREACH(kbds, l, desktop)
+	     EINA_LIST_FREE(kbds, desktop)
 	       {
                   const char *dname;
 		  
@@ -1024,13 +1046,15 @@ static int _e_cfg_keyboard_change_timeout(void *data)
 			 illume_cfg->kbd.run_keyboard = eina_stringshare_add(dname);
 		       break;
 		    }
+		  efreet_desktop_free(desktop);
 		  nn++;
 	       }
 	  }
      }
    e_mod_win_cfg_kbd_update();
    e_config_save_queue();
-   _e_cfg_keyboard_change_timer = NULL; return 0;
+   _e_cfg_keyboard_change_timer = NULL;
+   return ECORE_CALLBACK_CANCEL;
 }
 static void
 _e_cfg_keyboard_change(void *data, Evas_Object *obj, void *event_info) {
@@ -1078,7 +1102,7 @@ _e_cfg_keyboard_ui(E_Config_Dialog *cfd, Evas *e, E_Config_Dialog_Data *cfdata)
 	if (kbds)
 	  {
 	     nn = 2;
-	     EINA_LIST_FOREACH(kbds, l, desktop)
+	     EINA_LIST_FREE(kbds, desktop)
 	       {
                   const char *dname;
 		  
@@ -1091,6 +1115,7 @@ _e_cfg_keyboard_ui(E_Config_Dialog *cfd, Evas *e, E_Config_Dialog_Data *cfdata)
 			    break;
 			 }
 		    }
+		  efreet_desktop_free(desktop);
 		  nn++;
 	       }
 	  }
@@ -1110,14 +1135,12 @@ _e_cfg_keyboard_ui(E_Config_Dialog *cfd, Evas *e, E_Config_Dialog_Data *cfdata)
 	int nn = 2;
 	
 	kbds = efreet_util_desktop_category_list("Keyboard");
-	EINA_LIST_FOREACH(kbds, l, desktop)
+	EINA_LIST_FREE(kbds, desktop)
 	       {
-                  const char *dname;
-		  
-		  dname = ecore_file_file_get(desktop->orig_path);
 		  o = e_widget_radio_add(e, desktop->name, nn, rg);
 		  e_widget_framelist_object_append(frame, o);
 		  evas_object_smart_callback_add(o, "changed", _e_cfg_keyboard_change, NULL);
+		  efreet_desktop_free(desktop);
 		  nn++;
 	       }
 	  }
@@ -1974,7 +1997,7 @@ _dbcb_keyboard_get(E_DBus_Object *obj, DBusMessage *msg)
    else if ((illume_cfg->kbd.use_internal) && (!illume_cfg->kbd.run_keyboard))
      s = "internal";
    else if (illume_cfg->kbd.run_keyboard)
-     s = illume_cfg->kbd.run_keyboard;
+     s = (char *)illume_cfg->kbd.run_keyboard;
    dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &(s));
    return reply;
 }

@@ -1,8 +1,8 @@
 #include "e_mod_main.h"
 
-#define HISTORY_VERSION 8
+#define HISTORY_VERSION 2
 
-#define SEVEN_DAYS 604800
+#define SEVEN_DAYS 604800.0
 
 #define TIME_FACTOR(_now) (1.0 - (evry_hist->begin / _now)) / 1000000000000000.0
 
@@ -18,9 +18,10 @@ struct _Cleanup_Data
 
 static E_Config_DD *hist_entry_edd = NULL;
 static E_Config_DD *hist_item_edd = NULL;
+static E_Config_DD *hist_types_edd = NULL;
 static E_Config_DD *hist_edd = NULL;
 
-History *evry_hist = NULL;
+Evry_History *evry_hist = NULL;
 
 void
 evry_history_init(void)
@@ -37,6 +38,7 @@ evry_history_init(void)
    E_CONFIG_VAL(D, T, usage,     DOUBLE);
    E_CONFIG_VAL(D, T, count,     INT);
    E_CONFIG_VAL(D, T, transient, INT);
+   E_CONFIG_VAL(D, T, data,      STR);
 #undef T
 #undef D
    hist_entry_edd = E_CONFIG_DD_NEW("History_Entry", History_Entry);
@@ -45,19 +47,24 @@ evry_history_init(void)
    E_CONFIG_LIST(D, T, items, hist_item_edd);
 #undef T
 #undef D
-   hist_edd = E_CONFIG_DD_NEW("History", History);
-#define T History
+   hist_types_edd = E_CONFIG_DD_NEW("History_Types", History_Types);
+#define T History_Types
+#define D hist_types_edd
+   E_CONFIG_HASH(D, T, types, hist_entry_edd);
+#undef T
+#undef D
+   hist_edd = E_CONFIG_DD_NEW("History", Evry_History);
+#define T Evry_History
 #define D hist_edd
    E_CONFIG_VAL(D, T,  version,  INT);
    E_CONFIG_VAL(D, T,  begin,    DOUBLE);
-   E_CONFIG_HASH(D, T, subjects, hist_entry_edd);
-   E_CONFIG_HASH(D, T, actions,  hist_entry_edd);
+   E_CONFIG_HASH(D, T, subjects,  hist_types_edd);
 #undef T
 #undef D
 }
 
 static Eina_Bool
-_hist_free_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata)
+_hist_entry_free_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata)
 {
    History_Entry *he = data;
    History_Item *hi;
@@ -70,15 +77,34 @@ _hist_free_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata)
 	  eina_stringshare_del(hi->plugin);
 	if (hi->context)
 	  eina_stringshare_del(hi->context);
+	if (hi->data)
+	  eina_stringshare_del(hi->data);
 	E_FREE(hi);
      }
 
    E_FREE(he);
-   return 1;
+
+   return EINA_TRUE;
 }
 
 static Eina_Bool
-_hist_cleanup_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata)
+_hist_free_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata)
+{
+   History_Types *ht = data;
+
+   if (ht->types)
+     {
+	eina_hash_foreach(ht->types, _hist_entry_free_cb, NULL);
+	eina_hash_free(ht->types);
+     }
+
+   E_FREE(ht);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_hist_entry_cleanup_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata)
 {
    History_Entry *he = data;
    Cleanup_Data *d = fdata;
@@ -87,19 +113,12 @@ _hist_cleanup_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata
 
    EINA_LIST_FOREACH_SAFE(he->items, l, ll, hi)
      {
-	/* item for this plugi nneed to be removed, e.g. on updates */
-	if (d->plugin)
-	  {
-	     if (hi->plugin == d->plugin)
-	       hi->transient = 1;
-	  }
-
 	if (hi->last_used < d->time - SEVEN_DAYS)
 	  {
 	     hi->count--;
-	     hi->last_used = d->time - SEVEN_DAYS/2;
+	     hi->last_used = d->time - SEVEN_DAYS/2.0;
 	  }
-	
+
 	/* item is transient or too old */
 	if (!hi->count || hi->transient)
 	  {
@@ -109,6 +128,8 @@ _hist_cleanup_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata
 	       eina_stringshare_del(hi->plugin);
 	     if (hi->context)
 	       eina_stringshare_del(hi->context);
+	     if (hi->data)
+	       eina_stringshare_del(hi->data);
 	     E_FREE(hi);
 
 	     he->items = eina_list_remove_list(he->items, l);
@@ -121,16 +142,31 @@ _hist_cleanup_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata
 	d->keys = eina_list_append(d->keys, key);
      }
 
-   return 1;
+   return EINA_TRUE;
 }
 
+static Eina_Bool
+_hist_cleanup_cb(const Eina_Hash *hash, const void *key, void *data, void *fdata)
+{
+   History_Types *ht = data;
+   Cleanup_Data *d = fdata;
+
+   if (ht->types)
+     {
+	eina_hash_foreach(ht->types, _hist_entry_cleanup_cb, fdata);
+
+	EINA_LIST_FREE(d->keys, key)
+	  eina_hash_del_by_key(ht->types, key);
+     }
+
+   return EINA_TRUE;
+}
 void
 evry_history_free(void)
 {
    Cleanup_Data *d;
-   char *key;
 
-   evry_hist = e_config_domain_load("module.everything.history", hist_edd);
+   evry_hist = e_config_domain_load("module.everything.cache", hist_edd);
    if (evry_hist)
      {
 	d = E_NEW(Cleanup_Data, 1);
@@ -139,15 +175,6 @@ evry_history_free(void)
 	if (evry_hist->subjects)
 	  {
 	     eina_hash_foreach(evry_hist->subjects, _hist_cleanup_cb, d);
-	     EINA_LIST_FREE(d->keys, key)
-	       eina_hash_del_by_key(evry_hist->subjects, key);
-	  }
-
-	if (evry_hist->actions)
-	  {
-	     eina_hash_foreach(evry_hist->actions, _hist_cleanup_cb, d);
-	     EINA_LIST_FREE(d->keys, key)
-	       eina_hash_del_by_key(evry_hist->actions, key);
 	  }
 
 	E_FREE(d);
@@ -156,20 +183,21 @@ evry_history_free(void)
 
    E_CONFIG_DD_FREE(hist_item_edd);
    E_CONFIG_DD_FREE(hist_entry_edd);
+   E_CONFIG_DD_FREE(hist_types_edd);
    E_CONFIG_DD_FREE(hist_edd);
 }
 
-EAPI void
+void
 evry_history_load(void)
 {
-   evry_hist = e_config_domain_load("module.everything.history", hist_edd);
-     
+   if (evry_hist) return;
+
+   evry_hist = e_config_domain_load("module.everything.cache", hist_edd);
+
    if (evry_hist && evry_hist->version != HISTORY_VERSION)
      {
 	eina_hash_foreach(evry_hist->subjects, _hist_free_cb, NULL);
-	eina_hash_foreach(evry_hist->actions,  _hist_free_cb, NULL);
 	eina_hash_free(evry_hist->subjects);
-	eina_hash_free(evry_hist->actions);
 
 	E_FREE(evry_hist);
 	evry_hist = NULL;
@@ -177,59 +205,110 @@ evry_history_load(void)
 
    if (!evry_hist)
      {
-	evry_hist = E_NEW(History, 1);
+	evry_hist = E_NEW(Evry_History, 1);
 	evry_hist->version = HISTORY_VERSION;
-	evry_hist->begin = ecore_time_get();
+	evry_hist->begin = ecore_time_get() - SEVEN_DAYS;
      }
    if (!evry_hist->subjects)
      evry_hist->subjects = eina_hash_string_superfast_new(NULL);
-   if (!evry_hist->actions)
-     evry_hist->actions  = eina_hash_string_superfast_new(NULL);
 }
 
 
-EAPI void
+void
 evry_history_unload(void)
 {
    if (!evry_hist) return;
 
-   e_config_domain_save("module.everything.history", hist_edd, evry_hist);
+   e_config_domain_save("module.everything.cache", hist_edd, evry_hist);
 
    eina_hash_foreach(evry_hist->subjects, _hist_free_cb, NULL);
-   eina_hash_foreach(evry_hist->actions,  _hist_free_cb, NULL);
+   eina_hash_free(evry_hist->subjects);
 
    E_FREE(evry_hist);
    evry_hist = NULL;
 }
 
-EAPI void
-evry_history_add(Eina_Hash *hist, Evry_State *s, const char *ctxt)
+History_Types *
+evry_history_types_get(Evry_Type _type)
+{
+   History_Types *ht;
+   const char *type = evry_type_get(_type);
+   
+   if (!evry_hist)
+     return NULL;
+   
+   if (!type)
+     return NULL;
+
+   ht = eina_hash_find(evry_hist->subjects, type);
+
+   if (!ht)
+     {
+	ht = E_NEW(History_Types, 1);
+	eina_hash_add(evry_hist->subjects, type, ht);
+     }
+
+   if (!ht->types)
+     ht->types = eina_hash_string_superfast_new(NULL);
+
+   return ht;
+}
+
+History_Item *
+evry_history_item_add(Evry_Item *it, const char *ctxt, const char *input)
 {
    History_Entry *he;
+   History_Types *ht;
    History_Item  *hi = NULL;
-   Evry_Item *it;
    Eina_List *l;
+   int rem_ctxt = 1;
    const char *id;
-   
-   if (!s) return;
 
-   it = s->cur_item;
-   if (!it) return;
+   if (!evry_hist)
+     return NULL;
 
-   id = (it->id ? it->id : it->label);
-   
-   he = eina_hash_find(hist, id);
-   if (!he)
+   if (!it)
+     return NULL;
+
+   if ((!it->plugin->history) && (!CHECK_TYPE(it, EVRY_TYPE_PLUGIN)))
+       return NULL;
+
+   if (it->type == EVRY_TYPE_ACTION)
      {
-	he = E_NEW(History_Entry, 1);
-	eina_hash_add(hist, id, he);
+	GET_ACTION(act, it);
+	if (!act->remember_context)
+	  rem_ctxt = 0;
      }
-   else
+
+   if (it->hi)
      {
-	EINA_LIST_FOREACH(he->items, l, hi)
-	  if ((hi->plugin == it->plugin->name) &&
-	      (ctxt == hi->context))
-	    break;
+	/* keep hi when context didnt change */
+	if ((!rem_ctxt) || (!it->hi->context && !ctxt) ||
+	    (it->hi->context && ctxt && !strcmp(it->hi->context, ctxt)))
+	  hi = it->hi;
+     }
+
+   if (!hi)
+     {
+	id = (it->id ? it->id : it->label);
+	ht = evry_history_types_get(it->type);
+	if (!ht)
+	  return NULL;
+	
+	he = eina_hash_find(ht->types, id);
+
+	if (!he)
+	  {
+	     he = E_NEW(History_Entry, 1);
+	     eina_hash_add(ht->types, id, he);
+	  }
+	else
+	  {
+	     EINA_LIST_FOREACH(he->items, l, hi)
+	       if ((hi->plugin == it->plugin->name) &&
+		   (!rem_ctxt || (ctxt == hi->context)))
+		 break;
+	  }
      }
 
    if (!hi)
@@ -241,43 +320,97 @@ evry_history_add(Eina_Hash *hist, Evry_State *s, const char *ctxt)
 
    if (hi)
      {
+	it->hi = hi;
+
 	hi->last_used = ecore_time_get();
 	hi->usage /= 4.0;
 	hi->usage += TIME_FACTOR(hi->last_used);
-	hi->transient = it->transient;
-	hi->count += (hi->transient ? 2:1);
-	if (ctxt && !hi->context)
-	  hi->context = eina_stringshare_ref(ctxt);
-	
-	if (s->input)
-	  {
-	     if (hi->input)
-	       eina_stringshare_del(hi->input);
+	hi->transient = it->plugin->transient;
+	hi->count += 1;
 
-	     hi->input = eina_stringshare_add(s->input);
+	if (ctxt && !hi->context && rem_ctxt)
+	  {
+	     hi->context = eina_stringshare_ref(ctxt);
 	  }
-     }   
+
+	if (input && hi->input)
+	  {
+	     if (strncmp(hi->input, input, strlen(input)))
+	       {
+		  eina_stringshare_del(hi->input);
+		  hi->input = eina_stringshare_add(input);
+	       }
+	  }
+	else if (input)
+	  {
+	     hi->input = eina_stringshare_add(input);
+	  }
+     }
+
+   /* reset usage */
+   it->usage = 0.0;
+
+   return hi;
 }
 
 int
-evry_history_item_usage_set(Eina_Hash *hist, Evry_Item *it, const char *input, const char *ctxt)
+evry_history_item_usage_set(Evry_Item *it, const char *input, const char *ctxt)
 {
    History_Entry *he;
-   History_Item *hi;
+   History_Types *ht;
+   History_Item *hi = NULL;
    Eina_List *l;
-
+   int rem_ctxt = 1;
    it->usage = 0.0;
-   
-   if (!(he = eina_hash_find(hist, (it->id ? it->id : it->label))))
+
+   if ((!it->plugin->history) && (!CHECK_TYPE(it, EVRY_TYPE_PLUGIN)))
      return 0;
-   
-   EINA_LIST_FOREACH(he->items, l, hi)
+
+   if (it->hi)
      {
-	if (hi->plugin != it->plugin->name)
-	  continue;
-	if (evry_conf->history_sort_mode == 0)
+	/* keep hi when context didnt change */
+	if ((!rem_ctxt) || (!it->hi->context && !ctxt) ||
+	    (it->hi->context && ctxt && !strcmp(it->hi->context, ctxt)))
+	  hi = it->hi;
+     }
+
+   if (!hi)
+     {
+	ht = evry_history_types_get(it->type);
+
+	if (!ht)
+	  return 0;
+	
+	if (!(he = eina_hash_find(ht->types, (it->id ? it->id : it->label))))
+	  return 0;
+
+	if (it->type == EVRY_TYPE_ACTION)
 	  {
-	     
+	     GET_ACTION(act, it);
+	     if (!act->remember_context)
+	       rem_ctxt = 0;
+	  }
+
+	EINA_LIST_FOREACH(he->items, l, hi)
+	  {
+	     if (hi->plugin != it->plugin->name)
+	       continue;
+
+	     if (rem_ctxt && ctxt && (hi->context != ctxt))
+	       {
+		 it->hi = hi;
+		  continue;
+	       }
+
+	     it->hi = hi;
+	     break;
+	  }
+     }
+
+   if (!hi) return 0;
+
+   if (evry_conf->history_sort_mode == 0)
+     {
 	if (!input || !hi->input)
 	  {
 	     it->usage += hi->usage * hi->count;
@@ -294,26 +427,35 @@ evry_history_item_usage_set(Eina_Hash *hist, Evry_Item *it, const char *input, c
 		  it->usage += hi->usage * hi->count;
 	       }
 	  }
-	if (hi->context && ctxt)
+
+	if (ctxt && hi->context && (hi->context == ctxt))
 	  {
-	     if (hi->context == ctxt)
-	       it->usage += hi->usage * hi->count * 2;
-	  }
-	  }
-	else if (evry_conf->history_sort_mode == 1)
-	  {
-	     it->usage = hi->count * (hi->last_used / 10000000000.0);
-	     
-	  }
-	else if (evry_conf->history_sort_mode == 2)
-	  {
-	     it->usage = hi->last_used;
+	     it->usage += hi->usage * hi->count * 10.0;
 	  }
      }
+   else if (evry_conf->history_sort_mode == 1)
+     {
+	it->usage = hi->count * (hi->last_used / 10000000000.0);
+
+	if (ctxt && hi->context && (hi->context == ctxt))
+	  {
+	     it->usage += hi->usage * hi->count * 10.0;
+	  }
+     }
+   else if (evry_conf->history_sort_mode == 2)
+     {
+	if (hi->last_used > it->usage)
+	  it->usage = hi->last_used;
+     }
+   if (it->fuzzy_match > 0)
+     it->usage /= (double) it->fuzzy_match;
+   else
+     it->usage /= 100.0;
    
    if (it->usage > 0.0)
      return 1;
 
+   it->usage = -1.0;
+
    return 0;
 }
-

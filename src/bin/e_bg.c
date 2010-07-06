@@ -6,14 +6,18 @@
 /* local subsystem functions */
 static void _e_bg_signal(void *data, Evas_Object *obj, const char *emission, const char *source);
 static void _e_bg_event_bg_update_free(void *data, void *event);
-static int  _e_bg_slide_animator(void *data);
+static Eina_Bool  _e_bg_slide_animator(void *data);
+
+static void _e_bg_image_import_dialog_done(void *data, const char *path, Eina_Bool ok, Eina_Bool external, int quality, E_Image_Import_Mode mode);
+static void _e_bg_image_import_done(void *data, Eina_Bool ok, const char *image_path, const char *edje_path);
+static void _e_bg_handler_image_imported(void *data, const char *image_path);
 
 /* local subsystem globals */
 EAPI int E_EVENT_BG_UPDATE = 0;
 static E_Fm2_Mime_Handler *bg_hdl = NULL;
 
 typedef struct _E_Bg_Anim_Params E_Bg_Anim_Params;
-struct _E_Bg_Anim_Params 
+struct _E_Bg_Anim_Params
 {
    E_Zone *zone;
    double start_time;
@@ -23,46 +27,62 @@ struct _E_Bg_Anim_Params
    int end_y;
 
    struct {
-	Eina_Bool x, y;
+      Eina_Bool x, y;
    } freedom;
 };
 
+struct _E_Bg_Image_Import_Handle
+{
+   struct {
+      void (*func)(void *data, const char *edje_file);
+      void *data;
+   } cb;
+   E_Dialog *dia;
+   E_Util_Image_Import_Handle *importer;
+   Eina_Bool canceled:1;
+};
+
 /* externally accessible functions */
-EAPI int 
+EAPI int
 e_bg_init(void)
 {
    Eina_List *l = NULL;
    E_Config_Desktop_Background *cfbg = NULL;
 
    /* Register mime handler */
-   bg_hdl = e_fm2_mime_handler_new(_("Set As Background"), 
-				   "preferences-desktop-wallpaper", 
-				   e_bg_handler_set, NULL, 
+   bg_hdl = e_fm2_mime_handler_new(_("Set As Background"),
+				   "preferences-desktop-wallpaper",
+				   e_bg_handler_set, NULL,
 				   e_bg_handler_test, NULL);
-   if (bg_hdl) e_fm2_mime_handler_glob_add(bg_hdl, "*.edj");
+   if (bg_hdl)
+     {
+	e_fm2_mime_handler_glob_add(bg_hdl, "*.edj");
+	e_fm2_mime_handler_mime_add(bg_hdl, "image/png");
+	e_fm2_mime_handler_mime_add(bg_hdl, "image/jpeg");
+     }
 
    /* Register files in use */
    if (e_config->desktop_default_background)
-      e_filereg_register(e_config->desktop_default_background);
+     e_filereg_register(e_config->desktop_default_background);
 
    EINA_LIST_FOREACH(e_config->desktop_backgrounds, l, cfbg)
      {
 	if (!cfbg) continue;
 	e_filereg_register(cfbg->file);
      }
-   
+
    E_EVENT_BG_UPDATE = ecore_event_type_new();
    return 1;
 }
 
-EAPI int 
+EAPI int
 e_bg_shutdown(void)
 {
    Eina_List *l = NULL;
    E_Config_Desktop_Background *cfbg = NULL;
 
    /* Deregister mime handler */
-   if (bg_hdl) 
+   if (bg_hdl)
      {
 	e_fm2_mime_handler_glob_del(bg_hdl, "*.edj");
 	e_fm2_mime_handler_free(bg_hdl);
@@ -70,7 +90,7 @@ e_bg_shutdown(void)
 
    /* Deregister files in use */
    if (e_config->desktop_default_background)
-      e_filereg_deregister(e_config->desktop_default_background);
+     e_filereg_deregister(e_config->desktop_default_background);
 
    EINA_LIST_FOREACH(e_config->desktop_backgrounds, l, cfbg)
      {
@@ -120,7 +140,7 @@ e_bg_config_get(int container_num, int zone_num, int desk_x, int desk_y)
 		  if (bgfile[0] != '/')
 		    {
 		       const char *bf;
-		  
+
 		       bf = e_path_find(path_backgrounds, bgfile);
 		       if (bf) bgfile = bf;
 		    }
@@ -163,7 +183,7 @@ e_bg_file_get(int container_num, int zone_num, int desk_x, int desk_y)
 	     if (bgfile[0] != '/')
 	       {
 		  const char *bf;
-		  
+
 		  bf = e_path_find(path_backgrounds, bgfile);
 		  if (bf) bgfile = bf;
 	       }
@@ -177,7 +197,7 @@ e_bg_file_get(int container_num, int zone_num, int desk_x, int desk_y)
 	     if (bgfile[0] != '/')
 	       {
 		  const char *bf;
-		  
+
 		  bf = e_path_find(path_backgrounds, bgfile);
 		  if (bf) bgfile = bf;
 	       }
@@ -196,7 +216,7 @@ e_bg_file_get(int container_num, int zone_num, int desk_x, int desk_y)
 	     edje_file_collection_list_free(entries);
 	  }
 	if (!ok)
-	  bgfile = e_theme_edje_file_get("base/theme/background", 
+	  bgfile = e_theme_edje_file_get("base/theme/background",
 					 "e/desktop/background");
      }
 
@@ -210,7 +230,7 @@ e_bg_zone_update(E_Zone *zone, E_Bg_Transition transition)
    const char *bgfile = "";
    const char *trans = "";
    E_Desk *desk;
-   
+
    if (transition == E_BG_TRANSITION_START) trans = e_config->transition_start;
    else if (transition == E_BG_TRANSITION_DESK) trans = e_config->transition_desk;
    else if (transition == E_BG_TRANSITION_CHANGE) trans = e_config->transition_change;
@@ -226,11 +246,11 @@ e_bg_zone_update(E_Zone *zone, E_Bg_Transition transition)
    if (zone->bg_object)
      {
 	const char *pfile = "";
-	
+
 	edje_object_file_get(zone->bg_object, &pfile, NULL);
 	if ((!e_util_strcmp(pfile, bgfile)) && !e_config->desk_flip_pan_bg) return;
      }
-   
+
    if (transition == E_BG_TRANSITION_NONE)
      {
 	if (zone->bg_object)
@@ -242,7 +262,7 @@ e_bg_zone_update(E_Zone *zone, E_Bg_Transition transition)
    else
      {
 	char buf[4096];
-	
+
 	if (zone->bg_object)
 	  {
 	     if (zone->prev_bg_object)
@@ -302,7 +322,7 @@ e_bg_zone_update(E_Zone *zone, E_Bg_Transition transition)
 	e_bg_zone_slide(zone, x, y);
 	return;
      }
-   
+
    if (transition != E_BG_TRANSITION_NONE)
      {
 	edje_extern_object_max_size_set(zone->prev_bg_object, 65536, 65536);
@@ -328,7 +348,7 @@ e_bg_zone_slide(E_Zone *zone, int prev_x, int prev_y)
    Evas_Coord vw, vh, px, py;
    int fx, fy;
    const void *data;
-   
+
    desk = e_desk_current_get(zone);
    edje_object_size_max_get(zone->bg_object, &w, &h);
    maxw = zone->w * zone->desk_x_count;
@@ -383,9 +403,19 @@ e_bg_zone_slide(E_Zone *zone, int prev_x, int prev_y)
 }
 
 EAPI void
-e_bg_default_set(char *file)
+e_bg_default_set(const char *file)
 {
    E_Event_Bg_Update *ev;
+   Eina_Bool changed;
+
+   file = eina_stringshare_add(file);
+   changed = file != e_config->desktop_default_background;
+
+   if (!changed)
+     {
+	eina_stringshare_del(file);
+	return;
+     }
 
    if (e_config->desktop_default_background)
      {
@@ -396,7 +426,7 @@ e_bg_default_set(char *file)
    if (file)
      {
 	e_filereg_register(file);
-	e_config->desktop_default_background = eina_stringshare_add(file);
+	e_config->desktop_default_background = file;
      }
    else
      e_config->desktop_default_background = NULL;
@@ -410,20 +440,37 @@ e_bg_default_set(char *file)
 }
 
 EAPI void
-e_bg_add(int container, int zone, int desk_x, int desk_y, char *file)
+e_bg_add(int container, int zone, int desk_x, int desk_y, const char *file)
 {
+   const Eina_List *l;
    E_Config_Desktop_Background *cfbg;
    E_Event_Bg_Update *ev;
-   
+
+   file = eina_stringshare_add(file);
+
+   EINA_LIST_FOREACH(e_config->desktop_backgrounds, l, cfbg)
+     {
+	if ((cfbg) &&
+	    (cfbg->container == container) &&
+	    (cfbg->zone == zone) &&
+	    (cfbg->desk_x == desk_x) &&
+	    (cfbg->desk_y == desk_y) &&
+	    (cfbg->file == file))
+	  {
+	     eina_stringshare_del(file);
+	     return;
+	  }
+     }
+
    e_bg_del(container, zone, desk_x, desk_y);
    cfbg = E_NEW(E_Config_Desktop_Background, 1);
    cfbg->container = container;
    cfbg->zone = zone;
    cfbg->desk_x = desk_x;
    cfbg->desk_y = desk_y;
-   cfbg->file = eina_stringshare_add(file);
+   cfbg->file = file;
    e_config->desktop_backgrounds = eina_list_append(e_config->desktop_backgrounds, cfbg);
-   
+
    e_filereg_register(cfbg->file);
 
    ev = E_NEW(E_Event_Bg_Update, 1);
@@ -437,11 +484,11 @@ e_bg_add(int container, int zone, int desk_x, int desk_y, char *file)
 EAPI void
 e_bg_del(int container, int zone, int desk_x, int desk_y)
 {
-   Eina_List *l = NULL;
-   E_Config_Desktop_Background *cfbg = NULL;
+   Eina_List *l;
+   E_Config_Desktop_Background *cfbg;
    E_Event_Bg_Update *ev;
-  
-   EINA_LIST_FOREACH(e_config->desktop_backgrounds, l, cfbg) 
+
+   EINA_LIST_FOREACH(e_config->desktop_backgrounds, l, cfbg)
      {
 	if (!cfbg) continue;
 	if ((cfbg->container == container) && (cfbg->zone == zone) &&
@@ -483,38 +530,163 @@ e_bg_update(void)
      }
 }
 
-EAPI void 
-e_bg_handler_set(Evas_Object *obj, const char *path, void *data) 
+static inline Eina_Bool
+_e_bg_file_edje_check(const char *path)
 {
-   E_Container *con;
-   E_Zone *zone;
-   E_Desk *desk;
-   
-   if (!path) return;
-   con = e_container_current_get(e_manager_current_get());
-   zone = e_zone_current_get(con);
-   desk = e_desk_current_get(zone);
-   e_bg_del(con->num, zone->num, desk->x, desk->y);
-   e_bg_add(con->num, zone->num, desk->x, desk->y, (char *)path);
-   e_bg_update();
-   e_config_save_queue();
+   const char *ext;
+   const size_t extlen = sizeof(".edj") - 1;
+   size_t len;
+
+   if (!path) return EINA_FALSE;
+
+   len = strlen(path);
+   if (len <= extlen) return EINA_FALSE;
+   ext = path + len - extlen;
+   return memcmp(ext, ".edj", extlen) == 0;
 }
 
-EAPI int 
-e_bg_handler_test(Evas_Object *obj, const char *path, void *data) 
+/**
+ * Go through process of importing an image as E background.
+ *
+ * This will go through process of importing an image as E
+ * background. It will ask fill/tile mode of the image, as well as
+ * quality to use.
+ *
+ * User can cancel operation at any time, and in this case callback is
+ * called with @c NULL as second parameter.
+ *
+ * The operation can be canceled by application/module as well using
+ * e_bg_image_import_cancel(). Even in this case the callback is called so user
+ * can free possibly allocated data.
+ *
+ * @param image_file source file to use, must be supported by Evas.
+ * @param cb callback to call when import process is done. The first
+ *        argument is the given data, while the second is the path to
+ *        the imported background file (edje) that can be used with
+ *        e_bg_add() or e_bg_default_set(). Note that if @a edje_file
+ *        is @c NULL, then the import process was canceled!
+ *        This function is @b always called and after it returns
+ *        E_Bg_Image_Import_Handle is deleted.
+ * @param data pointer to data to be given to callback.
+ *
+ * @return handle to the import process. It will die automatically
+ *         when user cancels the process or when code automatically
+ *         calls e_bg_image_import_cancel().  Before dying, callback
+ *         will always be called.
+ */
+EAPI E_Bg_Image_Import_Handle *
+e_bg_image_import(const char *image_file, void (*cb)(void *data, const char *edje_file), const void *data)
 {
+   E_Bg_Image_Import_Handle *handle;
+
+   if (!image_file) return NULL;
+   if (!cb) return NULL;
+
+   handle = E_NEW(E_Bg_Image_Import_Handle, 1);
+   if (!handle) return NULL;
+   handle->cb.func = cb;
+   handle->cb.data = (void *)data;
+
+   handle->dia = e_util_image_import_settings_new
+     (image_file, _e_bg_image_import_dialog_done, handle);
+   if (!handle->dia)
+     {
+	free(handle);
+	return NULL;
+     }
+   e_dialog_show(handle->dia);
+
+   return handle;
+}
+
+/**
+ * Cancels previously started import process.
+ *
+ * Note that his handle will be deleted when process import, so don't
+ * call it after your callback is called!
+ */
+EAPI void
+e_bg_image_import_cancel(E_Bg_Image_Import_Handle *handle)
+{
+   if (!handle) return;
+
+   handle->canceled = EINA_TRUE;
+
+   if (handle->cb.func)
+     {
+	handle->cb.func(handle->cb.data, NULL);
+	handle->cb.func = NULL;
+     }
+   if (handle->dia)
+     {
+	e_object_del(E_OBJECT(handle->dia));
+	handle->dia = NULL;
+     }
+   else if (handle->importer)
+     {
+	e_util_image_import_cancel(handle->importer);
+	handle->importer = NULL;
+     }
+   E_FREE(handle);
+}
+
+/**
+ * Set background to image, as required in e_fm2_mime_handler_new()
+ */
+EAPI void
+e_bg_handler_set(Evas_Object *obj __UNUSED__, const char *path, void *data __UNUSED__)
+{
+   if (!path) return;
+
+   if (_e_bg_file_edje_check(path))
+     {
+	E_Container *con = e_container_current_get(e_manager_current_get());
+	E_Zone *zone = e_zone_current_get(con);
+	E_Desk *desk = e_desk_current_get(zone);
+
+	e_bg_add(con->num, zone->num, desk->x, desk->y, path);
+	e_bg_update();
+	e_config_save_queue();
+	return;
+     }
+
+   e_bg_image_import(path, _e_bg_handler_image_imported, NULL);
+}
+
+/**
+ * Test if possible to set background to file, as required in
+ * e_fm2_mime_handler_new()
+ *
+ * This handler tests for files that would be acceptable for setting
+ * background.
+ *
+ * You should just register it with "*.edj" (glob matching extension)
+ * or "image/" (mimetypes)that are acceptable with Evas loaders.
+ *
+ * Just edje files with "e/desktop/background" group are used.
+ */
+EAPI int
+e_bg_handler_test(Evas_Object *obj __UNUSED__, const char *path, void *data __UNUSED__)
+{
+
    if (!path) return 0;
-   if (edje_file_group_exists(path, "e/desktop/background")) return 1;
-   return 0;
+
+   if (_e_bg_file_edje_check(path))
+     {
+	if (edje_file_group_exists(path, "e/desktop/background")) return 1;
+	return 0;
+     }
+
+   /* it's image/png or image/jpeg, we'll import it. */
+   return 1;
 }
 
 /* local subsystem functions */
 static void
-_e_bg_signal(void *data, Evas_Object *obj, const char *emission, const char *source)
+_e_bg_signal(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
-   E_Zone *zone;
-   
-   zone = data;
+   E_Zone *zone = data;
+
    if (zone->prev_bg_object)
      {
 	evas_object_del(zone->prev_bg_object);
@@ -533,18 +705,17 @@ _e_bg_signal(void *data, Evas_Object *obj, const char *emission, const char *sou
 }
 
 static void
-_e_bg_event_bg_update_free(void *data, void *event)
+_e_bg_event_bg_update_free(void *data __UNUSED__, void *event)
 {
    free(event);
 }
 
-static int
+static Eina_Bool
 _e_bg_slide_animator(void *data)
 {
    E_Bg_Anim_Params *params;
    E_Zone *zone;
    Evas_Object *o;
-   E_Desk *desk;
    double st;
    double t, dt, spd;
    Evas_Coord px, py, rx, ry, bw, bh, panw, panh;
@@ -552,9 +723,7 @@ _e_bg_slide_animator(void *data)
 
    params = data;
    zone = params->zone;
-   desk = e_desk_current_get(zone);
    t = ecore_loop_time_get();
-   dt = -1.0;
    spd = e_config->desk_flip_animate_time;
 
    o = zone->bg_scrollframe;
@@ -604,7 +773,79 @@ _e_bg_slide_animator(void *data)
 	evas_object_data_del(zone->bg_object, "switch_animator");
 	evas_object_data_del(zone->bg_object, "switch_animator_params");
 	E_FREE(params);
-	return 0;
+	return ECORE_CALLBACK_CANCEL;
      }
-   return 1;
+   return ECORE_CALLBACK_RENEW;
+}
+
+static void
+_e_bg_image_import_dialog_done(void *data, const char *path, Eina_Bool ok, Eina_Bool external, int quality, E_Image_Import_Mode mode)
+{
+   E_Bg_Image_Import_Handle *handle = data;
+   const char *file;
+   char *name;
+   char buf[PATH_MAX];
+   size_t used, off;
+   unsigned num;
+
+   if (!ok) goto aborted;
+
+   file = ecore_file_file_get(path);
+   if (!file) goto aborted;
+   name = ecore_file_strip_ext(file);
+   if (!name) goto aborted;
+
+   used = e_user_dir_snprintf(buf, sizeof(buf), "backgrounds/%s.edj", name);
+   free(name);
+   if (used >= sizeof(buf)) goto aborted;
+
+   off = used - (sizeof(".edj") - 1);
+
+   for (num = 0; ecore_file_exists(buf); num++)
+     snprintf(buf + off, sizeof(buf) - off, "-%u.edj", num);
+
+   handle->importer = e_util_image_import
+     (path, buf, "e/desktop/background", external, quality, mode,
+      _e_bg_image_import_done, handle);
+   if (!handle->importer) goto aborted;
+
+   return;
+
+ aborted:
+   if (handle->cb.func)
+     {
+	handle->cb.func(handle->cb.data, NULL);
+	handle->cb.func = NULL;
+     }
+   if (!handle->canceled) E_FREE(handle);
+}
+
+static void
+_e_bg_image_import_done(void *data, Eina_Bool ok, const char *image_path __UNUSED__, const char *edje_path)
+{
+   E_Bg_Image_Import_Handle *handle = data;
+
+   if (!ok) edje_path = NULL;
+
+   if (handle->cb.func)
+     {
+	handle->cb.func(handle->cb.data, edje_path);
+	handle->cb.func = NULL;
+     }
+
+   if (!handle->canceled) E_FREE(handle);
+}
+
+static void
+_e_bg_handler_image_imported(void *data __UNUSED__, const char *image_path)
+{
+   E_Container *con = e_container_current_get(e_manager_current_get());
+   E_Zone *zone = e_zone_current_get(con);
+   E_Desk *desk = e_desk_current_get(zone);
+
+   if (!image_path) return;
+
+   e_bg_add(con->num, zone->num, desk->x, desk->y, image_path);
+   e_bg_update();
+   e_config_save_queue();
 }

@@ -8,7 +8,9 @@
 static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static int _basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static int _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static int _advanced_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 
@@ -29,7 +31,7 @@ struct _E_Config_Dialog_Data
 };
 
 /* a nice easy setup function that does the dirty work */
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_focus(E_Container *con, const char *params __UNUSED__)
 {
    E_Config_Dialog *cfd;
@@ -39,17 +41,19 @@ e_int_config_focus(E_Container *con, const char *params __UNUSED__)
    v = E_NEW(E_Config_Dialog_View, 1);
    
    /* methods */
-   v->create_cfdata           = _create_data;
-   v->free_cfdata             = _free_data;
-   v->basic.apply_cfdata      = _basic_apply_data;
-   v->basic.create_widgets    = _basic_create_widgets;
-   v->advanced.apply_cfdata   = _advanced_apply_data;
+   v->create_cfdata  = _create_data;
+   v->free_cfdata = _free_data;
+   v->basic.apply_cfdata = _basic_apply_data;
+   v->basic.create_widgets = _basic_create_widgets;
+   v->basic.check_changed = _basic_check_changed;
+   v->advanced.apply_cfdata = _advanced_apply_data;
    v->advanced.create_widgets = _advanced_create_widgets;
+   v->advanced.check_changed = _advanced_check_changed;
+
    /* create config diaolg for NULL object/data */
-   cfd = e_config_dialog_new(con,
-			     _("Focus Settings"),
-			     "E", "windows/window_focus",
-			     "preferences-focus", 0, v, NULL);
+   cfd = e_config_dialog_new(con, _("Focus Settings"), "E", 
+                             "windows/window_focus", "preferences-focus", 
+                             0, v, NULL);
    return cfd;
 }
 
@@ -70,7 +74,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd)
+_create_data(E_Config_Dialog *cfd __UNUSED__)
 {
    /* Create cfdata - cfdata is a temporary block of config data that this
     * dialog will be dealing with while configuring. it will be applied to
@@ -84,7 +88,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    /* Free the cfdata */
    E_FREE(cfdata);
@@ -92,7 +96,7 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
 /**--APPLY--**/
 static int
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    /* Actually take our cfdata settings and apply them in real life */
    e_border_button_bindings_ungrab_all();
@@ -135,7 +139,13 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+{
+   return e_config->focus_policy != cfdata->mode;
+}
+
+static int
+_advanced_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    /* Actually take our cfdata settings and apply them in real life */
    e_border_button_bindings_ungrab_all();
@@ -152,27 +162,42 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    return 1; /* Apply was OK */
 }
 
+static int
+_advanced_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+{
+   return ((e_config->focus_policy != cfdata->focus_policy) ||
+	   (e_config->focus_setting != cfdata->focus_setting) ||
+	   (e_config->pass_click_on != cfdata->pass_click_on) ||
+	   (e_config->always_click_to_raise != cfdata->always_click_to_raise) ||
+	   (e_config->always_click_to_focus != cfdata->always_click_to_focus) ||
+	   (e_config->focus_last_focused_per_desktop != cfdata->focus_last_focused_per_desktop) ||
+	   (e_config->focus_revert_on_hide_or_close != cfdata->focus_revert_on_hide_or_close) ||
+	   (e_config->pointer_slide != cfdata->pointer_slide));
+}
+
+
 /**--GUI--**/
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    /* generate the core widget layout for a basic dialog */
    Evas_Object *o, *ob;
    E_Radio_Group *rg;
-      
+
    o = e_widget_list_add(evas, 0, 0);
    rg = e_widget_radio_group_new(&(cfdata->mode));
    ob = e_widget_radio_add(evas, _("Click Window to Focus"), E_FOCUS_CLICK, rg);
-   e_widget_list_object_append(o, ob, 1, 1, 0.5);
+   e_widget_list_object_append(o, ob, 1, 0, 0.0);
    ob = e_widget_radio_add(evas, _("Window under the Mouse"), E_FOCUS_MOUSE, rg);
-   e_widget_list_object_append(o, ob, 1, 1, 0.5);
-   ob = e_widget_radio_add(evas, _("Most recent Window under the Mouse"), E_FOCUS_SLOPPY, rg);
-   e_widget_list_object_append(o, ob, 1, 1, 0.5);
+   e_widget_list_object_append(o, ob, 1, 0, 0.0);
+   ob = e_widget_radio_add(evas, _("Most recent Window under the Mouse"), 
+                           E_FOCUS_SLOPPY, rg);
+   e_widget_list_object_append(o, ob, 1, 0, 0.0);
    return o;
 }
 
 static Evas_Object *
-_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
+_advanced_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    /* generate the core widget layout for an advanced dialog */
    Evas_Object *o, *ob, *of;
@@ -182,40 +207,55 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    
    of = e_widget_framelist_add(evas, _("Focus"), 0);
    rg = e_widget_radio_group_new(&(cfdata->focus_policy));
-   ob = e_widget_radio_add(evas, _("Click to focus"), E_FOCUS_CLICK, rg);
+   ob = e_widget_radio_add(evas, _("Click"), E_FOCUS_CLICK, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_add(evas, _("Pointer focus"), E_FOCUS_MOUSE, rg);
+   ob = e_widget_radio_add(evas, _("Pointer"), E_FOCUS_MOUSE, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_add(evas, _("Sloppy focus"), E_FOCUS_SLOPPY, rg);
+   ob = e_widget_radio_add(evas, _("Sloppy"), E_FOCUS_SLOPPY, rg);
    e_widget_framelist_object_append(of, ob);
-   e_widget_list_object_append(o, of, 1, 1, 0.5);
-   
+   e_widget_list_object_append(o, of, 1, 0, 0.5);
+
    of = e_widget_framelist_add(evas, _("New Window Focus"), 0);
    rg = e_widget_radio_group_new(&(cfdata->focus_setting));
-   ob = e_widget_radio_add(evas, _("No new windows get focus"), E_FOCUS_NONE, rg);
+   ob = e_widget_radio_add(evas, _("No window"), E_FOCUS_NONE, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_add(evas, _("All new windows get focus"), E_FOCUS_NEW_WINDOW, rg);
+   ob = e_widget_radio_add(evas, _("All windows"), E_FOCUS_NEW_WINDOW, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_add(evas, _("Only new dialogs get focus"), E_FOCUS_NEW_DIALOG, rg);
+   ob = e_widget_radio_add(evas, _("Only dialogs"), E_FOCUS_NEW_DIALOG, rg);
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_radio_add(evas, _("Only new dialogs get focus if the parent has focus"), E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED, rg);
+   ob = e_widget_radio_add(evas, _("Only dialogs with focused parent"),
+                           E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED, rg);
    e_widget_framelist_object_append(of, ob);
-   e_widget_list_object_append(o, of, 1, 1, 0.5);
-   
+   e_widget_list_object_append(o, of, 1, 0, 0.5);
+
    of = e_widget_framelist_add(evas, _("Other Settings"), 0);
-   ob = e_widget_check_add(evas, _("Always pass on caught click events to programs"), &(cfdata->pass_click_on));
+   ob = e_widget_check_add(evas, _("Always pass click events to programs"), 
+                           &(cfdata->pass_click_on));
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_check_add(evas, _("A click on a window always raises it"), &(cfdata->always_click_to_raise));
+   ob = e_widget_check_add(evas, _("Click raises the window"), 
+                           &(cfdata->always_click_to_raise));
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_check_add(evas, _("A click in a window always focuses it"), &(cfdata->always_click_to_focus));
+   ob = e_widget_check_add(evas, _("Click focuses the window"), 
+                           &(cfdata->always_click_to_focus));
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_check_add(evas, _("Refocus last focused window on desktop switch"), &(cfdata->focus_last_focused_per_desktop));
+   ob = e_widget_check_add(evas, _("Refocus last window on desktop switch"), 
+                           &(cfdata->focus_last_focused_per_desktop));
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_check_add(evas, _("Revert focus when hiding or closing a window"), &(cfdata->focus_revert_on_hide_or_close));
+   ob = e_widget_check_add(evas, _("Revert focus when it is lost"), 
+                           &(cfdata->focus_revert_on_hide_or_close));
    e_widget_framelist_object_append(of, ob);
-   ob = e_widget_check_add(evas, _("Slide pointer to a new focused window"), &(cfdata->pointer_slide));
+
+   /* NOTE/TODO:
+    *
+    * IMHO all these slide-pointer-to-window, warp and all should have
+    * an unique and consistent setting. In some cases it just do not
+    * make sense to have one but not the other.
+    */
+
+   ob = e_widget_check_add(evas, _("Slide pointer to a new focused window"), 
+                           &(cfdata->pointer_slide));
    e_widget_framelist_object_append(of, ob);
-   e_widget_list_object_append(o, of, 1, 1, 0.5);
-   
+   e_widget_list_object_append(o, of, 1, 0, 0.5);
+
    return o;
 }

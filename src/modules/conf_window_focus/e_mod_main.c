@@ -4,23 +4,9 @@
 #include "e.h"
 #include "e_mod_main.h"
 
-/***************************************************************************/
-/**/
 /* actual module specifics */
-
 static E_Module *conf_module = NULL;
 
-/**/
-/***************************************************************************/
-
-/***************************************************************************/
-/**/
-
-/**/
-/***************************************************************************/
-
-/***************************************************************************/
-/**/
 /* module setup */
 EAPI E_Module_Api e_modapi =
 {
@@ -39,10 +25,10 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int
-e_modapi_shutdown(E_Module *m)
+e_modapi_shutdown(E_Module *m __UNUSED__)
 {
    E_Config_Dialog *cfd;
-   while ((cfd = e_config_dialog_get("E", "_config_focus_dialog"))) e_object_del(E_OBJECT(cfd));
+   while ((cfd = e_config_dialog_get("E", "windows/window_focus"))) e_object_del(E_OBJECT(cfd));
    e_configure_registry_item_del("windows/window_focus");
    e_configure_registry_category_del("windows");
    conf_module = NULL;
@@ -50,7 +36,7 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int
-e_modapi_save(E_Module *m)
+e_modapi_save(E_Module *m __UNUSED__)
 {
    return 1;
 }

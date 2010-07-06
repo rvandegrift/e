@@ -12,8 +12,21 @@ typedef enum _E_Kbd_Int_Type
    E_KBD_INT_TYPE_PHONE_NUMBER = (1 << 3),
    E_KBD_INT_TYPE_HEX = (1 << 4),
    E_KBD_INT_TYPE_TERMINAL = (1 << 5),
-   E_KBD_INT_TYPE_PASSWORD = (1 << 6)
+   E_KBD_INT_TYPE_PASSWORD = (1 << 6),
+   E_KBD_INT_TYPE_IP = (1 << 7),
+   E_KBD_INT_TYPE_HOST = (1 << 8),
+   E_KBD_INT_TYPE_FILE = (1 << 9),
+   E_KBD_INT_TYPE_URL = (1 << 10),
+   E_KBD_INT_TYPE_KEYPAD = (1 << 11),
+   E_KBD_INT_TYPE_J2ME = (1 << 12)
 } E_Kbd_Int_Type;
+
+/* The natural text direction of the keyboard */
+typedef enum _E_kbd_Int_Direction
+{
+   E_KBD_INT_DIRECTION_LTR = (1 << 0),
+   E_KBD_INT_DIRECTION_RTL = (1 << 1)
+} E_Kbd_Int_Direction;
 
 typedef struct _E_Kbd_Int           E_Kbd_Int;
 typedef struct _E_Kbd_Int_Key       E_Kbd_Int_Key;
@@ -29,11 +42,13 @@ struct _E_Kbd_Int
    Eina_List           *layouts;
    Eina_List           *matches;
    Ecore_Event_Handler *client_message_handler;
+   Ecore_Event_Handler *kbd_move_hdl;
    struct {
       char             *directory;
       const char       *file;
       int               w, h;
       int               fuzz;
+      int		direction;
       E_Kbd_Int_Type    type;
       Eina_List        *keys;
       E_Kbd_Int_Key    *pressed;

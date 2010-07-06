@@ -23,8 +23,6 @@ static void *_create_data(E_Config_Dialog *cfd);
 static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_adv_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
-static int _adv_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static void _fill_gadgets_list(Evas_Object *ilist);
 static void _cb_add(void *data, void *data2);
 static void _avail_list_cb_change(void *data, Evas_Object *obj);
@@ -34,7 +32,7 @@ static void _cb_fm_change(void *data, Evas_Object *obj, void *event_info);
 static void _cb_fm_sel_change(void *data, Evas_Object *obj, void *event_info);
 static void _cb_button_up(void *data1, void *data2);
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 _config_gadman_module(E_Container *con, const char *params __UNUSED__)
 {
    E_Config_Dialog *cfd;
@@ -51,9 +49,7 @@ _config_gadman_module(E_Container *con, const char *params __UNUSED__)
    v->free_cfdata = _free_data;
    v->basic.create_widgets = _basic_create_widgets;
    v->basic.apply_cfdata = _basic_apply_data;
-   v->advanced.create_widgets = _adv_create_widgets;
-   v->advanced.apply_cfdata = _adv_apply_data;
-
+   
    snprintf(buf, sizeof(buf), "%s/e-module-gadman.edj", Man->module->dir);
    cfd = e_config_dialog_new(con, _("Gadgets Manager"),
                              "E", "extensions/gadman",
@@ -100,9 +96,16 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 static Evas_Object *
 _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
-   Evas_Object *o, *of, *ob, *ol;
+   Evas_Object *o, *ol, *ob, *ow, *ft, *of, *otb;
+   E_Radio_Group *rg;
+   Evas_Coord mw, mh;
+   E_Fm2_Config fmc;
+   char path[PATH_MAX];
 
+
+   otb = e_widget_toolbook_add(evas, 48 * e_scale, 48 * e_scale);
    o = e_widget_list_add(evas, 0, 0);
+   
    of = e_widget_framelist_add(evas, _("Available Gadgets"), 0);
 
    //o_avail  List of available gadgets
@@ -117,34 +120,25 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    ob = e_widget_button_add(evas, _("Add Gadget"), NULL, _cb_add, cfdata, NULL);
    e_widget_disabled_set(ob, 1);
    cfdata->o_add = ob;
-   e_widget_framelist_object_append(of, ob);
+   e_widget_size_min_get(ob, &mw, &mh);
+   e_widget_framelist_object_append_full(of, ob,
+					 1, 1, /* fill */
+					 1, 0, /* expand */
+					 0.5, 0.5, /* align */
+					 mw, mh, /* min */
+					 99999, 99999 /* max */
+					 );
 
    e_widget_list_object_append(o, of, 1, 1, 0.5);
    e_dialog_resizable_set(cfd->dia, 1);
    
-   return o;
-}
-
-static int
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
-{
-   gadman_gadget_edit_end(NULL, NULL, NULL, NULL);
-   e_config_save_queue();
-   return 1;
-}
-
-static Evas_Object *
-_adv_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
-{
-   Evas_Object *ow, *ft, *of;
-   E_Radio_Group *rg;
-   E_Fm2_Config fmc;
-   char path[PATH_MAX];
-
+   
+   e_widget_toolbook_page_append(otb, NULL, _("Add Gadget"), o, 1, 1, 1, 1, 0.5, 0.0);
+   o = e_widget_list_add(evas, 0, 0);
    ft = e_widget_table_add(evas, 0);
 
    //Background mode
-   of = e_widget_frametable_add(evas, _("Background Mode"), 0);
+   of = e_widget_frametable_add(evas, _("Mode"), 0);
    rg = e_widget_radio_group_new(&(cfdata->bg_method));
    ow = e_widget_radio_add(evas, _("Theme Defined"), BG_STD, rg);
    //~ evas_object_smart_callback_add(ow, "changed", _cb_method_change, cfdata);
@@ -183,9 +177,11 @@ _adv_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfda
    //Background filemanager chooser
    of = e_widget_frametable_add(evas, _("Custom Image"), 0);
    rg = e_widget_radio_group_new(&(cfdata->fmdir));
+   
    ow = e_widget_radio_add(evas, _("Personal"), 0, rg);
    e_widget_on_change_hook_set(ow, _cb_fm_radio_change, cfdata);
    e_widget_frametable_object_append(of, ow, 0, 0, 1, 1, 1, 1, 0, 0);
+   
    ow = e_widget_radio_add(evas, _("System"), 1, rg);
    e_widget_on_change_hook_set(ow, _cb_fm_radio_change, cfdata);
    e_widget_frametable_object_append(of, ow, 1, 0, 1, 1, 1, 1, 0, 0);
@@ -193,7 +189,7 @@ _adv_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfda
    cfdata->o_btn = e_widget_button_add(evas, _("Go up a Directory"), 
 				       "widgets/up_dir", _cb_button_up, 
 				       cfdata, NULL);
-   e_widget_frametable_object_append(of, cfdata->o_btn, 0, 1, 2, 1, 1, 1, 0, 0);
+   e_widget_frametable_object_append(of, cfdata->o_btn, 0, 1, 2, 1, 1, 1, 1, 0);
 
 
    if (cfdata->fmdir == 1)
@@ -209,8 +205,8 @@ _adv_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfda
    fmc.view.selector = 1;
    fmc.view.single_click = 0;
    fmc.view.no_subdir_jump = 0;
-   fmc.icon.list.w = 48;
-   fmc.icon.list.h = 48;
+   fmc.icon.list.w = 36;
+   fmc.icon.list.h = 36;
    fmc.icon.fixed.w = 1;
    fmc.icon.fixed.h = 1;
    fmc.icon.extension.show = 0;
@@ -232,17 +228,21 @@ _adv_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfda
 					       e_fm2_pan_get,
 					       e_fm2_pan_max_get, 
 					       e_fm2_pan_child_size_get);
-   e_widget_size_min_set(cfdata->o_sf, 200, 250);
+   e_widget_size_min_set(cfdata->o_sf, 150, 250);
    e_widget_frametable_object_append(of, cfdata->o_sf, 0, 2, 2, 1, 1, 1, 1, 1);
-   e_widget_table_object_append(ft, of, 1, 0, 1, 3, 1, 1, 1, 1);
+   e_widget_table_object_append(ft, of, 2, 0, 1, 3, 1, 1, 1, 1);
 
+   e_dialog_resizable_set(cfd->dia, 0);
+   
+   e_widget_toolbook_page_append(otb, NULL, _("Background Options"), ft, 0, 0, 0, 0, 0.5, 0.0);
+   e_widget_toolbook_page_show(otb, 0);
+   
    e_dialog_resizable_set(cfd->dia, 1);
-
-   return ft;
+   return otb;
 }
 
 static int
-_adv_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
    Eina_List *sel;
    const char *p = NULL;
@@ -271,7 +271,8 @@ _adv_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	  }
 	eina_list_free(sel);
      }
-
+     
+   gadman_gadget_edit_end(NULL, NULL, NULL, NULL);
    e_config_save_queue();
    gadman_update_bg();
    
@@ -308,7 +309,7 @@ _fill_gadgets_list(Evas_Object *ilist)
    e_widget_ilist_go(ilist);
    e_widget_size_min_get(ilist, &w, NULL);
    if (w < 200) w = 200;
-   e_widget_size_min_set(ilist, w, 250);
+   e_widget_size_min_set(ilist, w, 100);
    e_widget_ilist_thaw(ilist);
 }
 

@@ -26,17 +26,16 @@ struct _E_Config_Dialog_Data
    char *file;
 };
 
-static void _theme_import_cb_delete    (E_Win *win);
-static void _theme_import_cb_resize    (E_Win *win);
-static void _theme_import_cb_wid_focus (void *data, Evas_Object *obj);
-static void _theme_import_cb_selected  (void *data, Evas_Object *obj);
-static void _theme_import_cb_changed   (void *data, Evas_Object *obj);
-static void _theme_import_cb_ok        (void *data, void *data2);
-static void _theme_import_cb_close     (void *data, void *data2);
-static void _theme_import_cb_key_down  (void *data, Evas *e, Evas_Object *obj, 
-					void *event);
+static void _theme_import_cb_delete(E_Win *win);
+static void _theme_import_cb_resize(E_Win *win);
+static void _theme_import_cb_wid_focus(void *data, Evas_Object *obj);
+static void _theme_import_cb_selected(void *data, Evas_Object *obj);
+static void _theme_import_cb_changed(void *data, Evas_Object *obj);
+static void _theme_import_cb_ok(void *data, void *data2);
+static void _theme_import_cb_close(void *data, void *data2);
+static void _theme_import_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event);
 
-EAPI E_Win *
+E_Win *
 e_int_config_theme_import(E_Config_Dialog *parent) 
 {
    Evas *evas;
@@ -46,7 +45,8 @@ e_int_config_theme_import(E_Config_Dialog *parent)
    E_Config_Dialog_Data *cfdata;
    Evas_Modifier_Mask mask;
    Evas_Coord w, h;
-   
+   Eina_Bool kg;
+
    import = E_NEW(Import, 1);
    if (!import) return NULL;
    
@@ -84,14 +84,21 @@ e_int_config_theme_import(E_Config_Dialog *parent)
    o = evas_object_rectangle_add(evas);
    import->event_obj = o;
    mask = 0;
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr, "ERROR: Unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = evas_key_modifier_mask_get(evas, "Shift");
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Return\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
-   mask = 0;
+   kg = evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"KP_Enter\" key events to object %p.\n", o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_KEY_DOWN, 
 				  _theme_import_cb_key_down, import);
 
@@ -141,7 +148,7 @@ e_int_config_theme_import(E_Config_Dialog *parent)
    return win;
 }
 
-EAPI void
+void
 e_int_config_theme_del(E_Win *win) 
 {
    Import *import;
@@ -259,6 +266,9 @@ _theme_import_cb_ok(void *data, void *data2)
 	
 	file = ecore_file_file_get(import->cfdata->file);
 	e_user_dir_snprintf(buf, sizeof(buf), "themes/%s", file);
+
+	if (ecore_file_exists(buf))
+	  ecore_file_unlink(buf);
 
 	strip = ecore_file_strip_ext(file);
 	if (!strip) 

@@ -18,6 +18,24 @@
 #define _FILE_OFFSET_BITS  64
 #endif
 
+#ifdef HAVE_ALLOCA_H
+# include <alloca.h>
+#elif defined __GNUC__
+# define alloca __builtin_alloca
+#elif defined _AIX
+# define alloca __alloca
+#elif defined _MSC_VER
+# include <malloc.h>
+# define alloca _alloca
+#else
+# include <stddef.h>
+# ifdef  __cplusplus
+extern "C"
+# endif
+void *alloca (size_t);
+#endif
+
+
 #ifdef __linux__
 #include <features.h>
 #endif
@@ -41,16 +59,16 @@
 #include <grp.h>
 #include <glob.h>
 #include <locale.h>
-#include <libintl.h>
 #include <errno.h>
 #include <signal.h>
+#include <inttypes.h>
+
+#ifdef HAVE_GETTEXT
+# include <libintl.h>
+#endif
 
 #ifndef _POSIX_HOST_NAME_MAX
 #define _POSIX_HOST_NAME_MAX 255
-#endif
-
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
 #endif
 
 #ifdef HAVE_VALGRIND
@@ -66,15 +84,12 @@
 #include <Evas.h>
 #include <Evas_Engine_Buffer.h>
 #include <Ecore.h>
-#include <Ecore_Str.h>
 #include <Ecore_X.h>
-#include <Ecore_X_Atoms.h>
-#include <Ecore_X_Cursor.h>
 #include <Ecore_Evas.h>
 #include <Ecore_Input.h>
+#include <Ecore_Input_Evas.h>
 #include <Ecore_Con.h>
 #include <Ecore_Ipc.h>
-#include <Ecore_Job.h>
 #include <Ecore_File.h>
 #include <Eet.h>
 #include <Edje.h>
@@ -82,6 +97,9 @@
 #include <Efreet_Mime.h>
 #include <E_DBus.h>
 #include <E_Hal.h>
+#ifdef HAVE_EEZE
+#include <Eeze.h>
+#endif
 
 #ifdef EAPI
 #undef EAPI
@@ -106,6 +124,19 @@
 # else
 #  define EAPI
 # endif
+#endif
+
+#ifdef EINTERN
+#undef EINTERN
+#endif
+#ifdef __GNUC__
+# if __GNUC__ >= 4
+#  define EINTERN __attribute__ ((visibility("hidden")))
+# else
+#  define EINTERN
+# endif
+#else
+# define EINTERN
 #endif
 
 typedef struct _E_Before_Idler E_Before_Idler;
@@ -206,5 +237,7 @@ extern EAPI int     good;
 extern EAPI int     evil;
 extern EAPI int     starting;
 extern EAPI int     stopping;
+
+extern EAPI unsigned long e_alert_composite_win;
 
 #endif

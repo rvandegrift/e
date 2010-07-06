@@ -1,206 +1,262 @@
-#include "e.h"
-#include "e_mod_main.h"
+#include "e_illume_private.h"
 #include "e_mod_config.h"
-#include "e_mod_animation.h"
-#include "e_mod_windows.h"
-#include "e_mod_policy.h"
-#include "e_mod_policy_settings.h"
+#include "e_mod_config_animation.h"
+#include "e_mod_config_windows.h"
+#include "e_mod_config_policy.h"
+
+/* local function prototypes */
+static void _e_mod_illume_config_free(void);
+static void _e_mod_illume_config_new(void);
 
 /* local variables */
-EAPI Il_Config *il_cfg = NULL;
-static E_Config_DD *conf_edd = NULL;
+static E_Config_DD *_il_conf_edd = NULL;
+static E_Config_DD *_il_conf_zone_edd = NULL;
 
-/* public functions */
+/* external variables */
+E_Illume_Config *_e_illume_cfg = NULL;
+
 int 
-il_config_init(E_Module *m) 
+e_mod_illume_config_init(void) 
 {
-   conf_edd = E_CONFIG_DD_NEW("Illume_Cfg", Il_Config);
-   #undef T
-   #undef D
-   #define T Il_Config
-   #define D conf_edd
+   char buff[PATH_MAX];
+
+   /* create config structure for zones */
+   _il_conf_zone_edd = E_CONFIG_DD_NEW("Illume_Config_Zone", E_Illume_Config_Zone);
+#undef T
+#undef D
+#define T E_Illume_Config_Zone
+#define D _il_conf_zone_edd
+   E_CONFIG_VAL(D, T, id, INT);
+   E_CONFIG_VAL(D, T, mode.dual, INT);
+   E_CONFIG_VAL(D, T, mode.side, INT);
+
+   /* create config structure for module */
+   _il_conf_edd = E_CONFIG_DD_NEW("Illume_Config", E_Illume_Config);
+#undef T
+#undef D
+#define T E_Illume_Config
+#define D _il_conf_edd
    E_CONFIG_VAL(D, T, version, INT);
-   E_CONFIG_VAL(D, T, sliding.kbd.duration, INT);
-   E_CONFIG_VAL(D, T, sliding.softkey.duration, INT);
+   E_CONFIG_VAL(D, T, animation.vkbd.duration, INT);
+   E_CONFIG_VAL(D, T, animation.quickpanel.duration, INT);
    E_CONFIG_VAL(D, T, policy.name, STR);
-   E_CONFIG_VAL(D, T, policy.mode.dual, INT);
-   E_CONFIG_VAL(D, T, policy.mode.side, INT);
    E_CONFIG_VAL(D, T, policy.vkbd.class, STR);
    E_CONFIG_VAL(D, T, policy.vkbd.name, STR);
    E_CONFIG_VAL(D, T, policy.vkbd.title, STR);
-   E_CONFIG_VAL(D, T, policy.vkbd.win_type, INT);
+   E_CONFIG_VAL(D, T, policy.vkbd.type, INT);
    E_CONFIG_VAL(D, T, policy.vkbd.match.class, INT);
    E_CONFIG_VAL(D, T, policy.vkbd.match.name, INT);
    E_CONFIG_VAL(D, T, policy.vkbd.match.title, INT);
-   E_CONFIG_VAL(D, T, policy.vkbd.match.win_type, INT);
-   E_CONFIG_VAL(D, T, policy.softkey.class, STR);
-   E_CONFIG_VAL(D, T, policy.softkey.name, STR);
-   E_CONFIG_VAL(D, T, policy.softkey.title, STR);
-   E_CONFIG_VAL(D, T, policy.softkey.win_type, INT);
-   E_CONFIG_VAL(D, T, policy.softkey.match.class, INT);
-   E_CONFIG_VAL(D, T, policy.softkey.match.name, INT);
-   E_CONFIG_VAL(D, T, policy.softkey.match.title, INT);
-   E_CONFIG_VAL(D, T, policy.softkey.match.win_type, INT);
-   E_CONFIG_VAL(D, T, policy.home.class, STR);
-   E_CONFIG_VAL(D, T, policy.home.name, STR);
-   E_CONFIG_VAL(D, T, policy.home.title, STR);
-   E_CONFIG_VAL(D, T, policy.home.win_type, INT);
-   E_CONFIG_VAL(D, T, policy.home.match.class, INT);
-   E_CONFIG_VAL(D, T, policy.home.match.name, INT);
-   E_CONFIG_VAL(D, T, policy.home.match.title, INT);
-   E_CONFIG_VAL(D, T, policy.home.match.win_type, INT);
+   E_CONFIG_VAL(D, T, policy.vkbd.match.type, INT);
    E_CONFIG_VAL(D, T, policy.indicator.class, STR);
    E_CONFIG_VAL(D, T, policy.indicator.name, STR);
    E_CONFIG_VAL(D, T, policy.indicator.title, STR);
-   E_CONFIG_VAL(D, T, policy.indicator.win_type, INT);
+   E_CONFIG_VAL(D, T, policy.indicator.type, INT);
    E_CONFIG_VAL(D, T, policy.indicator.match.class, INT);
    E_CONFIG_VAL(D, T, policy.indicator.match.name, INT);
    E_CONFIG_VAL(D, T, policy.indicator.match.title, INT);
-   E_CONFIG_VAL(D, T, policy.indicator.match.win_type, INT);
+   E_CONFIG_VAL(D, T, policy.indicator.match.type, INT);
+   E_CONFIG_VAL(D, T, policy.softkey.class, STR);
+   E_CONFIG_VAL(D, T, policy.softkey.name, STR);
+   E_CONFIG_VAL(D, T, policy.softkey.title, STR);
+   E_CONFIG_VAL(D, T, policy.softkey.type, INT);
+   E_CONFIG_VAL(D, T, policy.softkey.match.class, INT);
+   E_CONFIG_VAL(D, T, policy.softkey.match.name, INT);
+   E_CONFIG_VAL(D, T, policy.softkey.match.title, INT);
+   E_CONFIG_VAL(D, T, policy.softkey.match.type, INT);
+   E_CONFIG_VAL(D, T, policy.home.class, STR);
+   E_CONFIG_VAL(D, T, policy.home.name, STR);
+   E_CONFIG_VAL(D, T, policy.home.title, STR);
+   E_CONFIG_VAL(D, T, policy.home.type, INT);
+   E_CONFIG_VAL(D, T, policy.home.match.class, INT);
+   E_CONFIG_VAL(D, T, policy.home.match.name, INT);
+   E_CONFIG_VAL(D, T, policy.home.match.title, INT);
+   E_CONFIG_VAL(D, T, policy.home.match.type, INT);
+   E_CONFIG_LIST(D, T, policy.zones, _il_conf_zone_edd);
 
-   il_cfg = e_config_domain_load("module.illume2", conf_edd);
-   if ((il_cfg) && 
-       ((il_cfg->version >> 16) < IL_CONFIG_MAJ)) 
-     {
-        E_FREE(il_cfg);
-        il_cfg = NULL;
-     }
-   if (!il_cfg) 
-     {
-        il_cfg = E_NEW(Il_Config, 1);
-        il_cfg->version = 0;
-        il_cfg->sliding.kbd.duration = 1000;
-        il_cfg->sliding.softkey.duration = 1000;
-     }
-   if (il_cfg) 
-     {
-        /* Add new config variables here */
-        if ((il_cfg->version & 0xffff) < 1) 
-          {
-             il_cfg->policy.name = eina_stringshare_add("Illume");
-             il_cfg->policy.vkbd.class = 
-               eina_stringshare_add("Virtual-Keyboard");
-             il_cfg->policy.vkbd.name = 
-               eina_stringshare_add("Virtual-Keyboard");
-             il_cfg->policy.vkbd.title = 
-               eina_stringshare_add("Virtual Keyboard");
-             il_cfg->policy.vkbd.win_type = ECORE_X_WINDOW_TYPE_NORMAL;
-             il_cfg->policy.vkbd.match.class = 0;
-             il_cfg->policy.vkbd.match.name = 1;
-             il_cfg->policy.vkbd.match.title = 1;
-             il_cfg->policy.vkbd.match.win_type = 0;
-             il_cfg->policy.softkey.class = 
-               eina_stringshare_add("Illume-Softkey");
-             il_cfg->policy.softkey.name = 
-               eina_stringshare_add("Illume-Softkey");
-             il_cfg->policy.softkey.title = 
-               eina_stringshare_add("Illume Softkey");
-             il_cfg->policy.softkey.win_type = ECORE_X_WINDOW_TYPE_DOCK;
-             il_cfg->policy.softkey.match.class = 0;
-             il_cfg->policy.softkey.match.name = 1;
-             il_cfg->policy.softkey.match.title = 1;
-             il_cfg->policy.softkey.match.win_type = 0;
-             il_cfg->policy.home.class = 
-               eina_stringshare_add("Illume-Home");
-             il_cfg->policy.home.name = 
-               eina_stringshare_add("Illume-Home");
-             il_cfg->policy.home.title = 
-               eina_stringshare_add("Illume Home");
-             il_cfg->policy.home.win_type = ECORE_X_WINDOW_TYPE_NORMAL;
-             il_cfg->policy.home.match.class = 0;
-             il_cfg->policy.home.match.name = 1;
-             il_cfg->policy.home.match.title = 1;
-             il_cfg->policy.home.match.win_type = 0;
-             il_cfg->policy.indicator.class = 
-               eina_stringshare_add("Illume-Indicator");
-             il_cfg->policy.indicator.name = 
-               eina_stringshare_add("Illume-Indicator");
-             il_cfg->policy.indicator.title = 
-               eina_stringshare_add("Illume Indicator");
-             il_cfg->policy.indicator.win_type = ECORE_X_WINDOW_TYPE_DOCK;
-             il_cfg->policy.indicator.match.class = 0;
-             il_cfg->policy.indicator.match.name = 1;
-             il_cfg->policy.indicator.match.title = 1;
-             il_cfg->policy.indicator.match.win_type = 0;
-          }
-        if ((il_cfg->version & 0xffff) < 2) 
-          {
-             il_cfg->policy.mode.dual = 0;
-             il_cfg->policy.mode.side = 0;
-          }
-        il_cfg->version = (IL_CONFIG_MAJ << 16) | IL_CONFIG_MIN;
-     }
-   il_cfg->mod_dir = eina_stringshare_add(m->dir);
+   /* attempt to load existing configuration */
+   _e_illume_cfg = e_config_domain_load("module.illume2", _il_conf_edd);
 
-   e_configure_registry_category_add("illume", 0, _("Illume"), NULL, 
-                                     "enlightenment/display");
-   e_configure_registry_generic_item_add("illume/animation", 0, _("Animation"), 
-                                         NULL, "enlightenment/animation", 
-                                         il_config_animation_show);
-   e_configure_registry_generic_item_add("illume/windows", 0, _("Windows"), 
-                                         NULL, "enlightenment/windows", 
-                                         il_config_windows_show);
+   /* check version */
+   if ((_e_illume_cfg) && ((_e_illume_cfg->version >> 16) < IL_CONFIG_MAJOR))
+     _e_mod_illume_config_free();
+
+   /* create new config if we need to */
+   if (!_e_illume_cfg) _e_mod_illume_config_new();
+
+   /* setup category for config panel */
+   snprintf(buff, sizeof(buff), "%s/e-module-illume2.edj", _e_illume_mod_dir);
+   e_configure_registry_category_add("illume", 0, _("Illume"), buff, "icon");
+
+   /* add config items to category */
    e_configure_registry_generic_item_add("illume/policy", 0, _("Policy"), 
-                                         NULL, "enlightenment/policy", 
-                                         il_config_policy_show);
-   e_configure_registry_generic_item_add("illume/policy_settings", 0, 
-                                         _("Policy Settings"), 
-                                         NULL, "enlightenment/policy", 
-                                         il_config_policy_settings_show);
+                                         NULL, "preferences-profiles", 
+                                         e_mod_illume_config_policy_show);
+   e_configure_registry_generic_item_add("illume/animation", 0, _("Animation"), 
+                                         NULL, "preferences-transitions", 
+                                         e_mod_illume_config_animation_show);
+   e_configure_registry_generic_item_add("illume/windows", 0, _("Windows"), 
+                                         NULL, "preferences-winlist", 
+                                         e_mod_illume_config_windows_show);
+
    return 1;
 }
 
 int 
-il_config_shutdown(void) 
+e_mod_illume_config_shutdown(void) 
 {
-   e_configure_registry_item_del("illume/policy_settings");
-   e_configure_registry_item_del("illume/policy");
+   /* destroy config item entries */
    e_configure_registry_item_del("illume/windows");
    e_configure_registry_item_del("illume/animation");
+   e_configure_registry_item_del("illume/policy");
+
+   /* destroy config category */
    e_configure_registry_category_del("illume");
 
-   if (il_cfg->policy.name) eina_stringshare_del(il_cfg->policy.name);
+   /* free config structure */
+   _e_mod_illume_config_free();
 
-   if (il_cfg->policy.vkbd.class) 
-     eina_stringshare_del(il_cfg->policy.vkbd.class);
-   if (il_cfg->policy.vkbd.name) 
-     eina_stringshare_del(il_cfg->policy.vkbd.name);
-   if (il_cfg->policy.vkbd.title) 
-     eina_stringshare_del(il_cfg->policy.vkbd.title);
+   /* free data descriptors */
+   E_CONFIG_DD_FREE(_il_conf_zone_edd);
+   E_CONFIG_DD_FREE(_il_conf_edd);
 
-   if (il_cfg->policy.softkey.class) 
-     eina_stringshare_del(il_cfg->policy.softkey.class);
-   if (il_cfg->policy.softkey.name) 
-     eina_stringshare_del(il_cfg->policy.softkey.name);
-   if (il_cfg->policy.softkey.title) 
-     eina_stringshare_del(il_cfg->policy.softkey.title);
-
-   if (il_cfg->policy.home.class) 
-     eina_stringshare_del(il_cfg->policy.home.class);
-   if (il_cfg->policy.home.name) 
-     eina_stringshare_del(il_cfg->policy.home.name);
-   if (il_cfg->policy.home.title) 
-     eina_stringshare_del(il_cfg->policy.home.title);
-
-   if (il_cfg->policy.indicator.class) 
-     eina_stringshare_del(il_cfg->policy.indicator.class);
-   if (il_cfg->policy.indicator.name) 
-     eina_stringshare_del(il_cfg->policy.indicator.name);
-   if (il_cfg->policy.indicator.title) 
-     eina_stringshare_del(il_cfg->policy.indicator.title);
-
-   if (il_cfg->mod_dir) eina_stringshare_del(il_cfg->mod_dir);
-
-   E_FREE(il_cfg);
-   il_cfg = NULL;
-
-   E_CONFIG_DD_FREE(conf_edd);
    return 1;
 }
 
 int 
-il_config_save(void) 
+e_mod_illume_config_save(void) 
 {
-   e_config_domain_save("module.illume2", conf_edd, il_cfg);
-   return 1;
+   return e_config_domain_save("module.illume2", _il_conf_edd, _e_illume_cfg);
+}
+
+/* local functions */
+static void 
+_e_mod_illume_config_free(void) 
+{
+   E_Illume_Config_Zone *cz;
+
+   /* check for config */
+   if (!_e_illume_cfg) return;
+
+   /* cleanup any stringshares */
+   if (_e_illume_cfg->policy.name) 
+     eina_stringshare_del(_e_illume_cfg->policy.name);
+   _e_illume_cfg->policy.name = NULL;
+
+   if (_e_illume_cfg->policy.vkbd.class) 
+     eina_stringshare_del(_e_illume_cfg->policy.vkbd.class);
+   _e_illume_cfg->policy.vkbd.class = NULL;
+   if (_e_illume_cfg->policy.vkbd.name) 
+     eina_stringshare_del(_e_illume_cfg->policy.vkbd.name);
+   _e_illume_cfg->policy.vkbd.name = NULL;
+   if (_e_illume_cfg->policy.vkbd.title) 
+     eina_stringshare_del(_e_illume_cfg->policy.vkbd.title);
+   _e_illume_cfg->policy.vkbd.title = NULL;
+
+   if (_e_illume_cfg->policy.indicator.class) 
+     eina_stringshare_del(_e_illume_cfg->policy.indicator.class);
+   _e_illume_cfg->policy.indicator.class = NULL;
+   if (_e_illume_cfg->policy.indicator.name) 
+     eina_stringshare_del(_e_illume_cfg->policy.indicator.name);
+   _e_illume_cfg->policy.indicator.name = NULL;
+   if (_e_illume_cfg->policy.indicator.title) 
+     eina_stringshare_del(_e_illume_cfg->policy.indicator.title);
+   _e_illume_cfg->policy.indicator.title = NULL;
+
+   if (_e_illume_cfg->policy.softkey.class) 
+     eina_stringshare_del(_e_illume_cfg->policy.softkey.class);
+   _e_illume_cfg->policy.softkey.class = NULL;
+   if (_e_illume_cfg->policy.softkey.name) 
+     eina_stringshare_del(_e_illume_cfg->policy.softkey.name);
+   _e_illume_cfg->policy.softkey.name = NULL;
+   if (_e_illume_cfg->policy.softkey.title) 
+     eina_stringshare_del(_e_illume_cfg->policy.softkey.title);
+   _e_illume_cfg->policy.softkey.title = NULL;
+
+   if (_e_illume_cfg->policy.home.class) 
+     eina_stringshare_del(_e_illume_cfg->policy.home.class);
+   _e_illume_cfg->policy.home.class = NULL;
+   if (_e_illume_cfg->policy.home.name) 
+     eina_stringshare_del(_e_illume_cfg->policy.home.name);
+   _e_illume_cfg->policy.home.name = NULL;
+   if (_e_illume_cfg->policy.home.title) 
+     eina_stringshare_del(_e_illume_cfg->policy.home.title);
+   _e_illume_cfg->policy.home.title = NULL;
+
+   /* free configured zones */
+   EINA_LIST_FREE(_e_illume_cfg->policy.zones, cz)
+     E_FREE(cz);
+
+   /* free config structure */
+   E_FREE(_e_illume_cfg);
+}
+
+static void 
+_e_mod_illume_config_new(void) 
+{
+   E_Illume_Config_Zone *cz;
+
+   /* create initial config */
+   _e_illume_cfg = E_NEW(E_Illume_Config, 1);
+   _e_illume_cfg->version = 0;
+   _e_illume_cfg->animation.vkbd.duration = 1000;
+   _e_illume_cfg->animation.quickpanel.duration = 1000;
+   _e_illume_cfg->policy.name = eina_stringshare_add("illume");
+
+   _e_illume_cfg->policy.vkbd.class = eina_stringshare_add("Virtual-Keyboard");
+   _e_illume_cfg->policy.vkbd.name = eina_stringshare_add("Virtual-Keyboard");
+   _e_illume_cfg->policy.vkbd.title = eina_stringshare_add("Virtual Keyboard");
+   _e_illume_cfg->policy.vkbd.type = ECORE_X_WINDOW_TYPE_NORMAL;
+   _e_illume_cfg->policy.vkbd.match.class = 0;
+   _e_illume_cfg->policy.vkbd.match.name = 1;
+   _e_illume_cfg->policy.vkbd.match.title = 1;
+   _e_illume_cfg->policy.vkbd.match.type = 0;
+
+   _e_illume_cfg->policy.indicator.class = 
+     eina_stringshare_add("Illume-Indicator");
+   _e_illume_cfg->policy.indicator.name = 
+     eina_stringshare_add("Illume-Indicator");
+   _e_illume_cfg->policy.indicator.title = 
+     eina_stringshare_add("Illume Indicator");
+   _e_illume_cfg->policy.indicator.type = ECORE_X_WINDOW_TYPE_DOCK;
+   _e_illume_cfg->policy.indicator.match.class = 0;
+   _e_illume_cfg->policy.indicator.match.name = 1;
+   _e_illume_cfg->policy.indicator.match.title = 1;
+   _e_illume_cfg->policy.indicator.match.type = 0;
+
+   _e_illume_cfg->policy.softkey.class = 
+     eina_stringshare_add("Illume-Softkey");
+   _e_illume_cfg->policy.softkey.name = 
+     eina_stringshare_add("Illume-Softkey");
+   _e_illume_cfg->policy.softkey.title = 
+     eina_stringshare_add("Illume Softkey");
+   _e_illume_cfg->policy.softkey.type = ECORE_X_WINDOW_TYPE_DOCK;
+   _e_illume_cfg->policy.softkey.match.class = 0;
+   _e_illume_cfg->policy.softkey.match.name = 1;
+   _e_illume_cfg->policy.softkey.match.title = 1;
+   _e_illume_cfg->policy.softkey.match.type = 0;
+
+   _e_illume_cfg->policy.home.class = eina_stringshare_add("Illume-Home");
+   _e_illume_cfg->policy.home.name = eina_stringshare_add("Illume-Home");
+   _e_illume_cfg->policy.home.title = eina_stringshare_add("Illume Home");
+   _e_illume_cfg->policy.home.type = ECORE_X_WINDOW_TYPE_NORMAL;
+   _e_illume_cfg->policy.home.match.class = 0;
+   _e_illume_cfg->policy.home.match.name = 1;
+   _e_illume_cfg->policy.home.match.title = 1;
+   _e_illume_cfg->policy.home.match.type = 0;
+
+   /* create config for initial zone */
+   cz = E_NEW(E_Illume_Config_Zone, 1);
+   cz->id = 0;
+   cz->mode.dual = 0;
+   cz->mode.side = 0;
+
+   /* add zone config to main config structure */
+   _e_illume_cfg->policy.zones = 
+     eina_list_append(_e_illume_cfg->policy.zones, cz);
+
+   /* add any new config variables here */
+   /* if ((_e_illume_cfg->version & 0xffff) < 1) */
+
+   _e_illume_cfg->version = ((IL_CONFIG_MAJOR << 16) | IL_CONFIG_MINOR);
 }

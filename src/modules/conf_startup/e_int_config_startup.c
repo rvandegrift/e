@@ -21,7 +21,7 @@ struct _E_Config_Dialog_Data
    char *splash;
 };
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_startup(E_Container *con, const char *params __UNUSED__) 
 {
    E_Config_Dialog *cfd;
@@ -102,14 +102,6 @@ _cb_files_selection_change(void *data, Evas_Object *obj, void *event_info)
      e_widget_preview_edje_set(cfdata->o_preview, buf, "e/init/splash");
    if (cfdata->o_frame)
      e_widget_change(cfdata->o_frame);
-}
-
-static void
-_cb_files_selected(void *data, Evas_Object *obj, void *event_info)
-{
-   E_Config_Dialog_Data *cfdata;
-   
-   cfdata = data;
 }
 
 static void
@@ -307,8 +299,6 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 				  _cb_files_changed, cfdata);
    evas_object_smart_callback_add(o, "selection_change",
 				  _cb_files_selection_change, cfdata);
-   evas_object_smart_callback_add(o, "selected",
-				  _cb_files_selected, cfdata);
    evas_object_smart_callback_add(o, "changed",
 				  _cb_files_files_changed, cfdata);
    e_fm2_path_set(o, path, "/");

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Link
+Name=Everything Files
+Name[fr]=Omni - Fichiers
+Name[it]=Everything - File
+Icon=system-file-manager
+X-Enlightenment-ModuleType=everything
+Comment[fr]=Actions sur les fichiers.
+Comment[it]=Azioni sui file.

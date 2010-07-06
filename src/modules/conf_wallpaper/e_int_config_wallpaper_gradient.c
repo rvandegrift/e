@@ -48,7 +48,7 @@ struct _E_Config_Dialog_Data
 };
 
 static void _import_edj_gen(Import *import);
-static int _import_cb_edje_cc_exit(void *data, int type, void *event);
+static Eina_Bool _import_cb_edje_cc_exit(void *data, int type, void *event);
 static void _import_cb_close(void *data, E_Dialog *dia);
 static void _import_cb_ok(void *data, E_Dialog *dia);
 static void _import_config_save(Import *import);
@@ -57,7 +57,7 @@ static Evas_Object *_preview_widget_add(Evas *evas);
 static void _import_cb_on_change(void *data, Evas_Object *obj);
 static void _import_cb_color_swap(void *data, void *data2);
 
-EAPI E_Dialog *
+E_Dialog *
 e_int_config_wallpaper_gradient(E_Config_Dialog *parent)
 {
    Evas *evas;
@@ -251,15 +251,12 @@ _import_config_save(Import *import)
 static void 
 _import_edj_gen(Import *import)
 {
-   Evas *evas;
    int fd, num = 1;
    const char *file;
    char buf[4096], cmd[4096], tmpn[4096];
    char *fstrip;
    FILE *f;
    size_t len, off;
-
-   evas = e_win_evas_get(import->dia->win);
 
    file = import->cfdata->name;
    fstrip = ecore_file_strip_ext(file);
@@ -355,15 +352,15 @@ _import_edj_gen(Import *import)
    import->exe = ecore_exe_run(cmd, NULL);   
 }
 
-static int
-_import_cb_edje_cc_exit(void *data, int type, void *event)
+static Eina_Bool
+_import_cb_edje_cc_exit(void *data, __UNUSED__ int type, void *event)
 {
    Import *import;
    Ecore_Exe_Event_Del *ev;
   
    ev = event;
    import = data;
-   if (ev->exe != import->exe) return 1;
+   if (ev->exe != import->exe) return ECORE_CALLBACK_PASS_ON;
 
    if (ev->exit_code != 0)
      {
@@ -374,7 +371,7 @@ _import_cb_edje_cc_exit(void *data, int type, void *event)
    e_int_config_wallpaper_update(import->parent, import->fdest);
 
    e_int_config_wallpaper_gradient_del(import->dia);
-   return 0;
+   return ECORE_CALLBACK_DONE;
 }
 
 static void 

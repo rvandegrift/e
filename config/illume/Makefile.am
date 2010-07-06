@@ -10,7 +10,8 @@ EXTRA_DIST = \
 	module.dropshadow.src \
 	module.illume.src \
 	module.mixer.src \
-	module.pager.src
+	module.pager.src \
+	module.conf.src
 
 filesdir = $(datadir)/enlightenment/data/config/illume
 files_DATA = \
@@ -21,9 +22,12 @@ files_DATA = \
 	module.dropshadow.cfg \
 	module.illume.cfg \
 	module.mixer.cfg \
-	module.pager.cfg
+	module.pager.cfg \
+	module.conf.cfg
 
-%.cfg: %.src
+SUFFIXES = .cfg
+
+.src.cfg:
 	$(EET_EET) -e \
 	$(top_builddir)/config/illume/$@ config \
 	$< 1

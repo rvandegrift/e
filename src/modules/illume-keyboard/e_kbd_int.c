@@ -20,7 +20,7 @@ static void _e_kbd_int_zoomkey_down(E_Kbd_Int *ki);
 static void _e_kbd_int_matches_update(void *data);
 static void _e_kbd_int_dictlist_down(E_Kbd_Int *ki);
 static void _e_kbd_int_matchlist_down(E_Kbd_Int *ki);
-static void _e_kbd_int_layoutlist_down(E_Kbd_Int *ki);
+static Eina_Bool _e_kbd_int_cb_border_move(void *data, int type, void *event);
 
 static void
 _e_kbd_int_cb_resize(E_Win *win)
@@ -32,7 +32,6 @@ _e_kbd_int_cb_resize(E_Win *win)
    _e_kbd_int_zoomkey_down(ki);
    _e_kbd_int_dictlist_down(ki);
    _e_kbd_int_matchlist_down(ki);
-   _e_kbd_int_layoutlist_down(ki);
 }
 
 static const char *
@@ -225,7 +224,6 @@ _e_kbd_int_buf_send(E_Kbd_Int *ki)
    else str = e_kbd_buf_actual_string_get(ki->kbuf);
    if (str) _e_kbd_int_string_send(ki, str);
 }
-
 
 static void
 _e_kbd_int_cb_match_select(void *data, Evas_Object *obj, const char *emission, const char *source)
@@ -436,6 +434,16 @@ _e_kbd_int_key_press_handle(E_Kbd_Int *ki, Evas_Coord dx, Evas_Coord dy)
 static void
 _e_kbd_int_stroke_handle(E_Kbd_Int *ki, int dir)
 {
+   /* If the keyboard direction is RTL switch dir 3 and 1
+    * i.e, make forward backwards and the other way around */
+   if (ki->layout.direction == E_KBD_INT_DIRECTION_RTL)
+     {
+        if (dir == 3)
+          dir = 1;
+	else if (dir == 1)
+          dir = 3;
+     }
+
    if (dir == 4) // up
      _e_kbd_int_layout_next(ki);
    else if (dir == 3) // left
@@ -593,6 +601,7 @@ _e_kbd_int_zoomkey_up(E_Kbd_Int *ki)
    evas_object_show(ki->zoomkey.base_obj);
    e_popup_edje_bg_object_set(ki->zoomkey.popup, ki->zoomkey.base_obj);
    e_popup_show(ki->zoomkey.popup);
+   e_popup_layer_set(ki->zoomkey.popup, 190);
 }
 
 static void
@@ -635,7 +644,7 @@ _e_kbd_int_zoomkey_update(E_Kbd_Int *ki)
      }
 }
 
-static int
+static Eina_Bool
 _e_kbd_int_cb_hold_timeout(void *data)
 {
    E_Kbd_Int *ki;
@@ -652,7 +661,7 @@ _e_kbd_int_cb_hold_timeout(void *data)
      }
    _e_kbd_int_zoomkey_up(ki);
    _e_kbd_int_zoomkey_update(ki);
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
@@ -883,14 +892,18 @@ _e_kbd_int_layout_parse(E_Kbd_Int *ki, const char *layout)
    E_Kbd_Int_Key *ky = NULL;
    E_Kbd_Int_Key_State *st = NULL;
 
-   f = fopen(layout, "r");
-   if (!f) return;
+   if (!(f = fopen(layout, "r"))) return;
+
    ki->layout.directory = ecore_file_dir_get(layout);
    ki->layout.file = eina_stringshare_add(layout);
+
+   /* Make the default direction LTR */
+   ki->layout.direction = E_KBD_INT_DIRECTION_LTR;
+
    while (fgets(buf, sizeof(buf), f))
      {
 	int len;
-	char str[4096];
+	char str[PATH_MAX];
 
 	if (!isok)
 	  {
@@ -914,6 +927,19 @@ _e_kbd_int_layout_parse(E_Kbd_Int *ki, const char *layout)
 	     sscanf(buf, "%*s %i\n", &(ki->layout.fuzz));
 	     continue;
 	  }
+	if (!strcmp(str, "direction"))
+	  {
+	     char direction[4];
+
+	     sscanf(buf, "%*s %3s\n", direction);
+
+	     /* If rtl mark as rtl, otherwise make it ltr */
+	     if (!strcmp(direction, "rtl"))
+               ki->layout.direction = E_KBD_INT_DIRECTION_RTL;
+	     else
+               ki->layout.direction = E_KBD_INT_DIRECTION_LTR;
+	     continue;
+	  }
 	if (!strcmp(str, "key"))
 	  {
 	     ky = calloc(1, sizeof(E_Kbd_Int_Key));
@@ -931,8 +957,7 @@ _e_kbd_int_layout_parse(E_Kbd_Int *ki, const char *layout)
 	    (!strcmp(str, "capslock")))
 	  {
 	     char *p;
-	     char label[4096];
-	     int xx;
+	     char label[PATH_MAX];
 
 	     if (sscanf(buf, "%*s %4000s", label) != 1) continue;
 	     st = calloc(1, sizeof(E_Kbd_Int_Key_State));
@@ -1074,7 +1099,7 @@ _e_kbd_int_layouts_list_update(E_Kbd_Int *ki)
 	p = strrchr(file, '.');
 	if ((p) && (!strcmp(p, ".kbd")))
 	  {
-	     if (ecore_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
+	     if (eina_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
 	       continue;
 	     kbs = eina_list_append(kbs, eina_stringshare_add(buf));
 	  }
@@ -1105,7 +1130,7 @@ _e_kbd_int_layouts_list_update(E_Kbd_Int *ki)
 	       }
 	     if (ok)
 	       {
-		  if (ecore_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
+		  if (eina_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
 		    continue;
 		  kbs = eina_list_append(kbs, eina_stringshare_add(buf));
 	       }
@@ -1180,6 +1205,18 @@ _e_kbd_int_layouts_list_update(E_Kbd_Int *ki)
 			      kil->type = E_KBD_INT_TYPE_TERMINAL;
 			    else if (!strcmp(str, "PASSWORD"))
 			      kil->type = E_KBD_INT_TYPE_PASSWORD;
+			    else if (!strcmp(str, "IP"))
+			      kil->type = E_KBD_INT_TYPE_IP;
+			    else if (!strcmp(str, "HOST"))
+			      kil->type = E_KBD_INT_TYPE_HOST;
+			    else if (!strcmp(str, "FILE"))
+			      kil->type = E_KBD_INT_TYPE_FILE;
+			    else if (!strcmp(str, "URL"))
+			      kil->type = E_KBD_INT_TYPE_URL;
+			    else if (!strcmp(str, "KEYPAD"))
+			      kil->type = E_KBD_INT_TYPE_KEYPAD;
+			    else if (!strcmp(str, "J2ME"))
+			      kil->type = E_KBD_INT_TYPE_J2ME;
 			    continue;
 			 }
 		       if (!strcmp(str, "icon"))
@@ -1246,8 +1283,8 @@ _e_kbd_int_layout_next(E_Kbd_Int *ki)
    _e_kbd_int_layout_select(ki, kil);
 }
 
-static int
-_e_kbd_int_cb_client_message(void *data, int type, void *event)
+static Eina_Bool
+_e_kbd_int_cb_client_message(void *data, __UNUSED__ int type, void *event)
 {
    Ecore_X_Event_Client_Message *ev;
    E_Kbd_Int *ki;
@@ -1255,7 +1292,7 @@ _e_kbd_int_cb_client_message(void *data, int type, void *event)
    ev = event;
    ki = data;
    if ((ev->win == ki->win->evas_win) && 
-       (ev->message_type == ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE))
+       (ev->message_type == ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE)) 
      {
 	E_Kbd_Int_Layout *kil;
 
@@ -1264,49 +1301,41 @@ _e_kbd_int_cb_client_message(void *data, int type, void *event)
 	     _e_kbd_int_zoomkey_down(ki);
 	     _e_kbd_int_dictlist_down(ki);
 	     _e_kbd_int_matchlist_down(ki);
-	     _e_kbd_int_layoutlist_down(ki);
 	  }
 	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_ON)
 	  {
 	     // do nothing - leave kbd as-is
 	  }
 	else if (ev->data.l[0] == ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_ALPHA)
-	  {
-	     kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_ALPHA);
-	     if (kil) _e_kbd_int_layout_select(ki, kil);
-	  }
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_ALPHA);
 	else if (ev->data.l[0] == ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_NUMERIC)
-	  {
-	     kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_NUMERIC);
-	     if (kil) _e_kbd_int_layout_select(ki, kil);
-	  }
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_NUMERIC);
 	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_PIN)
-	  {
-	     kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_PIN);
-	     if (kil) _e_kbd_int_layout_select(ki, kil);
-	  }
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_PIN);
 	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_PHONE_NUMBER)
-	  {
-	     kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_PHONE_NUMBER);
-	     if (kil) _e_kbd_int_layout_select(ki, kil);
-	  }
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_PHONE_NUMBER);
 	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_HEX)
-	  {
-	     kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_HEX);
-	     if (kil) _e_kbd_int_layout_select(ki, kil);
-	  }
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_HEX);
 	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_TERMINAL)
-	  {
-	     kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_TERMINAL);
-	     if (kil) _e_kbd_int_layout_select(ki, kil);
-	  }
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_TERMINAL);
 	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_PASSWORD)
-	  {
-	     kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_PASSWORD);
-	     if (kil) _e_kbd_int_layout_select(ki, kil);
-	  }
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_PASSWORD);
+	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_IP)
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_IP);
+	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_HOST)
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_HOST);
+	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_FILE)
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_FILE);
+	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_URL)
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_URL);
+	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_KEYPAD)
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_KEYPAD);
+	else if (ev->data.l[0] == ECORE_X_VIRTUAL_KEYBOARD_STATE_J2ME)
+          kil = _e_kbd_int_layouts_type_get(ki, E_KBD_INT_TYPE_J2ME);
+
+        if (kil) _e_kbd_int_layout_select(ki, kil);
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 static void
@@ -1349,7 +1378,7 @@ static void
 _e_kbd_int_dictlist_up(E_Kbd_Int *ki)
 {
    Evas_Object *o;
-   Evas_Coord w, h, mw, mh, vw, vh;
+   Evas_Coord w, h, mw, mh;
    int sx, sy, sw, sh, used;
    Eina_List *files;
    Eina_List *l;
@@ -1357,6 +1386,7 @@ _e_kbd_int_dictlist_up(E_Kbd_Int *ki)
    const char *str;
 
    if (ki->dictlist.popup) return;
+
    ki->dictlist.popup = e_popup_new(ki->win->border->zone, -1, -1, 1, 1);
    e_popup_layer_set(ki->dictlist.popup, 190);
 
@@ -1364,7 +1394,8 @@ _e_kbd_int_dictlist_up(E_Kbd_Int *ki)
 		      "e/modules/kbd/match/default");
    ki->dictlist.base_obj = o;
 
-   o = e_widget_ilist_add(ki->dictlist.popup->evas, 32 * e_scale, 32 * e_scale, NULL);
+   o = e_widget_ilist_add(ki->dictlist.popup->evas, 
+                          32 * e_scale, 32 * e_scale, NULL);
    e_widget_ilist_selector_set(o, 1);
    e_widget_ilist_freeze(o);
    ki->dictlist.ilist_obj = o;
@@ -1449,21 +1480,16 @@ _e_kbd_int_dictlist_up(E_Kbd_Int *ki)
                             ki->dictlist.ilist_obj);
    edje_object_size_min_calc(ki->dictlist.base_obj, &mw, &mh);
 
-   edje_extern_object_min_size_set(ki->dictlist.ilist_obj, 0, 0);
-   edje_object_part_swallow(ki->dictlist.base_obj, "e.swallow.content",
-                            ki->dictlist.ilist_obj);
    e_zone_useful_geometry_get(ki->win->border->zone, &sx, &sy, &sw, &sh);   
    mw = ki->win->w;
    if (mh > (sh - ki->win->h)) mh = sh - ki->win->h;
-   e_popup_move_resize(ki->dictlist.popup,
-		       ki->win->x, ki->win->y - mh, mw, mh);
+   e_popup_move_resize(ki->dictlist.popup, 0, ki->win->y - mh, mw, mh);
+
    evas_object_resize(ki->dictlist.base_obj, 
 		      ki->dictlist.popup->w, ki->dictlist.popup->h);
    evas_object_show(ki->dictlist.base_obj);
    e_popup_edje_bg_object_set(ki->dictlist.popup, ki->dictlist.base_obj);
    e_popup_show(ki->dictlist.popup);
-
-   _e_kbd_int_layoutlist_down(ki);
    _e_kbd_int_matchlist_down(ki);
 }
 
@@ -1569,7 +1595,6 @@ _e_kbd_int_matchlist_up(E_Kbd_Int *ki)
    e_popup_show(ki->matchlist.popup);
 
    _e_kbd_int_dictlist_down(ki);
-   _e_kbd_int_layoutlist_down(ki);
 }
 
 static void
@@ -1600,110 +1625,12 @@ _e_kbd_int_cb_dicts(void *data, Evas_Object *obj, const char *emission, const ch
 }
 
 static void
-_e_kbd_int_layoutlist_down(E_Kbd_Int *ki)
-{
-   if (!ki->layoutlist.popup) return;
-   e_object_del(E_OBJECT(ki->layoutlist.popup));
-   ki->layoutlist.popup = NULL;
-}
-
-static void
-_e_kbd_int_cb_layoutlist_item_sel(void *data)
-{
-   E_Kbd_Int *ki;
-   E_Kbd_Int_Layout *kil;
-   int i;
-
-   ki = data;
-   i = e_widget_ilist_selected_get(ki->layoutlist.ilist_obj);
-   kil = eina_list_nth(ki->layouts, i);
-   _e_kbd_int_layout_select(ki, kil);
-   _e_kbd_int_layoutlist_down(ki);
-}
-
-static void
-_e_kbd_int_layoutlist_up(E_Kbd_Int *ki)
-{
-   Eina_List *l;
-   Evas_Object *o, *o2;
-   Evas_Coord mw, mh;
-   int sx, sy, sw, sh;
-
-   if (ki->layoutlist.popup) return;
-   ki->layoutlist.popup = e_popup_new(ki->win->border->zone, -1, -1, 1, 1);
-   e_popup_layer_set(ki->layoutlist.popup, 190);
-
-   o = _theme_obj_new(ki->layoutlist.popup->evas, ki->themedir,
-		      "e/modules/kbd/match/default");
-   ki->layoutlist.base_obj = o;
-
-   o = e_widget_ilist_add(ki->layoutlist.popup->evas, 32 * e_scale, 32 * e_scale, NULL);
-   ki->layoutlist.ilist_obj = o;
-   e_widget_ilist_selector_set(o, 1);
-   edje_object_part_swallow(ki->layoutlist.base_obj, "e.swallow.content", o);
-   evas_object_show(o);
-
-   e_widget_ilist_freeze(o);
-   for (l = ki->layouts; l; l = l->next)
-     {
-	E_Kbd_Int_Layout *kil;
-
-	kil = l->data;
-	o2 = e_icon_add(ki->layoutlist.popup->evas);
-	e_icon_fill_inside_set(o2, 1);
-	e_icon_scale_up_set(o2, 0);
-
-	if (kil->icon)
-	  {
-	     char *p;
-
-	     p = strrchr(kil->icon, '.');
-	     if (!strcmp(p, ".edj"))
-	       e_icon_file_edje_set(o2, kil->icon, "icon");
-	     else
-	       e_icon_file_set(o2, kil->icon);
-	  }
-	evas_object_show(o2);
-	e_widget_ilist_append(o, o2, kil->name,
-			      _e_kbd_int_cb_layoutlist_item_sel, ki, NULL);
-     }
-   e_widget_ilist_thaw(o);
-   e_widget_ilist_go(o);
-
-   e_widget_ilist_preferred_size_get(o, &mw, &mh);
-   if (mh < (120 *e_scale)) mh = 120 * e_scale;
-
-   edje_extern_object_min_size_set(ki->layoutlist.ilist_obj, mw, mh);
-   edje_object_part_swallow(ki->layoutlist.base_obj, "e.swallow.content",
-		   	    ki->layoutlist.ilist_obj);
-
-   edje_object_size_min_calc(ki->layoutlist.base_obj, &mw, &mh);
-   edje_extern_object_min_size_set(ki->layoutlist.ilist_obj, 0, 0);
-   edje_object_part_swallow(ki->layoutlist.base_obj, "e.swallow.content",
-			    ki->layoutlist.ilist_obj);
-   e_zone_useful_geometry_get(ki->win->border->zone, &sx, &sy, &sw, &sh);   
-   mw = ki->win->w;
-   if (mh > (sh - ki->win->h)) mh = sh - ki->win->h;
-   e_popup_move_resize(ki->layoutlist.popup,
-		       ki->win->x, ki->win->y - mh, mw, mh);
-   evas_object_resize(ki->layoutlist.base_obj, 
-		      ki->layoutlist.popup->w, ki->layoutlist.popup->h);
-   evas_object_show(ki->layoutlist.base_obj);
-   e_popup_edje_bg_object_set(ki->layoutlist.popup, ki->layoutlist.base_obj);
-   e_popup_show(ki->layoutlist.popup);
-
-   _e_kbd_int_dictlist_down(ki);
-   _e_kbd_int_matchlist_down(ki);
-}
-
-static void
 _e_kbd_int_cb_layouts(void *data, Evas_Object *obj, const char *emission, const char *source)
 {
    E_Kbd_Int *ki;
 
    ki = data;
-   if (ki->layoutlist.popup) _e_kbd_int_layoutlist_down(ki);
-   else _e_kbd_int_layoutlist_up(ki);
+   _e_kbd_int_layout_next(ki);
 }
 
 EAPI E_Kbd_Int *
@@ -1727,8 +1654,8 @@ e_kbd_int_new(const char *themedir, const char *syskbds, const char *sysdicts)
    states[0] = ECORE_X_WINDOW_STATE_SKIP_TASKBAR;
    states[1] = ECORE_X_WINDOW_STATE_SKIP_PAGER;
    ecore_x_netwm_window_state_set(ki->win->evas_win, states, 2);
-
-   zone = e_util_container_zone_number_get(0, 0);
+   ecore_x_icccm_hints_set(ki->win->evas_win, 0, 0, 0, 0, 0, 0, 0);
+   zone = e_util_zone_current_get(e_manager_current_get());
    e_win_no_remember_set(ki->win, 1);
    e_win_resize(ki->win, zone->w, zone->h);
 
@@ -1789,15 +1716,16 @@ e_kbd_int_new(const char *themedir, const char *syskbds, const char *sysdicts)
    evas_object_show(ki->base_obj);
 
    e_win_size_min_set(ki->win, zone->w, mh);
-//   e_win_resize(ki->win, zone->w, mh);
    ecore_x_e_virtual_keyboard_set(ki->win->evas_win, 1);
 
    ki->client_message_handler = ecore_event_handler_add
      (ECORE_X_EVENT_CLIENT_MESSAGE, _e_kbd_int_cb_client_message, ki);
+   ki->kbd_move_hdl = ecore_event_handler_add
+     (E_EVENT_BORDER_MOVE, _e_kbd_int_cb_border_move, ki);
 
-   e_win_sticky_set(ki->win, 1);
    e_win_show(ki->win);
-   e_win_move_resize(ki->win, 0, (zone->h - mh), zone->w, mh);
+   ki->win->border->user_skip_winlist = 1;
+
    return ki;
 }
 
@@ -1811,8 +1739,8 @@ e_kbd_int_free(E_Kbd_Int *ki)
    _e_kbd_int_matches_free(ki);
    _e_kbd_int_layout_free(ki);
    ecore_event_handler_del(ki->client_message_handler);
+   ecore_event_handler_del(ki->kbd_move_hdl);
    if (ki->down.hold_timer) ecore_timer_del(ki->down.hold_timer);
-   _e_kbd_int_layoutlist_down(ki);
    _e_kbd_int_matchlist_down(ki);
    _e_kbd_int_zoomkey_down(ki);
    e_kbd_buf_free(ki->kbuf);
@@ -1838,4 +1766,19 @@ _theme_obj_new(Evas *e, const char *custom_dir, const char *group)
 	  }
      }
    return o;
+}
+
+static Eina_Bool
+_e_kbd_int_cb_border_move(void *data, int type, void *event) 
+{
+   E_Event_Border_Move *ev;
+   E_Kbd_Int *ki;
+
+   ev = event;
+   if (!(ki = data)) return ECORE_CALLBACK_PASS_ON;
+   if (ki->win->border != ev->border) return ECORE_CALLBACK_PASS_ON;
+   _e_kbd_int_zoomkey_down(ki);
+   _e_kbd_int_matchlist_down(ki);
+   _e_kbd_int_dictlist_down(ki);
+   return ECORE_CALLBACK_PASS_ON;
 }

@@ -42,12 +42,12 @@ static void _cb_object_resize(void *data, Evas *e, Evas_Object *obj, void *event
 
 static void _refill(Data *d);
 
-static int _cb_border_add(void *data, int ev_type, void *ev);
-static int _cb_border_remove(void *data, int ev_type, void *ev);
-static int _cb_border_show(void *data, int ev_type, void *ev);
-static int _cb_border_hide(void *data, int ev_type, void *ev);
-static int _cb_border_property(void *data, int ev_type, void *ev);
-static int _cb_desk_show(void *data, int ev_type, void *event);
+static Eina_Bool _cb_border_add(void *data, int ev_type, void *ev);
+static Eina_Bool _cb_border_remove(void *data, int ev_type, void *ev);
+static Eina_Bool _cb_border_show(void *data, int ev_type, void *ev);
+static Eina_Bool _cb_border_hide(void *data, int ev_type, void *ev);
+static Eina_Bool _cb_border_property(void *data, int ev_type, void *ev);
+static Eina_Bool _cb_desk_show(void *data, int ev_type, void *event);
 
 /* state */
 static Eina_List *handlers = NULL;
@@ -364,7 +364,7 @@ _refill(Data *d)
 	Special *s;
 	
 	s = l->data;
-	e_ilist_append(d->o_ilist, s->icon, s->label, 0, _cb_special_sel, NULL,
+	e_ilist_append(d->o_ilist, s->icon, NULL, s->label, 0, _cb_special_sel, NULL,
 		       s, NULL);
      }
    for (l = borders; l; l = l->next)
@@ -387,7 +387,7 @@ _refill(Data *d)
 	e_object_ref(E_OBJECT(bd));
 	d->borders = eina_list_append(d->borders, bd);
 	d->labels = eina_list_append(d->labels, eina_stringshare_add(title));
-	e_ilist_append(d->o_ilist, NULL/*icon*/, title, 0,
+	e_ilist_append(d->o_ilist, NULL/*icon*/, NULL, title, 0,
 		       _cb_item_sel,
 		       NULL, d, bd);
      }
@@ -396,7 +396,7 @@ _refill(Data *d)
 	Special *s;
 	
 	s = l->data;
-	e_ilist_append(d->o_ilist, s->icon, s->label, 0, _cb_special_sel, NULL,
+	e_ilist_append(d->o_ilist, s->icon, NULL, s->label, 0, _cb_special_sel, NULL,
 		       s, NULL);
      }
    
@@ -414,89 +414,57 @@ _refill(Data *d)
    d->optimal_size.h = lh + (h - vh);
 }
 
-static int
-_cb_border_add(void *data, int ev_type, void *event)
+static Eina_Bool
+_cb_border_add(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *event)
 {
-   E_Event_Border_Add *ev;
-   
-   ev = event;
-     {
-	Eina_List *l;
+   Eina_List *l;
 	
-	for (l = winilists; l; l = l->next) _refill(l->data);
-     }
-   return 1;
+   for (l = winilists; l; l = l->next) _refill(l->data);
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_cb_border_remove(void *data, int ev_type, void *event)
+static Eina_Bool
+_cb_border_remove(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *event)
 {
-   E_Event_Border_Remove *ev;
-   
-   ev = event;
-     {
-	Eina_List *l;
+   Eina_List *l;
 	
-	for (l = winilists; l; l = l->next) _refill(l->data);
-     }
-   return 1;
+   for (l = winilists; l; l = l->next) _refill(l->data);
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_cb_border_show(void *data, int ev_type, void *event)
+static Eina_Bool
+_cb_border_show(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *event)
 {
-   E_Event_Border_Show *ev;
-   
-   ev = event;
-     {
-	Eina_List *l;
+   Eina_List *l;
 	
-	for (l = winilists; l; l = l->next) _refill(l->data);
-     }
-   return 1;
+   for (l = winilists; l; l = l->next) _refill(l->data);
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_cb_border_hide(void *data, int ev_type, void *event)
+static Eina_Bool
+_cb_border_hide(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *event)
 {
-   E_Event_Border_Hide *ev;
-   
-   ev = event;
-     {
-	Eina_List *l;
+   Eina_List *l;
 	
-	for (l = winilists; l; l = l->next) _refill(l->data);
-     }
-   return 1;
+   for (l = winilists; l; l = l->next) _refill(l->data);
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_cb_border_property(void *data, int ev_type, void *event)
+static Eina_Bool
+_cb_border_property(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *event)
 {
-   E_Event_Border_Property *ev;
-   
-   ev = event;
-   /* FIXME: should really be optimal on what properties warrant a refill */
-     {
-	Eina_List *l;
+   Eina_List *l;
 	
-	for (l = winilists; l; l = l->next) _refill(l->data);
-     }
-   return 1;
+   for (l = winilists; l; l = l->next) _refill(l->data);
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_cb_desk_show(void *data, int ev_type, void *event)
+static Eina_Bool
+_cb_desk_show(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *event)
 {
-   E_Event_Desk_Show *ev;
-   
-   ev = event;
-   /* FIXME: should really be optimal on what properties warrant a refill */
-     {
-	Eina_List *l;
+   Eina_List *l;
 	
-	for (l = winilists; l; l = l->next) _refill(l->data);
-     }
-   return 1;
+   for (l = winilists; l; l = l->next) _refill(l->data);
+   return ECORE_CALLBACK_PASS_ON;
 }
 

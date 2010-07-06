@@ -208,7 +208,7 @@ _e_kbd_dict_lookup_build_line(E_Kbd_Dict *kd, const char *p, const char *eol,
    s[eol - p] = 0;
    p2 = evas_string_char_next_get(s, 0, &(glyphs[0]));
    if ((p2 > 0) && (glyphs[0] > 0))
-     p2 = evas_string_char_next_get(s, p2, &(glyphs[1]));
+     evas_string_char_next_get(s, p2, &(glyphs[1]));
 }
 
 static void
@@ -393,7 +393,6 @@ e_kbd_dict_save(E_Kbd_Dict *kd)
 			    if (cmp < 0)
 			      {
 				 fprintf(f, "%s %i\n", kw->word, kw->usage);
-				 writeline = 1;
 				 eina_stringshare_del(kw->word);
 				 free(kw);
 				 kd->changed.writes  = eina_list_remove_list(kd->changed.writes, kd->changed.writes);
@@ -444,7 +443,7 @@ e_kbd_dict_save(E_Kbd_Dict *kd)
      _e_kbd_dict_lookup_build(kd);
 }
 
-static int
+static Eina_Bool
 _e_kbd_dict_cb_save_flush(void *data)
 {
    E_Kbd_Dict *kd;
@@ -454,10 +453,10 @@ _e_kbd_dict_cb_save_flush(void *data)
        (kd->word.letters) ||
        (kd->matches.deadends) ||
        (kd->matches.leads))
-     return 1;
+     return ECORE_CALLBACK_RENEW;
    kd->changed.flush_timer = NULL;
    e_kbd_dict_save(kd);
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void

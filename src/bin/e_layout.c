@@ -305,7 +305,7 @@ _e_layout_smart_disown(Evas_Object *obj)
 }
 
 static void
-_e_layout_smart_item_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_layout_smart_item_del_hook(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj, __UNUSED__ void *event_info)
 {
    e_layout_unpack(obj);
 }
@@ -313,17 +313,11 @@ _e_layout_smart_item_del_hook(void *data, Evas *e, Evas_Object *obj, void *event
 static void
 _e_layout_smart_reconfigure(E_Smart_Data *sd)
 {
-   Evas_Coord x, y, w, h;
    Eina_List *l;
    Evas_Object *obj;
 
    if (!sd->changed) return;
    
-   x = sd->x;
-   y = sd->y;
-   w = sd->w;
-   h = sd->h;
-
    EINA_LIST_FOREACH(sd->items, l, obj)
      {
 	E_Layout_Item *li;
@@ -362,6 +356,9 @@ _e_layout_smart_init(void)
 	       _e_layout_smart_color_set,
 	       _e_layout_smart_clip_set,
 	       _e_layout_smart_clip_unset,
+	       NULL,
+	       NULL,
+	       NULL,
 	       NULL,
 	       NULL,
 	       NULL,

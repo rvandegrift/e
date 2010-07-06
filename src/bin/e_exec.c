@@ -42,8 +42,8 @@ struct _E_Config_Dialog_Data
 
 /* local subsystem functions */
 static E_Exec_Instance *_e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining);
-static int _e_exec_cb_expire_timer(void *data);
-static int _e_exec_cb_exit(void *data, int type, void *event);
+static Eina_Bool _e_exec_cb_expire_timer(void *data);
+static Eina_Bool _e_exec_cb_exit(void *data, int type, void *event);
 
 static Eina_Bool _e_exec_startup_id_pid_find(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *value, void *data);
 
@@ -113,17 +113,14 @@ e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
      }
    if (launch_method) 
      launch->launch_method = eina_stringshare_add(launch_method);
-
+   
    if (desktop)
      {
 	if (exec)
 	  inst = _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
 	else 
-          {
-             inst = 
-               efreet_desktop_command_get(desktop, files, 
-                                          _e_exec_cb_exec, launch);
-          }
+          inst = efreet_desktop_command_get(desktop, files, 
+                                            (Efreet_Desktop_Command_Cb) _e_exec_cb_exec, launch);
      }
    else
      inst = _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
@@ -205,6 +202,10 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    snprintf(buf, sizeof(buf), "E_START|%i", startup_id);
    e_util_env_set("DESKTOP_STARTUP_ID", buf);
 
+   // dont set vsync for clients - maybe inherited from compositore. fixme:
+   // need a way to still inherit from parent env of wm.
+   e_util_env_set("__GL_SYNC_TO_VBLANK", NULL);
+   
    e_util_library_path_strip();
 //// FIXME: seem to be some issues with the pipe and filling up ram - need to
 //// check. for now disable.   
@@ -242,28 +243,24 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    if (desktop)
      {
 	Eina_List *l;
-
+        
 	efreet_desktop_ref(desktop);
 	inst->desktop = desktop;
+        inst->key = eina_stringshare_add(desktop->orig_path);
 	inst->exe = exe;
 	inst->startup_id = startup_id;
 	inst->launch_time = ecore_time_get();
-	inst->expire_timer = ecore_timer_add(10.0, 
+	inst->expire_timer = ecore_timer_add(e_config->exec.expire_timeout, 
                                              _e_exec_cb_expire_timer, inst);
-
+        
 	l = eina_hash_find(e_exec_instances, desktop->orig_path);
+        l = eina_list_append(l, inst);
 	if (l)
-	  {
-	     l = eina_list_append(l, inst);
-	     eina_hash_modify(e_exec_instances, desktop->orig_path, l);
-	  }
+          eina_hash_modify(e_exec_instances, desktop->orig_path, l);
 	else
-	  {
-	     l = eina_list_append(l, inst);
-	     eina_hash_add(e_exec_instances, desktop->orig_path, l);
-	  }
+          eina_hash_add(e_exec_instances, desktop->orig_path, l);
 	e_exec_start_pending = eina_list_append(e_exec_start_pending, desktop);
-
+        
 	e_exehist_add(launch->launch_method, desktop->exec);
      }
    else if (exe)
@@ -272,17 +269,17 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 	inst = NULL;
 	ecore_exe_free(exe);
      }
-
+   
    if (!remaining)
      {
 	if (launch->launch_method) eina_stringshare_del(launch->launch_method);
 	if (launch->zone) e_object_unref(E_OBJECT(launch->zone));
-      	free(launch);
+        free(launch);
      }
    return inst;
 }
 
-static int
+static Eina_Bool
 _e_exec_cb_expire_timer(void *data)
 {
    E_Exec_Instance *inst;
@@ -290,7 +287,7 @@ _e_exec_cb_expire_timer(void *data)
    inst = data;
    e_exec_start_pending = eina_list_remove(e_exec_start_pending, inst->desktop);
    inst->expire_timer = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
@@ -298,17 +295,18 @@ _e_exec_instance_free(E_Exec_Instance *inst)
 {
    Eina_List *instances;
    
-   if (inst->desktop)
+   if (inst->key)
      {
-	instances = eina_hash_find(e_exec_instances, inst->desktop->orig_path);
+	instances = eina_hash_find(e_exec_instances, inst->key);
 	if (instances)
 	  {
 	     instances = eina_list_remove(instances, inst);
 	     if (instances)
-	       eina_hash_modify(e_exec_instances, inst->desktop->orig_path, instances);
+	       eina_hash_modify(e_exec_instances, inst->key, instances);
 	     else
-	       eina_hash_del(e_exec_instances, inst->desktop->orig_path, NULL);
+	       eina_hash_del(e_exec_instances, inst->key, NULL);
 	  }
+        eina_stringshare_del(inst->key);
      }
    e_exec_start_pending = eina_list_remove(e_exec_start_pending, inst->desktop);
    if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
@@ -318,85 +316,91 @@ _e_exec_instance_free(E_Exec_Instance *inst)
 
 
 
-static int
+static Eina_Bool
 _e_exec_cb_instance_finish(void *data)
 {
    _e_exec_instance_free(data);
-   
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 
-static int
-_e_exec_cb_exit(void *data, int type, void *event)
+static Eina_Bool
+_e_exec_cb_exit(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    Ecore_Exe_Event_Del *ev;
    E_Exec_Instance *inst;
 
    ev = event;
-   if (!ev->exe) return 1;
+   if (!ev->exe) return ECORE_CALLBACK_PASS_ON;
 //   if (ecore_exe_tag_get(ev->exe)) printf("  tag %s\n", ecore_exe_tag_get(ev->exe));
-   if (!(ecore_exe_tag_get(ev->exe) && 
-	 (!strcmp(ecore_exe_tag_get(ev->exe), "E/exec")))) return 1;
+   if (!(ecore_exe_tag_get(ev->exe) &&
+	 (!strcmp(ecore_exe_tag_get(ev->exe), "E/exec"))))
+     return ECORE_CALLBACK_PASS_ON;
    inst = ecore_exe_data_get(ev->exe);
-   if (!inst) return 1;
+   if (!inst) return ECORE_CALLBACK_PASS_ON;
 
    /* /bin/sh uses this if cmd not found */
    if ((ev->exited) &&
        ((ev->exit_code == 127) || (ev->exit_code == 255)))
      {
-	E_Dialog *dia;
-
-	dia = e_dialog_new(e_container_current_get(e_manager_current_get()),
-			   "E", "_e_exec_run_error_dialog");
-	if (dia)
-	  {
-	     char buf[4096];
-
-	     e_dialog_title_set(dia, _("Application run error"));
-	     snprintf(buf, sizeof(buf),
-		      _("Enlightenment was unable to run the application:<br>"
-			"<br>"
-			"%s<br>"
-			"<br>"
-			"The application failed to start."),
-		      ecore_exe_cmd_get(ev->exe));
-	     e_dialog_text_set(dia, buf);
-	     e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
-	     e_dialog_button_focus_num(dia, 1);
-	     e_win_centered_set(dia->win, 1);
-	     e_dialog_show(dia);
-	  }
+        if (e_config->exec.show_run_dialog)
+          {
+             E_Dialog *dia;
+             
+             dia = e_dialog_new(e_container_current_get(e_manager_current_get()),
+                                "E", "_e_exec_run_error_dialog");
+             if (dia)
+               {
+                  char buf[4096];
+                  
+                  e_dialog_title_set(dia, _("Application run error"));
+                  snprintf(buf, sizeof(buf),
+                           _("Enlightenment was unable to run the application:<br>"
+                             "<br>"
+                             "%s<br>"
+                             "<br>"
+                             "The application failed to start."),
+                           ecore_exe_cmd_get(ev->exe));
+                  e_dialog_text_set(dia, buf);
+                  e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
+                  e_dialog_button_focus_num(dia, 1);
+                  e_win_centered_set(dia->win, 1);
+                  e_dialog_show(dia);
+               }
+          }
      }
    /* Let's hope that everything returns this properly. */
    else if (!((ev->exited) && (ev->exit_code == EXIT_SUCCESS))) 
      {
-	/* filter out common exits via signals - int/term/quit. not really
-	 * worth popping up a dialog for */
-	if (!((ev->signalled) &&
-	     ((ev->exit_signal == SIGINT) ||
-	      (ev->exit_signal == SIGQUIT) ||
-	      (ev->exit_signal == SIGTERM)))
-	    )
-	  {
-	     /* Show the error dialog with details from the exe. */
-	     _e_exec_error_dialog(inst->desktop, ecore_exe_cmd_get(ev->exe), ev,
-				  ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_ERROR),
-				  ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_READ));
-	  }
+        if (e_config->exec.show_exit_dialog)
+          {
+             /* filter out common exits via signals - int/term/quit. not really
+              * worth popping up a dialog for */
+             if (!((ev->signalled) &&
+                   ((ev->exit_signal == SIGINT) ||
+                    (ev->exit_signal == SIGQUIT) ||
+                    (ev->exit_signal == SIGTERM)))
+                 )
+               {
+                  /* Show the error dialog with details from the exe. */
+                  _e_exec_error_dialog(inst->desktop, ecore_exe_cmd_get(ev->exe), ev,
+                                       ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_ERROR),
+                                       ecore_exe_event_data_get(ev->exe, ECORE_EXE_PIPE_READ));
+               }
+          }
      }
 
    /* maybe better 1 minute? it might be openoffice */
-   if (ecore_time_get() - inst->launch_time < 5.0)
+   if (ecore_time_get() - inst->launch_time < 2.0)
      {
-	if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
-	inst->expire_timer = ecore_timer_add(30.0, _e_exec_cb_instance_finish, inst); 
         inst->exe = NULL;
+	if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
+	inst->expire_timer = ecore_timer_add(e_config->exec.expire_timeout, _e_exec_cb_instance_finish, inst);
      }
    else
      _e_exec_instance_free(inst);
 
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 static Eina_Bool
@@ -407,16 +411,17 @@ _e_exec_startup_id_pid_find(const Eina_Hash *hash __UNUSED__, const void *key __
    Eina_List *l;
 
    search = data;
-
    EINA_LIST_FOREACH(value, l, inst)
-     if (((search->startup_id > 0) && (search->startup_id == inst->startup_id)) ||
-         ((inst->exe) && (search->pid > 1) && 
-          (search->pid == ecore_exe_pid_get(inst->exe))))
-       {
-          search->desktop = inst->desktop;
-          return EINA_FALSE;
-       }
-
+     {
+        if (((search->startup_id > 0) && 
+             (search->startup_id == inst->startup_id)) ||
+            ((inst->exe) && (search->pid > 1) && 
+             (search->pid == ecore_exe_pid_get(inst->exe))))
+          {
+             search->desktop = inst->desktop;
+             return EINA_FALSE;
+          }
+     }
    return EINA_TRUE;
 }
 
@@ -424,7 +429,6 @@ static void
 _e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_Del *event,
 		     Ecore_Exe_Event_Data *error, Ecore_Exe_Event_Data *read)
 {
-   E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
    E_Config_Dialog_Data *cfdata;
    E_Container *con;
@@ -451,9 +455,9 @@ _e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_
 
    con = e_container_current_get(e_manager_current_get());
    /* Create The Dialog */
-   cfd = e_config_dialog_new(con, _("Application Execution Error"), 
-			     "E", "_e_exec_error_exit_dialog",
-			     NULL, 0, v, cfdata);
+   e_config_dialog_new(con, _("Application Execution Error"), 
+		       "E", "_e_exec_error_exit_dialog",
+		       NULL, 0, v, cfdata);
 }
 
 static void

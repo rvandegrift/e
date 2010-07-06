@@ -87,8 +87,8 @@ struct _Instance
    } timer;
    struct
    {
-      Ecore_Idler *size_apply;
-   } idler;
+      Ecore_Job *size_apply;
+   } job;
    Eina_List *icons;
    E_Menu *menu;
 };
@@ -160,8 +160,6 @@ _systray_menu_new(Instance *inst, Evas_Event_Mouse_Down *ev)
    e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon, &x, &y, NULL, NULL);
    e_menu_activate_mouse(mn, zone, x + ev->output.x, y + ev->output.y,
 			 1, 1, E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
-   evas_event_feed_mouse_up(inst->evas, ev->button,
-			    EVAS_BUTTON_NONE, ev->timestamp, NULL);
 }
 
 static void
@@ -188,6 +186,11 @@ _systray_size_apply_do(Instance *inst)
    if (w < 1) w = 1;
    if (h < 1) h = 1;
 
+   if (eina_list_count(inst->icons) == 0)
+      ecore_x_window_hide(inst->win.base);
+   else
+      ecore_x_window_show(inst->win.base);
+
    e_gadcon_client_aspect_set(inst->gcc, w, h);
    e_gadcon_client_min_size_set(inst->gcc, w, h);
 
@@ -195,20 +198,19 @@ _systray_size_apply_do(Instance *inst)
    ecore_x_window_move_resize(inst->win.base, x, y, w, h);
 }
 
-static int
+static void
 _systray_size_apply_delayed(void *data)
 {
    Instance *inst = data;
    _systray_size_apply_do(inst);
-   inst->idler.size_apply = NULL;
-   return 0;
+   inst->job.size_apply = NULL;
 }
 
 static void
 _systray_size_apply(Instance *inst)
 {
-   if (inst->idler.size_apply) return;
-   inst->idler.size_apply = ecore_idler_add(_systray_size_apply_delayed, inst);
+   if (inst->job.size_apply) return;
+   inst->job.size_apply = ecore_job_add(_systray_size_apply_delayed, inst);
 }
 
 static void
@@ -358,7 +360,7 @@ _systray_icon_add(Instance *inst, const Ecore_X_Window win)
    ecore_x_window_save_set_add(win);
    ecore_x_window_shape_events_select(win, 1);
 
-   ecore_x_window_geometry_get(win, NULL, NULL, &w, &h);
+   //ecore_x_window_geometry_get(win, NULL, NULL, &w, &h);
 
    evas_object_event_callback_add
      (o, EVAS_CALLBACK_MOVE, _systray_icon_cb_move, icon);
@@ -542,7 +544,7 @@ _systray_activate(Instance *inst)
    return 1;
 }
 
-static int
+static Eina_Bool
 _systray_activate_retry(void *data)
 {
    Instance *inst = data;
@@ -557,10 +559,10 @@ _systray_activate_retry(void *data)
 	     RETRY_TIMEOUT);
 
    if (!ret)
-     return 1;
+     return ECORE_CALLBACK_RENEW;
 
    inst->timer.retry = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
@@ -571,7 +573,7 @@ _systray_retry(Instance *inst)
      (RETRY_TIMEOUT, _systray_activate_retry, inst);
 }
 
-static int
+static Eina_Bool
 _systray_activate_retry_first(void *data)
 {
    Instance *inst = data;
@@ -583,7 +585,7 @@ _systray_activate_retry_first(void *data)
      {
 	fputs("SYSTRAY: activate success!\n", stderr);
 	inst->timer.retry = NULL;
-	return 0;
+	return ECORE_CALLBACK_CANCEL;
      }
 
    edje_object_signal_emit(inst->ui.gadget, _sig_disable, _sig_source);
@@ -593,7 +595,7 @@ _systray_activate_retry_first(void *data)
 
    inst->timer.retry = NULL;
    _systray_retry(inst);
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
@@ -693,7 +695,7 @@ _systray_handle_xembed(Instance *inst __UNUSED__, Ecore_X_Event_Client_Message *
      }
 }
 
-static int
+static Eina_Bool
 _systray_cb_client_message(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Client_Message *ev = event;
@@ -706,10 +708,10 @@ _systray_cb_client_message(void *data, int type __UNUSED__, void *event)
    else if (ev->message_type == _atom_xembed)
      _systray_handle_xembed(inst, ev);
 
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _systray_cb_window_destroy(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Window_Destroy *ev = event;
@@ -724,10 +726,10 @@ _systray_cb_window_destroy(void *data, int type __UNUSED__, void *event)
 	  break;
        }
 
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _systray_cb_window_show(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Window_Show *ev = event;
@@ -742,10 +744,10 @@ _systray_cb_window_show(void *data, int type __UNUSED__, void *event)
 	  break;
        }
 
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _systray_cb_window_configure(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Window_Configure *ev = event;
@@ -760,10 +762,10 @@ _systray_cb_window_configure(void *data, int type __UNUSED__, void *event)
 	  break;
        }
 
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _systray_cb_reparent_notify(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Window_Reparent *ev = event;
@@ -778,10 +780,10 @@ _systray_cb_reparent_notify(void *data, int type __UNUSED__, void *event)
 	  break;
        }
 
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _systray_cb_selection_clear(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Selection_Clear *ev = event;
@@ -801,7 +803,7 @@ _systray_cb_selection_clear(void *data, int type __UNUSED__, void *event)
 	inst->win.base = None;
 	_systray_retry(inst);
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 static void
@@ -812,7 +814,7 @@ _systray_theme(Evas_Object *o, const char *shelf_style, const char *gc_style)
    char buf[128], *p;
    size_t len, avail;
 
-   len = ecore_strlcpy(buf, _group_gadget, sizeof(buf));
+   len = eina_strlcpy(buf, _group_gadget, sizeof(buf));
    if (len >= sizeof(buf))
      goto fallback;
    p = buf + len;
@@ -831,7 +833,7 @@ _systray_theme(Evas_Object *o, const char *shelf_style, const char *gc_style)
    if (shelf_style)
      {
 	size_t r;
-	r = ecore_strlcpy(p, shelf_style, avail);
+	r = eina_strlcpy(p, shelf_style, avail);
 	if (r < avail && e_theme_edje_object_set(o, base_theme, buf))
 	  return;
      }
@@ -839,7 +841,7 @@ _systray_theme(Evas_Object *o, const char *shelf_style, const char *gc_style)
    if (gc_style)
      {
 	size_t r;
-	r = ecore_strlcpy(p, gc_style, avail);
+	r = eina_strlcpy(p, gc_style, avail);
 	if (r < avail && e_theme_edje_object_set(o, base_theme, buf))
 	  return;
      }
@@ -858,7 +860,7 @@ _systray_theme(Evas_Object *o, const char *shelf_style, const char *gc_style)
    if (shelf_style)
      {
 	size_t r;
-	r = ecore_strlcpy(p, shelf_style, avail);
+	r = eina_strlcpy(p, shelf_style, avail);
 	if (r < avail && edje_object_file_set(o, path, buf))
 	  return;
      }
@@ -866,7 +868,7 @@ _systray_theme(Evas_Object *o, const char *shelf_style, const char *gc_style)
    if (gc_style)
      {
 	size_t r;
-	r = ecore_strlcpy(p, gc_style, avail);
+	r = eina_strlcpy(p, gc_style, avail);
 	if (r < avail && edje_object_file_set(o, path, buf))
 	  return;
      }
@@ -993,8 +995,8 @@ _gc_shutdown(E_Gadcon_Client *gcc)
      ecore_event_handler_del(inst->handler.configure);
    if (inst->timer.retry)
      ecore_timer_del(inst->timer.retry);
-   if (inst->idler.size_apply)
-     ecore_idler_del(inst->idler.size_apply);
+   if (inst->job.size_apply)
+     ecore_job_del(inst->job.size_apply);
 
    if (instance == inst)
      instance = NULL;

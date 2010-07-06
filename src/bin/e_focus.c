@@ -4,7 +4,7 @@
 #include "e.h"
 
 /* local subsystem functions */
-static int _e_focus_raise_timer(void* data);
+static Eina_Bool _e_focus_raise_timer(void* data);
 
 /* local subsystem globals */
 
@@ -34,7 +34,10 @@ e_focus_event_mouse_in(E_Border* bd)
        (e_config->focus_policy == E_FOCUS_SLOPPY))
      {
 	if (!bd->lock_focus_out)
-	  e_border_focus_set(bd, 1, 1);
+          {
+             if (!bd->focused)
+               e_border_focus_set(bd, 1, 1);
+          }
      }
    if (bd->raise_timer) ecore_timer_del(bd->raise_timer);
    bd->raise_timer = NULL;
@@ -67,7 +70,10 @@ e_focus_event_mouse_out(E_Border* bd)
 	if ((ecore_loop_time_get() - e_grabinput_last_focus_time_get()) > 0.2)
 	  {
 	     if (!bd->lock_focus_in)
-	       e_border_focus_set(bd, 0, 1);
+               {
+                  if (bd->focused)
+                    e_border_focus_set(bd, 0, 1);
+               }
 	  }
      }
    if (bd->raise_timer)
@@ -83,7 +89,10 @@ e_focus_event_mouse_down(E_Border* bd)
    if (e_config->focus_policy == E_FOCUS_CLICK)
      {
 	if (!bd->lock_focus_out)
-	  e_border_focus_set(bd, 1, 1);
+          {
+             if (!bd->focused)
+               e_border_focus_set(bd, 1, 1);
+          }
 	if (!bd->lock_user_stacking)
 	  {
 	     if (e_config->border_raise_on_focus)
@@ -196,14 +205,13 @@ e_focus_setdown(E_Border *bd)
 
 
 /* local subsystem functions */
-     
-static int
+static Eina_Bool
 _e_focus_raise_timer(void* data)
 {
    E_Border *bd;
-   
+
    bd = data;
    if (!bd->lock_user_stacking) e_border_raise(bd);
    bd->raise_timer = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }

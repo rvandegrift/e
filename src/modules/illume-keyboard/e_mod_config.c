@@ -7,17 +7,19 @@ static void *_il_kbd_config_create(E_Config_Dialog *cfd);
 static void _il_kbd_config_free(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static Evas_Object *_il_kbd_config_ui(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 static void _il_kbd_config_changed(void *data, Evas_Object *obj, void *event);
-static int _il_kbd_config_change_timeout(void *data);
+static Eina_Bool _il_kbd_config_change_timeout(void *data);
 
 EAPI Il_Kbd_Config *il_kbd_cfg = NULL;
 static E_Config_DD *conf_edd = NULL;
 Ecore_Timer *_il_kbd_config_change_timer = NULL;
-int external = 0;
+int kbd_external = 0;
 
 /* public functions */
 EAPI int 
 il_kbd_config_init(E_Module *m) 
 {
+   char buff[PATH_MAX];
+
    conf_edd = E_CONFIG_DD_NEW("Illume_Kbd_Cfg", Il_Kbd_Config);
    #undef T
    #undef D
@@ -52,11 +54,12 @@ il_kbd_config_init(E_Module *m)
 
    il_kbd_cfg->mod_dir = eina_stringshare_add(m->dir);
 
+   snprintf(buff, sizeof(buff), "%s/e-module-illume-keyboard.edj",
+            il_kbd_cfg->mod_dir);
    e_configure_registry_category_add("illume", 0, _("Illume"), NULL, 
                                      "enlightenment/display");
    e_configure_registry_generic_item_add("illume/keyboard", 0, _("Keyboard"), 
-                                         NULL, "enlightenment/keyboard", 
-                                         il_kbd_config_show);
+                                         buff, "icon", il_kbd_config_show);
    return 1;
 }
 
@@ -132,8 +135,8 @@ _il_kbd_config_ui(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata
    list = e_widget_list_add(evas, 0, 0);
    if (!il_kbd_cfg->run_keyboard) 
      {
-        if (il_kbd_cfg->use_internal) external = 1;
-        else external = 0;
+        if (il_kbd_cfg->use_internal) kbd_external = 1;
+        else kbd_external = 0;
      }
    else 
      {
@@ -141,7 +144,7 @@ _il_kbd_config_ui(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata
         Efreet_Desktop *desktop;
         int nn = 0;
 
-        external = 0;
+        kbd_external = 0;
         kbds = efreet_util_desktop_category_list("Keyboard");
         if (kbds) 
           {
@@ -155,17 +158,19 @@ _il_kbd_config_ui(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata
                     {
                        if (!strcmp(il_kbd_cfg->run_keyboard, dname)) 
                          {
-                            external = nn;
+                            kbd_external = nn;
                             break;
                          }
                     }
                   nn++;
                }
+	     EINA_LIST_FREE(kbds, desktop)
+	       efreet_desktop_free(desktop);
           }
      }
 
    of = e_widget_framelist_add(evas, _("Keyboards"), 0);
-   rg = e_widget_radio_group_new(&(external));
+   rg = e_widget_radio_group_new(&(kbd_external));
    ow = e_widget_radio_add(evas, _("None"), 0, rg);
    e_widget_framelist_object_append(of, ow);
    evas_object_smart_callback_add(ow, "changed", _il_kbd_config_changed, NULL);
@@ -178,17 +183,15 @@ _il_kbd_config_ui(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata
         int nn = 2;
 
         kbds = efreet_util_desktop_category_list("Keyboard");
-        EINA_LIST_FOREACH(kbds, l, desktop) 
+        EINA_LIST_FREE(kbds, desktop) 
           {
-             const char *dname;
-
-             dname = ecore_file_file_get(desktop->orig_path);
              ow = e_widget_radio_add(evas, desktop->name, nn, rg);
              e_widget_framelist_object_append(of, ow);
              evas_object_smart_callback_add(ow, "changed", 
                                             _il_kbd_config_changed, NULL);
+	     efreet_desktop_free(desktop);
              nn++;
-          }
+	  }
      }
    e_widget_list_object_append(list, of, 1, 0, 0.0);
    return list;
@@ -203,8 +206,8 @@ _il_kbd_config_changed(void *data, Evas_Object *obj, void *event)
      ecore_timer_add(0.5, _il_kbd_config_change_timeout, data);
 }
 
-static int 
-_il_kbd_config_change_timeout(void *data) 
+static Eina_Bool
+_il_kbd_config_change_timeout(__UNUSED__ void *data)
 {
    Eina_List *l;
 
@@ -212,9 +215,9 @@ _il_kbd_config_change_timeout(void *data)
    if (il_kbd_cfg->run_keyboard) 
      eina_stringshare_del(il_kbd_cfg->run_keyboard);
    il_kbd_cfg->run_keyboard = NULL;
-   if (external == 0)
+   if (kbd_external == 0)
      il_kbd_cfg->use_internal = 0;
-   else if (external == 1)
+   else if (kbd_external == 1)
      il_kbd_cfg->use_internal = 1;
    else 
      {
@@ -231,7 +234,7 @@ _il_kbd_config_change_timeout(void *data)
                   const char *dname;
 
                   dname = ecore_file_file_get(desktop->orig_path);
-                  if (nn == external) 
+                  if (nn == kbd_external) 
                     {
                        if (dname)
                          il_kbd_cfg->run_keyboard = eina_stringshare_add(dname);
@@ -239,11 +242,13 @@ _il_kbd_config_change_timeout(void *data)
                     }
                   nn++;
                }
+	     EINA_LIST_FREE(kbds, desktop)
+	       efreet_desktop_free(desktop);
           }
      }
 
    il_kbd_cfg_update();
    e_config_save_queue();
    _il_kbd_config_change_timer = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }

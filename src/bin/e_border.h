@@ -120,12 +120,14 @@ typedef struct _E_Event_Border_Simple        E_Event_Border_Urgent_Change;
 typedef struct _E_Event_Border_Simple	     E_Event_Border_Focus_In;
 typedef struct _E_Event_Border_Simple        E_Event_Border_Focus_Out;
 typedef struct _E_Event_Border_Simple        E_Event_Border_Property;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Fullscreen;
+typedef struct _E_Event_Border_Simple        E_Event_Border_Unfullscreen;
 
 #else
 #ifndef E_BORDER_H
 #define E_BORDER_H
 
-#define E_BORDER_TYPE 0xE0b01002
+#define E_BORDER_TYPE (int) 0xE0b01002
 
 struct _E_Border
 {
@@ -365,6 +367,50 @@ struct _E_Border
 	 unsigned char vkbd : 1;
       } vkbd;
 
+      struct 
+        {
+           struct 
+             {
+                struct 
+                  {
+                     unsigned char conformant : 1;
+                  } fetch;
+                unsigned char conformant : 1;
+             } conformant;
+           struct 
+             {
+                struct 
+                  {
+                     unsigned char state : 1;
+                     struct 
+                       {
+                          unsigned int major : 1;
+                          unsigned int minor : 1;
+                       } priority;
+                     unsigned char quickpanel : 1;
+                     unsigned char zone : 1;
+                  } fetch;
+                Ecore_X_Illume_Quickpanel_State state;
+                struct 
+                  {
+                     unsigned int major : 1;
+                     unsigned int minor : 1;
+                  } priority;
+                unsigned char quickpanel : 1;
+                int zone;
+             } quickpanel;
+           struct 
+             {
+                struct 
+                  {
+                     unsigned char drag : 1;
+                     unsigned char locked : 1;
+                  } fetch;
+                unsigned char drag : 1;
+                unsigned char locked : 1;
+             } drag;
+        } illume;
+
       Ecore_X_Window_Attributes initial_attributes;
    } client;
    
@@ -496,7 +542,7 @@ struct _E_Border
    unsigned int layer;
    E_Action *cur_mouse_action;
    Ecore_Timer *raise_timer;
-   Ecore_Timer *ping_poller;
+   Ecore_Poller *ping_poller;
    Ecore_Timer *kill_timer;
    int shape_rects_num;
    Ecore_X_Rectangle *shape_rects;
@@ -674,6 +720,8 @@ extern EAPI int E_EVENT_BORDER_URGENT_CHANGE;
 extern EAPI int E_EVENT_BORDER_FOCUS_IN;
 extern EAPI int E_EVENT_BORDER_FOCUS_OUT;
 extern EAPI int E_EVENT_BORDER_PROPERTY;
+extern EAPI int E_EVENT_BORDER_FULLSCREEN;
+extern EAPI int E_EVENT_BORDER_UNFULLSCREEN;
 
 #endif
 #endif

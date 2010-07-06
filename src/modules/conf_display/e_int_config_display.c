@@ -17,8 +17,8 @@ static Evas_Object *_basic_create_widgets    (E_Config_Dialog *cfd, Evas *evas, 
 static void         _load_resolutions        (E_Config_Dialog_Data *cfdata);
 static void         _load_rates              (E_Config_Dialog_Data *cfdata);
 static void         _ilist_item_change       (void *data);
-static int          _deferred_noxrandr_error (void *data);
-static int          _deferred_norates_error  (void *data);
+static Eina_Bool    _deferred_noxrandr_error (void *data);
+static Eina_Bool    _deferred_norates_error  (void *data);
 static int	    _sort_resolutions	     (const void *d1, const void *d2);
 
 typedef struct _Resolution Resolution;
@@ -158,7 +158,7 @@ _surebox_text_fill(SureBox *sb)
    e_dialog_text_set(sb->dia, buf);
 }
 
-static int
+static Eina_Bool
 _surebox_timer_cb(void *data)
 {
    SureBox *sb;
@@ -169,9 +169,9 @@ _surebox_timer_cb(void *data)
    if (sb->iterations == 0)
      {
 	_surebox_dialog_cb_no(sb, sb->dia);
-	return 0;
+	return ECORE_CALLBACK_CANCEL;
      }
-   return 1;
+   return ECORE_CALLBACK_RENEW;
 }
 
 static SureBox *
@@ -203,7 +203,7 @@ _surebox_new(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    return sb;
 }
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_display(E_Container *con, const char *params __UNUSED__) 
 {
    E_Config_Dialog *cfd;
@@ -366,15 +366,12 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
    if ((cfdata->can_rotate) || (cfdata->can_flip))
      {
-	int rot;
-
 	cfdata->flip = cfdata->rotation;
 	if (cfdata->flip_x)
 	  cfdata->flip = (cfdata->flip | ECORE_X_RANDR_FLIP_X);
 	if (cfdata->flip_y)
 	  cfdata->flip = (cfdata->flip | ECORE_X_RANDR_FLIP_Y);
 
-	rot = ecore_x_randr_screen_rotation_get(man->root);
 	ecore_x_randr_screen_rotation_set(man->root,
 					  (cfdata->rotation | cfdata->flip));
 	cfdata->orig_rotation = cfdata->rotation;
@@ -528,7 +525,7 @@ _load_resolutions(E_Config_Dialog_Data *cfdata)
 
    evas = evas_object_evas_get(cfdata->res_list);
    if (e_widget_ilist_count(cfdata->res_list) !=
-        eina_list_count(cfdata->resolutions))
+       (int) eina_list_count(cfdata->resolutions))
      {
 	evas_event_freeze(evas);
 	edje_freeze();
@@ -573,7 +570,6 @@ _load_resolutions(E_Config_Dialog_Data *cfdata)
 	       {
 		  ob = e_icon_add(evas);
 		  e_util_icon_theme_set(ob, "dialog-ok-apply");
-		  sel = res->id;
 	       }
 	     e_widget_ilist_nth_icon_set(cfdata->res_list, res->id, ob);
 	  }
@@ -634,7 +630,7 @@ _ilist_item_change(void *data)
    _load_rates(data);
 }
 
-static int
+static Eina_Bool
 _deferred_noxrandr_error(void *data __UNUSED__)
 {
    e_util_dialog_show(_("Missing Features"),
@@ -644,10 +640,10 @@ _deferred_noxrandr_error(void *data __UNUSED__)
 			"the support of this extension. It could also be<br>"
 			"that at the time <hilight>ecore</hilight> was built, there<br>"
 			"was no XRandR support detected."));
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
-static int
+static Eina_Bool
 _deferred_norates_error(void *data __UNUSED__)
 {
    e_util_dialog_show(_("No Refresh Rates Found"),
@@ -656,5 +652,5 @@ _deferred_norates_error(void *data __UNUSED__)
 			"this is to be expected. However, if you are not, then<br>"
 			"the current refresh rate will be used when setting<br>"
 			"the resolution, which may cause <hilight>damage</hilight> to your screen."));
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }

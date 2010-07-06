@@ -23,11 +23,11 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int 
-e_modapi_shutdown(E_Module *m) 
+e_modapi_shutdown(E_Module *m __UNUSED__)
 {
    E_Config_Dialog *cfd;
 
-   while ((cfd = e_config_dialog_get("E", "_config_remember_dialog")))
+   while ((cfd = e_config_dialog_get("E", "windows/window_remembers")))
      e_object_del(E_OBJECT(cfd));
    e_configure_registry_item_del("windows/window_remembers");
    e_configure_registry_category_del("windows");
@@ -35,8 +35,8 @@ e_modapi_shutdown(E_Module *m)
    return 1;
 }
 
-EAPI int 
-e_modapi_save(E_Module *m) 
+EAPI int
+e_modapi_save(E_Module *m __UNUSED__)
 {
    return 1;
 }

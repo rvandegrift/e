@@ -1,75 +1,148 @@
-#include "e.h"
+#include "e_illume_private.h"
 #include "e_mod_main.h"
 #include "e_mod_config.h"
-#include "e_mod_layout.h"
-#include "e_kbd.h"
-#include "e_mod_gadcon.h"
+#include "e_mod_policy.h"
+#include "e_mod_kbd.h"
+#include "e_mod_quickpanel.h"
 
-static E_Kbd *kbd = NULL;
+/* NB: Initially I had done this rewrite with eina_logging enabled, but it 
+ * degraded performance so much that it was just not worth it. So now this 
+ * module just uses printfs on the console to report things */
 
-/* this is needed to advertise a label for the module IN the code (not just
- * the .desktop file) but more specifically the api version it was compiled
- * for so E can skip modules that are compiled for an incorrect API version
- * safely */
+/* external variables */
+const char *_e_illume_mod_dir = NULL;
+E_Illume_Keyboard *_e_illume_kbd = NULL;
+Eina_List *_e_illume_qps = NULL;
+
 EAPI E_Module_Api e_modapi = { E_MODULE_API_VERSION, "Illume2" };
 
-/* called first thing when E inits the module */
 EAPI void *
 e_modapi_init(E_Module *m) 
 {
-   /* init the config system */
-   if (!il_config_init(m)) return NULL;
+   Eina_List *ml, *cl, *zl;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
+   Ecore_X_Window *zones;
+   int zcount = 0;
 
-   /* init the gadcon subsystem for adding a "button" to any gadget container
-    * which will allow easy switching between policy app modes */
-   e_mod_gadcon_init();
+   /* set module priority so we load first */
+   e_module_priority_set(m, 100);
 
-   /* set up the virtual keyboard */
-   e_kbd_init(m);
+   /* set module directory variable */
+   _e_illume_mod_dir = eina_stringshare_add(m->dir);
 
-   /* init the layout system */
-   e_mod_layout_init(m);
+   /* try to initialize the config subsystem */
+   if (!e_mod_illume_config_init()) 
+     {
+        /* clear module directory variable */
+        if (_e_illume_mod_dir) eina_stringshare_del(_e_illume_mod_dir);
+        _e_illume_mod_dir = NULL;
 
-   /* create a new keyboard */
-   kbd = e_kbd_new(e_util_container_zone_number_get(0, 0), 
-                   m->dir, m->dir, m->dir);
+        return NULL;
+     }
 
-   /* show the keyboard if needed */
-   e_kbd_show(kbd);
+   /* try to initialize the policy subsystem */
+   if (!e_mod_policy_init()) 
+     {
+        /* shutdown the config subsystem */
+        e_mod_illume_config_shutdown();
 
+        /* clear module directory variable */
+        if (_e_illume_mod_dir) eina_stringshare_del(_e_illume_mod_dir);
+        _e_illume_mod_dir = NULL;
 
-   /* return NULL on failure, anything else on success. the pointer
-    * returned will be set as m->data for convenience tracking */
+        return NULL;
+     }
+
+   /* initialize the keyboard subsystem */
+   e_mod_kbd_init();
+
+   /* initialize the quickpanel subsystem */
+   e_mod_quickpanel_init();
+
+   /* create a new vkbd & hide it initially */
+   _e_illume_kbd = e_mod_kbd_new();
+   e_mod_kbd_hide();
+
+   /* loop zones and get count */
+   EINA_LIST_FOREACH(e_manager_list(), ml, man) 
+     EINA_LIST_FOREACH(man->containers, cl, con) 
+       EINA_LIST_FOREACH(con->zones, zl, zone) 
+         zcount++;
+
+   /* allocate enough zones */
+   zones = calloc(zcount, sizeof(Ecore_X_Window));
+   zcount = 0;
+
+   /* loop the zones and create quickpanels for each one */
+   EINA_LIST_FOREACH(e_manager_list(), ml, man) 
+     {
+        EINA_LIST_FOREACH(man->containers, cl, con) 
+          {
+             EINA_LIST_FOREACH(con->zones, zl, zone) 
+               {
+                  E_Illume_Quickpanel *qp;
+
+                  /* set zone window in list of zones */
+                  zones[zcount] = zone->black_win;
+
+                  /* increment zone count */
+                  zcount++;
+
+                  /* try to create a new quickpanel for this zone */
+                  if (!(qp = e_mod_quickpanel_new(zone))) continue;
+
+                  /* append new qp to list */
+                  _e_illume_qps = eina_list_append(_e_illume_qps, qp);
+               }
+          }
+        /* set the zone list on this root. This is needed for some 
+         * elm apps like elm_indicator so that they know how many 
+         * indicators to create at startup */
+        ecore_x_e_illume_zone_list_set(man->root, zones, zcount);
+     }
+
+   /* free zones variable */
+   free(zones);
+
    return m;
 }
 
-/* called on module shutdown - should clean up EVERYTHING or we leak */
-EAPI int
+EAPI int 
 e_modapi_shutdown(E_Module *m) 
 {
-   /* cleanup the keyboard */
-   e_object_del(E_OBJECT(kbd));
-   kbd = NULL;
+   E_Illume_Quickpanel *qp;
 
-   /* run any layout shutdown code */
-   e_mod_layout_shutdown();
+   /* delete the quickpanels */
+   EINA_LIST_FREE(_e_illume_qps, qp)
+     e_object_del(E_OBJECT(qp));
 
-   /* shutdown the kbd subsystem */
-   e_kbd_shutdown();
+   /* shutdown the quickpanel subsystem */
+   e_mod_quickpanel_shutdown();
 
-   /* shutdown the gadget subsystem */
-   e_mod_gadcon_shutdown();
+   /* delete the keyboard object */
+   if (_e_illume_kbd) e_object_del(E_OBJECT(_e_illume_kbd));
+   _e_illume_kbd = NULL;
+
+   /* shutdown the keyboard subsystem */
+   e_mod_kbd_shutdown();
+
+   /* shutdown the policy subsystem */
+   e_mod_policy_shutdown();
 
    /* shutdown the config subsystem */
-   il_config_shutdown();
+   e_mod_illume_config_shutdown();
 
-   /* 1 for success, 0 for failure */
+   /* clear module directory variable */
+   if (_e_illume_mod_dir) eina_stringshare_del(_e_illume_mod_dir);
+   _e_illume_mod_dir = NULL;
+
    return 1;
 }
 
-/* called by E when it thinks this module should go save any config it has */
-EAPI int
+EAPI int 
 e_modapi_save(E_Module *m) 
 {
-   return il_config_save();
+   return e_mod_illume_config_save();
 }
