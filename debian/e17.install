@@ -9,7 +9,9 @@ debian/tmp/usr/lib/enlightenment/modules/*/*/module.so
 debian/tmp/usr/lib/enlightenment/modules/*/module.desktop
 debian/tmp/usr/lib/enlightenment/modules/*/e-module-*.edj
 debian/tmp/usr/lib/enlightenment/modules/battery/*/batget
+debian/tmp/usr/lib/enlightenment/modules/comp/shadow.edj
 debian/tmp/usr/lib/enlightenment/modules/cpufreq/*/freqset
+debian/tmp/usr/lib/enlightenment/modules/everything-apps/e-module.edj
 debian/tmp/usr/lib/enlightenment/modules/temperature/*/tempget
 debian/tmp/usr/lib/enlightenment/modules/wizard/*/page*.so
 debian/tmp/usr/lib/enlightenment/modules/illume/*/wifiget
@@ -18,4 +20,4 @@ debian/tmp/usr/lib/enlightenment/modules/illume/keyboards
 debian/tmp/usr/lib/enlightenment/modules/illume-keyboard/dicts
 debian/tmp/usr/lib/enlightenment/modules/illume-keyboard/keyboards
 debian/tmp/usr/lib/enlightenment/modules/illume2/keyboards
-debian/tmp/usr/lib/enlightenment/everything_plugins/core/*/*.so
+debian/tmp/usr/lib/enlightenment/modules/illume2/policies/illume.so
