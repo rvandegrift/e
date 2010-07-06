@@ -38,10 +38,6 @@ if USE_MODULE_START
 SUBDIRS += start
 endif
 
-if USE_MODULE_EXEBUF
-SUBDIRS += exebuf
-endif
-
 if USE_MODULE_WINLIST
 SUBDIRS += winlist
 endif
@@ -114,8 +110,8 @@ if USE_MODULE_CONF_PROFILES
 SUBDIRS += conf_profiles
 endif
 
-if USE_MODULE_MSGBUS_LANG
-SUBDIRS += msgbus_lang
+if USE_MODULE_MSGBUS
+SUBDIRS += msgbus
 endif
 
 if USE_MODULE_CONF_ENGINE
@@ -166,6 +162,10 @@ if USE_MODULE_CONF_EDGEBINDINGS
 SUBDIRS += conf_edgebindings
 endif
 
+if USE_MODULE_CONF_ACPIBINDINGS
+SUBDIRS += conf_acpibindings
+endif
+
 if USE_MODULE_CONF_MOUSE
 SUBDIRS += conf_mouse
 endif
@@ -206,10 +206,6 @@ if USE_MODULE_CONF_WINLIST
 SUBDIRS += conf_winlist
 endif
 
-if USE_MODULE_CONF_EXEBUF
-SUBDIRS += conf_exebuf
-endif
-
 if USE_MODULE_CONF_PATHS
 SUBDIRS += conf_paths
 endif
@@ -238,8 +234,25 @@ if USE_MODULE_CONNMAN
 SUBDIRS += connman
 endif
 
+if USE_MODULE_BLUEZ
+SUBDIRS += bluez
+endif
+
 if USE_MODULE_ILLUME
-SUBDIRS += illume illume2 illume-home illume-softkey illume-keyboard illume-indicator
+SUBDIRS += illume
+endif
+
+if USE_MODULE_ILLUME2
+SUBDIRS += \
+        illume2 \
+        illume-home \
+        illume-home-toggle \
+        illume-softkey \
+        illume-keyboard \
+        illume-indicator \
+        illume-kbd-toggle \
+        illume-mode-toggle \
+        illume-bluetooth
 endif
 
 if USE_MODULE_SYSCON
@@ -250,77 +263,42 @@ if USE_MODULE_EVERYTHING
 SUBDIRS += everything
 endif
 
+if USE_MODULE_EVERYTHING_FILES
+SUBDIRS += everything-files
+endif
+
+if USE_MODULE_EVERYTHING_APPS
+SUBDIRS += everything-apps
+endif
+
+if USE_MODULE_EVERYTHING_FILES
+SUBDIRS += everything-files
+endif
+
+if USE_MODULE_EVERYTHING_ASPELL
+SUBDIRS += everything-aspell
+endif
+
+if USE_MODULE_EVERYTHING_SETTINGS
+SUBDIRS += everything-settings
+endif
+
+if USE_MODULE_EVERYTHING_CALC
+SUBDIRS += everything-calc
+endif
+
+if USE_MODULE_EVERYTHING_WINDOWS
+SUBDIRS += everything-windows
+endif
+
 if USE_MODULE_SYSTRAY
 SUBDIRS += systray
 endif
 
+if USE_MODULE_COMP
+SUBDIRS += comp
+endif
 
-DIST_SUBDIRS = \
-ibar \
-dropshadow \
-clock \
-pager \
-battery \
-temperature \
-cpufreq \
-ibox \
-start \
-exebuf \
-winlist \
-fileman \
-fileman_opinfo \
-wizard \
-conf \
-conf_wallpaper \
-conf_wallpaper2 \
-conf_theme \
-conf_colors \
-conf_fonts \
-conf_borders \
-conf_icon_theme \
-conf_mouse_cursor \
-conf_transitions \
-conf_startup \
-conf_intl \
-conf_imc \
-conf_profiles \
-msgbus_lang \
-conf_engine \
-conf_applications \
-conf_desks \
-conf_desk \
-conf_display \
-conf_desklock \
-conf_screensaver \
-conf_dpms \
-conf_shelves \
-conf_keybindings \
-conf_mousebindings \
-conf_edgebindings \
-conf_mouse \
-conf_window_display \
-conf_window_focus \
-conf_window_remembers \
-conf_window_manipulation \
-conf_menus \
-conf_clientlist \
-conf_dialogs \
-conf_performance \
-conf_winlist \
-conf_exebuf \
-conf_paths \
-conf_mime \
-conf_interaction \
-conf_scale \
-gadman \
-mixer \
-connman \
-illume \
-illume2 \
-illume-home \
-illume-softkey \
-illume-keyboard \
-illume-indicator \
-syscon \
-everything \
-systray
+if USE_MODULE_OFONO
+SUBDIRS += ofono
+endif

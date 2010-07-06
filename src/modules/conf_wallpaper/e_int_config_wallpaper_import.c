@@ -71,10 +71,9 @@ struct _E_Config_Dialog_Data
    int quality;
 };
 
-static void _import_opt_disabled_set(Import *import, int disabled);
 static void _fsel_path_save(FSel *fsel);
 static void _import_edj_gen(Import *import);
-static int _import_cb_edje_cc_exit(void *data, int type, void *event);
+static Eina_Bool _import_cb_edje_cc_exit(void *data, int type, void *event);
 static void _import_cb_delete(E_Win *win);
 static void _import_cb_resize(E_Win *win);
 static void _import_cb_close(void *data, void *data2);
@@ -85,10 +84,9 @@ static void _fsel_cb_close(void *data, void *data2);
 static void _fsel_cb_ok(void *data, void *data2);
 static void _import_cb_wid_on_focus(void *data, Evas_Object *obj);
 static void _import_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event);
-static void _fsel_cb_wid_on_focus(void *data, Evas_Object *obj);
 static void _fsel_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event);
 
-EAPI E_Win *
+E_Win *
 e_int_config_wallpaper_import(void *data, const char *path)
 {
    Evas *evas;
@@ -99,6 +97,7 @@ e_int_config_wallpaper_import(void *data, const char *path)
    Evas_Coord w, h;
    E_Config_Dialog_Data *cfdata;
    Evas_Modifier_Mask mask;
+   Eina_Bool kg;
 
    if (!path) return NULL;
 
@@ -145,14 +144,21 @@ e_int_config_wallpaper_import(void *data, const char *path)
    o = evas_object_rectangle_add(evas);
    import->event_obj = o;
    mask = 0;
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = evas_key_modifier_mask_get(evas, "Shift");
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Return\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
-   mask = 0;
+   kg = evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"KP_Enter\" key events to object %p.\n", o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_KEY_DOWN,
                                   _import_cb_key_down, import);
 
@@ -240,7 +246,7 @@ e_int_config_wallpaper_import(void *data, const char *path)
    return win;
 }
 
-EAPI E_Win *
+E_Win *
 e_int_config_wallpaper_fsel(E_Config_Dialog *parent)
 {
    Evas *evas;
@@ -250,7 +256,8 @@ e_int_config_wallpaper_fsel(E_Config_Dialog *parent)
    Evas_Coord w, h;
    Evas_Modifier_Mask mask;
    const char *fdev, *fpath;
-   char buf[4096];
+   char buf[PATH_MAX];
+   Eina_Bool kg;
 
    fsel = E_NEW(FSel, 1);
    if (!fsel) return NULL;
@@ -292,14 +299,21 @@ e_int_config_wallpaper_fsel(E_Config_Dialog *parent)
    o = evas_object_rectangle_add(evas);
    fsel->event_obj = o;
    mask = 0;
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = evas_key_modifier_mask_get(evas, "Shift");
-   evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Tab", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Tab\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   kg = evas_object_key_grab(o, "Return", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"Return\" key events to object %p.\n", o);
    mask = 0;
-   evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
-   mask = 0;
+   kg = evas_object_key_grab(o, "KP_Enter", mask, ~mask, 0);
+   if (!kg)
+     fprintf(stderr,"ERROR: unable to redirect \"KP_Enter\" key events to object %p.\n", o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_KEY_DOWN,
                                   _fsel_cb_key_down, fsel);
 
@@ -362,7 +376,7 @@ e_int_config_wallpaper_fsel(E_Config_Dialog *parent)
    return win;
 }
 
-EAPI void
+void
 e_int_config_wallpaper_import_del(E_Win *win)
 {
    Import *import;
@@ -380,7 +394,7 @@ e_int_config_wallpaper_import_del(E_Win *win)
    if (import) free(import);
 }
 
-EAPI void
+void
 e_int_config_wallpaper_fsel_del(E_Win *win)
 {
    FSel *fsel;
@@ -436,12 +450,18 @@ _import_edj_gen(Import *import)
    len = e_user_dir_snprintf(buf, sizeof(buf), "backgrounds/%s.edj", fstrip);
    if (len >= sizeof(buf)) return;
    off = len - (sizeof(".edj") - 1);
-   while (ecore_file_exists(buf))
+   for (num = 1; ecore_file_exists(buf) && num < 100; num++)
      {
 	snprintf(buf + off, sizeof(buf) - off, "-%d.edj", num);
-	num++;
      }
    free(fstrip);
+
+   if (num == 100)
+     {
+	printf("Couldn't come up with another filename for %s\n", buf);
+	return;
+     }
+
    strcpy(tmpn, "/tmp/e_bgdlg_new.edc-tmp-XXXXXX");
    fd = mkstemp(tmpn);
    if (fd < 0) 
@@ -595,8 +615,8 @@ _import_edj_gen(Import *import)
    import->exe = ecore_exe_run(cmd, NULL);   
 }
 
-static int
-_import_cb_edje_cc_exit(void *data, int type, void *event)
+static Eina_Bool
+_import_cb_edje_cc_exit(void *data, __UNUSED__ int type, void *event)
 {
    Import *import;
    FSel *fsel;
@@ -606,7 +626,7 @@ _import_cb_edje_cc_exit(void *data, int type, void *event)
 
    ev = event;
    import = data;
-   if (ev->exe != import->exe) return 1;
+   if (ev->exe != import->exe) return ECORE_CALLBACK_PASS_ON;
 
    if (ev->exit_code != 0)
      {
@@ -635,7 +655,7 @@ _import_cb_edje_cc_exit(void *data, int type, void *event)
      }
    E_FREE(fdest);
 
-   return 0;
+   return ECORE_CALLBACK_DONE;
 }
 
 static void 
@@ -771,8 +791,9 @@ _fsel_cb_ok(void *data, void *data2)
    win = data;
    if (!(fsel = win->data)) return;
    path = e_widget_fsel_selection_path_get(fsel->fsel_obj);
+   if (!path) return;
 
-   if (path) p = strrchr(path, '.');
+   p = strrchr(path, '.');
    if ((!p) || (!strcasecmp(p, ".edj")))
      {
 	int r;
@@ -827,18 +848,6 @@ _import_cb_wid_on_focus(void *data, Evas_Object *obj)
      e_widget_focused_object_clear(import->box_obj);
    else if (import->content_obj)
      e_widget_focused_object_clear(import->content_obj);
-}
-
-static void
-_fsel_cb_wid_on_focus(void *data, Evas_Object *obj)
-{
-   FSel *fsel;
-
-   fsel = data;
-   if (obj == fsel->content_obj)
-     e_widget_focused_object_clear(fsel->box_obj);
-   else if (fsel->content_obj)
-     e_widget_focused_object_clear(fsel->content_obj);
 }
 
 static void 

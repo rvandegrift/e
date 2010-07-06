@@ -2,64 +2,50 @@
 #include "e_mod_main.h"
 #include "e_mod_config.h"
 
-EAPI Il_Sk_Config *il_sk_cfg = NULL;
+/* local variables */
+EAPI Il_Sft_Config *il_sft_cfg = NULL;
 static E_Config_DD *conf_edd = NULL;
 
-/* public functions */
 int 
-il_sk_config_init(E_Module *m) 
+il_sft_config_init(void) 
 {
-   conf_edd = E_CONFIG_DD_NEW("Illume-Softkey_Cfg", Il_Sk_Config);
+   conf_edd = E_CONFIG_DD_NEW("Illume-Softkey_Cfg", Il_Sft_Config);
    #undef T
    #undef D
-   #define T Il_Sk_Config
+   #define T Il_Sft_Config
    #define D conf_edd
    E_CONFIG_VAL(D, T, version, INT);
+   E_CONFIG_VAL(D, T, height, INT);
 
-   il_sk_cfg = e_config_domain_load("module.illume-softkey", conf_edd);
-   if ((il_sk_cfg) && 
-       ((il_sk_cfg->version >> 16) < IL_CONFIG_MAJ)) 
+   il_sft_cfg = e_config_domain_load("module.illume-softkey", conf_edd);
+   if ((il_sft_cfg) && 
+       ((il_sft_cfg->version >> 16) < IL_CONFIG_MAJ))
      {
-        E_FREE(il_sk_cfg);
-        il_sk_cfg = NULL;
+        E_FREE(il_sft_cfg);
      }
-   if (!il_sk_cfg) 
+   if (!il_sft_cfg) 
      {
-        il_sk_cfg = E_NEW(Il_Sk_Config, 1);
-        il_sk_cfg->version = 0;
+        il_sft_cfg = E_NEW(Il_Sft_Config, 1);
+        il_sft_cfg->version = 0;
+        il_sft_cfg->height = 32;
      }
-   if (il_sk_cfg) 
-     {
-        /* Add new config variables here */
-        /* if ((il_sk_cfg->version & 0xffff) < 1) */
-        il_sk_cfg->version = (IL_CONFIG_MAJ << 16) | IL_CONFIG_MIN;
-     }
-   il_sk_cfg->mod_dir = eina_stringshare_add(m->dir);
+   if (il_sft_cfg) 
+     il_sft_cfg->version = (IL_CONFIG_MAJ << 16) | IL_CONFIG_MIN;
+
    return 1;
 }
 
 int 
-il_sk_config_shutdown(void) 
+il_sft_config_shutdown(void) 
 {
-   if (il_sk_cfg->mod_dir) eina_stringshare_del(il_sk_cfg->mod_dir);
-   il_sk_cfg->mod_dir = NULL;
-
-   E_FREE(il_sk_cfg);
-   il_sk_cfg = NULL;
-
+   E_FREE(il_sft_cfg);
    E_CONFIG_DD_FREE(conf_edd);
+
    return 1;
 }
 
 int 
-il_sk_config_save(void) 
+il_sft_config_save(void) 
 {
-   e_config_domain_save("module.illume-softkey", conf_edd, il_sk_cfg);
-   return 1;
-}
-
-void 
-il_sk_config_show(E_Container *con, const char *params) 
-{
-
+   return e_config_domain_save("module.illume-softkey", conf_edd, il_sft_cfg);
 }

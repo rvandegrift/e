@@ -1,155 +1,92 @@
 #include "e.h"
 #include "e_busycover.h"
+#include "e_mod_config.h"
 
 /* local function prototypes */
-static void _e_busycover_add_object(E_Busycover *esw);
-static void _e_busycover_cb_free(E_Busycover *esw);
-static int _e_busycover_zone_cb_move_resize(void *data, int type, void *event);
-static Evas_Object *_theme_obj_new(Evas *evas, const char *custom_dir, const char *group);
-
-/* local variables */
-static Eina_List *busycovers = NULL;
-
-/* public functions */
-EAPI int 
-e_busycover_init(void) 
-{
-   return 1;
-}
-
-EAPI int 
-e_busycover_shutdown(void) 
-{
-   return 1;
-}
+static void _e_busycover_cb_free(E_Busycover *cover);
 
 EAPI E_Busycover *
-e_busycover_new(E_Zone *zone, const char *themedir) 
+e_busycover_new(E_Win *win) 
 {
-   E_Busycover *esw;
+   E_Busycover *cover;
+   char buff[PATH_MAX];
 
-   esw = E_OBJECT_ALLOC(E_Busycover, E_BUSYCOVER_TYPE, _e_busycover_cb_free);
-   if (!esw) return NULL;
+   cover = E_OBJECT_ALLOC(E_Busycover, E_BUSYCOVER_TYPE, _e_busycover_cb_free);
+   if (!cover) return NULL;
+   snprintf(buff, sizeof(buff), "%s/e-module-illume-home.edj", 
+            il_home_cfg->mod_dir);
 
-   esw->zone = zone;
-   if (themedir) esw->themedir = eina_stringshare_add(themedir);
-
-   busycovers = eina_list_append(busycovers, esw);
-
-   esw->handlers = 
-     eina_list_append(esw->handlers, 
-                      ecore_event_handler_add(E_EVENT_ZONE_MOVE_RESIZE, 
-                                              _e_busycover_zone_cb_move_resize, 
-                                              esw));
-   return esw;
+   cover->o_base = edje_object_add(e_win_evas_get(win));
+   if (!e_theme_edje_object_set(cover->o_base, 
+                                "base/theme/modules/illume-home", 
+                                "modules/illume-home/busycover")) 
+     edje_object_file_set(cover->o_base, buff, "modules/illume-home/busycover");
+   edje_object_part_text_set(cover->o_base, "e.text.title", _("LOADING"));
+   evas_object_move(cover->o_base, win->x, win->y);
+   evas_object_resize(cover->o_base, win->w, win->h);
+   evas_object_layer_set(cover->o_base, 999);
+   return cover;
 }
 
 EAPI E_Busycover_Handle *
-e_busycover_push(E_Busycover *esw, const char *msg, const char *icon) 
+e_busycover_push(E_Busycover *cover, const char *msg, const char *icon) 
 {
-   E_Busycover_Handle *h;
+   E_Busycover_Handle *handle;
 
-   E_OBJECT_CHECK(esw);
-   E_OBJECT_TYPE_CHECK_RETURN(esw, E_BUSYCOVER_TYPE, NULL);
-   if (!esw->o_base) _e_busycover_add_object(esw);
-   h = E_NEW(E_Busycover_Handle, 1);
-   h->busycover = esw;
-   if (msg) h->msg = eina_stringshare_add(msg);
-   if (icon) h->icon = eina_stringshare_add(icon);
-   esw->handles = eina_list_prepend(esw->handles, h);
-   edje_object_part_text_set(esw->o_base, "e.text.label", h->msg);
-   /* FIXME: handle icon */
-   evas_object_show(esw->o_base);
-   return h;
+   E_OBJECT_CHECK(cover);
+   E_OBJECT_TYPE_CHECK_RETURN(cover, E_BUSYCOVER_TYPE, NULL);
+
+   handle = E_NEW(E_Busycover_Handle, 1);
+   handle->cover = cover;
+   if (msg) handle->msg = eina_stringshare_add(msg);
+   if (icon) handle->icon = eina_stringshare_add(icon);
+   cover->handles = eina_list_append(cover->handles, handle);
+   edje_object_part_text_set(cover->o_base, "e.text.title", msg);
+   evas_object_show(cover->o_base);
+   return handle;
 }
 
 EAPI void 
-e_busycover_pop(E_Busycover *esw, E_Busycover_Handle *handle) 
+e_busycover_pop(E_Busycover *cover, E_Busycover_Handle *handle) 
 {
-   E_OBJECT_CHECK(esw);
-   E_OBJECT_TYPE_CHECK(esw, E_BUSYCOVER_TYPE);
-   if (!eina_list_data_find(esw->handles, handle)) return;
-   esw->handles = eina_list_remove(esw->handles, handle);
+   E_OBJECT_CHECK(cover);
+   E_OBJECT_TYPE_CHECK(cover, E_BUSYCOVER_TYPE);
+   if (!eina_list_data_find(cover->handles, handle)) return;
+   cover->handles = eina_list_remove(cover->handles, handle);
    if (handle->msg) eina_stringshare_del(handle->msg);
    if (handle->icon) eina_stringshare_del(handle->icon);
-   free(handle);
-   if (esw->handles) 
+   E_FREE(handle);
+   if (cover->handles) 
      {
-        handle = esw->handles->data;
-        edje_object_part_text_set(esw->o_base, "e.text.label", handle->msg);
+        handle = cover->handles->data;
+        edje_object_part_text_set(cover->o_base, "e.text.title", handle->msg);
      }
    else 
-     {
-        evas_object_del(esw->o_base);
-        esw->o_base = NULL;
-     }
+     evas_object_hide(cover->o_base);
 }
 
-/* local functions */
+EAPI void 
+e_busycover_resize(E_Busycover *cover, int w, int h) 
+{
+   E_OBJECT_CHECK(cover);
+   E_OBJECT_TYPE_CHECK(cover, E_BUSYCOVER_TYPE);
+   evas_object_resize(cover->o_base, w, h);
+}
+
+/* local function prototypes */
 static void 
-_e_busycover_add_object(E_Busycover *esw) 
+_e_busycover_cb_free(E_Busycover *cover) 
 {
-   Evas_Object *o;
-   int x, y, w, h;
+   Eina_List *l;
+   E_Busycover_Handle *handle;
 
-   esw->o_base = _theme_obj_new(esw->zone->container->bg_evas, esw->themedir, 
-                                "modules/illume-home/busycover/default");
-   edje_object_part_text_set(esw->o_base, "e.text.title", "LOADING");
-   e_zone_useful_geometry_get(esw->zone, &x, &y, &w, &h);
-   evas_object_move(esw->o_base, x, y);
-   evas_object_resize(esw->o_base, w, h);
-   evas_object_layer_set(esw->o_base, 100);
-}
-
-static void 
-_e_busycover_cb_free(E_Busycover *esw) 
-{
-   Ecore_Event_Handler *handle;
-
-   if (esw->o_base) evas_object_del(esw->o_base);
-   busycovers = eina_list_remove(busycovers, esw);
-   EINA_LIST_FREE(esw->handlers, handle)
-     ecore_event_handler_del(handle);
-   if (esw->themedir) eina_stringshare_del(esw->themedir);
-   E_FREE(esw);
-}
-
-static int 
-_e_busycover_zone_cb_move_resize(void *data, int type, void *event) 
-{
-   E_Event_Zone_Move_Resize *ev;
-   E_Busycover *esw;
-
-   ev = event;
-   esw = data;
-   if (esw->zone == ev->zone) 
+   EINA_LIST_FREE(cover->handles, handle) 
      {
-        int x, y, w, h;
-
-        e_zone_useful_geometry_get(esw->zone, &x, &y, &w, &h);
-        evas_object_move(esw->o_base, x, y);
-        evas_object_resize(esw->o_base, w, h);
+        if (handle->msg) eina_stringshare_del(handle->msg);
+        if (handle->icon) eina_stringshare_del(handle->icon);
+        E_FREE(handle);
      }
-   return 1;
+
+   if (cover->o_base) evas_object_del(cover->o_base);
+   E_FREE(cover);
 }
-
-static Evas_Object *
-_theme_obj_new(Evas *evas, const char *custom_dir, const char *group) 
-{
-   Evas_Object *o;
-
-   o = edje_object_add(evas);
-   if (!e_theme_edje_object_set(o, "base/theme/modules/illume-home", group)) 
-     {
-        if (custom_dir) 
-          {
-             char buff[PATH_MAX];
-
-             snprintf(buff, sizeof(buff), "%s/e-module-illume-home.edj", custom_dir);
-             if (edje_object_file_set(o, buff, group)) 
-               printf("OK FALLBACK %s\n", buff);
-          }
-     }
-   return o;
-}
-

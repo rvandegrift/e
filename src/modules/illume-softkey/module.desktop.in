@@ -3,4 +3,6 @@ Type=Link
 Name=Illume-Softkey
 Icon=e-module-illume-softkey
 X-Enlightenment-ModuleType=system
-Comment=<title>Illume Softkey for Embedded</title>
+Comment=
+Comment[fr]=
+Comment[it]=

@@ -2,7 +2,7 @@
  * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
  */
 #include "e.h"
-#include "e_fm_hal.h"
+#include "e_fm_dbus.h"
 #include "e_mod_main.h"
 #include "e_mod_config.h"
 #include "e_mod_dbus.h"
@@ -15,8 +15,8 @@ static void  _e_mod_menu_volume_cb(void *data, E_Menu *m, E_Menu_Item *mi);
 static void  _e_mod_menu_add(void *data, E_Menu *m);
 static void  _e_mod_fileman_config_load(void);
 static void  _e_mod_fileman_config_free(void);
-static int   _e_mod_cb_config_timer(void *data);
-static int   _e_mod_zone_add(void *data, int type, void *event);
+static Eina_Bool _e_mod_cb_config_timer(void *data);
+static Eina_Bool _e_mod_zone_add(void *data, int type, void *event);
 
 static E_Module *conf_module = NULL;
 static E_Action *act = NULL;
@@ -192,7 +192,15 @@ _e_mod_action_fileman_cb(E_Object *obj, const char *params)
 	else if (params && params[0] == '~')
 	  e_fwin_new(zone->container, "~/", params + 1);
 	else if (params)
-	  e_fwin_new(zone->container, params, "/");
+	  {
+	     char *path;
+	     path = e_util_shell_env_path_eval(params);
+	     if (path)
+	       {
+		  e_fwin_new(zone->container, path, "/");
+		  free(path);
+	       }
+	  }
 	else
 	  e_fwin_new(zone->container, "favorites", "/");
      }
@@ -218,9 +226,11 @@ _e_mod_action_fileman_cb(E_Object *obj, const char *params)
 static void
 _e_mod_menu_gtk_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 {
-   char *path = data;
+   char *path;
+
+   if (!(path = data)) return;
    if (m->zone) e_fwin_new(m->zone->container, NULL, path);
-   free(path);
+   eina_stringshare_del(path);
 }
 
 static void
@@ -288,7 +298,7 @@ _e_mod_fileman_parse_gtk_bookmarks(E_Menu *m, Eina_Bool need_separator)
 					    ecore_file_file_get(uri->path));
 		      e_util_menu_item_theme_icon_set(mi, "folder");
 		      e_menu_item_callback_set(mi, _e_mod_menu_gtk_cb,
-					       strdup(uri->path));
+					       (void *)eina_stringshare_add(uri->path));
 		   }
 	      }
 	    if (uri) efreet_uri_free(uri);
@@ -339,7 +349,7 @@ _e_mod_menu_generate(void *data, E_Menu *m)
 
    /* Volumes */
    Eina_Bool volumes_visible = 0;
-   EINA_LIST_FOREACH(e_fm2_hal_volume_list_get(), l, vol)
+   EINA_LIST_FOREACH(e_fm2_dbus_volume_list_get(), l, vol)
      {
 	if (vol->mount_point && !strcmp(vol->mount_point, "/")) continue;
 
@@ -507,23 +517,23 @@ _e_mod_fileman_config_free(void)
    E_FREE(fileman_config);   
 }
 
-static int 
-_e_mod_cb_config_timer(void *data) 
+static Eina_Bool
+_e_mod_cb_config_timer(void *data)
 {
    e_util_dialog_show(_("Fileman Settings Updated"), "%s", (char *)data);
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
-static int
-_e_mod_zone_add(void *data, int type, void *event)
+static Eina_Bool
+_e_mod_zone_add(__UNUSED__ void *data, int type, void *event)
 {
    E_Event_Zone_Add *ev;
    E_Zone *zone;
    
-   if (type != E_EVENT_ZONE_ADD) return 1;
+   if (type != E_EVENT_ZONE_ADD) return ECORE_CALLBACK_PASS_ON;
    ev = event;
    zone = ev->zone;
-   if (e_fwin_zone_find(zone)) return 1;
+   if (e_fwin_zone_find(zone)) return ECORE_CALLBACK_PASS_ON;
    if ((zone->container->num == 0) && (zone->num == 0) && 
        (fileman_config->view.show_desktop_icons))
      e_fwin_zone_new(zone, "desktop", "/");
@@ -538,5 +548,5 @@ _e_mod_zone_add(void *data, int type, void *event)
 	     e_fwin_zone_new(zone, "desktop", buf);
 	  }
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }

@@ -1,13 +1,22 @@
 /*
  * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
  */
-#include "e.h"
-#include "e_mod_main.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
 
 #ifdef __FreeBSD__
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
+
+#include <Ecore.h>
+#include <Ecore_File.h>
+
+#include "e_mod_main_private.h"
+
 
 static int sensor_type = SENSOR_TYPE_NONE;
 static char *sensor_name = NULL;
@@ -23,7 +32,7 @@ static int ptemp = 0;
 
 static void init(void);
 static int check(void);
-static int poll_cb(void *data);
+static Eina_Bool poll_cb(void *data);
 
 Eina_List *
 temperature_get_bus_files(const char* bus)
@@ -42,28 +51,28 @@ temperature_get_bus_files(const char* bus)
 
    EINA_LIST_FREE(therms, name)
 	       {
-	Eina_List *files;
-	char *file;
+           Eina_List *files;
+           char *file;
 
-		  /* Search each device for temp*_input, these should be 
-		   * temperature devices. */
-		  snprintf(path, sizeof(path),"%s/%s", busdir, name);
-		  files = ecore_file_ls(path);
-	EINA_LIST_FREE(files, file)
-			 {
-			    if ((!strncmp("temp", file, 4)) && 
-				(!strcmp("_input", &file[strlen(file) - 6])))
-			      {
-				 char *f;
+           /* Search each device for temp*_input, these should be 
+            * temperature devices. */
+           snprintf(path, sizeof(path),"%s/%s", busdir, name);
+           files = ecore_file_ls(path);
+           EINA_LIST_FREE(files, file)
+              {
+                 if ((!strncmp("temp", file, 4)) && 
+              (!strcmp("_input", &file[strlen(file) - 6])))
+                   {
+                      char *f;
 
-				 snprintf(path, sizeof(path),
-					  "%s/%s/%s", busdir, name, file);
-				 f = strdup(path);
-		  if (f) result = eina_list_append(result, f);
-	       }
-	     free(file);
-	  }
-	free(name);
+                      snprintf(path, sizeof(path),
+                        "%s/%s/%s", busdir, name, file);
+                      f = strdup(path);
+                      if (f) result = eina_list_append(result, f);
+                  }
+                free(file);
+             }
+        free(name);
      }
    return result;
 }
@@ -96,11 +105,11 @@ init(void)
 	     sensor_type = SENSOR_TYPE_LINUX_ACPI;
 	     sensor_name = strdup(name);
 
-	     therms = eina_list_free(therms);
+	     eina_list_free(therms);
 	  }
 	else
 	  {
-	     therms = eina_list_free(therms);
+	     eina_list_free(therms);
 	     if (ecore_file_exists("/proc/omnibook/temperature"))
 	       {
 		  sensor_type = SENSOR_TYPE_OMNIBOOK;
@@ -148,7 +157,7 @@ init(void)
                                         sensor_path, sensor_name);
 			      }
 			 }
-		       therms = eina_list_free(therms);
+		       eina_list_free(therms);
 		    }
 		  if (!sensor_path)
 		    {
@@ -177,7 +186,7 @@ init(void)
                                              sensor_path, sensor_name);
 				   }
 			      }
-			    therms = eina_list_free(therms);
+			    eina_list_free(therms);
 			 }
 		    }
 	       }
@@ -267,6 +276,7 @@ check(void)
    char buf[PATH_MAX];
 #ifdef __FreeBSD__
    int len;
+   size_t ftemp = 0;
 #endif
               
    /* TODO: Make standard parser. Seems to be two types of temperature string:
@@ -281,9 +291,9 @@ check(void)
       case SENSOR_TYPE_FREEBSD:
 #ifdef __FreeBSD__
 	len = sizeof(temp);
-	if (sysctl(mib, 5, &temp, &len, NULL, 0) != -1)
+	if (sysctl(mib, 5, &ftemp, &len, NULL, 0) != -1)
 	  {
-	     temp = (temp - 2732) / 10;
+	     temp = (ftemp - 2732) / 10;
 	     ret = 1;
 	  }
 	else
@@ -401,7 +411,7 @@ check(void)
    return -999;
 }
 
-static int
+static Eina_Bool
 poll_cb(void *data)
 {
    int t;
@@ -435,7 +445,7 @@ poll_cb(void *data)
 	fflush(stdout);
      }
    ptemp = t;
-   return 1;
+   return ECORE_CALLBACK_RENEW;
 }
 
 int

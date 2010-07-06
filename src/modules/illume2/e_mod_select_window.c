@@ -1,33 +1,34 @@
-#include "e.h"
-#include "e_mod_main.h"
+#include "e_illume_private.h"
 #include "e_mod_select_window.h"
-#include "e_mod_config.h"
 
 /* local function prototypes */
-static void *_il_config_select_window_create_data(E_Config_Dialog *cfd);
-static void _il_config_select_window_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_il_config_select_window_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
-static void _il_config_select_window_list_changed(void *data);
-static int _il_config_select_window_change_timeout(void *data);
-static int _il_config_select_window_match(E_Border *bd);
+static void *_e_mod_illume_config_select_window_create_data(E_Config_Dialog *cfd);
+static void _e_mod_illume_config_select_window_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static Evas_Object *_e_mod_illume_config_select_window_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+static void _e_mod_illume_config_select_window_list_changed(void *data);
+static Eina_Bool _e_mod_illume_config_select_window_change_timeout(void *data);
+static int _e_mod_illume_config_select_window_match(E_Border *bd);
 
 /* local variables */
-Il_Select_Window_Type stype;
+E_Illume_Select_Window_Type stype;
 Ecore_Timer *_sw_change_timer = NULL;
 
 /* public functions */
 void 
-il_config_select_window(Il_Select_Window_Type type) 
+e_mod_illume_config_select_window(E_Illume_Select_Window_Type type) 
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
    if (e_config_dialog_find("E", "_config_illume_select_window")) return;
-   stype = type;
+
    v = E_NEW(E_Config_Dialog_View, 1);
-   v->create_cfdata = _il_config_select_window_create_data;
-   v->free_cfdata = _il_config_select_window_free_data;
-   v->basic.create_widgets = _il_config_select_window_create;
+   if (!v) return;
+
+   stype = type;
+   v->create_cfdata = _e_mod_illume_config_select_window_create_data;
+   v->free_cfdata = _e_mod_illume_config_select_window_free_data;
+   v->basic.create_widgets = _e_mod_illume_config_select_window_create;
    v->basic_only = 1;
    v->normal_win = 1;
    v->scroll = 1;
@@ -35,28 +36,32 @@ il_config_select_window(Il_Select_Window_Type type)
                              _("Select Home Window"), "E", 
                              "_config_illume_select_window", 
                              "enlightenment/windows", 0, v, NULL);
+   if (!cfd) return;
    e_dialog_resizable_set(cfd->dia, 1);
 }
 
 static void *
-_il_config_select_window_create_data(E_Config_Dialog *cfd) 
+_e_mod_illume_config_select_window_create_data(E_Config_Dialog *cfd) 
 {
    return NULL;
 }
 
 static void 
-_il_config_select_window_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_e_mod_illume_config_select_window_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
 {
-
+   if (_sw_change_timer) ecore_timer_del(_sw_change_timer);
+   _sw_change_timer = NULL;
 }
 
 static Evas_Object *
-_il_config_select_window_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata) 
+_e_mod_illume_config_select_window_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata) 
 {
    Evas_Object *list, *ow;
    Eina_List *bds, *l;
-   int i = 0, sel = -1;
+   E_Zone *zone;
+   int i, sel = -1;
 
+   zone = e_util_zone_current_get(e_manager_current_get());
    list = e_widget_list_add(evas, 0, 0);
    ow = e_widget_ilist_add(evas, 24, 24, NULL);
    e_widget_ilist_selector_set(ow, 1);
@@ -66,20 +71,24 @@ _il_config_select_window_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialo
    e_widget_ilist_clear(ow);
    e_widget_ilist_go(ow);
 
-   bds = e_border_client_list();
-   for (i = 0, l = bds; l; l = l->next, i++) 
+   if (bds = e_border_client_list())
      {
-        E_Border *bd;
-        const char *name;
+        for (i = 0, l = bds; l; l = l->next, i++) 
+          {
+             E_Border *bd;
+             const char *name;
 
-        if (!(bd = l->data)) continue;
-        if (e_object_is_del(E_OBJECT(bd))) continue;
-        if (_il_config_select_window_match(bd)) sel = i;
-        name = e_border_name_get(bd);
-        e_widget_ilist_append(ow, NULL, name, 
-                              _il_config_select_window_list_changed, 
-                              bd, name);
+             if (!(bd = l->data)) continue;
+             if (bd->zone != zone) continue;
+             if (e_object_is_del(E_OBJECT(bd))) continue;
+             if (!(name = e_border_name_get(bd))) continue;
+             if (_e_mod_illume_config_select_window_match(bd)) sel = i;
+             e_widget_ilist_append(ow, NULL, name, 
+                                   _e_mod_illume_config_select_window_list_changed, 
+                                   bd, name);
+          }
      }
+
    e_widget_size_min_set(ow, 100, 200);
    e_widget_ilist_go(ow);
    if (sel >= 0) e_widget_ilist_selected_set(ow, sel);
@@ -91,7 +100,7 @@ _il_config_select_window_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialo
 }
 
 static void 
-_il_config_select_window_list_changed(void *data) 
+_e_mod_illume_config_select_window_list_changed(void *data) 
 {
    E_Border *bd;
    Ecore_X_Window_Type wtype;
@@ -104,49 +113,25 @@ _il_config_select_window_list_changed(void *data)
 
    switch (stype) 
      {
-      case IL_SELECT_WINDOW_TYPE_HOME:
-        if (il_cfg->policy.home.title)
-          eina_stringshare_del(il_cfg->policy.home.title);
-        if (title) il_cfg->policy.home.title = eina_stringshare_add(title);
-        if (il_cfg->policy.home.class)
-          eina_stringshare_del(il_cfg->policy.home.class);
-        if (class) il_cfg->policy.home.class = eina_stringshare_add(class);
-        if (il_cfg->policy.home.name)
-          eina_stringshare_del(il_cfg->policy.home.name);
-        if (name) il_cfg->policy.home.name = eina_stringshare_add(name);
+      case E_ILLUME_SELECT_WINDOW_TYPE_HOME:
+	eina_stringshare_replace(&_e_illume_cfg->policy.home.title, title);
+	eina_stringshare_replace(&_e_illume_cfg->policy.home.class, class);
+	eina_stringshare_replace(&_e_illume_cfg->policy.home.name, name);
         break;
-      case IL_SELECT_WINDOW_TYPE_VKBD:
-        if (il_cfg->policy.vkbd.title)
-          eina_stringshare_del(il_cfg->policy.vkbd.title);
-        if (title) il_cfg->policy.vkbd.title = eina_stringshare_add(title);
-        if (il_cfg->policy.vkbd.class)
-          eina_stringshare_del(il_cfg->policy.vkbd.class);
-        if (class) il_cfg->policy.vkbd.class = eina_stringshare_add(class);
-        if (il_cfg->policy.vkbd.name)
-          eina_stringshare_del(il_cfg->policy.vkbd.name);
-        if (name) il_cfg->policy.vkbd.name = eina_stringshare_add(name);
+      case E_ILLUME_SELECT_WINDOW_TYPE_VKBD:
+	eina_stringshare_replace(&_e_illume_cfg->policy.vkbd.title, title);
+	eina_stringshare_replace(&_e_illume_cfg->policy.vkbd.class, class);
+	eina_stringshare_replace(&_e_illume_cfg->policy.vkbd.name, name);
         break;
-      case IL_SELECT_WINDOW_TYPE_SOFTKEY:
-        if (il_cfg->policy.softkey.title)
-          eina_stringshare_del(il_cfg->policy.softkey.title);
-        if (title) il_cfg->policy.softkey.title = eina_stringshare_add(title);
-        if (il_cfg->policy.softkey.class)
-          eina_stringshare_del(il_cfg->policy.softkey.class);
-        if (class) il_cfg->policy.softkey.class = eina_stringshare_add(class);
-        if (il_cfg->policy.softkey.name)
-          eina_stringshare_del(il_cfg->policy.softkey.name);
-        if (name) il_cfg->policy.softkey.name = eina_stringshare_add(name);
+      case E_ILLUME_SELECT_WINDOW_TYPE_SOFTKEY:
+	eina_stringshare_replace(&_e_illume_cfg->policy.softkey.title, title);
+	eina_stringshare_replace(&_e_illume_cfg->policy.softkey.class, class);
+	eina_stringshare_replace(&_e_illume_cfg->policy.softkey.name, name);
         break;
-      case IL_SELECT_WINDOW_TYPE_INDICATOR:
-        if (il_cfg->policy.indicator.title)
-          eina_stringshare_del(il_cfg->policy.indicator.title);
-        if (title) il_cfg->policy.indicator.title = eina_stringshare_add(title);
-        if (il_cfg->policy.indicator.class)
-          eina_stringshare_del(il_cfg->policy.indicator.class);
-        if (class) il_cfg->policy.indicator.class = eina_stringshare_add(class);
-        if (il_cfg->policy.indicator.name)
-          eina_stringshare_del(il_cfg->policy.indicator.name);
-        if (name) il_cfg->policy.indicator.name = eina_stringshare_add(name);
+      case E_ILLUME_SELECT_WINDOW_TYPE_INDICATOR:
+	eina_stringshare_replace(&_e_illume_cfg->policy.indicator.title, title);
+	eina_stringshare_replace(&_e_illume_cfg->policy.indicator.class, class);
+	eina_stringshare_replace(&_e_illume_cfg->policy.indicator.name, name);
         break;
      }
 
@@ -156,19 +141,19 @@ _il_config_select_window_list_changed(void *data)
 
    if (_sw_change_timer) ecore_timer_del(_sw_change_timer);
    _sw_change_timer = 
-     ecore_timer_add(0.5, _il_config_select_window_change_timeout, data);
+     ecore_timer_add(0.5, _e_mod_illume_config_select_window_change_timeout, data);
 }
 
-static int 
-_il_config_select_window_change_timeout(void *data) 
+static Eina_Bool
+_e_mod_illume_config_select_window_change_timeout(__UNUSED__ void *data)
 {
    e_config_save_queue();
    _sw_change_timer = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static int 
-_il_config_select_window_match(E_Border *bd) 
+_e_mod_illume_config_select_window_match(E_Border *bd) 
 {
    Ecore_X_Window_Type wtype;
    char *title, *name, *class;
@@ -181,84 +166,72 @@ _il_config_select_window_match(E_Border *bd)
 
    switch (stype) 
      {
-      case IL_SELECT_WINDOW_TYPE_HOME:
-        if (il_cfg->policy.home.match.title) 
+      case E_ILLUME_SELECT_WINDOW_TYPE_HOME:
+        if (_e_illume_cfg->policy.home.match.title) 
           {
-             if ((title) && (!strcmp(title, il_cfg->policy.home.title)))
+             if ((title) && (!strcmp(title, _e_illume_cfg->policy.home.title)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.home.match.name) 
+        if (_e_illume_cfg->policy.home.match.name) 
           {
-             if ((name) && (!strcmp(name, il_cfg->policy.home.name)))
+             if ((name) && (!strcmp(name, _e_illume_cfg->policy.home.name)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.home.match.class) 
+        if (_e_illume_cfg->policy.home.match.class) 
           {
-             if ((class) && (!strcmp(class, il_cfg->policy.home.class)))
+             if ((class) && (!strcmp(class, _e_illume_cfg->policy.home.class)))
                match = 1;
-             break;
           }
         break;
-      case IL_SELECT_WINDOW_TYPE_VKBD:
-        if (il_cfg->policy.vkbd.match.title) 
+      case E_ILLUME_SELECT_WINDOW_TYPE_VKBD:
+        if (_e_illume_cfg->policy.vkbd.match.title) 
           {
-             if ((title) && (!strcmp(title, il_cfg->policy.vkbd.title)))
+             if ((title) && (!strcmp(title, _e_illume_cfg->policy.vkbd.title)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.vkbd.match.name) 
+        if (_e_illume_cfg->policy.vkbd.match.name) 
           {
-             if ((name) && (!strcmp(name, il_cfg->policy.vkbd.name)))
+             if ((name) && (!strcmp(name, _e_illume_cfg->policy.vkbd.name)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.vkbd.match.class) 
+        if (_e_illume_cfg->policy.vkbd.match.class) 
           {
-             if ((class) && (!strcmp(class, il_cfg->policy.vkbd.class)))
+             if ((class) && (!strcmp(class, _e_illume_cfg->policy.vkbd.class)))
                match = 1;
-             break;
           }
         break;
-      case IL_SELECT_WINDOW_TYPE_SOFTKEY:
-        if (il_cfg->policy.softkey.match.title) 
+      case E_ILLUME_SELECT_WINDOW_TYPE_SOFTKEY:
+        if (_e_illume_cfg->policy.softkey.match.title) 
           {
-             if ((title) && (!strcmp(title, il_cfg->policy.softkey.title)))
+             if ((title) && (!strcmp(title, _e_illume_cfg->policy.softkey.title)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.softkey.match.name) 
+        if (_e_illume_cfg->policy.softkey.match.name) 
           {
-             if ((name) && (!strcmp(name, il_cfg->policy.softkey.name)))
+             if ((name) && (!strcmp(name, _e_illume_cfg->policy.softkey.name)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.softkey.match.class) 
+        if (_e_illume_cfg->policy.softkey.match.class) 
           {
-             if ((class) && (!strcmp(class, il_cfg->policy.softkey.class)))
+             if ((class) && (!strcmp(class, _e_illume_cfg->policy.softkey.class)))
                match = 1;
-             break;
           }
         break;
-      case IL_SELECT_WINDOW_TYPE_INDICATOR:
-        if (il_cfg->policy.indicator.match.title) 
+      case E_ILLUME_SELECT_WINDOW_TYPE_INDICATOR:
+        if (_e_illume_cfg->policy.indicator.match.title) 
           {
-             if ((title) && (!strcmp(title, il_cfg->policy.indicator.title)))
+             if ((title) && (!strcmp(title, _e_illume_cfg->policy.indicator.title)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.indicator.match.name) 
+        if (_e_illume_cfg->policy.indicator.match.name) 
           {
-             if ((name) && (!strcmp(name, il_cfg->policy.indicator.name)))
+             if ((name) && (!strcmp(name, _e_illume_cfg->policy.indicator.name)))
                match = 1;
-             break;
           }
-        if (il_cfg->policy.indicator.match.class) 
+        if (_e_illume_cfg->policy.indicator.match.class) 
           {
-             if ((class) && (!strcmp(class, il_cfg->policy.indicator.class)))
+             if ((class) && (!strcmp(class, _e_illume_cfg->policy.indicator.class)))
                match = 1;
-             break;
           }
         break;
      }

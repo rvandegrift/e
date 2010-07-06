@@ -3,8 +3,10 @@
  */
 #include "e.h"
 
+EAPI int E_EVENT_INIT_DONE = 0;
+
 /* local function prototypes */
-static int _e_init_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_init_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *event);
 
 /* local variables */
 static const char *title = NULL;
@@ -20,6 +22,7 @@ static Eina_List *stats = NULL;
 EAPI int
 e_init_init(void)
 {
+   E_EVENT_INIT_DONE = ecore_event_type_new();
    exe_del_handler = 
      ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
                              _e_init_cb_exe_event_del, NULL);
@@ -37,7 +40,7 @@ e_init_shutdown(void)
    if (version) eina_stringshare_del(version);
    title = NULL;
    version = NULL;
-   ecore_event_handler_del(exe_del_handler);
+   if (exe_del_handler) ecore_event_handler_del(exe_del_handler);
    exe_del_handler = NULL;
    return 1;
 }
@@ -122,6 +125,7 @@ e_init_done(void)
    undone--;
    if (undone > 0) return;
    done = 1;
+   ecore_event_add(E_EVENT_INIT_DONE, NULL, NULL, NULL);
 //   printf("---DONE %p\n", client);
    if (!client) return;
    ecore_ipc_client_send(client, E_IPC_DOMAIN_INIT, 2, 0, 0, 0, NULL, 0);
@@ -199,8 +203,14 @@ e_init_client_del(Ecore_Ipc_Event_Client_Del *e)
      }
 }
 
+EAPI int
+e_init_count_get(void)
+{
+   return undone;
+}
+
 /* local functions */
-static int
+static Eina_Bool
 _e_init_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Exe_Event_Del *ev;
@@ -212,5 +222,5 @@ _e_init_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *event
 //	ecore_exe_free(init_exe);
 	init_exe = NULL;
      }
-   return 1;
+   return ECORE_CALLBACK_RENEW;
 }

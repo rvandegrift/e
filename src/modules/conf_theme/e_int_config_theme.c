@@ -6,14 +6,14 @@
 #include "e_int_config_theme_import.h"
 #include "e_int_config_theme_web.h"
 
-static void        *_create_data               (E_Config_Dialog *cfd);
-static void         _free_data                 (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static void         _fill_data                 (E_Config_Dialog_Data *cfdata);
-static int          _basic_apply_data          (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_basic_create_widgets      (E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
-static int          _advanced_apply_data       (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_advanced_create_widgets   (E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
-static Eina_List   *_get_theme_categories_list (void);
+static void *_create_data(E_Config_Dialog *cfd);
+static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static void _fill_data(E_Config_Dialog_Data *cfdata);
+static int _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+static int _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+static Eina_List *_get_theme_categories_list(void);
 
 struct _E_Config_Dialog_Data
 {
@@ -31,46 +31,47 @@ struct _E_Config_Dialog_Data
    /* Advanced */
    Evas_Object *o_categories_ilist;
    Evas_Object *o_files_ilist;
-   int         personal_file_count;
-   Eina_List   *theme_list;
-   Eina_List   *parts_list;
+   int personal_file_count;
+   Eina_List *theme_list;
+   Eina_List *parts_list;
 
    /* Dialog */
-   E_Win    *win_import;
+   E_Win *win_import;
    E_Dialog *dia_web;
 };
 
-static const char *parts_list[] = {
-  "about:e/widgets/about/main",
-  "borders:e/widgets/border/default/border",
-  "background:e/desktop/background",
-  "configure:e/widgets/configure/main",
-  "dialog:e/widgets/dialog/main",
-  "dnd:ZZZ",
-  "error:e/error/main",
-  "exebuf:e/widgets/exebuf/main",
-  "fileman:ZZZ",
-  "gadman:e/gadman/control",
-  "icons:ZZZ",
-  "menus:ZZZ",
-  "modules:ZZZ",
-  "modules/pager:e/widgets/pager/popup",
-  "modules/ibar:ZZZ",
-  "modules/ibox:ZZZ",
-  "modules/clock:e/modules/clock/main",
-  "modules/battery:e/modules/battery/main",
-  "modules/cpufreq:e/modules/cpufreq/main",
-  "modules/start:e/modules/start/main",
-  "modules/temperature:e/modules/temperature/main",
-  "pointer:e/pointer",
-  "shelf:e/shelf/default/base",
-  "transitions:ZZZ",
-  "widgets:ZZZ",
-  "winlist:e/widgets/winlist/main",
-  NULL
+static const char *parts_list[] = 
+{
+   "about:e/widgets/about/main",
+     "borders:e/widgets/border/default/border",
+     "background:e/desktop/background",
+     "configure:e/widgets/configure/main",
+     "dialog:e/widgets/dialog/main",
+     "dnd:ZZZ",
+     "error:e/error/main",
+     "exebuf:e/widgets/exebuf/main",
+     "fileman:ZZZ",
+     "gadman:e/gadman/control",
+     "icons:ZZZ",
+     "menus:ZZZ",
+     "modules:ZZZ",
+     "modules/pager:e/widgets/pager/popup",
+     "modules/ibar:ZZZ",
+     "modules/ibox:ZZZ",
+     "modules/clock:e/modules/clock/main",
+     "modules/battery:e/modules/battery/main",
+     "modules/cpufreq:e/modules/cpufreq/main",
+     "modules/start:e/modules/start/main",
+     "modules/temperature:e/modules/temperature/main",
+     "pointer:e/pointer",
+     "shelf:e/shelf/default/base",
+     "transitions:ZZZ",
+     "widgets:ZZZ",
+     "winlist:e/widgets/winlist/main",
+     NULL
 };
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_theme(E_Container *con, const char *params __UNUSED__)
 {
    E_Config_Dialog *cfd;
@@ -79,11 +80,11 @@ e_int_config_theme(E_Container *con, const char *params __UNUSED__)
    if (e_config_dialog_find("E", "appearance/theme")) return NULL;
    v = E_NEW(E_Config_Dialog_View, 1);
 
-   v->create_cfdata           = _create_data;
-   v->free_cfdata             = _free_data;
-   v->basic.apply_cfdata      = _basic_apply_data;
-   v->basic.create_widgets    = _basic_create_widgets;
-   v->advanced.apply_cfdata   = _advanced_apply_data;
+   v->create_cfdata = _create_data;
+   v->free_cfdata = _free_data;
+   v->basic.apply_cfdata = _basic_apply_data;
+   v->basic.create_widgets = _basic_create_widgets;
+   v->advanced.apply_cfdata = _advanced_apply_data;
    v->advanced.create_widgets = _advanced_create_widgets;
    v->override_auto_apply = 1;
    cfd = e_config_dialog_new(con,
@@ -93,7 +94,7 @@ e_int_config_theme(E_Container *con, const char *params __UNUSED__)
    return cfd;
 }
 
-EAPI void
+void
 e_int_config_theme_import_done(E_Config_Dialog *dia)
 {
    E_Config_Dialog_Data *cfdata;
@@ -102,7 +103,7 @@ e_int_config_theme_import_done(E_Config_Dialog *dia)
    cfdata->win_import = NULL;
 }
 
-EAPI void
+void
 e_int_config_theme_web_done(E_Config_Dialog *dia)
 {
    E_Config_Dialog_Data *cfdata;
@@ -111,7 +112,7 @@ e_int_config_theme_web_done(E_Config_Dialog *dia)
    cfdata->dia_web = NULL;
 }
 
-EAPI void
+void
 e_int_config_theme_update(E_Config_Dialog *dia, char *file)
 {
    E_Config_Dialog_Data *cfdata;
@@ -130,7 +131,8 @@ e_int_config_theme_update(E_Config_Dialog *dia, char *file)
      e_widget_flist_path_set(cfdata->o_fm, path, "/");
 
    if (cfdata->o_preview)
-     e_widget_preview_edje_set(cfdata->o_preview, cfdata->theme, "e/desktop/background");
+     e_widget_preview_edje_set(cfdata->o_preview, cfdata->theme, 
+                               "e/desktop/background");
    if (cfdata->o_fm) e_widget_change(cfdata->o_fm);
 }
 
@@ -631,8 +633,8 @@ _preview_set(void *data)
 	  ret = e_widget_preview_edje_set(cfdata->o_preview, theme,
 					  parts_list[i] + strlen(c_label));
         if (!ret)
-	  ret = e_widget_preview_edje_set(cfdata->o_preview, theme,
-					  "e/desktop/background");
+	  e_widget_preview_edje_set(cfdata->o_preview, theme,
+				    "e/desktop/background");
 	eina_stringshare_del(theme);
      }
 }

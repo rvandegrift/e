@@ -62,7 +62,7 @@ _e_kbd_border_show(E_Kbd *kbd, E_Border *bd)
    e_border_raise(bd);
 }
 
-static int
+static Eina_Bool
 _e_kbd_cb_animate(void *data)
 {
    E_Kbd *kbd;
@@ -98,9 +98,9 @@ _e_kbd_cb_animate(void *data)
 	  }
 	_e_kbd_apply_all_job_queue();
 	_e_kbd_layout_send(kbd);
-	return 0;
+	return ECORE_CALLBACK_CANCEL;
      }
-   return 1;
+   return ECORE_CALLBACK_RENEW;
 }
 
 static void
@@ -114,7 +114,9 @@ _e_kbd_free(E_Kbd *kbd)
 // FIXME: thought right - on shutdoiwn, this might point to freed data
 //   if (kbd->border) kbd->border->stolen = 0;
    EINA_LIST_FREE(kbd->waiting_borders, bd)
-	bd->stolen = 0;
+	    bd->stolen = 0;
+
+   //I think this is right? someone who knows illume should probably verify
    free(kbd);
 }
 
@@ -198,80 +200,82 @@ _e_kbd_by_border_get(E_Border *bd)
    return NULL;
 }
 
-static int
+static Eina_Bool
 _e_kbd_cb_delayed_hide(void *data)
 {
    E_Kbd *kbd;
-   
+
    kbd = data;
    _e_kbd_hide(kbd);
    kbd->delay_hide = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
 _e_kbd_all_enable(void)
 {
    Eina_List *l;
-	E_Kbd *kbd;
-	
+   E_Kbd *kbd;
+
    EINA_LIST_FOREACH(kbds, l, kbd)
-	e_kbd_enable(kbd);
+     e_kbd_enable(kbd);
 }
 
 static void
 _e_kbd_all_disable(void)
 {
    Eina_List *l;
-	E_Kbd *kbd;
-	
+   E_Kbd *kbd;
+
    EINA_LIST_FOREACH(kbds, l, kbd)
-	e_kbd_disable(kbd);
+     e_kbd_disable(kbd);
 }
 
 static void
 _e_kbd_all_show(void)
 {
    Eina_List *l;
-	E_Kbd *kbd;
-	
+   E_Kbd *kbd;
+
    EINA_LIST_FOREACH(kbds, l, kbd)
-	e_kbd_show(kbd);
+     e_kbd_show(kbd);
 }
 
 static void
 _e_kbd_all_layout_set(E_Kbd_Layout layout)
 {
    Eina_List *l;
-	E_Kbd *kbd;
-	
+   E_Kbd *kbd;
+
    EINA_LIST_FOREACH(kbds, l, kbd)
-	e_kbd_layout_set(kbd, layout);
+     e_kbd_layout_set(kbd, layout);
 }
 
 static void
 _e_kbd_all_hide(void)
 {
    Eina_List *l;
-	E_Kbd *kbd;
-	
+   E_Kbd *kbd;
+
    EINA_LIST_FOREACH(kbds, l, kbd)
-	e_kbd_hide(kbd);
+     e_kbd_hide(kbd);
 }
 
 static void
 _e_kbd_all_toggle(void)
 {
    Eina_List *l;
-	E_Kbd *kbd;
-	
-   EINA_LIST_FOREACH(kbds, l, kbd)
-	if (kbd->visible) e_kbd_hide(kbd);
-	else e_kbd_show(kbd);
+   E_Kbd *kbd;
+
+   EINA_LIST_FOREACH(kbds, l, kbd) 
+     {
+        if (kbd->visible) e_kbd_hide(kbd);
+        else e_kbd_show(kbd);
+     }
 }
 
-static int
-_e_kbd_cb_client_message(void *data, int type, void *event)
+static Eina_Bool
+_e_kbd_cb_client_message(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    Ecore_X_Event_Client_Message *ev;
    
@@ -284,21 +288,11 @@ _e_kbd_cb_client_message(void *data, int type, void *event)
 	else if (ev->data.l[0] == 2) _e_kbd_all_hide();
 	else if (ev->data.l[0] == 3) _e_kbd_all_toggle();
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_kbd_cb_border_add(void *data, int type, void *event)
-{
-   E_Event_Border_Add *ev;
-   
-   ev = event;
-   // nothing - border hooks do this
-   return 1;
-}
-
-static int
-_e_kbd_cb_border_remove(void *data, int type, void *event)
+static Eina_Bool
+_e_kbd_cb_border_remove(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Remove *ev;
    E_Kbd *kbd;
@@ -308,11 +302,11 @@ _e_kbd_cb_border_remove(void *data, int type, void *event)
      {
 	focused_border = NULL;
 	focused_vkbd_state = 0;
-	return 1;
+	return ECORE_CALLBACK_PASS_ON;
      }
    // if border is in a created kbd - unstore
    kbd = _e_kbd_by_border_get(ev->border);
-   if (!kbd) return 1;
+   if (!kbd) return ECORE_CALLBACK_PASS_ON;
    if (kbd->border == ev->border)
      {
 	kbd->border = NULL;
@@ -335,16 +329,16 @@ _e_kbd_cb_border_remove(void *data, int type, void *event)
      }
    else
      kbd->waiting_borders = eina_list_remove(kbd->waiting_borders, ev->border);
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_kbd_cb_border_focus_in(void *data, int type, void *event)
+static Eina_Bool
+_e_kbd_cb_border_focus_in(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Focus_In *ev;
    
    ev = event;
-   if (_e_kbd_by_border_get(ev->border)) return 1;
+   if (_e_kbd_by_border_get(ev->border)) return ECORE_CALLBACK_PASS_ON;
    // FIXME: if ev->border->client.vkbd.state == 0 then this app doesnt know
    // how to request for a virtual keyboard and so we should have a manual
    // override
@@ -359,7 +353,7 @@ _e_kbd_cb_border_focus_in(void *data, int type, void *event)
      {
 	_e_kbd_all_layout_set(E_KBD_LAYOUT_NONE);
 	_e_kbd_all_hide();
-	return 1;
+	return ECORE_CALLBACK_PASS_ON;
      }
    else if (ev->border->client.vkbd.state == ECORE_X_VIRTUAL_KEYBOARD_STATE_ALPHA)
      _e_kbd_all_layout_set(E_KBD_LAYOUT_ALPHA);
@@ -378,16 +372,16 @@ _e_kbd_cb_border_focus_in(void *data, int type, void *event)
    else
      _e_kbd_all_layout_set(E_KBD_LAYOUT_DEFAULT);
    _e_kbd_all_show();
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_kbd_cb_border_focus_out(void *data, int type, void *event)
+static Eina_Bool
+_e_kbd_cb_border_focus_out(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Focus_Out *ev;
 
    ev = event;
-   if (_e_kbd_by_border_get(ev->border)) return 1;
+   if (_e_kbd_by_border_get(ev->border)) return ECORE_CALLBACK_PASS_ON;
    if ((ev->border->need_fullscreen) || (ev->border->fullscreen))
      e_kbd_fullscreen_set(ev->border->zone, 1);
    else e_kbd_fullscreen_set(ev->border->zone, 0);
@@ -395,28 +389,28 @@ _e_kbd_cb_border_focus_out(void *data, int type, void *event)
    _e_kbd_all_hide();
    focused_border = NULL;
    focused_vkbd_state = 0;
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_kbd_cb_border_property(void *data, int type, void *event)
+static Eina_Bool
+_e_kbd_cb_border_property(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Property *ev;
    
    ev = event;
-   if (_e_kbd_by_border_get(ev->border)) return 1;
-   if (!ev->border->focused) return 1;
+   if (_e_kbd_by_border_get(ev->border)) return ECORE_CALLBACK_PASS_ON;
+   if (!ev->border->focused) return ECORE_CALLBACK_PASS_ON;
    /* nothing happened to vkbd prop - leave everything alone */
    if ((ev->border == focused_border) &&
        (ev->border->client.vkbd.state == focused_vkbd_state))
-     return 1;
+     return ECORE_CALLBACK_PASS_ON;
    focused_vkbd_state = ev->border->client.vkbd.state;
    /* app doesn't know what to do - just leave everything as-is */
    if ((ev->border->need_fullscreen) || (ev->border->fullscreen))
      e_kbd_fullscreen_set(ev->border->zone, 1);
    else e_kbd_fullscreen_set(ev->border->zone, 0);
    if (ev->border->client.vkbd.state == 0)
-     return 1;
+     return ECORE_CALLBACK_PASS_ON;
    /* app wats kbd off - then kbd off it is */
    else if (ev->border->client.vkbd.state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF)
      _e_kbd_all_hide();
@@ -441,12 +435,15 @@ _e_kbd_cb_border_property(void *data, int type, void *event)
 	  _e_kbd_all_layout_set(E_KBD_LAYOUT_DEFAULT);
 	_e_kbd_all_show();
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static void
-_e_kbd_cb_border_hook_pre_post_fetch(void *data, E_Border *bd)
+static void 
+_e_kbd_cb_border_hook_pre_post_fetch(void *data, void *data2)
 {
+   E_Border *bd;
+
+   if (!(bd = data2)) return;
    // check if bd has special kbd properites - if so, store in created kbd
    if (!bd->new_client) return;
    if (_e_kbd_by_border_get(bd)) return;
@@ -500,18 +497,23 @@ _e_kbd_cb_border_hook_pre_post_fetch(void *data, E_Border *bd)
 }
 
 static void
-_e_kbd_cb_border_hook_post_fetch(void *data, E_Border *bd)
+_e_kbd_cb_border_hook_post_fetch(void *data, void *data2)
 {
+   E_Border *bd;
+
+   if (!(bd = data2)) return;
    // nothing - all done in _e_kbd_cb_border_hook_pre_post_fetch()
    if (!_e_kbd_by_border_get(bd)) return;
 }
 
 static void
-_e_kbd_cb_border_hook_post_border_assign(void *data, E_Border *bd)
+_e_kbd_cb_border_hook_post_border_assign(void *data, void *data2)
 {
+   E_Border *bd;
    E_Kbd *kbd;
    int pbx, pby, pbw, pbh;
-   
+
+   if (!(bd = data2)) return;
    kbd = _e_kbd_by_border_get(bd);
    if (!kbd) return;
    
@@ -588,10 +590,12 @@ _e_kbd_cb_border_hook_post_border_assign(void *data, E_Border *bd)
 }
 
 static void
-_e_kbd_cb_border_hook_end(void *data, E_Border *bd)
+_e_kbd_cb_border_hook_end(void *data, void *data2)
 {
    E_Kbd *kbd;
-   
+   E_Border *bd;
+
+   if (!(bd = data2)) return;
    kbd = _e_kbd_by_border_get(bd);
    if (!kbd) return;
    if (kbd->border == bd)
@@ -756,7 +760,7 @@ _e_kbd_dbus_cb_input_keyboard_is(void *user_data, void *reply_data, DBusError *e
      }
    
    error:
-   free(udi);
+   eina_stringshare_del(udi);
 }
 
 static void
@@ -767,10 +771,9 @@ _e_kbd_dbus_cb_dev_add(void *data, DBusMessage *msg)
         
    dbus_error_init(&err);
    dbus_message_get_args(msg, &err, DBUS_TYPE_STRING, &udi, DBUS_TYPE_INVALID);
-   udi = strdup(udi);
-   e_hal_device_query_capability(_e_kbd_dbus_conn, udi, "input.keyboard",
+   e_hal_device_query_capability(_e_kbd_dbus_conn, eina_stringshare_add(udi), "input.keyboard",
                                        _e_kbd_dbus_cb_input_keyboard_is, 
-				       strdup(udi));
+				                                   (void*)eina_stringshare_add(udi));
 }
      
 static void
@@ -854,19 +857,19 @@ _e_kbd_dbus_real_kbd_init(void)
 						_e_kbd_dbus_cb_dev_input_keyboard, NULL);
 
 	_e_kbd_dbus_handler_dev_add =
-	  e_dbus_signal_handler_add(_e_kbd_dbus_conn, "org.freedesktop.Hal",
-				    "/org/freedesktop/Hal/Manager",
-				    "org.freedesktop.Hal.Manager",
+	  e_dbus_signal_handler_add(_e_kbd_dbus_conn, E_HAL_SENDER,
+				    E_HAL_MANAGER_PATH,
+				    E_HAL_MANAGER_INTERFACE,
 				    "DeviceAdded", _e_kbd_dbus_cb_dev_add, NULL);
 	_e_kbd_dbus_handler_dev_del =
-	  e_dbus_signal_handler_add(_e_kbd_dbus_conn, "org.freedesktop.Hal",
-				    "/org/freedesktop/Hal/Manager",
-				    "org.freedesktop.Hal.Manager",
+	  e_dbus_signal_handler_add(_e_kbd_dbus_conn, E_HAL_SENDER,
+				    E_HAL_MANAGER_PATH,
+				    E_HAL_MANAGER_INTERFACE,
 				    "DeviceRemoved", _e_kbd_dbus_cb_dev_del, NULL);
 	_e_kbd_dbus_handler_dev_chg =
-	  e_dbus_signal_handler_add(_e_kbd_dbus_conn, "org.freedesktop.Hal",
-				    "/org/freedesktop/Hal/Manager",
-				    "org.freedesktop.Hal.Manager",
+	  e_dbus_signal_handler_add(_e_kbd_dbus_conn, E_HAL_SENDER,
+				    E_HAL_MANAGER_PATH,
+				    E_HAL_MANAGER_INTERFACE,
 				    "NewCapability", _e_kbd_dbus_cb_cap_add, NULL);
      }
 }
@@ -901,10 +904,6 @@ e_kbd_init(E_Module *m)
 			       ecore_event_handler_add
 			       (ECORE_X_EVENT_CLIENT_MESSAGE,
 				_e_kbd_cb_client_message, NULL));
-   handlers = eina_list_append(handlers, 
-			       ecore_event_handler_add
-			       (E_EVENT_BORDER_ADD,
-				_e_kbd_cb_border_add, NULL));
    handlers = eina_list_append(handlers, 
 			       ecore_event_handler_add
 			       (E_EVENT_BORDER_REMOVE,
@@ -1079,15 +1078,18 @@ EAPI void
 e_kbd_fullscreen_set(E_Zone *zone, int fullscreen)
 {
    Eina_List *l;
-	E_Kbd *kbd;
+   E_Kbd *kbd;
 	
    EINA_LIST_FOREACH(kbds, l, kbd)
-	if ((!!fullscreen) != kbd->fullscreen)
-	  {
-	     kbd->fullscreen = fullscreen;
-	     if (kbd->fullscreen)
-	       e_border_layer_set(kbd->border, 250);
-	     else
-	       e_border_layer_set(kbd->border, 100);
-	  }
+     if ((!!fullscreen) != kbd->fullscreen)
+       {
+          kbd->fullscreen = fullscreen;
+          if (kbd->border) 
+            {
+               if (kbd->fullscreen)
+                 e_border_layer_set(kbd->border, 250);
+               else
+                 e_border_layer_set(kbd->border, 100);
+            }
+       }
 }

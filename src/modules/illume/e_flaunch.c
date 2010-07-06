@@ -59,6 +59,7 @@ _e_fluanch_cb_app_button(void *data)
    desktop = efreet_util_desktop_file_id_find(fla->desktop);
    if (!desktop) return;
    if (fla->flaunch->desktop_run_func) fla->flaunch->desktop_run_func(desktop);
+   efreet_desktop_free(desktop);
 }
 
 static E_Flaunch_App *
@@ -76,6 +77,7 @@ _e_flaunch_app_add(E_Flaunch *fl, const char *deskfile)
    e_box_pack_end(fl->app_box_obj, fla->obj);
    e_box_pack_options_set(fla->obj, 1, 1, 1, 1, 0.5, 0.5, 0, 0, 9999, 9999);
    evas_object_show(fla->obj);
+   if (desktop) efreet_desktop_free(desktop);
    return fla;
 }
 
@@ -97,14 +99,14 @@ _e_flaunch_apps_populate(E_Flaunch *fl)
    int num = 0, max, count;
    
    // FIXME: 3 should become config here
-   max = 3;
+   max = 10;
    // for now just look for any apps in "category" 'Bar' and add the first 3
    // FIXME: category should be configurable... 
-   bar_desktops = efreet_util_desktop_category_list("Bar");
+   bar_desktops = efreet_util_desktop_category_list("System");
    if (bar_desktops)
      {
 	Efreet_Desktop *desktop;
-	
+	printf("Have Desktops\n");
 	count = eina_list_count(bar_desktops);
 	if (count < max)
 	  {
@@ -118,6 +120,7 @@ _e_flaunch_apps_populate(E_Flaunch *fl)
 	  }
 	EINA_LIST_FOREACH(bar_desktops, l, desktop)
 	  {
+             printf("Desktop: %s\n", desktop->name);
 	     if (desktop->orig_path)
 	       {
 		  const char *dname;
@@ -131,6 +134,8 @@ _e_flaunch_apps_populate(E_Flaunch *fl)
 	       }
 	     if (num >= max) break;
 	  }
+	EINA_LIST_FREE(bar_desktops, desktop)
+	  efreet_desktop_free(desktop);
      }
    while (num < max)
      {
@@ -161,8 +166,8 @@ _e_flaunch_free(E_Flaunch *fl)
    free(fl);
 }
 
-static int
-_e_flaunch_cb_zone_move_resize(void *data, int type, void *event)
+static Eina_Bool
+_e_flaunch_cb_zone_move_resize(void *data, __UNUSED__ int type, void *event)
 {       
    E_Event_Zone_Move_Resize *ev;
    E_Flaunch *fl;
@@ -174,10 +179,10 @@ _e_flaunch_cb_zone_move_resize(void *data, int type, void *event)
 	evas_object_move(fl->box_obj, fl->zone->x, fl->zone->y + fl->zone->h - fl->height);
 	evas_object_resize(fl->box_obj, fl->zone->w, fl->height);
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _e_flaunch_cb_delayed_repopulate(void *data)
 {
    E_Flaunch *fl;
@@ -186,29 +191,18 @@ _e_flaunch_cb_delayed_repopulate(void *data)
    _e_flaunch_apps_clear(fl);
    _e_flaunch_apps_populate(fl);
    fl->repopulate_timer = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
-static int
-_e_flaunch_cb_desktop_list_change(void *data, int type, void *event)
-{       
+static Eina_Bool
+_e_flaunch_cb_cache_update(void *data, __UNUSED__ int type, void *event)
+{
    E_Flaunch *fl;
    
    fl = data;
    if (fl->repopulate_timer) ecore_timer_del(fl->repopulate_timer);
    fl->repopulate_timer = ecore_timer_add(0.5, _e_flaunch_cb_delayed_repopulate, fl);
-   return 1;
-}
-
-static int
-_e_flaunch_cb_desktop_change(void *data, int type, void *event)
-{       
-   E_Flaunch *fl;
-   
-   fl = data;
-   if (fl->repopulate_timer) ecore_timer_del(fl->repopulate_timer);
-   fl->repopulate_timer = ecore_timer_add(0.5, _e_flaunch_cb_delayed_repopulate, fl);
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 EAPI int
@@ -270,10 +264,7 @@ e_flaunch_new(E_Zone *zone, const char *themedir)
       (E_EVENT_ZONE_MOVE_RESIZE, _e_flaunch_cb_zone_move_resize, fl));
    fl->handlers = eina_list_append
      (fl->handlers, ecore_event_handler_add
-      (EFREET_EVENT_DESKTOP_LIST_CHANGE, _e_flaunch_cb_desktop_list_change, fl));
-   fl->handlers = eina_list_append
-     (fl->handlers, ecore_event_handler_add
-      (EFREET_EVENT_DESKTOP_CHANGE, _e_flaunch_cb_desktop_change, fl));
+      (EFREET_EVENT_DESKTOP_CACHE_UPDATE, _e_flaunch_cb_cache_update, fl));
    
    return fl;
 }

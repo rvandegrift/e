@@ -1,15 +1,15 @@
 #ifndef E_MOD_SELECT_WINDOW_H
 #define E_MOD_SELECT_WINDOW_H
 
-typedef enum _Il_Select_Window_Type Il_Select_Window_Type;
-enum _Il_Select_Window_Type 
+typedef enum _E_Illume_Select_Window_Type E_Illume_Select_Window_Type;
+enum _E_Illume_Select_Window_Type 
 {
-   IL_SELECT_WINDOW_TYPE_HOME, 
-     IL_SELECT_WINDOW_TYPE_VKBD, 
-     IL_SELECT_WINDOW_TYPE_SOFTKEY, 
-     IL_SELECT_WINDOW_TYPE_INDICATOR
+   E_ILLUME_SELECT_WINDOW_TYPE_HOME, 
+     E_ILLUME_SELECT_WINDOW_TYPE_VKBD, 
+     E_ILLUME_SELECT_WINDOW_TYPE_SOFTKEY, 
+     E_ILLUME_SELECT_WINDOW_TYPE_INDICATOR
 };
 
-void il_config_select_window(Il_Select_Window_Type type);
+void e_mod_illume_config_select_window(E_Illume_Select_Window_Type type);
 
 #endif

@@ -7,3 +7,16 @@ newline by newline)
 
 2. /proc/acpi/**/**/.../*/brightness controls
    (look at sony and asus - different)
+
+XF86XK_Standby
+XF86XK_MonBrightnessUp
+XF86XK_MonBrightnessDown
+XF86XK_PowerDown
+XF86XK_PowerOff
+XF86XK_WakeUp
+XF86XK_Sleep
+XF86XK_BrightnessAdjust
+XF86XK_Display
+XF86XK_LogOff
+XF86XK_Battery
+

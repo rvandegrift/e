@@ -11,17 +11,19 @@ static void _e_zone_free(E_Zone *zone);
 static void _e_zone_cb_bg_mouse_down(void *data, Evas *evas, Evas_Object *obj, void *event_info);
 static void _e_zone_cb_bg_mouse_up(void *data, Evas *evas, Evas_Object *obj, void *event_info);
 static void _e_zone_event_zone_desk_count_set_free(void *data, void *ev);
-static int  _e_zone_cb_mouse_in(void *data, int type, void *event);
-static int  _e_zone_cb_mouse_out(void *data, int type, void *event);
-static int  _e_zone_cb_mouse_down(void *data, int type, void *event);
-static int  _e_zone_cb_mouse_up(void *data, int type, void *event);
-static int  _e_zone_cb_mouse_move(void *data, int type, void *event);
-static int  _e_zone_cb_desk_after_show(void *data, int type, void *event);
-static int  _e_zone_cb_edge_timer(void *data);
+static Eina_Bool _e_zone_cb_mouse_in(void *data, int type, void *event);
+static Eina_Bool _e_zone_cb_mouse_out(void *data, int type, void *event);
+static Eina_Bool _e_zone_cb_mouse_down(void *data, int type, void *event);
+static Eina_Bool _e_zone_cb_mouse_up(void *data, int type, void *event);
+static Eina_Bool _e_zone_cb_mouse_move(void *data, int type, void *event);
+static Eina_Bool _e_zone_cb_desk_after_show(void *data, int type, void *event);
+static Eina_Bool _e_zone_cb_edge_timer(void *data);
 static void _e_zone_event_move_resize_free(void *data, void *ev);
 static void _e_zone_event_add_free(void *data, void *ev);
 static void _e_zone_event_del_free(void *data, void *ev);
 static void _e_zone_object_del_attach(void *o);
+static E_Zone_Edge _e_zone_detect_edge(E_Zone *zone, Ecore_X_Window win);
+static void _e_zone_edge_move_resize(E_Zone *zone);
 
 EAPI int E_EVENT_ZONE_DESK_COUNT_SET = 0;
 EAPI int E_EVENT_POINTER_WARP = 0;
@@ -32,10 +34,10 @@ EAPI int E_EVENT_ZONE_EDGE_IN = 0;
 EAPI int E_EVENT_ZONE_EDGE_OUT = 0;
 EAPI int E_EVENT_ZONE_EDGE_MOVE = 0;
 
-#define E_ZONE_FLIP_LEFT(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1)) || ((zone)->desk_x_current > 0))
-#define E_ZONE_FLIP_RIGHT(zone) ((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1)) || (((zone)->desk_x_current + 1) < (zone)->desk_x_count))
-#define E_ZONE_FLIP_UP(zone)    ((e_config->desk_flip_wrap && ((zone)->desk_y_count > 1)) || ((zone)->desk_y_current > 0))
-#define E_ZONE_FLIP_DOWN(zone)  ((e_config->desk_flip_wrap && ((zone)->desk_y_count > 1)) || (((zone)->desk_y_current + 1) < (zone)->desk_y_count))
+#define E_ZONE_FLIP_LEFT(zone)  (((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1)) || ((zone)->desk_x_current > 0)) && (zone)->edge.left)
+#define E_ZONE_FLIP_RIGHT(zone) (((e_config->desk_flip_wrap && ((zone)->desk_x_count > 1)) || (((zone)->desk_x_current + 1) < (zone)->desk_x_count)) && (zone)->edge.right)
+#define E_ZONE_FLIP_UP(zone)    (((e_config->desk_flip_wrap && ((zone)->desk_y_count > 1)) || ((zone)->desk_y_current > 0)) && (zone)->edge.top)
+#define E_ZONE_FLIP_DOWN(zone)  (((e_config->desk_flip_wrap && ((zone)->desk_y_count > 1)) || (((zone)->desk_y_current + 1) < (zone)->desk_y_count)) && (zone)->edge.bottom)
 
 #define E_ZONE_CORNER_RATIO 0.025;
 
@@ -63,10 +65,9 @@ EAPI E_Zone *
 e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h)
 {
    E_Zone *zone;
-   char    name[40];
+   char name[40];
    Evas_Object *o;
    E_Event_Zone_Add *ev;
-   int cw, ch;
 
    zone = E_OBJECT_ALLOC(E_Zone, E_ZONE_TYPE, _e_zone_free);
    if (!zone) return NULL;
@@ -80,42 +81,6 @@ e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h)
    zone->num = num;
    zone->id = id;
    e_zone_useful_geometry_dirty(zone);
-
-   cw = w * E_ZONE_CORNER_RATIO;
-   ch = h * E_ZONE_CORNER_RATIO;
-
-   zone->corner.left_bottom = ecore_x_window_input_new(con->win,
-	 zone->x, zone->y + zone->h - ch, 1, ch);
-   zone->edge.left = ecore_x_window_input_new(con->win,
-	 zone->x, zone->y + ch, 1, zone->h - 2 * ch);
-   zone->corner.left_top = ecore_x_window_input_new(con->win,
-	 zone->x, zone->y, 1, ch);
-
-   zone->corner.top_left = ecore_x_window_input_new(con->win,
-	 zone->x + 1, zone->y, cw, 1);
-   zone->edge.top = ecore_x_window_input_new(con->win,
-	 zone->x + 1 + cw, zone->y, zone->w - 2 * cw - 2, 1);
-   zone->corner.top_right = ecore_x_window_input_new(con->win,
-	 zone->x + zone->w - cw - 2, zone->y, cw, 1);
-
-   zone->corner.right_top = ecore_x_window_input_new(con->win,
-	 zone->x + zone->w - 1, zone->y, 1, ch);
-   zone->edge.right = ecore_x_window_input_new(con->win,
-	 zone->x + zone->w - 1, zone->y + ch, 1, zone->h - 2 * ch);
-   zone->corner.right_bottom = ecore_x_window_input_new(con->win,
-	 zone->x + zone->w - 1, zone->y + zone->h - ch, 1, ch);
-
-   zone->corner.bottom_right = ecore_x_window_input_new(con->win,
-	 zone->x + 1, zone->y + zone->h - 1, cw, 1);
-   zone->edge.bottom = ecore_x_window_input_new(con->win,
-	 zone->x + 1 + cw, zone->y + zone->h - 1, zone->w - 2 - 2 * cw, 1);
-   zone->corner.bottom_left = ecore_x_window_input_new(con->win,
-	 zone->x + zone->w - cw - 2, zone->y + zone->h - 1, cw, 1);
-
-   if(e_config->fullscreen_flip)
-     e_zone_edge_win_layer_set(zone, 250);
-   else
-     e_zone_edge_win_layer_set(zone, 200);
 
    zone->handlers = 
      eina_list_append(zone->handlers,
@@ -163,12 +128,12 @@ e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h)
    evas_object_repeat_events_set(o, 1);
    evas_object_show(o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN, _e_zone_cb_bg_mouse_down, zone);
-   evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_UP,   _e_zone_cb_bg_mouse_up, zone);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_UP, _e_zone_cb_bg_mouse_up, zone);
 
    /* TODO: config the ecore_evas type. */
    zone->black_ecore_evas = 
      e_canvas_new(e_config->evas_engine_zone, zone->container->win,
-                  0, 0, zone->w, zone->h, 1, 1, &(zone->black_win));
+                  zone->x, zone->y, zone->w, zone->h, 1, 1, &(zone->black_win));
    e_canvas_add(zone->black_ecore_evas);
    ecore_evas_layer_set(zone->black_ecore_evas, 6);
    zone->black_evas = ecore_evas_get(zone->black_ecore_evas);
@@ -214,7 +179,6 @@ EAPI void
 e_zone_move(E_Zone *zone, int x, int y)
 {
    E_Event_Zone_Move_Resize *ev;
-   int cw, ch;
 
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
@@ -233,36 +197,7 @@ e_zone_move(E_Zone *zone, int x, int y)
    e_object_ref(E_OBJECT(ev->zone));
    ecore_event_add(E_EVENT_ZONE_MOVE_RESIZE, ev, _e_zone_event_move_resize_free, NULL);
 
-   cw = zone->w * E_ZONE_CORNER_RATIO;
-   ch = zone->h * E_ZONE_CORNER_RATIO;
-   ecore_x_window_move_resize(zone->corner.left_bottom,
-	 zone->x, zone->y + zone->h - ch, 1, ch);
-   ecore_x_window_move_resize(zone->edge.left,
-	 zone->x, zone->y + ch, 1, zone->h - 2 * ch);
-   ecore_x_window_move_resize(zone->corner.left_top,
-	 zone->x, zone->y, 1, ch);
-
-   ecore_x_window_move_resize(zone->corner.top_left,
-	 zone->x + 1, zone->y, cw, 1);
-   ecore_x_window_move_resize(zone->edge.top,
-	 zone->x + 1 + cw, zone->y, zone->w - 2 * cw - 2, 1);
-   ecore_x_window_move_resize(zone->corner.top_right,
-	 zone->x + zone->w - cw - 2, zone->y, cw, 1);
-
-   ecore_x_window_move_resize(zone->corner.right_top,
-	 zone->x + zone->w - 1, zone->y, 1, ch);
-   ecore_x_window_move_resize(zone->edge.right,
-	 zone->x + zone->w - 1, zone->y + ch, 1, zone->h - 2 * ch);
-   ecore_x_window_move_resize(zone->corner.right_bottom,
-	 zone->x + zone->w - 1, zone->y + zone->h - ch, 1, ch);
-
-   ecore_x_window_move_resize(zone->corner.bottom_right,
-	 zone->x + 1, zone->y + zone->h - 1, cw, 1);
-   ecore_x_window_move_resize(zone->edge.bottom,
-	 zone->x + 1 + cw, zone->y + zone->h - 1, zone->w - 2 - 2 * cw, 1);
-   ecore_x_window_move_resize(zone->corner.bottom_left,
-	 zone->x + zone->w - cw - 2, zone->y + zone->h - 1, cw, 1);
-
+   _e_zone_edge_move_resize(zone);
    e_zone_bg_reconfigure(zone);
 }
 
@@ -270,7 +205,6 @@ EAPI void
 e_zone_resize(E_Zone *zone, int w, int h)
 {
    E_Event_Zone_Move_Resize *ev;
-   int cw, ch;
 
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
@@ -290,36 +224,7 @@ e_zone_resize(E_Zone *zone, int w, int h)
    ecore_event_add(E_EVENT_ZONE_MOVE_RESIZE, ev, 
                    _e_zone_event_move_resize_free, NULL);
 
-   cw = zone->w * E_ZONE_CORNER_RATIO;
-   ch = zone->h * E_ZONE_CORNER_RATIO;
-   ecore_x_window_move_resize(zone->corner.left_bottom,
-	 zone->x, zone->y + zone->h - ch, 1, ch);
-   ecore_x_window_move_resize(zone->edge.left,
-	 zone->x, zone->y + ch, 1, zone->h - 2 * ch);
-   ecore_x_window_move_resize(zone->corner.left_top,
-	 zone->x, zone->y, 1, ch);
-
-   ecore_x_window_move_resize(zone->corner.top_left,
-	 zone->x + 1, zone->y, cw, 1);
-   ecore_x_window_move_resize(zone->edge.top,
-	 zone->x + 1 + cw, zone->y, zone->w - 2 * cw - 2, 1);
-   ecore_x_window_move_resize(zone->corner.top_right,
-	 zone->x + zone->w - cw - 2, zone->y, cw, 1);
-
-   ecore_x_window_move_resize(zone->corner.right_top,
-	 zone->x + zone->w - 1, zone->y, 1, ch);
-   ecore_x_window_move_resize(zone->edge.right,
-	 zone->x + zone->w - 1, zone->y + ch, 1, zone->h - 2 * ch);
-   ecore_x_window_move_resize(zone->corner.right_bottom,
-	 zone->x + zone->w - 1, zone->y + zone->h - ch, 1, ch);
-
-   ecore_x_window_move_resize(zone->corner.bottom_right,
-	 zone->x + 1, zone->y + zone->h - 1, cw, 1);
-   ecore_x_window_move_resize(zone->edge.bottom,
-	 zone->x + 1 + cw, zone->y + zone->h - 1, zone->w - 2 - 2 * cw, 1);
-   ecore_x_window_move_resize(zone->corner.bottom_left,
-	 zone->x + zone->w - cw - 2, zone->y + zone->h - 1, cw, 1);
-
+   _e_zone_edge_move_resize(zone);
    e_zone_bg_reconfigure(zone);
 }
 
@@ -327,7 +232,6 @@ EAPI void
 e_zone_move_resize(E_Zone *zone, int x, int y, int w, int h)
 {
    E_Event_Zone_Move_Resize *ev;
-   int cw, ch;
 
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
@@ -357,35 +261,7 @@ e_zone_move_resize(E_Zone *zone, int x, int y, int w, int h)
    ecore_event_add(E_EVENT_ZONE_MOVE_RESIZE, ev, 
                    _e_zone_event_move_resize_free, NULL);
 
-   cw = zone->w * E_ZONE_CORNER_RATIO;
-   ch = zone->h * E_ZONE_CORNER_RATIO;
-   ecore_x_window_move_resize(zone->corner.left_bottom,
-	 zone->x, zone->y + zone->h - ch, 1, ch);
-   ecore_x_window_move_resize(zone->edge.left,
-	 zone->x, zone->y + ch, 1, zone->h - 2 * ch);
-   ecore_x_window_move_resize(zone->corner.left_top,
-	 zone->x, zone->y, 1, ch);
-
-   ecore_x_window_move_resize(zone->corner.top_left,
-	 zone->x + 1, zone->y, cw, 1);
-   ecore_x_window_move_resize(zone->edge.top,
-	 zone->x + 1 + cw, zone->y, zone->w - 2 * cw - 2, 1);
-   ecore_x_window_move_resize(zone->corner.top_right,
-	 zone->x + zone->w - cw - 2, zone->y, cw, 1);
-
-   ecore_x_window_move_resize(zone->corner.right_top,
-	 zone->x + zone->w - 1, zone->y, 1, ch);
-   ecore_x_window_move_resize(zone->edge.right,
-	 zone->x + zone->w - 1, zone->y + ch, 1, zone->h - 2 * ch);
-   ecore_x_window_move_resize(zone->corner.right_bottom,
-	 zone->x + zone->w - 1, zone->y + zone->h - ch, 1, ch);
-
-   ecore_x_window_move_resize(zone->corner.bottom_right,
-	 zone->x + 1, zone->y + zone->h - 1, cw, 1);
-   ecore_x_window_move_resize(zone->edge.bottom,
-	 zone->x + 1 + cw, zone->y + zone->h - 1, zone->w - 2 - 2 * cw, 1);
-   ecore_x_window_move_resize(zone->corner.bottom_left,
-	 zone->x + zone->w - cw - 2, zone->y + zone->h - 1, cw, 1);
+   _e_zone_edge_move_resize(zone);
 
    e_zone_bg_reconfigure(zone);
 } 
@@ -758,7 +634,7 @@ e_zone_desk_linear_flip_to(E_Zone *zone, int x)
 }
 
 EAPI void
-e_zone_flip_win_disable(void)
+e_zone_edge_enable(void)
 {
    Eina_List *l, *ll, *lll;
    E_Manager *man;
@@ -771,25 +647,25 @@ e_zone_flip_win_disable(void)
 	  {
 	     EINA_LIST_FOREACH(con->zones, lll, zone)
 	       {
-		  ecore_x_window_hide(zone->edge.left);
-		  ecore_x_window_hide(zone->edge.right);
-		  ecore_x_window_hide(zone->edge.top);
-		  ecore_x_window_hide(zone->edge.bottom);
-		  ecore_x_window_hide(zone->corner.left_bottom);
-		  ecore_x_window_hide(zone->corner.left_top);
-		  ecore_x_window_hide(zone->corner.top_left);
-		  ecore_x_window_hide(zone->corner.top_right);
-		  ecore_x_window_hide(zone->corner.right_top);
-		  ecore_x_window_hide(zone->corner.right_bottom);
-		  ecore_x_window_hide(zone->corner.bottom_right);
-		  ecore_x_window_hide(zone->corner.bottom_left);
+		  if (zone->edge.left) ecore_x_window_show(zone->edge.left);
+		  if (zone->edge.right) ecore_x_window_show(zone->edge.right);
+		  if (zone->edge.top) ecore_x_window_show(zone->edge.top);
+		  if (zone->edge.bottom) ecore_x_window_show(zone->edge.bottom);
+		  if (zone->corner.left_top) ecore_x_window_show(zone->corner.left_top);
+		  if (zone->corner.top_left) ecore_x_window_show(zone->corner.top_left);
+		  if (zone->corner.top_right) ecore_x_window_show(zone->corner.top_right);
+		  if (zone->corner.right_top) ecore_x_window_show(zone->corner.right_top);
+		  if (zone->corner.right_bottom) ecore_x_window_show(zone->corner.right_bottom);
+		  if (zone->corner.bottom_right) ecore_x_window_show(zone->corner.bottom_right);
+		  if (zone->corner.bottom_left) ecore_x_window_show(zone->corner.bottom_left);
+		  if (zone->corner.left_bottom) ecore_x_window_show(zone->corner.left_bottom);
 	       }
 	  }
      }
 }
 
 EAPI void
-e_zone_flip_win_restore(void)
+e_zone_edge_disable(void)
 {
    Eina_List *l, *ll, *lll;
    E_Manager *man;
@@ -802,18 +678,214 @@ e_zone_flip_win_restore(void)
 	  {
 	     EINA_LIST_FOREACH(con->zones, lll, zone)
 	       {
-		  ecore_x_window_show(zone->edge.left);
-		  ecore_x_window_show(zone->edge.right);
-		  ecore_x_window_show(zone->edge.top);
-		  ecore_x_window_show(zone->edge.bottom);
-		  ecore_x_window_show(zone->corner.left_bottom);
-		  ecore_x_window_show(zone->corner.left_top);
-		  ecore_x_window_show(zone->corner.top_left);
-		  ecore_x_window_show(zone->corner.top_right);
-		  ecore_x_window_show(zone->corner.right_top);
-		  ecore_x_window_show(zone->corner.right_bottom);
-		  ecore_x_window_show(zone->corner.bottom_right);
-		  ecore_x_window_show(zone->corner.bottom_left);
+		  if (zone->edge.left) ecore_x_window_hide(zone->edge.left);
+		  if (zone->edge.right) ecore_x_window_hide(zone->edge.right);
+		  if (zone->edge.top) ecore_x_window_hide(zone->edge.top);
+		  if (zone->edge.bottom) ecore_x_window_hide(zone->edge.bottom);
+		  if (zone->corner.left_top) ecore_x_window_hide(zone->corner.left_top);
+		  if (zone->corner.top_left) ecore_x_window_hide(zone->corner.top_left);
+		  if (zone->corner.top_right) ecore_x_window_hide(zone->corner.top_right);
+		  if (zone->corner.right_top) ecore_x_window_hide(zone->corner.right_top);
+		  if (zone->corner.right_bottom) ecore_x_window_hide(zone->corner.right_bottom);
+		  if (zone->corner.bottom_right) ecore_x_window_hide(zone->corner.bottom_right);
+		  if (zone->corner.bottom_left) ecore_x_window_hide(zone->corner.bottom_left);
+		  if (zone->corner.left_bottom) ecore_x_window_hide(zone->corner.left_bottom);
+	       }
+	  }
+     }
+}
+
+EAPI void
+e_zone_edge_new(E_Zone_Edge edge)
+{
+   Eina_List *l, *ll, *lll;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
+   int cw, ch;
+
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
+     {
+	EINA_LIST_FOREACH(man->containers, ll, con)
+	  {
+	     EINA_LIST_FOREACH(con->zones, lll, zone)
+	       {
+		  cw = zone->w * E_ZONE_CORNER_RATIO;
+		  ch = zone->h * E_ZONE_CORNER_RATIO;
+		  switch (edge)
+		    {
+		     case E_ZONE_EDGE_NONE:
+			/* noop */
+			break;
+		     case E_ZONE_EDGE_LEFT:
+			if (!zone->edge.left)
+			  {
+			     zone->edge.left = ecore_x_window_input_new(con->win,
+									zone->x, zone->y + ch, 1,
+								       	zone->h - 2 * ch);
+			     ecore_x_window_show(zone->edge.left);
+			  }
+			break;
+		     case E_ZONE_EDGE_RIGHT:
+			if (!zone->edge.right)
+			  {
+			     zone->edge.right = ecore_x_window_input_new(con->win,
+									 zone->x + zone->w - 1,
+									 zone->y + ch, 1, zone->h - 2 * ch);
+			     ecore_x_window_show(zone->edge.right);
+			  }
+			break;
+		     case E_ZONE_EDGE_TOP:
+			if (!zone->edge.top)
+			  {
+			     zone->edge.top = ecore_x_window_input_new(con->win,
+								       zone->x + 1 + cw, zone->y,
+								       zone->w - 2 * cw - 2, 1);
+			     ecore_x_window_show(zone->edge.top);
+			  }
+			break;
+		     case E_ZONE_EDGE_BOTTOM:
+			if (!zone->edge.bottom)
+			  {
+			     zone->edge.bottom = ecore_x_window_input_new(con->win,
+									  zone->x + 1 + cw, zone->y + zone->h - 1,
+									  zone->w - 2 - 2 * cw, 1);
+			     ecore_x_window_show(zone->edge.bottom);
+			  }
+			break;
+		     case E_ZONE_EDGE_TOP_LEFT:
+			if (!zone->corner.left_top)
+			  {
+			     zone->corner.left_top = ecore_x_window_input_new(con->win,
+									      zone->x, zone->y, 1, ch);
+			     ecore_x_window_show(zone->corner.left_top);
+			  }
+			if (!zone->corner.top_left)
+			  {
+			     zone->corner.top_left = ecore_x_window_input_new(con->win,
+									      zone->x + 1, zone->y, cw, 1);
+			     ecore_x_window_show(zone->corner.top_left);
+			  }
+			break;
+		     case E_ZONE_EDGE_TOP_RIGHT:
+			if (!zone->corner.top_right)
+			  {
+			     zone->corner.top_right = ecore_x_window_input_new(con->win,
+									       zone->x + zone->w - cw - 2,
+									       zone->y, cw, 1);
+			     ecore_x_window_show(zone->corner.top_right);
+			  }
+			if (!zone->corner.right_top)
+			  {
+			     zone->corner.right_top = ecore_x_window_input_new(con->win,
+									       zone->x + zone->w - 1,
+									       zone->y, 1, ch);
+			     ecore_x_window_show(zone->corner.right_top);
+			  }
+			break;
+		     case E_ZONE_EDGE_BOTTOM_RIGHT:
+			if (!zone->corner.right_bottom)
+			  {
+			     zone->corner.right_bottom = ecore_x_window_input_new(con->win,
+										  zone->x + zone->w - 1,
+										  zone->y + zone->h - ch, 1, ch);
+			     ecore_x_window_show(zone->corner.right_bottom);
+			  }
+			if (!zone->corner.bottom_right)
+			  {
+			     zone->corner.bottom_right = ecore_x_window_input_new(con->win,
+										  zone->x + zone->w - cw - 2,
+										  zone->y + zone->h - 1, cw, 1);
+
+			     ecore_x_window_show(zone->corner.bottom_right);
+			  }
+			break;
+		     case E_ZONE_EDGE_BOTTOM_LEFT:
+			if (!zone->corner.bottom_left)
+			  {
+			     zone->corner.bottom_left = ecore_x_window_input_new(con->win,
+										 zone->x + 1,
+										 zone->y + zone->h - 1, cw, 1);
+			     ecore_x_window_show(zone->corner.bottom_left);
+			  }
+			if (!zone->corner.left_bottom)
+			  {
+			     zone->corner.left_bottom = ecore_x_window_input_new(con->win,
+										 zone->x, zone->y + zone->h - ch,
+										 1, ch);
+			     ecore_x_window_show(zone->corner.left_bottom);
+			  }
+			break;
+		    }
+		  if (e_config->fullscreen_flip)
+		    e_zone_edge_win_layer_set(zone, 250);
+		  else
+		    e_zone_edge_win_layer_set(zone, 200);
+	       }
+	  }
+     }
+}
+
+EAPI void
+e_zone_edge_free(E_Zone_Edge edge)
+{
+   Eina_List *l, *ll, *lll;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
+
+   EINA_LIST_FOREACH(e_manager_list(), l, man)
+     {
+	EINA_LIST_FOREACH(man->containers, ll, con)
+	  {
+	     EINA_LIST_FOREACH(con->zones, lll, zone)
+	       {
+		  switch (edge)
+		    {
+		     case E_ZONE_EDGE_NONE:
+			/* noop */
+			break;
+		     case E_ZONE_EDGE_LEFT:
+			if (zone->edge.left) ecore_x_window_free(zone->edge.left);
+			zone->edge.left = 0;
+			break;
+		     case E_ZONE_EDGE_RIGHT:
+			if (zone->edge.right) ecore_x_window_free(zone->edge.right);
+			zone->edge.right = 0;
+			break;
+		     case E_ZONE_EDGE_TOP:
+			if (zone->edge.top) ecore_x_window_free(zone->edge.top);
+			zone->edge.top = 0;
+			break;
+		     case E_ZONE_EDGE_BOTTOM:
+			if (zone->edge.bottom) ecore_x_window_free(zone->edge.bottom);
+			zone->edge.bottom = 0;
+			break;
+		     case E_ZONE_EDGE_TOP_LEFT:
+			if (zone->corner.left_top) ecore_x_window_free(zone->corner.left_top);
+			if (zone->corner.top_left) ecore_x_window_free(zone->corner.top_left);
+			zone->corner.left_top = 0;
+			zone->corner.top_left = 0;
+			break;
+		     case E_ZONE_EDGE_TOP_RIGHT:
+			if (zone->corner.top_right) ecore_x_window_free(zone->corner.top_right);
+			if (zone->corner.right_top) ecore_x_window_free(zone->corner.right_top);
+			zone->corner.top_right = 0;
+			zone->corner.right_top = 0;
+			break;
+		     case E_ZONE_EDGE_BOTTOM_RIGHT:
+			if (zone->corner.right_bottom) ecore_x_window_free(zone->corner.right_bottom);
+			if (zone->corner.bottom_right) ecore_x_window_free(zone->corner.bottom_right);
+			zone->corner.right_bottom = 0;
+			zone->corner.bottom_right = 0;
+			break;
+		     case E_ZONE_EDGE_BOTTOM_LEFT:
+			if (zone->corner.bottom_left) ecore_x_window_free(zone->corner.bottom_left);
+			if (zone->corner.left_bottom) ecore_x_window_free(zone->corner.left_bottom);
+			zone->corner.bottom_left = 0;
+			zone->corner.left_bottom = 0;
+			break;
+		    }
 	       }
 	  }
      }
@@ -822,19 +894,19 @@ e_zone_flip_win_restore(void)
 EAPI void
 e_zone_edge_win_layer_set(E_Zone *zone, int layer)
 {
-   e_container_window_raise(zone->container, zone->corner.left_bottom, layer);
-   e_container_window_raise(zone->container, zone->corner.left_top, layer);
-   e_container_window_raise(zone->container, zone->corner.top_left, layer);
-   e_container_window_raise(zone->container, zone->corner.top_right, layer);
-   e_container_window_raise(zone->container, zone->corner.right_top, layer);
-   e_container_window_raise(zone->container, zone->corner.right_bottom, layer);
-   e_container_window_raise(zone->container, zone->corner.bottom_right, layer);
-   e_container_window_raise(zone->container, zone->corner.bottom_left, layer);
+   if (zone->corner.left_bottom) e_container_window_raise(zone->container, zone->corner.left_bottom, layer);
+   if (zone->corner.left_top) e_container_window_raise(zone->container, zone->corner.left_top, layer);
+   if (zone->corner.top_left) e_container_window_raise(zone->container, zone->corner.top_left, layer);
+   if (zone->corner.top_right) e_container_window_raise(zone->container, zone->corner.top_right, layer);
+   if (zone->corner.right_top) e_container_window_raise(zone->container, zone->corner.right_top, layer);
+   if (zone->corner.right_bottom) e_container_window_raise(zone->container, zone->corner.right_bottom, layer);
+   if (zone->corner.bottom_right) e_container_window_raise(zone->container, zone->corner.bottom_right, layer);
+   if (zone->corner.bottom_left) e_container_window_raise(zone->container, zone->corner.bottom_left, layer);
 
-   e_container_window_raise(zone->container, zone->edge.left, layer);
-   e_container_window_raise(zone->container, zone->edge.right, layer);
-   e_container_window_raise(zone->container, zone->edge.top, layer);
-   e_container_window_raise(zone->container, zone->edge.bottom, layer);
+   if (zone->edge.left) e_container_window_raise(zone->container, zone->edge.left, layer);
+   if (zone->edge.right) e_container_window_raise(zone->container, zone->edge.right, layer);
+   if (zone->edge.top) e_container_window_raise(zone->container, zone->edge.top, layer);
+   if (zone->edge.bottom) e_container_window_raise(zone->container, zone->edge.bottom, layer);
 }
 
 static void
@@ -933,8 +1005,15 @@ e_zone_useful_geometry_get(E_Zone *zone, int *x, int *y, int *w, int *h)
 EAPI void
 e_zone_useful_geometry_dirty(E_Zone *zone)
 {
+   E_Event_Zone_Move_Resize *ev;
+
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
+
+   ev = E_NEW(E_Event_Zone_Move_Resize, 1);
+   ev->zone = zone;
+   e_object_ref(E_OBJECT(ev->zone));
+   ecore_event_add(E_EVENT_ZONE_MOVE_RESIZE, ev, _e_zone_event_move_resize_free, NULL);
 
    zone->useful_geometry.dirty = 1;
    zone->useful_geometry.x = -1;
@@ -1013,12 +1092,10 @@ _e_zone_free(E_Zone *zone)
 }
 
 static void
-_e_zone_cb_bg_mouse_down(void *data, Evas *evas, Evas_Object *obj, void *event_info)
+_e_zone_cb_bg_mouse_down(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *obj, __UNUSED__ void *event_info)
 {
    E_Zone *zone;
-   Evas_Event_Mouse_Down *ev;
 
-   ev = (Evas_Event_Mouse_Down *)event_info;
    zone = data;
    if (e_menu_grab_window_get()) return;
 
@@ -1045,12 +1122,10 @@ _e_zone_cb_bg_mouse_down(void *data, Evas *evas, Evas_Object *obj, void *event_i
 }
 
 static void
-_e_zone_cb_bg_mouse_up(void *data, Evas *evas, Evas_Object *obj, void *event_info)
+_e_zone_cb_bg_mouse_up(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *obj, __UNUSED__ void *event_info)
 {
    E_Zone *zone;
-   Evas_Event_Mouse_Up *ev;
 
-   ev = (Evas_Event_Mouse_Up *)event_info;      
    zone = data;
    if (zone->cur_mouse_action)
      {
@@ -1081,7 +1156,7 @@ _e_zone_cb_bg_mouse_up(void *data, Evas *evas, Evas_Object *obj, void *event_inf
 }
 
 static void
-_e_zone_event_zone_desk_count_set_free(void *data, void *ev)
+_e_zone_event_zone_desk_count_set_free(__UNUSED__ void *data, void *ev)
 {
    E_Event_Zone_Desk_Count_Set *e;
 
@@ -1090,8 +1165,8 @@ _e_zone_event_zone_desk_count_set_free(void *data, void *ev)
    free(e);
 }
 
-static int
-_e_zone_cb_mouse_in(void *data, int type, void *event)
+static Eina_Bool
+_e_zone_cb_mouse_in(void *data, __UNUSED__ int type, void *event)
 {
    Ecore_X_Event_Mouse_In *ev;
    E_Event_Zone_Edge *zev;
@@ -1101,42 +1176,23 @@ _e_zone_cb_mouse_in(void *data, int type, void *event)
    ev = event;
    zone = data;
 
-   if (ev->win == zone->edge.left)
-     edge = E_ZONE_EDGE_LEFT;
-   else if (ev->win == zone->edge.top)
-     edge = E_ZONE_EDGE_TOP;
-   else if (ev->win == zone->edge.right)
-     edge = E_ZONE_EDGE_RIGHT;
-   else if (ev->win == zone->edge.bottom)
-     edge = E_ZONE_EDGE_BOTTOM;
-   else if ((ev->win == zone->corner.left_top) ||
-	    (ev->win == zone->corner.top_left))
-     edge = E_ZONE_EDGE_TOP_LEFT;
-   else if ((ev->win == zone->corner.right_top) ||
-	    (ev->win == zone->corner.top_right))
-     edge = E_ZONE_EDGE_TOP_RIGHT;
-   else if ((ev->win == zone->corner.right_bottom) ||
-	    (ev->win == zone->corner.bottom_right))
-     edge = E_ZONE_EDGE_BOTTOM_RIGHT;
-   else if ((ev->win == zone->corner.left_bottom) ||
-	    (ev->win == zone->corner.bottom_left))
-     edge = E_ZONE_EDGE_BOTTOM_LEFT;
-   else return 1;
+   edge = _e_zone_detect_edge(zone, ev->win);
+   if (edge == E_ZONE_EDGE_NONE) return ECORE_CALLBACK_PASS_ON;
 
    zev = E_NEW(E_Event_Zone_Edge, 1);
    zev->zone = zone;
    zev->edge = edge;
-   zev->x = ev->x;
-   zev->y = ev->y;
+   zev->x = ev->root.x;
+   zev->y = ev->root.y;
    zev->modifiers = ev->modifiers;
    ecore_event_add(E_EVENT_ZONE_EDGE_IN, zev, NULL, NULL);
    e_bindings_edge_in_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
 
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_zone_cb_mouse_out(void *data, int type, void *event)
+static Eina_Bool
+_e_zone_cb_mouse_out(void *data, __UNUSED__ int type, void *event)
 {
    Ecore_X_Event_Mouse_Out *ev;
    E_Event_Zone_Edge *zev;
@@ -1146,41 +1202,22 @@ _e_zone_cb_mouse_out(void *data, int type, void *event)
    ev = event;
    zone = data;
 
-   if (ev->win == zone->edge.left)
-     edge = E_ZONE_EDGE_LEFT;
-   else if (ev->win == zone->edge.top)
-     edge = E_ZONE_EDGE_TOP;
-   else if (ev->win == zone->edge.right)
-     edge = E_ZONE_EDGE_RIGHT;
-   else if (ev->win == zone->edge.bottom)
-     edge = E_ZONE_EDGE_BOTTOM;
-   else if ((ev->win == zone->corner.left_top) ||
-	    (ev->win == zone->corner.top_left))
-     edge = E_ZONE_EDGE_TOP_LEFT;
-   else if ((ev->win == zone->corner.right_top) ||
-	    (ev->win == zone->corner.top_right))
-     edge = E_ZONE_EDGE_TOP_RIGHT;
-   else if ((ev->win == zone->corner.right_bottom) ||
-	    (ev->win == zone->corner.bottom_right))
-     edge = E_ZONE_EDGE_BOTTOM_RIGHT;
-   else if ((ev->win == zone->corner.left_bottom) ||
-	    (ev->win == zone->corner.bottom_left))
-     edge = E_ZONE_EDGE_BOTTOM_LEFT;
-   else return 1;
+   edge = _e_zone_detect_edge(zone, ev->win);
+   if (edge == E_ZONE_EDGE_NONE) return ECORE_CALLBACK_PASS_ON;
 
    zev = E_NEW(E_Event_Zone_Edge, 1);
    zev->zone = zone;
    zev->edge = edge;
-   zev->x = ev->x;
-   zev->y = ev->y;
+   zev->x = ev->root.x;
+   zev->y = ev->root.y;
    zev->modifiers = ev->modifiers;
    ecore_event_add(E_EVENT_ZONE_EDGE_OUT, zev, NULL, NULL);
    e_bindings_edge_out_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_zone_cb_mouse_down(void *data, int type, void *event)
+static Eina_Bool
+_e_zone_cb_mouse_down(void *data, __UNUSED__ int type, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    E_Event_Zone_Edge *zev;
@@ -1190,41 +1227,22 @@ _e_zone_cb_mouse_down(void *data, int type, void *event)
    ev = event;
    zone = data;
 
-   if (ev->event_window == zone->edge.left)
-     edge = E_ZONE_EDGE_LEFT;
-   else if (ev->event_window == zone->edge.top)
-     edge = E_ZONE_EDGE_TOP;
-   else if (ev->event_window == zone->edge.right)
-     edge = E_ZONE_EDGE_RIGHT;
-   else if (ev->event_window == zone->edge.bottom)
-     edge = E_ZONE_EDGE_BOTTOM;
-   else if ((ev->event_window == zone->corner.left_top) ||
-	    (ev->event_window == zone->corner.top_left))
-     edge = E_ZONE_EDGE_TOP_LEFT;
-   else if ((ev->event_window == zone->corner.right_top) ||
-	    (ev->event_window == zone->corner.top_right))
-     edge = E_ZONE_EDGE_TOP_RIGHT;
-   else if ((ev->event_window == zone->corner.right_bottom) ||
-	    (ev->event_window == zone->corner.bottom_right))
-     edge = E_ZONE_EDGE_BOTTOM_RIGHT;
-   else if ((ev->event_window == zone->corner.left_bottom) ||
-	    (ev->event_window == zone->corner.bottom_left))
-     edge = E_ZONE_EDGE_BOTTOM_LEFT;
-   else return 1;
+   edge = _e_zone_detect_edge(zone, ev->window);
+   if (edge == E_ZONE_EDGE_NONE) return ECORE_CALLBACK_PASS_ON;
 
    zev = E_NEW(E_Event_Zone_Edge, 1);
    zev->zone = zone;
    zev->edge = edge;
-   zev->x = ev->x;
-   zev->y = ev->y;
+   zev->x = ev->root.x;
+   zev->y = ev->root.y;
    zev->modifiers = ev->modifiers;
    ecore_event_add(E_EVENT_ZONE_EDGE_OUT, zev, NULL, NULL);
    e_bindings_edge_down_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_zone_cb_mouse_up(void *data, int type, void *event)
+static Eina_Bool
+_e_zone_cb_mouse_up(void *data, __UNUSED__ int type, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    E_Event_Zone_Edge *zev;
@@ -1234,41 +1252,22 @@ _e_zone_cb_mouse_up(void *data, int type, void *event)
    ev = event;
    zone = data;
 
-   if (ev->event_window == zone->edge.left)
-     edge = E_ZONE_EDGE_LEFT;
-   else if (ev->event_window == zone->edge.top)
-     edge = E_ZONE_EDGE_TOP;
-   else if (ev->event_window == zone->edge.right)
-     edge = E_ZONE_EDGE_RIGHT;
-   else if (ev->event_window == zone->edge.bottom)
-     edge = E_ZONE_EDGE_BOTTOM;
-   else if ((ev->event_window == zone->corner.left_top) ||
-	    (ev->event_window == zone->corner.top_left))
-     edge = E_ZONE_EDGE_TOP_LEFT;
-   else if ((ev->event_window == zone->corner.right_top) ||
-	    (ev->event_window == zone->corner.top_right))
-     edge = E_ZONE_EDGE_TOP_RIGHT;
-   else if ((ev->event_window == zone->corner.right_bottom) ||
-	    (ev->event_window == zone->corner.bottom_right))
-     edge = E_ZONE_EDGE_BOTTOM_RIGHT;
-   else if ((ev->event_window == zone->corner.left_bottom) ||
-	    (ev->event_window == zone->corner.bottom_left))
-     edge = E_ZONE_EDGE_BOTTOM_LEFT;
-   else return 1;
+   edge = _e_zone_detect_edge(zone, ev->window);
+   if (edge == E_ZONE_EDGE_NONE) return ECORE_CALLBACK_PASS_ON;
 
    zev = E_NEW(E_Event_Zone_Edge, 1);
    zev->zone = zone;
    zev->edge = edge;
-   zev->x = ev->x;
-   zev->y = ev->y;
+   zev->x = ev->root.x;
+   zev->y = ev->root.y;
    zev->modifiers = ev->modifiers;
    ecore_event_add(E_EVENT_ZONE_EDGE_OUT, zev, NULL, NULL);
    e_bindings_edge_up_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_zone_cb_mouse_move(void *data, int type, void *event)
+static Eina_Bool
+_e_zone_cb_mouse_move(void *data, __UNUSED__ int type, void *event)
 {
    Ecore_Event_Mouse_Move *ev;
    E_Event_Zone_Edge *zev;
@@ -1278,53 +1277,34 @@ _e_zone_cb_mouse_move(void *data, int type, void *event)
    ev = event;
    zone = data;
 
-   if (ev->window == zone->edge.left)
-     edge = E_ZONE_EDGE_LEFT;
-   else if (ev->window == zone->edge.top)
-     edge = E_ZONE_EDGE_TOP;
-   else if (ev->window == zone->edge.right)
-     edge = E_ZONE_EDGE_RIGHT;
-   else if (ev->window == zone->edge.bottom)
-     edge = E_ZONE_EDGE_BOTTOM;
-   else if ((ev->window == zone->corner.left_top) ||
-	    (ev->window == zone->corner.top_left))
-     edge = E_ZONE_EDGE_TOP_LEFT;
-   else if ((ev->window == zone->corner.right_top) ||
-	    (ev->window == zone->corner.top_right))
-     edge = E_ZONE_EDGE_TOP_RIGHT;
-   else if ((ev->window == zone->corner.right_bottom) ||
-	    (ev->window == zone->corner.bottom_right))
-     edge = E_ZONE_EDGE_BOTTOM_RIGHT;
-   else if ((ev->window == zone->corner.left_bottom) ||
-	    (ev->window == zone->corner.bottom_left))
-     edge = E_ZONE_EDGE_BOTTOM_LEFT;
-   else return 1;
+   edge = _e_zone_detect_edge(zone, ev->window);
+   if (edge == E_ZONE_EDGE_NONE) return ECORE_CALLBACK_PASS_ON;
 
    zev = E_NEW(E_Event_Zone_Edge, 1);
    zev->zone = zone;
    zev->edge = edge;
-   zev->x = ev->x;
-   zev->y = ev->y;
+   zev->x = ev->root.x;
+   zev->y = ev->root.y;
    zev->modifiers = ev->modifiers;
    ecore_event_add(E_EVENT_ZONE_EDGE_MOVE, zev, NULL, NULL);
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_e_zone_cb_desk_after_show(void *data, int type, void *event)
+static Eina_Bool
+_e_zone_cb_desk_after_show(void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Desk_Show *ev;
    E_Zone *zone;
 
    ev = event;
    zone = data;
-   if (ev->desk->zone != zone) return 1;
+   if (ev->desk->zone != zone) return ECORE_CALLBACK_PASS_ON;
 
    zone->flip.switching = 0;
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _e_zone_cb_edge_timer(void *data)
 {
    E_Zone *zone;
@@ -1335,7 +1315,7 @@ _e_zone_cb_edge_timer(void *data)
    if (!act)
      {
 	E_FREE(zone->flip.ev);
-	return 0;
+	return ECORE_CALLBACK_CANCEL;
      }
 
    if (act->func.go_edge)
@@ -1346,11 +1326,11 @@ _e_zone_cb_edge_timer(void *data)
    zone->flip.bind->timer = NULL;
 
    E_FREE(zone->flip.ev);
-   return 0;
+   return ECORE_CALLBACK_RENEW;
 }
 
 static void
-_e_zone_event_move_resize_free(void *data, void *ev)
+_e_zone_event_move_resize_free(__UNUSED__ void *data, void *ev)
 {
    E_Event_Zone_Move_Resize *e;
 
@@ -1360,7 +1340,7 @@ _e_zone_event_move_resize_free(void *data, void *ev)
 }
 
 static void
-_e_zone_event_add_free(void *data, void *ev)
+_e_zone_event_add_free(__UNUSED__ void *data, void *ev)
 {
    E_Event_Zone_Add *e;
 
@@ -1370,7 +1350,7 @@ _e_zone_event_add_free(void *data, void *ev)
 }
 
 static void
-_e_zone_event_del_free(void *data, void *ev)
+_e_zone_event_del_free(__UNUSED__ void *data, void *ev)
 {
    E_Event_Zone_Del *e;
 
@@ -1391,4 +1371,82 @@ _e_zone_object_del_attach(void *o)
    ev->zone = zone;
    e_object_ref(E_OBJECT(ev->zone));
    ecore_event_add(E_EVENT_ZONE_DEL, ev, _e_zone_event_del_free, NULL);
+}
+
+static E_Zone_Edge
+_e_zone_detect_edge(E_Zone *zone, Ecore_X_Window win)
+{
+   E_Zone_Edge edge = E_ZONE_EDGE_NONE;
+
+   if (win == zone->edge.left)
+     edge = E_ZONE_EDGE_LEFT;
+   else if (win == zone->edge.top)
+     edge = E_ZONE_EDGE_TOP;
+   else if (win == zone->edge.right)
+     edge = E_ZONE_EDGE_RIGHT;
+   else if (win == zone->edge.bottom)
+     edge = E_ZONE_EDGE_BOTTOM;
+   else if ((win == zone->corner.left_top) ||
+	    (win == zone->corner.top_left))
+     edge = E_ZONE_EDGE_TOP_LEFT;
+   else if ((win == zone->corner.right_top) ||
+	    (win == zone->corner.top_right))
+     edge = E_ZONE_EDGE_TOP_RIGHT;
+   else if ((win == zone->corner.right_bottom) ||
+	    (win == zone->corner.bottom_right))
+     edge = E_ZONE_EDGE_BOTTOM_RIGHT;
+   else if ((win == zone->corner.left_bottom) ||
+	    (win == zone->corner.bottom_left))
+     edge = E_ZONE_EDGE_BOTTOM_LEFT;
+   return edge;
+}
+
+static void
+_e_zone_edge_move_resize(E_Zone *zone)
+{
+   int cw;
+   int ch;
+
+   cw = zone->w * E_ZONE_CORNER_RATIO;
+   ch = zone->h * E_ZONE_CORNER_RATIO;
+
+   if (zone->corner.left_bottom)
+     ecore_x_window_move_resize(zone->corner.left_bottom,
+	   zone->x, zone->y + zone->h - ch, 1, ch);
+   if (zone->edge.left)
+     ecore_x_window_move_resize(zone->edge.left,
+	   zone->x, zone->y + ch, 1, zone->h - 2 * ch);
+   if (zone->corner.left_top)
+     ecore_x_window_move_resize(zone->corner.left_top,
+	   zone->x, zone->y, 1, ch);
+
+   if (zone->corner.top_left)
+     ecore_x_window_move_resize(zone->corner.top_left,
+	   zone->x + 1, zone->y, cw, 1);
+   if (zone->edge.top)
+     ecore_x_window_move_resize(zone->edge.top,
+	   zone->x + 1 + cw, zone->y, zone->w - 2 * cw - 2, 1);
+   if (zone->corner.top_right)
+     ecore_x_window_move_resize(zone->corner.top_right,
+	   zone->x + zone->w - cw - 2, zone->y, cw, 1);
+
+   if (zone->corner.right_top)
+     ecore_x_window_move_resize(zone->corner.right_top,
+	   zone->x + zone->w - 1, zone->y, 1, ch);
+   if (zone->edge.right)
+     ecore_x_window_move_resize(zone->edge.right,
+	   zone->x + zone->w - 1, zone->y + ch, 1, zone->h - 2 * ch);
+   if (zone->corner.right_bottom)
+     ecore_x_window_move_resize(zone->corner.right_bottom,
+	   zone->x + zone->w - 1, zone->y + zone->h - ch, 1, ch);
+
+   if (zone->corner.bottom_right)
+     ecore_x_window_move_resize(zone->corner.bottom_right,
+	   zone->x + 1, zone->y + zone->h - 1, cw, 1);
+   if (zone->edge.bottom)
+     ecore_x_window_move_resize(zone->edge.bottom,
+	   zone->x + 1 + cw, zone->y + zone->h - 1, zone->w - 2 - 2 * cw, 1);
+   if (zone->corner.bottom_left)
+     ecore_x_window_move_resize(zone->corner.bottom_left,
+	   zone->x + zone->w - cw - 2, zone->y + zone->h - 1, cw, 1);
 }

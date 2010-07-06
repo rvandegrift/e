@@ -1,52 +1,11 @@
 #ifndef E_MOD_CONFIG_H
 # define E_MOD_CONFIG_H
 
-# define IL_CONFIG_MIN 2
-# define IL_CONFIG_MAJ 0
+# define IL_CONFIG_MAJOR 0
+# define IL_CONFIG_MINOR 1
 
-typedef struct _Il_Config Il_Config;
-
-struct _Il_Config 
-{
-   int version;
-
-   struct 
-     {
-        struct 
-          {
-             int duration;
-          } kbd, softkey;
-     } sliding;
-
-   struct 
-     {
-        const char *name;
-        struct 
-          {
-             const char *class;
-             const char *name;
-             const char *title;
-             int win_type;
-             struct 
-               {
-                  int class, name, title, win_type;
-               } match;
-          } vkbd, softkey, home, indicator;
-        struct 
-          {
-             int dual, side;
-          } mode;
-     } policy;
-
-   // Not User Configurable. Placeholders
-   const char *mod_dir;
-   E_Config_Dialog *cfd;
-};
-
-int il_config_init(E_Module *m);
-int il_config_shutdown(void);
-int il_config_save(void);
-
-extern EAPI Il_Config *il_cfg;
+int e_mod_illume_config_init(void);
+int e_mod_illume_config_shutdown(void);
+int e_mod_illume_config_save(void);
 
 #endif

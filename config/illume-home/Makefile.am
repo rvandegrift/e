@@ -7,10 +7,12 @@ EXTRA_DIST = \
         icon.png \
         e.src \
 	module.battery.src \
-	module.pager.src \
 	module.illume-home.src \
 	module.illume-keyboard.src \
-	module.illume-softkey.src
+	module.illume-indicator.src \
+	module.illume-softkey.src \
+        module.illume2.src \
+        module.conf.src
 
 filesdir = $(datadir)/enlightenment/data/config/illume-home
 files_DATA = \
@@ -18,12 +20,16 @@ files_DATA = \
         icon.png \
 	e.cfg \
 	module.battery.cfg \
-	module.pager.cfg \
 	module.illume-home.cfg \
         module.illume-keyboard.cfg \
-        module.illume-softkey.cfg
+        module.illume-indicator.cfg \
+        module.illume-softkey.cfg \
+        module.illume2.cfg \
+        module.conf.cfg
 
-%.cfg: %.src
+SUFFIXES = .cfg
+
+.src.cfg:
 	$(EET_EET) -e \
 	$(top_builddir)/config/illume-home/$@ config \
 	$< 1

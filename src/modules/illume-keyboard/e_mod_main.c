@@ -6,7 +6,7 @@
 /* local function prototypes */
 static void _il_kbd_stop(void);
 static void _il_kbd_start(void);
-static int _il_kbd_cb_exit(void *data, int type, void *event);
+static Eina_Bool _il_kbd_cb_exit(void *data, int type, void *event);
 
 /* local variables */
 static E_Kbd_Int *ki = NULL;
@@ -71,12 +71,13 @@ _il_kbd_start(void)
         desktop = efreet_util_desktop_file_id_find(il_kbd_cfg->run_keyboard);
         if (!desktop) 
           {
+	     Efreet_Desktop *d;
              Eina_List *kbds, *l;
 
              kbds = efreet_util_desktop_category_list("Keyboard");
              if (kbds) 
                {
-                  EINA_LIST_FOREACH(kbds, l, desktop) 
+                  EINA_LIST_FOREACH(kbds, l, d) 
                     {
                        const char *dname;
 
@@ -84,16 +85,22 @@ _il_kbd_start(void)
                        if (dname) 
                          {
                             if (!strcmp(dname, il_kbd_cfg->run_keyboard))
-                              break;
+			      {
+				 desktop = d;
+				 efreet_desktop_ref(desktop);
+				 break;
+			      }
                          }
                     }
+		  EINA_LIST_FREE(kbds, d)
+		    efreet_desktop_free(d);
                }
           }
         if (desktop) 
           {
              E_Zone *zone;
 
-             zone = e_util_container_zone_number_get(0, 0);
+             zone = e_util_zone_current_get(e_manager_current_get());
              inst = e_exec(zone, desktop, NULL, NULL, "illume-keyboard");
              if (inst) 
                {
@@ -102,16 +109,17 @@ _il_kbd_start(void)
                     ecore_event_handler_add(ECORE_EXE_EVENT_DEL, 
                                             _il_kbd_cb_exit, NULL);
                }
+	     efreet_desktop_free(desktop);
           }
      }
 }
 
-static int 
+static Eina_Bool
 _il_kbd_cb_exit(void *data, int type, void *event) 
 {
    Ecore_Exe_Event_Del *ev;
 
    ev = event;
    if (ev->exe == _kbd_exe) _kbd_exe = NULL;
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }

@@ -120,7 +120,6 @@ _app_write(App *a)
            a->name, a->generic, a->comment, a->exec, a->icon);
    if (a->extra) fprintf(f, "%s\n", a->extra);
    fclose(f);
-   efreet_desktop_get(buf);
 }
 
 EAPI int
@@ -130,14 +129,16 @@ wizard_page_init(E_Wizard_Page *pg)
    Efreet_Desktop *desk;
    int i;
    
-   efreet_util_init();
-                  
    desks = efreet_util_desktop_name_glob_list("*");
    EINA_LIST_FREE(desks, desk)
           {
              char dbuf[4096];
 
-             if (!desk->exec) continue;
+             if (!desk->exec)
+	       {
+		  efreet_desktop_free(desk);
+		  continue;
+	       }
              if (sscanf(desk->exec, "%4000s", dbuf) == 1)
                {
                   for (i = 0; i < (sizeof(apps) / sizeof(App)); i++)
@@ -171,9 +172,9 @@ wizard_page_init(E_Wizard_Page *pg)
                          }
                     }
                }
+	     efreet_desktop_free(desk);
           }
 
-   efreet_util_shutdown();
    // FIXME: list all apps and of the apps either already installed, or to be
    // created, offer them to be added to ibar by default. (actually should be
    // page_080)

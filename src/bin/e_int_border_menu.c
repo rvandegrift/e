@@ -10,6 +10,8 @@ static void _e_border_menu_cb_border(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_close(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_iconify(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_kill(void *data, E_Menu *m, E_Menu_Item *mi);
+static void _e_border_menu_cb_move(void *data, E_Menu *m, E_Menu_Item *mi);
+static void _e_border_menu_cb_resize(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_maximize_pre(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_maximize(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_maximize_vertically(void *data, E_Menu *m, E_Menu_Item *mi);
@@ -139,6 +141,30 @@ e_int_border_menu_create(E_Border *bd)
    e_menu_item_separator_set(mi, 1);
    separator = 1;
 
+   if ((!bd->lock_user_location) && (!bd->maximized || e_config->allow_manip))
+     {
+	separator = 0;
+	mi = e_menu_item_new(m);
+	e_menu_item_label_set(mi, _("Move"));
+	e_menu_item_callback_set(mi, _e_border_menu_cb_move, bd);
+	e_menu_item_icon_edje_set(mi,
+				  e_theme_edje_file_get("base/theme/borders",
+							"e/widgets/border/default/move_icon"),
+				  "e/widgets/border/default/move_icon");
+     }
+
+   if ((!bd->lock_user_size) && (!bd->maximized || e_config->allow_manip))
+     {
+	separator = 0;
+	mi = e_menu_item_new(m);
+	e_menu_item_label_set(mi, _("Resize"));
+	e_menu_item_callback_set(mi, _e_border_menu_cb_resize, bd);
+	e_menu_item_icon_edje_set(mi,
+				  e_theme_edje_file_get("base/theme/borders",
+							"e/widgets/border/default/resize_icon"),
+				  "e/widgets/border/default/resize_icon");
+     }
+
    if (!(((bd->client.icccm.min_w == bd->client.icccm.max_w) &&
 	  (bd->client.icccm.min_h == bd->client.icccm.max_h)) ||
 	 (bd->lock_user_maximize)))
@@ -202,7 +228,6 @@ e_int_border_menu_create(E_Border *bd)
      {
 	mi = e_menu_item_new(m);
 	e_menu_item_separator_set(mi, 1);
-	separator = 1;
      }
 
    if ((!bd->lock_close) && (!bd->internal))
@@ -243,13 +268,10 @@ e_int_border_menu_show(E_Border *bd, Evas_Coord x, Evas_Coord y, int key, Ecore_
 EAPI void
 e_int_border_menu_del(E_Border *bd)
 {
-   int was_menu = 0;
-
    if (bd->border_menu)
      {
 	e_object_del(E_OBJECT(bd->border_menu));
 	bd->border_menu = NULL;
-	was_menu = 1;
      }
 }
 
@@ -338,6 +360,28 @@ _e_border_menu_cb_kill(void *data, E_Menu *m, E_Menu_Item *mi)
 
    a = e_action_find("window_kill");
    if ((a) && (a->func.go)) a->func.go(NULL, NULL);
+}
+
+static void
+_e_border_menu_cb_move(void *data, E_Menu *m, E_Menu_Item *mi)
+{
+   E_Border *bd;
+
+   bd = data;
+
+   if (!bd->lock_user_location)
+     e_border_act_move_keyboard(bd);
+}
+
+static void
+_e_border_menu_cb_resize(void *data, E_Menu *m, E_Menu_Item *mi)
+{
+   E_Border *bd;
+
+   bd = data;
+
+   if (!bd->lock_user_size)
+     e_border_act_resize_keyboard(bd);
 }
 
 static void
@@ -914,7 +958,6 @@ _e_border_menu_cb_border_pre(void *data, E_Menu *m, E_Menu_Item *mi)
    E_Menu *subm;
    E_Menu_Item *submi;
    E_Border *bd;
-   Evas *evas;
 
    if (!(bd = data)) return;
 
@@ -945,7 +988,6 @@ _e_border_menu_cb_border_pre(void *data, E_Menu *m, E_Menu_Item *mi)
    e_menu_item_callback_set(submi, _e_border_menu_cb_iconpref_e, bd);
 
    submi = e_menu_item_new(subm);
-   evas = submi->menu->evas;
    e_menu_item_label_set(submi, _("Use Application Provided Icon "));
    e_menu_item_radio_set(submi, 1);
    e_menu_item_radio_group_set(submi, 2);
@@ -1154,7 +1196,7 @@ _e_border_menu_cb_ibar_add_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 
 	if (file[0] == '.') continue;
 
-	ecore_strlcpy(buf + len, file, sizeof(buf) - len);
+	eina_strlcpy(buf + len, file, sizeof(buf) - len);
 	if (ecore_file_is_dir(buf))
 	  {
 	     smi = e_menu_item_new(sm);

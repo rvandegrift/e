@@ -13,7 +13,8 @@ EXTRA_DIST = \
 	module.ibar.src \
 	module.ibox.src \
 	module.pager.src \
-	module.temperature.src
+	module.temperature.src \
+	module.conf.src
 
 filesdir = $(datadir)/enlightenment/data/config/netbook
 files_DATA = \
@@ -27,9 +28,12 @@ files_DATA = \
 	module.ibar.cfg \
 	module.ibox.cfg \
 	module.pager.cfg \
-	module.temperature.cfg
+	module.temperature.cfg \
+	module.conf.cfg
 
-%.cfg: %.src
+SUFFIXES = .cfg
+
+.src.cfg:
 	$(EET_EET) -e \
 	$(top_builddir)/config/netbook/$@ config \
 	$< 1

@@ -1,8 +1,25 @@
-# get rid of that stupid cache mechanism
-rm -f config.cache
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+m4_define([v_maj], [0])
+m4_define([v_min], [16])
+m4_define([v_mic], [999])
+m4_define([v_rev], m4_esyscmd([(svnversion "${SVN_REPO_PATH:-.}" | grep -v export || echo 0) | awk -F : '{printf("%s\n", $1);}' | tr -d ' :MSP\n']))
+m4_if(v_rev, [0], [m4_define([v_rev], m4_esyscmd([git log 2> /dev/null | (grep -m1 git-svn-id || echo 0) | sed -e 's/.*@\([0-9]*\).*/\1/' | tr -d '\n']))])
+##--   When released, remove the dnl on the below line
+dnl m4_undefine([v_rev])
+##--   When doing snapshots - change soname. remove dnl on below line
+m4_define([relname], [ver-svn-06])
+m4_define([v_rel], [-release relname])
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+m4_ifdef([v_rev], [m4_define([v_ver], [v_maj.v_min.v_mic.v_rev])],
+[m4_define([v_ver], [v_maj.v_min.v_mic])])
+m4_define([lt_rev], m4_eval(v_maj + v_min))
+m4_define([lt_cur], v_mic)
+m4_define([lt_age], v_min)
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 
-AC_INIT([enlightenment], [0.16.999.063], [enlightenment-devel@lists.sourceforge.net])
-release="ver-svn-05"
+AC_INIT([enlightenment], [v_ver], [enlightenment-devel@lists.sourceforge.net])
 AC_PREREQ([2.52])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_MACRO_DIR([m4])
@@ -28,10 +45,30 @@ define([AC_LIBTOOL_LANG_F77_CONFIG], [:])
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+m4_ifdef([v_rev], , [m4_define([v_rev], [0])])
+m4_ifdef([v_rel], , [m4_define([v_rel], [])])
+AC_DEFINE_UNQUOTED(VMAJ, [v_maj], [Major version])
+AC_DEFINE_UNQUOTED(VMIN, [v_min], [Minor version])
+AC_DEFINE_UNQUOTED(VMIC, [v_mic], [Micro version])
+AC_DEFINE_UNQUOTED(VREV, [v_rev], [Revison])
+version_info="lt_rev:lt_cur:lt_age"
+release_info="v_rel"
+AC_SUBST(version_info)
+AC_SUBST(release_info)
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
+
+release=relname
 AC_SUBST(release)
+
+EFL_CHECK_PATH_MAX
 
 AC_CHECK_FUNCS(setenv)
 AC_CHECK_FUNCS(unsetenv)
+
+AC_CHECK_HEADERS(X11/extensions/shape.h,, AC_MSG_ERROR([Cannot find X11/extensions/shape.h. Make sure your CFLAGS environment variable contains include lines for the location of this file]))
 
 AC_CHECK_HEADERS(fnmatch.h,, AC_MSG_ERROR([Cannot find fnmatch.h. Make sure your CFLAGS environment variable contains include lines for the location of this file]))
 
@@ -67,7 +104,7 @@ dnl AC_E_CHECK_PKG(VALGRIND, [valgrind >= 2.4.0], [], [:])
 AC_SUBST(VALGRIND_CFLAGS)
 AC_SUBST(VALGRIND_LIBS)
 
-MODULE_ARCH="$host_os-$host_cpu-$release"
+MODULE_ARCH="$host_os-$host_cpu-relname"
 AC_SUBST(MODULE_ARCH)
 AC_DEFINE_UNQUOTED(MODULE_ARCH, "$MODULE_ARCH", "Module architecture")
 
@@ -185,18 +222,18 @@ if test "x${link_execinfo}" = "xno" ; then
 backtrace_symbols_fd(NULL, 0, 0);
          ]])],
       [
-       linkexec_info="yes"
+       link_execinfo="yes"
        execinfo_libs="-lexecinfo"
       ],
-      [linkexec_info="no"])
+      [link_execinfo="no"])
    LDFLAGS="${LDFLAGS_save}"
 
    AC_MSG_RESULT([${link_execinfo}])
 fi
 
-if test "x${link_execinfo}" = "xno" ; then
-   AC_MSG_ERROR([Cannot use backtrace_symbols_fd()])
-fi
+dnl if test "x${link_execinfo}" = "xno" ; then
+dnl   AC_MSG_ERROR([Cannot use backtrace_symbols_fd()])
+dnl fi
 
 
 #ALL_LINGUAS="bg de eo es fi fr ja pl pt ru zh_CN hu sl it cs da sk sv nb nl zh_TW ko"
@@ -205,8 +242,18 @@ fi
 ALL_LINGUAS="bg ca cs da de el eo es fi fr fr_CH he hu it ja ko nb nl pl pt_BR ru sk sl sv tr zh_CN zh_TW"
 AC_SUBST(ALL_LINGUAS)
 
-AM_GNU_GETTEXT([external])
+m4_ifdef([AM_GNU_GETTEXT_VERSION], [
 AM_GNU_GETTEXT_VERSION([0.12.1])
+])
+
+m4_ifdef([AM_GNU_GETTEXT], [
+AM_GNU_GETTEXT([external])
+po_makefile_in=po/Makefile.in
+AM_CONDITIONAL([HAVE_PO], [true])
+],[
+AM_CONDITIONAL([HAVE_PO], [false])
+])
+AC_SUBST(LTLIBINTL)
 if test "x$LIBINTL" = "x"; then
   LIBINTL="$INTLLIBS"
 fi
@@ -214,9 +261,17 @@ fi
 AC_CHECK_LIB(dl, dlopen, dlopen_libs=-ldl)
 AC_SUBST(dlopen_libs)
 
+AC_MSG_CHECKING([whether to install sysactions.conf])
+AC_ARG_ENABLE([install-sysactions],
+   AS_HELP_STRING([--disable-install-sysactions],[disable installing /etc/enlightenment/sysactions.conf @<:@default=enabled@:>@]),
+   [e_cv_enable_install_sysactions=$enableval],
+   AC_CACHE_VAL([e_cv_enable_install_sysactions], [e_cv_enable_install_sysactions=yes]))
+AC_MSG_RESULT([$e_cv_enable_install_sysactions])
+AM_CONDITIONAL(INSTALL_SYSACTIONS, test x${e_cv_enable_install_sysactions} = xyes)
+
 AC_MSG_CHECKING([whether to enable Files menu item])
 AC_ARG_ENABLE([files],
-   AS_HELP_STRING([--enable-files],[enable Files menu item @<:@default=yes@:>@]),
+   AS_HELP_STRING([--disable-files],[disable Files menu item @<:@default=enabled@:>@]),
    [e_cv_enable_files=$enableval],
    AC_CACHE_VAL([e_cv_enable_files], [e_cv_enable_files=yes]))
 if test "[${e_cv_enable_files}]" = yes; then
@@ -224,28 +279,54 @@ if test "[${e_cv_enable_files}]" = yes; then
 fi
 AC_MSG_RESULT([$e_cv_enable_files])
 
+AC_MSG_CHECKING([which device backend to use])
+AC_ARG_ENABLE([device-hal],
+   AS_HELP_STRING([--enable-device-hal],[enable hal device backend @<:@default=enabled@:>@]),
+   [e_cv_want_device_hal=$enableval]
+   AC_CACHE_VAL([e_cv_want_device_hal], [e_cv_want_device_hal=yes]))
+
+AC_ARG_ENABLE([device-udev],
+   AS_HELP_STRING([--enable-device-udev],[enable udev support @<:@default=disabled@:>@]),
+   [e_cv_want_device_udev=$enableval],
+   AC_CACHE_VAL([e_cv_want_device_udev], [e_cv_want_device_udev=no]))
+
+if test "x$e_cv_want_device_udev" = "xyes";then
+  device_backend=eeze
+  AC_DEFINE_UNQUOTED([HAVE_EEZE],[1],[enable udev support])
+else
+  device_backend=ehal
+fi
+AC_MSG_RESULT($device_backend)
+
+AM_CONDITIONAL([HAVE_EEZE], [test "x${device_backend}" = "xeeze"])
+
+# doxygen program for documentation building
+
+EFL_CHECK_DOXYGEN([build_doc="yes"], [build_doc="no"])
+
 # explicit libs for each binary to reduce linkage requirements
 PKG_CHECK_MODULES(E_REMOTE, [
   ecore
   ecore-ipc
-  eet >= 1.0.1
+  eet >= 1.2.3
   eina-0
 ])
 
 PKG_CHECK_MODULES(E_IMC, [
   ecore-file
-  eet >= 1.0.1
+  eet >= 1.2.3
   eina-0
 ])
 
 PKG_CHECK_MODULES(E_THUMB, [
+  eina-0
   evas
   ecore
   ecore-evas
   edje
   ecore-file
   ecore-ipc
-  eet >= 1.0.1
+  eet >= 1.2.3
   efreet
 ])
 
@@ -253,8 +334,9 @@ PKG_CHECK_MODULES(E_FM, [
   ecore
   ecore-file
   ecore-ipc
-  eet >= 1.0.1
+  eet >= 1.2.3
   efreet
+  dbus-1
   edbus
   ehal
   eina-0
@@ -269,7 +351,7 @@ PKG_CHECK_MODULES(E_FM_OP, [
 PKG_CHECK_MODULES(E_FM_OPEN, [
   ecore
   ecore-ipc
-  eet >= 1.0.1
+  eet >= 1.2.3
   eina-0
 ])
 
@@ -280,11 +362,10 @@ PKG_CHECK_MODULES(E_SYS, [
 PKG_CHECK_MODULES(E_INIT, [
   evas
   ecore
-  ecore-file
   ecore-evas
+  ecore-x
   edje
   ecore-ipc
-  eet >= 1.0.1
   eina-0
 ])
 
@@ -294,19 +375,22 @@ PKG_CHECK_MODULES(E, [
   ecore-x
   ecore-evas
   ecore-input
+  ecore-input-evas
   ecore-con
   ecore-ipc
-  ecore-job
   ecore-file
-  eet >= 1.0.1
+  eet >= 1.2.3
   edje
   efreet
   efreet-mime
+  efreet-trash
   eina-0
+  dbus-1
   edbus
   ehal
+  $device_backend
 ])
-requirements_e="evas ecore ecore-x ecore-evas ecore-con ecore-ipc ecore-job ecore-file eet edje efreet efreet-mime eina-0 edbus ehal"
+requirements_e="evas ecore ecore-x ecore-evas ecore-con ecore-ipc ecore-file eet edje efreet efreet-mime eina-0 dbus-1 edbus ehal $device_backend"
 
 AC_E_CHECK_PKG(ECORE_IMF, [ecore-imf ecore-imf-evas], [], [:])
 
@@ -340,7 +424,7 @@ AC_ARG_WITH(edje-cc,
 ])
 AC_SUBST(edje_cc)
 
-PKG_CHECK_MODULES(EET, [eet >= 1.0.1])
+PKG_CHECK_MODULES(EET, [eet >= 1.2.3])
 AC_ARG_WITH(eet-eet,
 [  --with-eet-eet=PATH              specify a specific path to eet utility],
 [
@@ -357,7 +441,7 @@ AC_DEFINE(E_INTERNAL, 1, "This define can be used to wrap internal E stuff, as c
 AM_CONDITIONAL(HAVE_BATTERY, false)
 define([CHECK_MODULE_BATTERY],
 [
-        AC_E_CHECK_PKG(BATTERY, [ecore ecore-file ecore-con],
+        AC_E_CHECK_PKG(BATTERY, [ecore ecore-file ecore-con eina-0],
                        [], [BATTERY=false])
 ])
 
@@ -373,14 +457,25 @@ AC_SUBST(BATTERY_LDFLAGS)
 AM_CONDITIONAL(HAVE_TEMPERATURE, false)
 define([CHECK_MODULE_TEMPERATURE],
 [
-        AC_E_CHECK_PKG(ECORE_TXT, [ecore-txt], [], [TEMPERATURE=false])
-        AC_E_CHECK_PKG(TEMPERATURE, [ecore ecore-file], [], [TEMPERATURE=false])
+        AC_E_CHECK_PKG(TEMPERATURE, [ecore ecore-file eina-0],
+                       [], [TEMPERATURE=false])
 ])
+
+have_exchange=no
+AC_ARG_ENABLE(exchange,
+	AC_HELP_STRING([--disable-exchange], [disable Exchange support @<:@default=detect@:>@]),
+	[want_exchange=$enableval],
+	[want_exchange=auto]
+)
 
 AM_CONDITIONAL(HAVE_EXCHANGE, false)
 define([CHECK_MODULE_CONF_THEME],
 [
-        AC_E_CHECK_PKG(EXCHANGE, [exchange], [], [:])
+        if test "x$want_exchange" != "xno" ; then
+                AC_E_CHECK_PKG(EXCHANGE, [exchange], [], [:])
+        else
+                AC_MSG_NOTICE([requested to not use exchange library])
+        fi
 ])
 
 AM_CONDITIONAL(HAVE_ALSA, false)
@@ -411,6 +506,33 @@ fi
 AC_SUBST(SOUND_CFLAGS)
 AC_SUBST(SOUND_LIBS)
 
+AM_CONDITIONAL(HAVE_ECONNMAN, false)
+define([CHECK_MODULE_CONNMAN],
+[
+        AC_E_CHECK_PKG(ECONNMAN, [edbus econnman],
+                       [], [ECONNMAN=false])
+])
+AC_SUBST(ECONNMAN_CFLAGS)
+AC_SUBST(ECONNMAN_LIBS)
+
+AM_CONDITIONAL(HAVE_EBLUEZ, false)
+define([CHECK_MODULE_BLUEZ],
+[
+        AC_E_CHECK_PKG(EBLUEZ, [edbus ebluez],
+                       [], [EBLUEZ=false])
+])
+AC_SUBST(EBLUEZ_CFLAGS)
+AC_SUBST(EBLUEZ_LIBS)
+
+AM_CONDITIONAL(HAVE_EOFONO, false)
+define([CHECK_MODULE_OFONO],
+[
+        AC_E_CHECK_PKG(EOFONO, [edbus eofono],
+                       [], [EOFONO=false])
+])
+AC_SUBST(EOFONO_CFLAGS)
+AC_SUBST(EOFONO_LIBS)
+
 AC_E_OPTIONAL_MODULE([ibar], true)
 AC_E_OPTIONAL_MODULE([dropshadow], true)
 AC_E_OPTIONAL_MODULE([clock], true)
@@ -420,7 +542,6 @@ AC_E_OPTIONAL_MODULE([temperature], true, [CHECK_MODULE_TEMPERATURE])
 AC_E_OPTIONAL_MODULE([cpufreq], true)
 AC_E_OPTIONAL_MODULE([ibox], true)
 AC_E_OPTIONAL_MODULE([start], true)
-AC_E_OPTIONAL_MODULE([exebuf], true)
 AC_E_OPTIONAL_MODULE([winlist], true)
 AC_E_OPTIONAL_MODULE([fileman], true)
 AC_E_OPTIONAL_MODULE([fileman_opinfo], true)
@@ -439,7 +560,7 @@ AC_E_OPTIONAL_MODULE([conf_startup], true)
 AC_E_OPTIONAL_MODULE([conf_intl], true)
 AC_E_OPTIONAL_MODULE([conf_imc], true)
 AC_E_OPTIONAL_MODULE([conf_profiles], true)
-AC_E_OPTIONAL_MODULE([msgbus_lang], true)
+AC_E_OPTIONAL_MODULE([msgbus], true)
 AC_E_OPTIONAL_MODULE([conf_engine], true)
 AC_E_OPTIONAL_MODULE([conf_applications], true)
 AC_E_OPTIONAL_MODULE([conf_desks], true)
@@ -452,6 +573,7 @@ AC_E_OPTIONAL_MODULE([conf_shelves], true)
 AC_E_OPTIONAL_MODULE([conf_keybindings], true)
 AC_E_OPTIONAL_MODULE([conf_mousebindings], true)
 AC_E_OPTIONAL_MODULE([conf_edgebindings], true)
+AC_E_OPTIONAL_MODULE([conf_acpibindings], true)
 AC_E_OPTIONAL_MODULE([conf_mouse], true)
 AC_E_OPTIONAL_MODULE([conf_window_display], true)
 AC_E_OPTIONAL_MODULE([conf_window_focus], true)
@@ -462,18 +584,27 @@ AC_E_OPTIONAL_MODULE([conf_clientlist], true)
 AC_E_OPTIONAL_MODULE([conf_dialogs], true)
 AC_E_OPTIONAL_MODULE([conf_performance], true)
 AC_E_OPTIONAL_MODULE([conf_winlist], true)
-AC_E_OPTIONAL_MODULE([conf_exebuf], true)
 AC_E_OPTIONAL_MODULE([conf_paths], true)
 AC_E_OPTIONAL_MODULE([conf_mime], true)
 AC_E_OPTIONAL_MODULE([conf_interaction], true)
 AC_E_OPTIONAL_MODULE([conf_scale], true)
 AC_E_OPTIONAL_MODULE([gadman], true)
 AC_E_OPTIONAL_MODULE([mixer], true, [CHECK_MODULE_MIXER])
-AC_E_OPTIONAL_MODULE([connman], false)
+AC_E_OPTIONAL_MODULE([connman], true, [CHECK_MODULE_CONNMAN])
+AC_E_OPTIONAL_MODULE([bluez], true, [CHECK_MODULE_BLUEZ])
+AC_E_OPTIONAL_MODULE([ofono], true, [CHECK_MODULE_OFONO])
 AC_E_OPTIONAL_MODULE([illume], true)
+AC_E_OPTIONAL_MODULE([illume2], true)
 AC_E_OPTIONAL_MODULE([syscon], true)
 AC_E_OPTIONAL_MODULE([everything], true)
+AC_E_OPTIONAL_MODULE([everything-files], true)
+AC_E_OPTIONAL_MODULE([everything-apps], true)
+AC_E_OPTIONAL_MODULE([everything-calc], true)
+AC_E_OPTIONAL_MODULE([everything-aspell], true)
+AC_E_OPTIONAL_MODULE([everything-settings], true)
+AC_E_OPTIONAL_MODULE([everything-windows], true)
 AC_E_OPTIONAL_MODULE([systray], true)
+AC_E_OPTIONAL_MODULE([comp], true)
 
 AC_OUTPUT([
 Makefile
@@ -500,8 +631,6 @@ src/modules/ibox/Makefile
 src/modules/ibox/module.desktop
 src/modules/start/Makefile
 src/modules/start/module.desktop
-src/modules/exebuf/Makefile
-src/modules/exebuf/module.desktop
 src/modules/winlist/Makefile
 src/modules/winlist/module.desktop
 src/modules/fileman/Makefile
@@ -509,7 +638,6 @@ src/modules/fileman/module.desktop
 src/modules/fileman_opinfo/Makefile
 src/modules/fileman_opinfo/module.desktop
 src/modules/wizard/Makefile
-src/modules/wizard/module.desktop
 src/modules/conf/Makefile
 src/modules/conf/module.desktop
 src/modules/conf_wallpaper/Makefile
@@ -538,8 +666,8 @@ src/modules/conf_imc/Makefile
 src/modules/conf_imc/module.desktop
 src/modules/conf_profiles/Makefile
 src/modules/conf_profiles/module.desktop
-src/modules/msgbus_lang/Makefile
-src/modules/msgbus_lang/module.desktop
+src/modules/msgbus/Makefile
+src/modules/msgbus/module.desktop
 src/modules/conf_engine/Makefile
 src/modules/conf_engine/module.desktop
 src/modules/conf_applications/Makefile
@@ -564,6 +692,8 @@ src/modules/conf_mousebindings/Makefile
 src/modules/conf_mousebindings/module.desktop
 src/modules/conf_edgebindings/Makefile
 src/modules/conf_edgebindings/module.desktop
+src/modules/conf_acpibindings/Makefile
+src/modules/conf_acpibindings/module.desktop
 src/modules/conf_mouse/Makefile
 src/modules/conf_mouse/module.desktop
 src/modules/conf_window_display/Makefile
@@ -584,8 +714,6 @@ src/modules/conf_performance/Makefile
 src/modules/conf_performance/module.desktop
 src/modules/conf_winlist/Makefile
 src/modules/conf_winlist/module.desktop
-src/modules/conf_exebuf/Makefile
-src/modules/conf_exebuf/module.desktop
 src/modules/conf_paths/Makefile
 src/modules/conf_paths/module.desktop
 src/modules/conf_mime/Makefile
@@ -600,33 +728,63 @@ src/modules/mixer/Makefile
 src/modules/mixer/module.desktop
 src/modules/connman/Makefile
 src/modules/connman/module.desktop
+src/modules/bluez/Makefile
+src/modules/bluez/module.desktop
+src/modules/ofono/Makefile
+src/modules/ofono/module.desktop
 src/modules/illume/Makefile
 src/modules/illume/module.desktop
 src/modules/illume/keyboards/Makefile
 src/modules/illume/dicts/Makefile
 src/modules/illume2/Makefile
+src/modules/illume2/doc/illume.dox
+src/modules/illume2/doc/Makefile
+src/modules/illume2/images/Makefile
 src/modules/illume2/module.desktop
 src/modules/illume2/keyboards/Makefile
+src/modules/illume2/policies/Makefile
+src/modules/illume2/policies/illume/Makefile
 src/modules/illume-home/Makefile
 src/modules/illume-home/module.desktop
+src/modules/illume-home-toggle/Makefile
+src/modules/illume-home-toggle/module.desktop
 src/modules/illume-softkey/Makefile
 src/modules/illume-softkey/module.desktop
+src/modules/illume-softkey/images/Makefile
 src/modules/illume-keyboard/Makefile
 src/modules/illume-keyboard/module.desktop
 src/modules/illume-keyboard/keyboards/Makefile
 src/modules/illume-keyboard/dicts/Makefile
 src/modules/illume-indicator/Makefile
 src/modules/illume-indicator/module.desktop
+src/modules/illume-indicator/images/Makefile
+src/modules/illume-kbd-toggle/Makefile
+src/modules/illume-kbd-toggle/module.desktop
+src/modules/illume-mode-toggle/Makefile
+src/modules/illume-mode-toggle/module.desktop
+src/modules/illume-bluetooth/Makefile
+src/modules/illume-bluetooth/module.desktop
 src/modules/syscon/Makefile
 src/modules/syscon/module.desktop
 src/modules/everything/Makefile
-src/modules/everything/sources/Makefile
-src/modules/everything/actions/Makefile
-src/modules/everything/views/Makefile
 src/modules/everything/module.desktop
 src/modules/everything/everything.pc
+src/modules/everything-files/Makefile
+src/modules/everything-files/module.desktop
+src/modules/everything-apps/Makefile
+src/modules/everything-apps/module.desktop
+src/modules/everything-windows/Makefile
+src/modules/everything-windows/module.desktop
+src/modules/everything-settings/Makefile
+src/modules/everything-settings/module.desktop
+src/modules/everything-calc/Makefile
+src/modules/everything-calc/module.desktop
+src/modules/everything-aspell/Makefile
+src/modules/everything-aspell/module.desktop
 src/modules/systray/Makefile
 src/modules/systray/module.desktop
+src/modules/comp/Makefile
+src/modules/comp/module.desktop
 src/preload/Makefile
 data/Makefile
 data/images/Makefile
@@ -641,6 +799,7 @@ data/etc/Makefile
 data/icons/Makefile
 data/backgrounds/Makefile
 doc/Makefile
+doc/e.dox
 config/Makefile
 config/default/Makefile
 config/standard/Makefile
@@ -649,48 +808,59 @@ config/scaleable/Makefile
 config/netbook/Makefile
 config/illume/Makefile
 config/illume-home/Makefile
-po/Makefile.in
+$po_makefile_in
 ])
+
+if test "$device_backend" = "eeze";then
+  device_backend+=" (EXPERIMENTAL!)"
+fi
 
 # report
 txt_strip() {
         echo "[$]@" | sed -e 's/^[[ \t]]*\([[^ \t]]*\)[[ \t]]*$/\1/g'
 }
 
-MODS=""
-for mod in $OPTIONAL_MODULES; do
-        MODS="$MODS ${COLOR_HGREEN}+$mod${COLOR_END}"
-done
-MODS=$(txt_strip $MODS)
-
-UNUSED_MODS=""
-for mod in $UNUSED_OPTIONAL_MODULES; do
-        UNUSED_MODS="$UNUSED_MODS ${COLOR_HRED}-$mod${COLOR_END}"
-done
-UNUSED_MODS=$(txt_strip $UNUSED_MODS)
-
+echo
 cat << SUMMARY_EOF
-
 Summary:
  * project.........: $PACKAGE $VERSION
  * prefix..........: $(txt_strip $prefix)
  * CFLAGS..........: $(txt_strip $CFLAGS)
  * LDFLAGS.........: $(txt_strip $LDFLAGS)
-
 SUMMARY_EOF
+echo
+cat << DEVICE_EOF
+Preferred Backends:
+ * device..........: $device_backend
+DEVICE_EOF
+echo
 
-if test "x$MODS" != "x"; then
-   echo -e " * enabled modules.: $MODS"
+UNUSED_MODS=""
+for mod in $UNUSED_OPTIONAL_MODULES; do
+        UNUSED_MODS="$UNUSED_MODS${COLOR_HRED}$mod${COLOR_END} "
+done
+
+cat << MODULES_EOF
+Modules:
+ * disabled........: $(txt_strip $UNUSED_MODS)
+MODULES_EOF
+echo
+
+cat << DOCS_EOF
+Documentation:
+ * enabled.........: ${build_doc}
+DOCS_EOF
+if test "x${build_doc}" = "xyes" ; then
+   echo " Building..........: make doc"
 fi
+echo
 
-if test "x$UNUSED_MODS" != "x"; then
-   echo -e " * disabled modules: $UNUSED_MODS"
-fi
+cat << COMPILE_EOF
+Compilation........: make (or gmake)
+COMPILE_EOF
+echo
 
-cat << HINT_EOF
-
-now type:
-
-     make all install
-
-HINT_EOF
+cat << INSTALL_EOF
+Installation.......: make all install (as root if needed, with 'su' or 'sudo')
+INSTALL_EOF
+echo

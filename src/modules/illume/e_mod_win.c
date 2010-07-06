@@ -31,15 +31,15 @@ static void _app_close(E_Border *bd);
 
 static void _cb_cfg_exec(const void *data, E_Container *con, const char *params, Efreet_Desktop *desktop);
 static void _desktop_run(Efreet_Desktop *desktop);
-static int _cb_zone_move_resize(void *data, int type, void *event);
+static Eina_Bool _cb_zone_move_resize(void *data, int type, void *event);
 static void _cb_resize(void);
 static void _cb_run(void *data);
-static int _cb_event_border_add(void *data, int type, void *event);
-static int _cb_event_border_remove(void *data, int type, void *event);
-static int _cb_event_border_focus_in(void *data, int type, void *event);
-static int _cb_event_border_focus_out(void *data, int type, void *event);
-static int _cb_event_exe_del(void *data, int type, void *event);
-static int _cb_run_timeout(void *data);
+static Eina_Bool _cb_event_border_add(void *data, int type, void *event);
+static Eina_Bool _cb_event_border_remove(void *data, int type, void *event);
+static Eina_Bool _cb_event_border_focus_in(void *data, int type, void *event);
+static Eina_Bool _cb_event_border_focus_out(void *data, int type, void *event);
+static Eina_Bool _cb_event_exe_del(void *data, int type, void *event);
+static Eina_Bool _cb_run_timeout(void *data);
 static int _have_borders(void);
 static void _cb_slipshelf_home(const void *data, E_Slipshelf *ess, E_Slipshelf_Action action);
 static void _cb_slipshelf_close(const void *data, E_Slipshelf *ess, E_Slipshelf_Action action);
@@ -47,15 +47,14 @@ static void _cb_slipshelf_apps(const void *data, E_Slipshelf *ess, E_Slipshelf_A
 static void _cb_slipshelf_keyboard(const void *data, E_Slipshelf *ess, E_Slipshelf_Action action);
 static void _cb_slipshelf_app_next(const void *data, E_Slipshelf *ess, E_Slipshelf_Action action);
 static void _cb_slipshelf_app_prev(const void *data, E_Slipshelf *ess, E_Slipshelf_Action action);
-static void _cb_slipwin_select(const void *data, E_Slipwin *esw, E_Border *bd);
-static void _cb_slipshelf_select(const void *data, E_Slipshelf *ess, E_Border *bd);
-static void _cb_slipshelf_home2(const void *data, E_Slipshelf *ess, E_Border *bd);
+static void _cb_slipwin_border_select(void *data, E_Slipwin *esw, E_Border *bd);
+static void _cb_slipshelf_border_select(void *data, E_Slipshelf *ess, E_Border *bd);
+static void _cb_slipshelf_border_home2(void *data, E_Slipshelf *ess, E_Border *pbd);
 static void _cb_selected(void *data, Evas_Object *obj, void *event_info);
-static int _cb_efreet_desktop_list_change(void *data, int type, void *event);
-static int _cb_efreet_desktop_change(void *data, int type, void *event);
+static Eina_Bool _cb_efreet_cache_update(void *data, int type, void *event);
 static void _apps_unpopulate(void);
 static void _apps_populate(void);
-static int _cb_update_deferred(void *data);
+static Eina_Bool _cb_update_deferred(void *data);
 static void _cb_sys_con_close(void *data);
 static void _cb_sys_con_home(void *data);
 
@@ -121,11 +120,11 @@ _e_mod_win_init(E_Module *m)
 				   _cb_slipshelf_app_next, NULL);
    e_slipshelf_action_callback_set(slipshelf, E_SLIPSHELF_ACTION_APP_PREV,
 				   _cb_slipshelf_app_prev, NULL);
-   e_slipshelf_border_select_callback_set(slipshelf, _cb_slipshelf_select, NULL);
-   e_slipshelf_border_home_callback_set(slipshelf, _cb_slipshelf_home2, NULL);
+   e_slipshelf_border_select_callback_set(slipshelf, _cb_slipshelf_border_select, NULL);
+   e_slipshelf_border_home_callback_set(slipshelf, _cb_slipshelf_border_home2, NULL);
    
    slipwin = e_slipwin_new(zone, e_module_dir_get(m));
-   e_slipwin_border_select_callback_set(slipwin, _cb_slipwin_select, NULL);
+   e_slipwin_border_select_callback_set(slipwin, _cb_slipwin_border_select, NULL);
 
    appwin = e_appwin_new(zone, e_module_dir_get(m));
    syswin = e_syswin_new(zone, e_module_dir_get(m));
@@ -159,10 +158,7 @@ _e_mod_win_init(E_Module *m)
       (ECORE_EXE_EVENT_DEL, _cb_event_exe_del, NULL));
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
-      (EFREET_EVENT_DESKTOP_LIST_CHANGE, _cb_efreet_desktop_list_change, NULL));
-   handlers = eina_list_append
-     (handlers, ecore_event_handler_add
-      (EFREET_EVENT_DESKTOP_CHANGE, _cb_efreet_desktop_change, NULL));
+      (EFREET_EVENT_DESKTOP_CACHE_UPDATE, _cb_efreet_cache_update, NULL));
    handlers = eina_list_append
      (handlers, ecore_event_handler_add
       (E_EVENT_ZONE_MOVE_RESIZE, _cb_zone_move_resize, NULL));
@@ -235,14 +231,14 @@ _e_mod_win_shutdown(void)
 static Ecore_Exe           *_kbd_exe = NULL;
 static Ecore_Event_Handler *_kbd_exe_exit_handler = NULL;
 
-static int
-_e_mod_win_win_cfg_kbd_cb_exit(void *data, int type, void *event)
+static Eina_Bool
+_e_mod_win_win_cfg_kbd_cb_exit(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    Ecore_Exe_Event_Del *ev;
 
    ev = event;
    if (ev->exe ==_kbd_exe) _kbd_exe = NULL;
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
   
 void
@@ -265,11 +261,12 @@ e_mod_win_cfg_kbd_start(void)
 	if (!desktop)
 	  {
 	     Eina_List *kbds;
+	     Efreet_Desktop *d;
 	     
 	     kbds = efreet_util_desktop_category_list("Keyboard");
 	     if (kbds)
 	       {
-		  EINA_LIST_FOREACH(kbds, l, desktop)
+		  EINA_LIST_FREE(kbds, d)
 		    {
 		       const char *dname;
 		       
@@ -277,8 +274,12 @@ e_mod_win_cfg_kbd_start(void)
 		       if (dname)
 			 {
 			    if (!strcmp(dname, illume_cfg->kbd.run_keyboard))
-			      break;
+			      {
+				 desktop = d;
+				 efreet_desktop_ref(desktop);
+			      }
 			 }
+		       efreet_desktop_free(d);
 		    }
 	       }
 	  }
@@ -290,6 +291,7 @@ e_mod_win_cfg_kbd_start(void)
 		  _kbd_exe = exeinst->exe;
 		  _kbd_exe_exit_handler = ecore_event_handler_add(ECORE_EXE_EVENT_DEL, _e_mod_win_win_cfg_kbd_cb_exit, NULL);
 	       }
+	     efreet_desktop_free(desktop);
 	  }
      }
 }
@@ -351,9 +353,9 @@ _e_mod_win_slipshelf_cfg_update(void)
 				   _cb_slipshelf_app_next, NULL);
    e_slipshelf_action_callback_set(slipshelf, E_SLIPSHELF_ACTION_APP_PREV,
 				   _cb_slipshelf_app_prev, NULL);
-   e_slipshelf_border_select_callback_set(slipshelf, _cb_slipshelf_select, NULL);
-   e_slipshelf_border_home_callback_set(slipshelf, _cb_slipshelf_home2, NULL);
-   
+   e_slipshelf_border_select_callback_set(slipshelf, _cb_slipshelf_border_select, NULL);
+   e_slipshelf_border_home_callback_set(slipshelf, _cb_slipshelf_border_home2, NULL);
+
    _cb_resize();
    _e_mod_layout_apply_all();
 }
@@ -543,11 +545,11 @@ _app_close(E_Border *bd)
 
 /////////
 
-static int
-_cb_zone_move_resize(void *data, int type, void *event)
+static Eina_Bool
+_cb_zone_move_resize(__UNUSED__ void *data, __UNUSED__ int type, __UNUSED__ void *event)
 {
    _cb_resize();
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 static void
@@ -622,7 +624,7 @@ _desktop_run(Efreet_Desktop *desktop)
 	exename = malloc(p - desktop->exec + 1);
 	if (exename)
 	  {
-	     ecore_strlcpy(exename, desktop->exec, p - desktop->exec + 1);
+	     eina_strlcpy(exename, desktop->exec, p - desktop->exec + 1);
 	  }
      }
    if (exename)
@@ -668,6 +670,7 @@ _desktop_run(Efreet_Desktop *desktop)
    ins = calloc(1, sizeof(Instance));
    if (!ins) return;
    eins = e_exec(zone, desktop, NULL, NULL, "illume-launcher");
+   efreet_desktop_ref(desktop);
    ins->desktop = desktop;
    if (eins)
      {
@@ -695,11 +698,10 @@ _cb_run(void *data)
    _desktop_run(desktop);
 }
 
-static int 
-_cb_event_border_add(void *data, int type, void *event)
+static Eina_Bool
+_cb_event_border_add(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Add *ev;
-   Efreet_Desktop *desktop;
    Instance *ins;
    Eina_List *l;
    
@@ -711,8 +713,6 @@ _cb_event_border_add(void *data, int type, void *event)
 	e_slipshelf_action_enabled_set(slipshelf, E_SLIPSHELF_ACTION_APP_NEXT, 1);
 	e_slipshelf_action_enabled_set(slipshelf, E_SLIPSHELF_ACTION_APP_PREV, 1);
      }
-   desktop = e_exec_startup_id_pid_find(ev->border->client.netwm.pid,
-					ev->border->client.netwm.startup_id);
    EINA_LIST_FOREACH(instances, l, ins)
 	if (!ins->border)
 	  {
@@ -729,14 +729,14 @@ _cb_event_border_add(void *data, int type, void *event)
 		  if (ins->timeout) ecore_timer_del(ins->timeout);
 		  ins->timeout = NULL;
 		  // FIXME; if gadget is disabled, enable it
-		  return 1;
+		  return ECORE_CALLBACK_PASS_ON;
 	       }
 	  }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int 
-_cb_event_border_remove(void *data, int type, void *event)
+static Eina_Bool
+_cb_event_border_remove(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Remove *ev;
    Instance *ins;
@@ -760,13 +760,13 @@ _cb_event_border_remove(void *data, int type, void *event)
 		  ins->handle = NULL;
 	       }
 	     ins->border = NULL;
-	     return 1;
+	     return ECORE_CALLBACK_PASS_ON;
 	  }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int 
-_cb_event_border_focus_in(void *data, int type, void *event)
+static Eina_Bool
+_cb_event_border_focus_in(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Focus_In *ev;
    
@@ -776,11 +776,11 @@ _cb_event_border_focus_in(void *data, int type, void *event)
      sys_con_act_close->disabled = 0;
    if (sys_con_act_home)
      sys_con_act_home->disabled = 0;
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int 
-_cb_event_border_focus_out(void *data, int type, void *event)
+static Eina_Bool
+_cb_event_border_focus_out(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    E_Event_Border_Focus_Out *ev;
    
@@ -790,11 +790,11 @@ _cb_event_border_focus_out(void *data, int type, void *event)
      sys_con_act_close->disabled = 1;
    if (sys_con_act_home)
      sys_con_act_home->disabled = 1;
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
-_cb_event_exe_del(void *data, int type, void *event)
+static Eina_Bool
+_cb_event_exe_del(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
    Ecore_Exe_Event_Del *ev;
    Instance *ins;
@@ -814,13 +814,13 @@ _cb_event_exe_del(void *data, int type, void *event)
 	     instances = eina_list_remove_list(instances, l);
 	     if (ins->timeout) ecore_timer_del(ins->timeout);
 	     free(ins);
-	     return 1;
+	     return ECORE_CALLBACK_PASS_ON;
 	  }
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int
+static Eina_Bool
 _cb_run_timeout(void *data)
 {
    Instance *ins;
@@ -836,10 +836,10 @@ _cb_run_timeout(void *data)
      {
 	instances = eina_list_remove(instances, ins);
 	free(ins);
-	return 0;
+	return ECORE_CALLBACK_CANCEL;
      }
    ins->timeout = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static int
@@ -911,24 +911,24 @@ _cb_slipshelf_app_prev(const void *data, E_Slipshelf *ess, E_Slipshelf_Action ac
    _app_prev();
 }
 
-static void
-_cb_slipwin_select(const void *data, E_Slipwin *esw, E_Border *bd)
+static void 
+_cb_slipwin_border_select(void *data, E_Slipwin *esw, E_Border *bd) 
 {
    if (bd) _e_mod_layout_border_show(bd);
 }
 
 static void
-_cb_slipshelf_select(const void *data, E_Slipshelf *ess, E_Border *bd)
+_cb_slipshelf_border_select(void *data, E_Slipshelf *ess, E_Border *bd)
 {
    if (bd) _e_mod_layout_border_show(bd);
 }
 
 static void
-_cb_slipshelf_home2(const void *data, E_Slipshelf *ess, E_Border *pbd)
+_cb_slipshelf_border_home2(void *data, E_Slipshelf *ess, E_Border *pbd)
 {
    Eina_List *l;
-	E_Border *bd;
-	
+   E_Border *bd;
+
    EINA_LIST_FOREACH(e_border_client_list(), l, bd)
      {
 	if (e_object_is_del(E_OBJECT(bd))) continue;
@@ -944,7 +944,7 @@ static void
 _apps_unpopulate(void)
 {
    char buf[PATH_MAX];
-	Efreet_Desktop *desktop;
+   Efreet_Desktop *desktop;
    Evas_Object *obj;
    Eina_List *files;
    char *file;
@@ -952,9 +952,6 @@ _apps_unpopulate(void)
 
    EINA_LIST_FREE(sels, obj)
      evas_object_del(obj);
-
-   EINA_LIST_FREE(desks, desktop)
-	efreet_desktop_free(desktop);
 
    if (bx) evas_object_del(bx);
    bx = NULL;
@@ -975,7 +972,7 @@ _apps_unpopulate(void)
 
    EINA_LIST_FREE(files, file)
      {
-	if (ecore_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
+	if (eina_strlcpy(buf + len, file, sizeof(buf) - len) >= sizeof(buf) - len)
 	  continue;
 	ecore_file_unlink(buf);
 	free(file);
@@ -1048,8 +1045,8 @@ _apps_populate(void)
    e_scrollframe_child_viewport_size_get(sf, &sfw, &sfh);
    
      {
+	// TODO: Needs some efreet love
 	Efreet_Menu *menu, *entry, *subentry;
-	Efreet_Desktop *desktop;
 	char *label, *icon, *plabel;
 	Eina_List *settings_desktops, *system_desktops, *keyboard_desktops;
 	Eina_List *l, *ll;
@@ -1064,8 +1061,6 @@ _apps_populate(void)
 	       {
 		  if (entry->type != EFREET_MENU_ENTRY_MENU) continue;
 		  
-		  desktop = entry->desktop;
-		  
 		  plabel = NULL;
 		  
 		  if (entry->name) plabel = strdup(entry->name);
@@ -1079,6 +1074,7 @@ _apps_populate(void)
 		  
 		  EINA_LIST_FOREACH(entry->entries, ll, subentry)
 		    {
+		       Efreet_Desktop *desktop;
 		       if (subentry->type != EFREET_MENU_ENTRY_DESKTOP) continue;
 
 		       label = icon = NULL;
@@ -1200,27 +1196,28 @@ _cb_selected(void *data, Evas_Object *obj, void *event_info)
 	Efreet_Desktop *desktop;
 	
 	desktop = efreet_desktop_get(ici->real_link);
-	if (desktop) _desktop_run(desktop);
+	if (desktop)
+	  {
+	     _desktop_run(desktop);
+	     efreet_desktop_free(desktop);
+	  }
      }
 }
 
-static int
-_cb_efreet_desktop_list_change(void *data, int type, void *event)
+static Eina_Bool
+_cb_efreet_cache_update(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 {
+   Efreet_Desktop *desktop;
+
+   EINA_LIST_FREE(desks, desktop)
+	efreet_desktop_free(desktop);
+
    if (defer) ecore_timer_del(defer);
    defer = ecore_timer_add(1.0, _cb_update_deferred, NULL);
    return 1;
 }
 
-static int
-_cb_efreet_desktop_change(void *data, int type, void *event)
-{
-   if (defer) ecore_timer_del(defer);
-   defer = ecore_timer_add(1.0, _cb_update_deferred, NULL);
-   return 1;
-}
-
-static int
+static Eina_Bool
 _cb_update_deferred(void *data)
 {
    _apps_unpopulate();
@@ -1228,7 +1225,7 @@ _cb_update_deferred(void *data)
    e_mod_win_cfg_kbd_update();
    e_pwr_init_done();
    defer = NULL;
-   return 0;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void

@@ -1,5 +1,5 @@
 group "E_Config" struct {
-  value "config_version" int: 65842;
+  value "config_version" int: 65847;
   value "show_splash" int: 1;
   value "init_default_theme" string: "default.edj";
   value "desktop_default_background" string: "Dark_Gradient.edj";
@@ -10,7 +10,7 @@ group "E_Config" struct {
   value "border_shade_animate" int: 1;
   value "border_shade_transition" int: 3;
   value "border_shade_speed" double: 3000.0000000000000000000000000;
-  value "framerate" double: 30.0000000000000000000000000;
+  value "framerate" double: 60.0000000000000000000000000;
   value "priority" int: 1;
   value "image_cache" int: 4096;
   value "font_cache" int: 512;
@@ -1517,19 +1517,6 @@ group "E_Config" struct {
   value "menu_eap_generic_show" int: 1;
   value "menu_eap_comment_show" int: 0;
   value "fullscreen_policy" int: 0;
-  value "exebuf_max_exe_list" int: 20;
-  value "exebuf_max_eap_list" int: 20;
-  value "exebuf_max_hist_list" int: 20;
-  value "exebuf_scroll_animate" int: 1;
-  value "exebuf_scroll_speed" double: 0.1000000000000000055511151;
-  value "exebuf_pos_align_x" double: 0.5000000000000000000000000;
-  value "exebuf_pos_align_y" double: 0.5000000000000000000000000;
-  value "exebuf_pos_size_w" double: 0.7500000000000000000000000;
-  value "exebuf_pos_size_h" double: 0.2500000000000000000000000;
-  value "exebuf_pos_min_w" int: 200;
-  value "exebuf_pos_min_h" int: 160;
-  value "exebuf_pos_max_w" int: 400;
-  value "exebuf_pos_max_h" int: 320;
   value "exebuf_term_cmd" string: "xterm -hold -e";
   value "use_app_icon" int: 0;
   value "cnfmdlg_disabled" int: 0;
@@ -1923,6 +1910,7 @@ group "E_Config" struct {
   value "desklock_auth_method" int: 0;
   value "desklock_login_box_zone" int: -1;
   value "desklock_start_locked" int: 0;
+  value "desklock_on_suspend" int: 0;
   value "desklock_autolock_screensaver" int: 0;
   value "desklock_post_screensaver_time" double: 0.0;
   value "desklock_autolock_idle" int: 0;
@@ -2043,13 +2031,13 @@ group "E_Config" struct {
   value "thumbscroll_threshhold" int: 8;
   value "thumbscroll_momentum_threshhold" double: 100.0000000000000000000000000;
   value "thumbscroll_friction" double: 1.0000000000000000000000000;
-  value "hal_desktop" int: 1;
+  value "dbus_desktop" int: 1;
   value "border_keyboard.timeout" double: 5.0000000000000000000000000;
   value "border_keyboard.move.dx" uchar: 5;
   value "border_keyboard.move.dy" uchar: 5;
   value "border_keyboard.resize.dx" uchar: 5;
   value "border_keyboard.resize.dy" uchar: 5;
-  value "hal_desktop" int: 1;
+  value "dbus_desktop" int: 1;
   value "scale.min" double: 1.0000000000000000000000000;
   value "scale.max" double: 3.0000000000000000000000000;
   value "scale.factor" double: 1.0000000000000000000000000;
@@ -2120,4 +2108,7 @@ group "E_Config" struct {
   }
   value "mode.presentation" uchar: 0;
   value "mode.offline" uchar: 0;
+  value "exec.expire_timeout" double: 30.0;
+  value "exec.show_run_dialog" uchar: 1;
+  value "exec.show_exit_dialog" uchar: 1;
 }

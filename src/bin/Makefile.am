@@ -1,6 +1,7 @@
 MAINTAINERCLEANFILES = Makefile.in
 
-INCLUDES = -I$(top_srcdir) \
+INCLUDES = -I$(top_builddir) \
+           -I$(top_srcdir) \
 	   -I$(top_srcdir)/src/bin \
 	   -I$(top_srcdir)/src/lib \
 	   @e_cflags@ \
@@ -17,8 +18,7 @@ INCLUDES = -I$(top_srcdir) \
 bin_PROGRAMS = \
 enlightenment \
 enlightenment_imc \
-enlightenment_start \
-enlightenment_fm_open
+enlightenment_start
 
 internal_bindir = $(libdir)/enlightenment/utils
 internal_bin_PROGRAMS = \
@@ -134,7 +134,7 @@ e_entry_dialog.h \
 e_fm.h \
 e_fm_op.h \
 e_fm_op_registry.h \
-e_fm_hal.h \
+e_fm_dbus.h \
 e_widget_scrollframe.h \
 e_sha1.h \
 e_widget_fsel.h \
@@ -150,7 +150,7 @@ e_sys.h \
 e_obj_dialog.h \
 e_widget_aspect.h \
 e_filereg.h \
-e_widget_desk_preview.h \
+e_widget_deskpreview.h \
 e_fm_prop.h \
 e_mouse.h \
 e_order.h \
@@ -168,7 +168,8 @@ e_slidecore.h \
 e_widget_flist.h \
 e_scale.h \
 e_widget_toolbar.h \
-e_widget_toolbook.h
+e_widget_toolbook.h \
+e_acpi.h
 
 enlightenment_src = \
 e_user.c \
@@ -273,7 +274,7 @@ e_confirm_dialog.c \
 e_int_border_prop.c \
 e_entry_dialog.c \
 e_fm.c \
-e_fm_hal.c \
+e_fm_dbus.c \
 e_fm_op_registry.c \
 e_widget_scrollframe.c \
 e_sha1.c \
@@ -289,7 +290,7 @@ e_color_dialog.c \
 e_sys.c \
 e_obj_dialog.c \
 e_widget_aspect.c \
-e_widget_desk_preview.c \
+e_widget_deskpreview.c \
 e_filereg.c \
 e_fm_prop.c \
 e_mouse.c \
@@ -306,6 +307,7 @@ e_widget_flist.c \
 e_scale.c \
 e_widget_toolbar.c \
 e_widget_toolbook.c \
+e_acpi.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \
@@ -313,7 +315,7 @@ e_main.c \
 $(enlightenment_src)
 
 enlightenment_LDFLAGS = -export-dynamic
-enlightenment_LDADD = @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@
+enlightenment_LDADD = @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ -lm
 
 enlightenment_imc_SOURCES = \
 e.h \
@@ -349,13 +351,6 @@ e_fm_op.c
 
 enlightenment_fm_op_LDADD = @E_FM_OP_LIBS@
 enlightenment_fm_op_CFLAGS = $(INCLUDES)
-
-enlightenment_fm_open_SOURCES = \
-e_fm_open.c \
-e_ipc_codec.c
-
-enlightenment_fm_open_LDADD = @E_FM_OPEN_LIBS@
-enlightenment_fm_open_CFLAGS = $(INCLUDES)
 
 enlightenment_sys_SOURCES = \
 e_sys_main.c

@@ -1,6 +1,7 @@
 #ifndef E_MOD_POLICY_H
-#define E_MOD_POLICY_H
+# define E_MOD_POLICY_H
 
-void il_config_policy_show(E_Container *con, const char *params);
+int e_mod_policy_init(void);
+int e_mod_policy_shutdown(void);
 
 #endif

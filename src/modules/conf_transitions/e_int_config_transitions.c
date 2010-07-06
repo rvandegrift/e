@@ -26,7 +26,7 @@ struct _E_Config_Dialog_Data
    Evas_Object *o_bg;
 };
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_transitions(E_Container *con, const char *params __UNUSED__) 
 {
    E_Config_Dialog *cfd;
@@ -150,7 +150,6 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    edje_freeze();
    e_widget_ilist_freeze(il);
    e_widget_ilist_append(il, NULL, _("None"), _trans_cb_changed, cfdata, NULL);
-   l = e_theme_transition_list();
    for (l = e_theme_transition_list(); l; l = l->next) 
      {
 	t = l->data;

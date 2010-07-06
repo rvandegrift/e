@@ -125,8 +125,8 @@ static void _e_fwin_pan_child_size_get(Evas_Object *obj, Evas_Coord *w, Evas_Coo
 static void _e_fwin_pan_scroll_update(E_Fwin_Page *page);
 
 static void _e_fwin_zone_cb_mouse_down(void *data, Evas *evas, Evas_Object *obj, void *event_info);
-static int  _e_fwin_zone_move_resize(void *data, int type, void *event);
-static int  _e_fwin_zone_del(void *data, int type, void *event);
+static Eina_Bool  _e_fwin_zone_move_resize(void *data, int type, void *event);
+static Eina_Bool  _e_fwin_zone_del(void *data, int type, void *event);
 static void _e_fwin_config_set(E_Fwin_Page *page);
 static void _e_fwin_window_title_set(E_Fwin_Page *page);
 static void _e_fwin_page_resize(E_Fwin_Page *page);
@@ -135,7 +135,7 @@ static int _e_fwin_dlg_cb_desk_sort(const void *p1, const void *p2);
 static int _e_fwin_dlg_cb_desk_list_sort(const void *data1, const void *data2);
 
 static void _e_fwin_op_registry_listener_cb(void *data, const E_Fm2_Op_Registry_Entry *ere);
-static int _e_fwin_op_registry_entry_add_cb(void *data, int type, void *event);
+static Eina_Bool _e_fwin_op_registry_entry_add_cb(void *data, int type, void *event);
 static void _e_fwin_op_registry_entry_iter(E_Fwin_Page *page);
 static void _e_fwin_op_registry_abort_cb(void *data, Evas_Object *obj, const char *emission, const char *source);
 
@@ -143,7 +143,7 @@ static void _e_fwin_op_registry_abort_cb(void *data, Evas_Object *obj, const cha
 static Eina_List *fwins = NULL;
 
 /* externally accessible functions */
-EAPI int
+int
 e_fwin_init(void)
 {
    eina_init();
@@ -151,7 +151,7 @@ e_fwin_init(void)
    return 1;
 }
 
-EAPI int
+int
 e_fwin_shutdown(void)
 {
    E_Fwin *fwin;
@@ -167,18 +167,19 @@ e_fwin_shutdown(void)
 /* FIXME: this opens a new window - we need a way to inherit a zone as the
  * "fwin" window
  */
-EAPI void
+void
 e_fwin_new(E_Container *con, const char *dev, const char *path)
 {
    _e_fwin_new(con, dev, path);
 }
 
-EAPI void
+void
 e_fwin_zone_new(E_Zone *zone, const char *dev, const char *path)
 {
    E_Fwin *fwin;
    E_Fwin_Page *page;
    Evas_Object *o;
+   int x, y, w, h;
 
    fwin = E_OBJECT_ALLOC(E_Fwin, E_FWIN_TYPE, _e_fwin_free);
    if (!fwin) return;
@@ -249,8 +250,10 @@ e_fwin_zone_new(E_Zone *zone, const char *dev, const char *path)
 				_e_fwin_pan_child_size_get);
    evas_object_propagate_events_set(page->fm_obj, 0);
    page->scrollframe_obj = o;
-   evas_object_move(o, fwin->zone->x, fwin->zone->y);
-   evas_object_resize(o, fwin->zone->w, fwin->zone->h);
+
+   e_zone_useful_geometry_get(zone, &x, &y, &w, &h);
+   evas_object_move(o, x, y);
+   evas_object_resize(o, w, h);
    evas_object_show(o);
 
    e_fm2_window_object_set(page->fm_obj, E_OBJECT(fwin->zone));
@@ -263,7 +266,7 @@ e_fwin_zone_new(E_Zone *zone, const char *dev, const char *path)
    fwin->cur_page = fwin->pages->data;
 }
 
-EAPI void
+void
 e_fwin_all_unsel(void *data)
 {
    E_Fwin *fwin;
@@ -274,7 +277,7 @@ e_fwin_all_unsel(void *data)
    e_fm2_all_unsel(fwin->cur_page->fm_obj);
 }
 
-EAPI void 
+void 
 e_fwin_zone_shutdown(E_Zone *zone) 
 {
    Eina_List *f;
@@ -288,7 +291,7 @@ e_fwin_zone_shutdown(E_Zone *zone)
      }
 }
 
-EAPI void 
+void 
 e_fwin_reload_all(void) 
 {
    Eina_List *l, *ll, *lll;
@@ -340,7 +343,7 @@ e_fwin_reload_all(void)
 	       }
 }
 
-EAPI int
+int
 e_fwin_zone_find(E_Zone *zone)
 {
    Eina_List *f;
@@ -666,11 +669,13 @@ _e_fwin_suggested_apps_list_get(Eina_List *files, Eina_List **mime_list)
      apps = eina_list_merge(apps, efreet_util_desktop_mime_list(mime));
 
    /* 4. create a new list without duplicates */
-   EINA_LIST_FOREACH(apps, l, desk)
-     if (!eina_list_data_find(ret, desk))
-       ret = eina_list_append(ret, desk);
-
-   if (apps) apps = eina_list_free(apps);
+   EINA_LIST_FREE(apps, desk)
+     {
+	if (!eina_list_data_find(ret, desk))
+	  ret = eina_list_append(ret, desk);
+	else
+	  efreet_desktop_free(desk);
+     }
 
    if (mime_list)
      *mime_list = mlist;
@@ -709,7 +714,7 @@ _e_fwin_desktop_run(Efreet_Desktop *desktop, E_Fwin_Page *page, Eina_Bool skip_h
 	if (ext == E_FWIN_EXEC_NONE)
 	  {
 	     if (!((ici->link) && (ici->mount)))
-	       ecore_strlcpy(buf, ici->file, sizeof(buf));
+	       eina_strlcpy(buf, ici->file, sizeof(buf));
 	  }
 	else
 	  _e_fwin_file_exec(page, ici, ext);
@@ -938,7 +943,7 @@ _e_fwin_window_title_set(E_Fwin_Page *page)
 
    if (file) 
      {
-	ecore_strlcpy(buf, file, sizeof(buf));
+	eina_strlcpy(buf, file, sizeof(buf));
 	e_win_title_set(page->fwin->win, buf);
      }
 }
@@ -1131,8 +1136,6 @@ _e_fwin_changed(void *data, Evas_Object *obj, void *event_info)
 	fwin->overlay_file = _e_fwin_custom_file_path_eval(fwin, ef, fwin->overlay_file, "X-Enlightenment-Directory-Overlay");
 	fwin->scrollframe_file = _e_fwin_custom_file_path_eval(fwin, ef, fwin->scrollframe_file, "X-Enlightenment-Directory-Scrollframe");
 	fwin->theme_file = _e_fwin_custom_file_path_eval(fwin, ef, fwin->theme_file, "X-Enlightenment-Directory-Theme");
-	// FIXME: there is no way to just unref an efreet desktop - free completely
-	// frees - doesnt just unref.
  	efreet_desktop_free(ef);
      }
    else
@@ -1247,6 +1250,8 @@ _e_fwin_cb_all_change(void *data, Evas_Object *obj)
    desktop = efreet_util_desktop_file_id_find(fad->app2);
    if ((desktop) && (desktop->exec)) 
      e_widget_entry_text_set(fad->o_entry, desktop->exec);
+   if (desktop)
+     efreet_desktop_free(desktop);
 }
 
 static void
@@ -1355,17 +1360,17 @@ _e_fwin_zone_cb_mouse_down(void *data, Evas *evas, Evas_Object *obj, void *event
    e_fwin_all_unsel(fwin);
 }
 
-static int 
+static Eina_Bool
 _e_fwin_zone_move_resize(void *data, int type, void *event) 
 {
    E_Event_Zone_Move_Resize *ev;
    E_Fwin *fwin;
 
-   if (type != E_EVENT_ZONE_MOVE_RESIZE) return 1;
+   if (type != E_EVENT_ZONE_MOVE_RESIZE) return ECORE_CALLBACK_PASS_ON;
    fwin = data;
    ev = event;
-   if (!fwin) return 1;
-   if (fwin->zone != ev->zone) return 1;
+   if (!fwin) return ECORE_CALLBACK_PASS_ON;
+   if (fwin->zone != ev->zone) return ECORE_CALLBACK_PASS_ON;
    if (fwin->bg_obj) 
      {
 	evas_object_move(fwin->bg_obj, ev->zone->x, ev->zone->y);
@@ -1373,25 +1378,27 @@ _e_fwin_zone_move_resize(void *data, int type, void *event)
      }
    if (fwin->cur_page->scrollframe_obj) 
      {
-	evas_object_move(fwin->cur_page->scrollframe_obj, ev->zone->x, ev->zone->y);
-	evas_object_resize(fwin->cur_page->scrollframe_obj, ev->zone->w, ev->zone->h);
+	int x, y, w, h;
+	e_zone_useful_geometry_get(ev->zone, &x, &y, &w, &h);
+	evas_object_move(fwin->cur_page->scrollframe_obj, x, y);
+	evas_object_resize(fwin->cur_page->scrollframe_obj, w, h);
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
-static int 
+static Eina_Bool
 _e_fwin_zone_del(void *data, int type, void *event) 
 {
    E_Event_Zone_Del *ev;
    E_Fwin *fwin;
 
-   if (type != E_EVENT_ZONE_DEL) return 1;
+   if (type != E_EVENT_ZONE_DEL) return ECORE_CALLBACK_PASS_ON;
    fwin = data;
    ev = event;
-   if (!fwin) return 1;
-   if (fwin->zone != ev->zone) return 1;
+   if (!fwin) return ECORE_CALLBACK_PASS_ON;
+   if (fwin->zone != ev->zone) return ECORE_CALLBACK_PASS_ON;
    e_object_del(E_OBJECT(fwin));
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 
@@ -1844,7 +1851,7 @@ _e_fwin_file_open_dialog(E_Fwin_Page *page, Eina_List *files, int always)
    e_widget_ilist_freeze(o);
 
    // Adding Specific Applications list into widget
-   if(apps)
+   if (apps)
      e_widget_ilist_header_append(o, NULL, _("Specific Applications"));
    EINA_LIST_FOREACH(apps, l, desk)
      {
@@ -1860,12 +1867,16 @@ _e_fwin_file_open_dialog(E_Fwin_Page *page, Eina_List *files, int always)
    cats = efreet_util_desktop_name_glob_list("*");
    cats = eina_list_sort(cats, 0, _e_fwin_dlg_cb_desk_sort);
    EINA_LIST_FREE(cats, desk)
+     {
 	if (!eina_list_data_find(l, desk) && !eina_list_data_find(apps, desk))
 	  l = eina_list_append(l, desk);
+	else
+	  efreet_desktop_free(desk);
+     }
    l = eina_list_sort(l, -1, _e_fwin_dlg_cb_desk_list_sort);
 
    // Adding All Applications list into widget
-   if(l)
+   if (l)
      e_widget_ilist_header_append(o, NULL, _("All Applications"));
    EINA_LIST_FREE(l, desk)
      {
@@ -1875,9 +1886,11 @@ _e_fwin_file_open_dialog(E_Fwin_Page *page, Eina_List *files, int always)
 	icon = e_util_desktop_icon_add(desk, 24, evas);
 	e_widget_ilist_append(o, icon, desk->name, NULL, NULL, 
 			      efreet_util_path_to_file_id(desk->orig_path));
+	efreet_desktop_free(desk);
      }
 
-   eina_list_free(apps);
+   EINA_LIST_FREE(apps, desk)
+      efreet_desktop_free(desk);
 
    e_widget_ilist_go(o);
    e_widget_ilist_thaw(o);
@@ -1898,7 +1911,7 @@ _e_fwin_file_open_dialog(E_Fwin_Page *page, Eina_List *files, int always)
    evas_object_event_callback_add(ot, EVAS_CALLBACK_KEY_DOWN, _e_fwin_file_open_dialog_cb_key_down, page);
    e_dialog_show(dia);
    e_dialog_border_icon_set(dia, "preferences-applications");
-   e_widget_focus_set(fad->o_entry, 0);
+   e_widget_focus_steal(fad->o_entry);
 }
 
 static void
@@ -1945,14 +1958,17 @@ _e_fwin_cb_exec_cmd_changed(void *data, void *data2)
 
    if (!(fad = data)) return;
 
-   if (fad->app2) 
+   if (fad->app2)
      desktop = efreet_util_desktop_file_id_find(fad->app2);
 
    if (!desktop) return;
-   if (!strcmp(desktop->exec, fad->exec_cmd)) return;
-
-   eina_stringshare_del(fad->app2);
-   if (fad->o_all) e_widget_ilist_unselect(fad->o_all);
+   if (strcmp(desktop->exec, fad->exec_cmd))
+     {
+	eina_stringshare_del(fad->app2);
+	fad->app2 = NULL;
+	if (fad->o_all) e_widget_ilist_unselect(fad->o_all);
+     }
+   efreet_desktop_free(desktop);
 }
 
 
@@ -1966,7 +1982,11 @@ _e_fwin_cb_open(void *data, E_Dialog *dia)
    if (fad->app2)
      desktop = efreet_util_desktop_file_id_find(fad->app2);
 
-   if ((!desktop) && (!fad->exec_cmd)) return;
+   if ((!desktop) && (!fad->exec_cmd))
+     {
+	if (desktop) efreet_desktop_free(desktop);
+	return;
+     }
 
    // Create a fake .desktop for custom command.
     if (!desktop)
@@ -1987,9 +2007,7 @@ _e_fwin_cb_open(void *data, E_Dialog *dia)
    if ((desktop) || (strcmp(fad->exec_cmd, "")))
      _e_fwin_desktop_run(desktop, fad->fwin->cur_page, EINA_FALSE);
 
-   // Free fake .desktop
-   if (!strcmp(fad->exec_cmd, ""))
-      efreet_desktop_free(desktop);
+   efreet_desktop_free(desktop);
 
    e_object_del(E_OBJECT(fad->dia));
 }
@@ -2116,9 +2134,16 @@ _e_fwin_op_registry_listener_cb(void *data, const E_Fm2_Op_Registry_Entry *ere)
    Evas_Object *o = data;
    char buf[PATH_MAX];
    char *total;
+   int mw, mh;
+
+   // Don't show if the operation keep less than 1 second
+   if (ere->start_time + 1.0 > ecore_loop_time_get()) return;
 
    // Update element
    edje_object_part_drag_size_set(o, "e.gauge.bar", ((double)(ere->percent)) / 100, 1.0);
+   edje_object_size_min_get(o, &mw, &mh);
+   evas_object_resize(o, mw * e_scale, mh * e_scale);
+   evas_object_show(o);
 
    // Update icon
    switch (ere->op)
@@ -2191,7 +2216,7 @@ _e_fwin_op_registry_listener_cb(void *data, const E_Fm2_Op_Registry_Entry *ere)
       edje_object_signal_emit(o, "e,action,set,normal", "e");
 }
 
-static int
+static Eina_Bool
 _e_fwin_op_registry_free_data_delayed(void *data)
 {
    evas_object_del((Evas_Object*)data);
@@ -2204,13 +2229,12 @@ _e_fwin_op_registry_free_data(void *data)
    ecore_timer_add(5.0, _e_fwin_op_registry_free_data_delayed, data);
 }
 
-static int
-_e_fwin_op_registry_entry_add_cb(void *data, int type, void *event)
+static Eina_Bool
+_e_fwin_op_registry_entry_add_cb(void *data, __UNUSED__ int type, void *event)
 {
    E_Fm2_Op_Registry_Entry *ere = (E_Fm2_Op_Registry_Entry *)event;
    E_Fwin_Page *page = data;
    Evas_Object *o;
-   int mw, mh;
 
    if (!(ere->op == E_FM_OP_COPY || ere->op == E_FM_OP_MOVE ||
          ere->op == E_FM_OP_REMOVE))
@@ -2219,19 +2243,11 @@ _e_fwin_op_registry_entry_add_cb(void *data, int type, void *event)
    o = edje_object_add(evas_object_evas_get(page->scrollframe_obj));
    e_theme_edje_object_set(o, "base/theme/fileman",
                            "e/fileman/default/progress");
-   edje_object_size_min_get(o, &mw, &mh);
-   evas_object_resize(o, mw * e_scale, mh * e_scale);
-   //evas_object_event_callback_add(o, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-   //                        _size_hint_changed_cb, NULL);
-
-   //Update the element
-   _e_fwin_op_registry_listener_cb(o, ere);
 
    // Append the element to the box
    edje_object_part_box_append(e_scrollframe_edje_object_get(page->scrollframe_obj),
                                "e.box.operations", o);
    evas_object_size_hint_align_set(o, 1.0, 1.0); //FIXME this should be theme-configurable
-   evas_object_show(o);
 
    // add abort button callback with id of operation in registry
    edje_object_signal_callback_add(o, "e,fm,operation,abort", "", 

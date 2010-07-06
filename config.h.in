@@ -31,7 +31,7 @@
 /* Define if the ALSA output plugin should be built */
 #undef HAVE_ALSA
 
-/* Package BATTERY (ecore ecore-file ecore-con) found. */
+/* Package BATTERY (ecore ecore-file ecore-con eina-0) found. */
 #undef HAVE_BATTERY
 
 /* Define to 1 if you have the <CFBase.h> header file. */
@@ -44,11 +44,20 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
+/* Package EBLUEZ (edbus ebluez) found. */
+#undef HAVE_EBLUEZ
+
+/* Package ECONNMAN (edbus econnman) found. */
+#undef HAVE_ECONNMAN
+
 /* Package ECORE_IMF (ecore-imf ecore-imf-evas) found. */
 #undef HAVE_ECORE_IMF
 
-/* Package ECORE_TXT (ecore-txt) found. */
-#undef HAVE_ECORE_TXT
+/* enable udev support */
+#undef HAVE_EEZE
+
+/* Package EOFONO (edbus eofono) found. */
+#undef HAVE_EOFONO
 
 /* Package EXCHANGE (exchange) found. */
 #undef HAVE_EXCHANGE
@@ -101,7 +110,7 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
-/* Package TEMPERATURE (ecore ecore-file) found. */
+/* Package TEMPERATURE (ecore ecore-file eina-0) found. */
 #undef HAVE_TEMPERATURE
 
 /* Define to 1 if you have the <unistd.h> header file. */
@@ -109,6 +118,9 @@
 
 /* Define to 1 if you have the `unsetenv' function. */
 #undef HAVE_UNSETENV
+
+/* Define to 1 if you have the <X11/extensions/shape.h> header file. */
+#undef HAVE_X11_EXTENSIONS_SHAPE_H
 
 /* Define to 1 if your compiler has __attribute__ */
 #undef HAVE___ATTRIBUTE__
@@ -138,8 +150,14 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* default value since PATH_MAX is not defined */
+#undef PATH_MAX
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
@@ -155,11 +173,20 @@
 /* Use module battery */
 #undef USE_MODULE_BATTERY
 
+/* Use module bluez */
+#undef USE_MODULE_BLUEZ
+
 /* Use module clock */
 #undef USE_MODULE_CLOCK
 
+/* Use module comp */
+#undef USE_MODULE_COMP
+
 /* Use module conf */
 #undef USE_MODULE_CONF
+
+/* Use module conf-acpibindings */
+#undef USE_MODULE_CONF_ACPIBINDINGS
 
 /* Use module conf-applications */
 #undef USE_MODULE_CONF_APPLICATIONS
@@ -196,9 +223,6 @@
 
 /* Use module conf-engine */
 #undef USE_MODULE_CONF_ENGINE
-
-/* Use module conf-exebuf */
-#undef USE_MODULE_CONF_EXEBUF
 
 /* Use module conf-fonts */
 #undef USE_MODULE_CONF_FONTS
@@ -293,8 +317,23 @@
 /* Use module everything */
 #undef USE_MODULE_EVERYTHING
 
-/* Use module exebuf */
-#undef USE_MODULE_EXEBUF
+/* Use module everything-apps */
+#undef USE_MODULE_EVERYTHING_APPS
+
+/* Use module everything-aspell */
+#undef USE_MODULE_EVERYTHING_ASPELL
+
+/* Use module everything-calc */
+#undef USE_MODULE_EVERYTHING_CALC
+
+/* Use module everything-files */
+#undef USE_MODULE_EVERYTHING_FILES
+
+/* Use module everything-settings */
+#undef USE_MODULE_EVERYTHING_SETTINGS
+
+/* Use module everything-windows */
+#undef USE_MODULE_EVERYTHING_WINDOWS
 
 /* Use module fileman */
 #undef USE_MODULE_FILEMAN
@@ -314,11 +353,17 @@
 /* Use module illume */
 #undef USE_MODULE_ILLUME
 
+/* Use module illume2 */
+#undef USE_MODULE_ILLUME2
+
 /* Use module mixer */
 #undef USE_MODULE_MIXER
 
-/* Use module msgbus-lang */
-#undef USE_MODULE_MSGBUS_LANG
+/* Use module msgbus */
+#undef USE_MODULE_MSGBUS
+
+/* Use module ofono */
+#undef USE_MODULE_OFONO
 
 /* Use module pager */
 #undef USE_MODULE_PAGER
@@ -365,6 +410,18 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* Major version */
+#undef VMAJ
+
+/* Micro version */
+#undef VMIC
+
+/* Minor version */
+#undef VMIN
+
+/* Revison */
+#undef VREV
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

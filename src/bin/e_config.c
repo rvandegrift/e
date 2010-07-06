@@ -16,8 +16,9 @@ static int _e_config_revisions = 0;
 /* local subsystem functions */
 static void _e_config_save_cb(void *data);
 static void _e_config_free(E_Config *cfg);
-static int  _e_config_cb_timer(void *data);
-static int  _e_config_eet_close_handle(Eet_File *ef, char *file);
+static Eina_Bool _e_config_cb_timer(void *data);
+static int _e_config_eet_close_handle(Eet_File *ef, char *file);
+static void _e_config_acpi_bindings_add(void);
 
 /* local subsystem globals */
 static int _e_config_save_block = 0;
@@ -34,6 +35,7 @@ static E_Config_DD *_e_config_bindings_key_edd = NULL;
 static E_Config_DD *_e_config_bindings_edge_edd = NULL;
 static E_Config_DD *_e_config_bindings_signal_edd = NULL;
 static E_Config_DD *_e_config_bindings_wheel_edd = NULL;
+static E_Config_DD *_e_config_bindings_acpi_edd = NULL;
 static E_Config_DD *_e_config_path_append_edd = NULL;
 static E_Config_DD *_e_config_desktop_bg_edd = NULL;
 static E_Config_DD *_e_config_desktop_name_edd = NULL;
@@ -48,6 +50,44 @@ static E_Config_DD *_e_config_syscon_action_edd = NULL;
 
 EAPI int E_EVENT_CONFIG_ICON_THEME = 0;
 EAPI int E_EVENT_CONFIG_MODE_CHANGED = 0;
+
+static char *
+_e_config_profile_name_get(Eet_File *ef)
+{
+   /* profile config exists */
+   char *data, *s = NULL;
+   int data_len = 0;
+   
+   data = eet_read(ef, "config", &data_len);
+   if ((data) && (data_len > 0))
+     {
+        int ok = 1;
+        
+        for (s = data; s < (data + data_len); s++)
+          {
+             // if profile is not all ascii (valid printable ascii - no
+             // control codes etc.) or it contains a '/' (invalid as its a
+             // directory delimiter) - then it's invalid
+             if ((*s < ' ') || (*s > '~') || (*s == '/'))
+               {
+                  ok = 0;
+                  break;
+               }
+          }
+        s = NULL;
+        if (ok)
+          {
+             s = malloc(data_len + 1);
+             if (s)
+               {
+                  memcpy(s, data, data_len);
+                  s[data_len] = 0;
+               }
+          }
+        free(data);
+     }
+   return s;
+}
 
 /* externally accessible functions */
 EAPI int
@@ -68,7 +108,13 @@ e_config_init(void)
 	/* try user profile config */
 	e_user_dir_concat_static(buf, "config/profile.cfg");
 	ef = eet_open(buf, EET_FILE_MODE_READ);
-	if (!ef)
+        if (ef)
+          {
+             _e_config_profile = _e_config_profile_name_get(ef);
+             eet_close(ef);
+             ef = NULL;
+          }
+	if (!_e_config_profile)
 	  {
              int i;
              
@@ -76,35 +122,28 @@ e_config_init(void)
                {
                   e_user_dir_snprintf(buf, sizeof(buf), "config/profile.%i.cfg", i);
                   ef = eet_open(buf, EET_FILE_MODE_READ);
-                  if (ef) break;
+                  if (ef)
+                    {
+                       _e_config_profile = _e_config_profile_name_get(ef);
+                       eet_close(ef);
+                       ef = NULL;
+                       if (_e_config_profile) break;
+                    }
                }
-             if (!ef)
+             if (!_e_config_profile)
                {
                   /* use system if no user profile config */
                   e_prefix_data_concat_static(buf, "data/config/profile.cfg");
                   ef = eet_open(buf, EET_FILE_MODE_READ);
                }
 	  }
-	if (ef)
-	  {
-	     /* profile config exists */
-	     char *data;
-	     int data_len = 0;
-
-	     data = eet_read(ef, "config", &data_len);
-	     if ((data) && (data_len > 0))
-	       {
-		  _e_config_profile = malloc(data_len + 1);
-		  if (_e_config_profile)
-		    {
-		       memcpy(_e_config_profile, data, data_len);
-		       _e_config_profile[data_len] = 0;
-		    }
-		  free(data);
-	       }
-	     eet_close(ef);
-	  }
-	else
+        if (ef)
+          {
+             _e_config_profile = _e_config_profile_name_get(ef);
+             eet_close(ef);
+             ef = NULL;
+          }
+        if (!_e_config_profile)
 	  {
 	     /* no profile config - try other means */
 	     char *link = NULL;
@@ -321,6 +360,18 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, action, STR);
    E_CONFIG_VAL(D, T, params, STR);
 
+   _e_config_bindings_acpi_edd = E_CONFIG_DD_NEW("E_Config_Binding_Acpi", 
+						 E_Config_Binding_Acpi);
+#undef T
+#undef D
+#define T E_Config_Binding_Acpi
+#define D _e_config_bindings_acpi_edd
+   E_CONFIG_VAL(D, T, context, INT);
+   E_CONFIG_VAL(D, T, type, INT);
+   E_CONFIG_VAL(D, T, status, INT);
+   E_CONFIG_VAL(D, T, action, STR);
+   E_CONFIG_VAL(D, T, params, STR);
+
    _e_config_remember_edd = E_CONFIG_DD_NEW("E_Remember", E_Remember);
 #undef T
 #undef D
@@ -475,6 +526,7 @@ e_config_init(void)
    E_CONFIG_LIST(D, T, edge_bindings, _e_config_bindings_edge_edd); /**/
    E_CONFIG_LIST(D, T, signal_bindings, _e_config_bindings_signal_edd); /**/
    E_CONFIG_LIST(D, T, wheel_bindings, _e_config_bindings_wheel_edd); /**/
+   E_CONFIG_LIST(D, T, acpi_bindings, _e_config_bindings_acpi_edd); /**/
    E_CONFIG_LIST(D, T, path_append_data, _e_config_path_append_edd); /**/
    E_CONFIG_LIST(D, T, path_append_images, _e_config_path_append_edd); /**/
    E_CONFIG_LIST(D, T, path_append_fonts, _e_config_path_append_edd); /**/
@@ -556,19 +608,6 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, fullscreen_policy, INT); /**/
    E_CONFIG_VAL(D, T, input_method, STR); /**/
    E_CONFIG_LIST(D, T, path_append_messages, _e_config_path_append_edd); /**/
-   E_CONFIG_VAL(D, T, exebuf_max_exe_list, INT);
-   E_CONFIG_VAL(D, T, exebuf_max_eap_list, INT);
-   E_CONFIG_VAL(D, T, exebuf_max_hist_list, INT);
-   E_CONFIG_VAL(D, T, exebuf_scroll_animate, INT);
-   E_CONFIG_VAL(D, T, exebuf_scroll_speed, DOUBLE);
-   E_CONFIG_VAL(D, T, exebuf_pos_align_x, DOUBLE);
-   E_CONFIG_VAL(D, T, exebuf_pos_align_y, DOUBLE);
-   E_CONFIG_VAL(D, T, exebuf_pos_size_w, DOUBLE);
-   E_CONFIG_VAL(D, T, exebuf_pos_size_h, DOUBLE);
-   E_CONFIG_VAL(D, T, exebuf_pos_min_w, INT);
-   E_CONFIG_VAL(D, T, exebuf_pos_min_h, INT);
-   E_CONFIG_VAL(D, T, exebuf_pos_max_w, INT);
-   E_CONFIG_VAL(D, T, exebuf_pos_max_h, INT);
    E_CONFIG_VAL(D, T, exebuf_term_cmd, STR);
    E_CONFIG_LIST(D, T, color_classes, _e_config_color_class_edd);
    E_CONFIG_VAL(D, T, use_app_icon, INT);
@@ -583,6 +622,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, desklock_auth_method, INT);
    E_CONFIG_VAL(D, T, desklock_login_box_zone, INT);
    E_CONFIG_VAL(D, T, desklock_start_locked, INT);
+   E_CONFIG_VAL(D, T, desklock_on_suspend, INT);
    E_CONFIG_VAL(D, T, desklock_autolock_screensaver, INT);
    E_CONFIG_VAL(D, T, desklock_post_screensaver_time, DOUBLE);
    E_CONFIG_VAL(D, T, desklock_autolock_idle, INT);
@@ -672,9 +712,9 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, thumbscroll_momentum_threshhold, DOUBLE);
    E_CONFIG_VAL(D, T, thumbscroll_friction, DOUBLE);
    
-   E_CONFIG_VAL(D, T, hal_desktop, INT);
-   E_CONFIG_VAL(D, T, hal_auto_mount, INT);
-   E_CONFIG_VAL(D, T, hal_auto_open, INT);
+   E_CONFIG_VAL(D, T, dbus_desktop, INT);
+   E_CONFIG_VAL(D, T, dbus_auto_mount, INT);
+   E_CONFIG_VAL(D, T, dbus_auto_open, INT);
 
    E_CONFIG_VAL(D, T, border_keyboard.timeout, DOUBLE);
    E_CONFIG_VAL(D, T, border_keyboard.move.dx, UCHAR);
@@ -706,6 +746,10 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, mode.presentation, UCHAR);
    E_CONFIG_VAL(D, T, mode.offline, UCHAR);
 
+   E_CONFIG_VAL(D, T, exec.expire_timeout, DOUBLE);
+   E_CONFIG_VAL(D, T, exec.show_run_dialog, UCHAR);
+   E_CONFIG_VAL(D, T, exec.show_exit_dialog, UCHAR);
+   
    e_config_load();
    
    e_config_save_queue();
@@ -726,6 +770,7 @@ e_config_shutdown(void)
    E_CONFIG_DD_FREE(_e_config_bindings_edge_edd);
    E_CONFIG_DD_FREE(_e_config_bindings_signal_edd);
    E_CONFIG_DD_FREE(_e_config_bindings_wheel_edd);
+   E_CONFIG_DD_FREE(_e_config_bindings_acpi_edd);
    E_CONFIG_DD_FREE(_e_config_path_append_edd);
    E_CONFIG_DD_FREE(_e_config_desktop_bg_edd);
    E_CONFIG_DD_FREE(_e_config_desktop_name_edd);
@@ -809,6 +854,15 @@ e_config_load(void)
      {
         printf("EEEK! no config of any sort! abort abort abort!\n");
         fprintf(stderr, "EEEK! no config of any sort! abort abort abort!\n");
+        e_alert_show("Enlightenment was started without any configuration\n"
+                     "files available for the given profile (normally\n"
+                     "default or the last profile used or provided on the\n"
+                     "command-line with -profile etc.)\n"
+                     "\n"
+                     "Cannot contiue without configuration to work with.\n"
+                     "Please ensure you have system or user configuration\n"
+                     "for the profile you are using before proceeeding."
+                     );
         abort();
      }
    if (e_config->config_version < E_CONFIG_FILE_VERSION)
@@ -928,11 +982,6 @@ e_config_load(void)
 	COPYVAL(desklock_ask_presentation_timeout);
 	COPYVAL(screensaver_ask_presentation);
 	COPYVAL(screensaver_ask_presentation_timeout);
-	IFCFGELSE;
-	e_config->desklock_ask_presentation = 1;
-	e_config->desklock_ask_presentation_timeout = 30.0;
-	e_config->screensaver_ask_presentation = 1;
-	e_config->screensaver_ask_presentation_timeout = 30.0;
 	IFCFGEND;
 
         IFCFG(0x0133);
@@ -941,6 +990,20 @@ e_config_load(void)
         COPYVAL(desk_flip_pan_y_axis_factor);
         IFCFGEND;
 
+        IFCFG(0x0134);
+        COPYVAL(exec.expire_timeout);
+        COPYVAL(exec.show_run_dialog);
+        COPYVAL(exec.show_exit_dialog);
+        IFCFGEND;
+
+	IFCFG(0x0136);
+	_e_config_acpi_bindings_add();
+	IFCFGEND;
+
+        IFCFG(0x0137);
+        COPYVAL(desklock_on_suspend);
+        IFCFGEND;
+        
         e_config->config_version = E_CONFIG_FILE_VERSION;   
         _e_config_free(tcfg);
      }
@@ -1086,6 +1149,10 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->mode.presentation, 0, 1);
    E_CONFIG_LIMIT(e_config->mode.offline, 0, 1);
 
+   E_CONFIG_LIMIT(e_config->exec.expire_timeout, 0.1, 1000);
+   E_CONFIG_LIMIT(e_config->exec.show_run_dialog, 0, 1);
+   E_CONFIG_LIMIT(e_config->exec.show_exit_dialog, 0, 1);
+   
    /* FIXME: disabled auto apply because it causes problems */
    e_config->cfgdlg_auto_apply = 0;
    /* FIXME: desklock personalized password id disabled for security reasons */
@@ -1184,7 +1251,7 @@ e_config_profile_list(void)
 	files = eina_list_sort(files, 0, (Eina_Compare_Cb)_cb_sort_files);
 	EINA_LIST_FREE(files, file)
 	  {
-	     if (ecore_strlcpy(p, file, len) >= len)
+	     if (eina_strlcpy(p, file, len) >= len)
 	       {
 		  free(file);
 		  continue;
@@ -1212,7 +1279,7 @@ e_config_profile_list(void)
 	files = eina_list_sort(files, 0, (Eina_Compare_Cb)_cb_sort_files);
 	EINA_LIST_FREE(files, file)
 	  {
-	     if (ecore_strlcpy(p, file, len) >= len)
+	     if (eina_strlcpy(p, file, len) >= len)
 	       {
 		  free(file);
 		  continue;
@@ -1402,7 +1469,7 @@ e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data)
    buf[len] = '/';
    len++;
 
-   len2 = ecore_strlcpy(buf + len, domain, sizeof(buf) - len);
+   len2 = eina_strlcpy(buf + len, domain, sizeof(buf) - len);
    if (len2 + sizeof(".cfg") >= sizeof(buf) - len) return 0;
 
    len += len2;
@@ -1438,7 +1505,7 @@ e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data)
 	     ret = ecore_file_mv(buf2, buf);
 	     if (!ret)
 	       {
-		  printf("*** Error saving profile. ***");
+		  printf("*** Error saving config. ***");
 	       }
 	  }
 	ecore_file_unlink(buf2);
@@ -1540,7 +1607,7 @@ e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in)
 {
    Eina_List *l;
    E_Config_Binding_Wheel *eb;
-  
+
    EINA_LIST_FOREACH(e_config->wheel_bindings, l, eb)
      {
 	if ((eb->context == eb_in->context) &&
@@ -1549,9 +1616,31 @@ e_config_binding_wheel_match(E_Config_Binding_Wheel *eb_in)
 	    (eb->modifiers == eb_in->modifiers) &&
 	    (eb->any_mod == eb_in->any_mod) &&
 	    (((eb->action) && (eb_in->action) && (!strcmp(eb->action, eb_in->action))) ||
-	     ((!eb->action) && (!eb_in->action))) &&
+		((!eb->action) && (!eb_in->action))) &&
 	    (((eb->params) && (eb_in->params) && (!strcmp(eb->params, eb_in->params))) ||
-	     ((!eb->params) && (!eb_in->params))))
+		((!eb->params) && (!eb_in->params))))
+	  return eb;
+     }
+   return NULL;
+}
+
+EAPI E_Config_Binding_Acpi *
+e_config_binding_acpi_match(E_Config_Binding_Acpi *eb_in) 
+{
+   Eina_List *l;
+   E_Config_Binding_Acpi *eb;
+
+   EINA_LIST_FOREACH(e_config->acpi_bindings, l, eb)
+     {
+	if ((eb->context == eb_in->context) &&
+	    (eb->type == eb_in->type) && 
+	    (eb->status == eb_in->status) && 
+	    (((eb->action) && (eb_in->action) && 
+	      (!strcmp(eb->action, eb_in->action))) ||
+		((!eb->action) && (!eb_in->action))) &&
+	    (((eb->params) && (eb_in->params) && 
+	      (!strcmp(eb->params, eb_in->params))) ||
+		((!eb->params) && (!eb_in->params))))
 	  return eb;
      }
    return NULL;
@@ -1582,6 +1671,7 @@ _e_config_free(E_Config *ecf)
    E_Config_Syscon_Action *sca;
    E_Config_Binding_Key *ebk;
    E_Config_Binding_Edge *ebe;
+   E_Config_Binding_Acpi *eba;
    E_Font_Fallback *eff;
    E_Config_Module *em;
    E_Font_Default *efd;
@@ -1646,6 +1736,12 @@ _e_config_free(E_Config *ecf)
         if (ebw->action) eina_stringshare_del(ebw->action);
         if (ebw->params) eina_stringshare_del(ebw->params);
         E_FREE(ebw);
+     }
+   EINA_LIST_FREE(ecf->acpi_bindings, eba)
+     {
+        if (eba->action) eina_stringshare_del(eba->action);
+        if (eba->params) eina_stringshare_del(eba->params);
+        E_FREE(eba);
      }
    EINA_LIST_FREE(ecf->path_append_data, epd)
      {
@@ -1734,7 +1830,7 @@ _e_config_free(E_Config *ecf)
    E_FREE(ecf);
 }
 
-static int
+static Eina_Bool
 _e_config_cb_timer(void *data)
 {
    e_util_dialog_show(_("Settings Upgraded"), "%s", (char *)data);
@@ -1847,4 +1943,50 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
 	return 0;
      }
    return 1;
+}
+
+static void 
+_e_config_acpi_bindings_add(void) 
+{
+   E_Config_Binding_Acpi *bind;
+
+   bind = E_NEW(E_Config_Binding_Acpi, 1);
+   bind->context = E_BINDING_CONTEXT_NONE;
+   bind->type = E_ACPI_TYPE_AC_ADAPTER;
+   bind->status = 0;
+   bind->action = eina_stringshare_add("dim_screen");
+   bind->params = NULL;
+   e_config->acpi_bindings = eina_list_append(e_config->acpi_bindings, bind);
+
+   bind = E_NEW(E_Config_Binding_Acpi, 1);
+   bind->context = E_BINDING_CONTEXT_NONE;
+   bind->type = E_ACPI_TYPE_AC_ADAPTER;
+   bind->status = 1;
+   bind->action = eina_stringshare_add("undim_screen");
+   bind->params = NULL;
+   e_config->acpi_bindings = eina_list_append(e_config->acpi_bindings, bind);
+
+   bind = E_NEW(E_Config_Binding_Acpi, 1);
+   bind->context = E_BINDING_CONTEXT_NONE;
+   bind->type = E_ACPI_TYPE_LID;
+   bind->status = 0;
+   bind->action = eina_stringshare_add("suspend");
+   bind->params = eina_stringshare_add("now");
+   e_config->acpi_bindings = eina_list_append(e_config->acpi_bindings, bind);
+
+   bind = E_NEW(E_Config_Binding_Acpi, 1);
+   bind->context = E_BINDING_CONTEXT_NONE;
+   bind->type = E_ACPI_TYPE_POWER;
+   bind->status = -1;
+   bind->action = eina_stringshare_add("halt_now");
+   bind->params = eina_stringshare_add("now");
+   e_config->acpi_bindings = eina_list_append(e_config->acpi_bindings, bind);
+
+   bind = E_NEW(E_Config_Binding_Acpi, 1);
+   bind->context = E_BINDING_CONTEXT_NONE;
+   bind->type = E_ACPI_TYPE_SLEEP;
+   bind->status = -1;
+   bind->action = eina_stringshare_add("suspend");
+   bind->params = eina_stringshare_add("now");
+   e_config->acpi_bindings = eina_list_append(e_config->acpi_bindings, bind);
 }

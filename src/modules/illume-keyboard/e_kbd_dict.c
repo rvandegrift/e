@@ -137,7 +137,7 @@ _e_kbd_dict_normalized_strcpy(char *dst, const char *src)
 }
 
 static int
-_e_kbd_dict_matches_loolup_cb_sort(const void *d1, const void *d2)
+_e_kbd_dict_matches_lookup_cb_sort(const void *d1, const void *d2)
 {
    const E_Kbd_Dict_Word *kw1, *kw2;
 
@@ -201,7 +201,7 @@ _e_kbd_dict_lookup_build_line(E_Kbd_Dict *kd, const char *p, const char *eol, in
    s[eol - p] = 0;
    p2 = evas_string_char_next_get(s, 0, &(glyphs[0]));
    if ((p2 > 0) && (glyphs[0] > 0))
-     p2 = evas_string_char_next_get(s, p2, &(glyphs[1]));
+     evas_string_char_next_get(s, p2, &(glyphs[1]));
 }
 
 static void
@@ -387,7 +387,6 @@ e_kbd_dict_save(E_Kbd_Dict *kd)
 				 eina_stringshare_del(kw->word);
 				 free(kw);
 				 kd->changed.writes  = eina_list_remove_list(kd->changed.writes, kd->changed.writes);
-				 writeline = 1;
 			      }
 			    else if (cmp == 0)
 			      {
@@ -433,7 +432,7 @@ e_kbd_dict_save(E_Kbd_Dict *kd)
    if (_e_kbd_dict_open(kd)) _e_kbd_dict_lookup_build(kd);
 }
 
-static int
+static Eina_Bool 
 _e_kbd_dict_cb_save_flush(void *data)
 {
    E_Kbd_Dict *kd;
@@ -441,10 +440,10 @@ _e_kbd_dict_cb_save_flush(void *data)
    kd = data;
    if ((kd->matches.list) || (kd->word.letters) || (kd->matches.deadends) ||
        (kd->matches.leads))
-     return 1;
+     return EINA_TRUE;
    kd->changed.flush_timer = NULL;
    e_kbd_dict_save(kd);
-   return 0;
+   return EINA_FALSE;
 }
 
 static void
@@ -684,12 +683,12 @@ static void
 _e_kbd_dict_matches_lookup_iter(E_Kbd_Dict *kd, Eina_List *word,
 				Eina_List *more)
 {
-   Eina_List *l, *l2, *list;
-   const char *p, *pn;
+   Eina_List *l, *list;
+   const char *p;
    char *base, *buf, *wd, *bufapp;
    E_Kbd_Dict_Letter *kl;
    int len = 0, dist = 0, d, baselen, maxdist = 0, md;
-   static int level = 0, lv;
+   static int level = 0;
 
    level++;
    for (l = word; l; l = l->next)
@@ -759,7 +758,7 @@ _e_kbd_dict_matches_lookup_iter(E_Kbd_Dict *kd, Eina_List *word,
 		  if (kw)
 		    {
 		       int accuracy;
-		       int w, b, w2, b2, wc, bc, upper;
+		       int w, b, w2, b2, wc, bc;
 
 		       // match any capitalisation
 		       for (w = 0, b = 0; wd[w] && buf[b];)
@@ -826,7 +825,7 @@ e_kbd_dict_matches_lookup(E_Kbd_Dict *kd)
      _e_kbd_dict_matches_lookup_iter(kd, NULL, kd->word.letters);
    kd->matches.list = eina_list_sort(kd->matches.list,
 				     eina_list_count(kd->matches.list),
-				     _e_kbd_dict_matches_loolup_cb_sort);
+				     _e_kbd_dict_matches_lookup_cb_sort);
 }
 
 EAPI void

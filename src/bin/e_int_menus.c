@@ -3,6 +3,10 @@
  */
 #include "e.h"
 
+/*
+ * TODO: Listen to EFREET_EVENT_DESKTOP_CACHE_UPDATE
+ */
+
 typedef struct _Main_Data Main_Data;
 
 struct _Main_Data
@@ -66,11 +70,18 @@ static void _e_int_menus_item_label_set(Efreet_Menu *entry, E_Menu_Item *mi);
 
 /* local subsystem globals */
 static Eina_Hash *_e_int_menus_augmentation = NULL;
+static Eina_List *_e_int_menus_augmentation_disabled = NULL;
 
 static Eina_List *
 _e_int_menus_augmentation_find(const char *key)
 {
-   if (!_e_int_menus_augmentation) return NULL;
+   Eina_List *l;
+   char *data;
+
+   if ((!_e_int_menus_augmentation) || (!key)) return NULL;
+
+   EINA_LIST_FOREACH(_e_int_menus_augmentation_disabled, l, data)
+     if (!strcmp(data, key)) return NULL;
    return eina_hash_find(_e_int_menus_augmentation, key);
 }
 
@@ -141,7 +152,9 @@ e_int_menus_main_new(void)
    e_menu_item_label_set(mi, _("Windows"));
    e_util_menu_item_theme_icon_set(mi, "preferences-system-windows");
    e_menu_item_submenu_set(mi, subm);
+   e_object_data_set(E_OBJECT(subm), dat);
 
+#if 0 // lost windows already handled inside "Windows" from main menu.
    subm = e_int_menus_lost_clients_new();
    e_object_data_set(E_OBJECT(subm), dat);   
    dat->lost_clients = subm;
@@ -149,6 +162,7 @@ e_int_menus_main_new(void)
    e_menu_item_label_set(mi, _("Lost Windows"));
    e_util_menu_item_theme_icon_set(mi, "preferences-windows-lost");
    e_menu_item_submenu_set(mi, subm);
+#endif
 
    l = _e_int_menus_augmentation_find("main/3");
    if (l) _e_int_menus_augmentation_add(m, l);
@@ -435,6 +449,22 @@ e_int_menus_menu_augmentation_del(const char *menu, E_Int_Menu_Augmentation *mau
    free(maug);
 }
 
+EAPI void
+e_int_menus_menu_augmentation_point_disabled_set(const char *menu, Eina_Bool disabled)
+{
+   if (!menu) return;
+   if (disabled) 
+     {
+        _e_int_menus_augmentation_disabled = 
+          eina_list_append(_e_int_menus_augmentation_disabled, menu);
+     }
+   else 
+     {
+        _e_int_menus_augmentation_disabled = 
+          eina_list_remove(_e_int_menus_augmentation_disabled, menu);
+     }
+}
+
 /* local subsystem functions */
 static void
 _e_int_menus_main_del_hook(void *obj)
@@ -642,6 +672,15 @@ _e_int_menus_apps_run(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
+apps_drag_finished(E_Drag *drag, int dropped)
+{
+   Efreet_Desktop *desktop;
+   
+   desktop = drag->data;
+   efreet_desktop_free(desktop);
+}
+
+static void
 _e_int_menus_apps_drag(void *data, E_Menu *m, E_Menu_Item *mi)
 {
    Efreet_Desktop *desktop;
@@ -658,13 +697,14 @@ _e_int_menus_apps_drag(void *data, E_Menu *m, E_Menu_Item *mi)
 	 const char *drag_types[] = { "enlightenment/desktop" };
 
 	 evas_object_geometry_get(mi->icon_object, &x, &y, &w, &h);
+         efreet_desktop_ref(desktop);
 	 drag = e_drag_new(m->zone->container, x, y, drag_types, 1, desktop, -1,
 			   NULL, NULL);
 
 	 size = MIN(w, h);
-	  o = e_util_desktop_icon_add(desktop, size, e_drag_evas_get(drag));
+         o = e_util_desktop_icon_add(desktop, size, e_drag_evas_get(drag));
 	 e_drag_object_set(drag, o);
-	  e_drag_resize(drag, w, h);
+         e_drag_resize(drag, w, h);
 	 e_drag_start(drag, mi->drag.x + w, mi->drag.y + h);
       }
 }
@@ -778,8 +818,11 @@ _e_int_menus_config_pre_cb(void *data, E_Menu *m)
    if (l)
      {
 	_e_int_menus_augmentation_add(m, l);
-	mi = e_menu_item_new(m);
-	e_menu_item_separator_set(mi, 1);
+	if (_e_int_menus_augmentation_find("config/1"))
+	  {
+             mi = e_menu_item_new(m);
+             e_menu_item_separator_set(mi, 1);
+	  }
      }
 
    l = _e_int_menus_augmentation_find("config/1");
@@ -1070,7 +1113,6 @@ _e_int_menus_clients_pre_cb(void *data, E_Menu *m)
      l = e_border_client_list();
    EINA_LIST_FOREACH(l, l, border)
      {
-	if (border->client.netwm.state.skip_taskbar) continue;
 	if (border->user_skip_winlist) continue;
 	if ((border->zone == zone) || (border->iconic) ||
 	    (border->zone != zone && e_config->clientlist_include_all_zones))
@@ -1147,7 +1189,7 @@ _e_int_menus_clients_title_abbrv(const char *title)
    int max_len;
 
    max_len = e_config->clientlist_max_caption_len;
-   if ((e_config->clientlist_limit_caption_len) && (strlen(title) > max_len))
+   if ((e_config->clientlist_limit_caption_len) && ((int) strlen(title) > max_len))
      {
 	char *abbv;
 	const char *left, *right;
@@ -1324,6 +1366,12 @@ _e_int_menus_augmentation_add(E_Menu *m, Eina_List *augmentation)
 {
    E_Int_Menu_Augmentation *aug;
    Eina_List *l;
+   char *data;
+
+   if ((!augmentation) || (!m)) return;
+   EINA_LIST_FOREACH(_e_int_menus_augmentation_disabled, l, data)
+     if (eina_hash_find(_e_int_menus_augmentation, data) == augmentation)
+       return;
 
    EINA_LIST_FOREACH(augmentation, l, aug)
      if (aug->add.func) aug->add.func(aug->add.data, m);
@@ -1334,6 +1382,12 @@ _e_int_menus_augmentation_del(E_Menu *m, Eina_List *augmentation)
 {
    E_Int_Menu_Augmentation *aug;
    Eina_List *l;
+   char *data;
+
+   if ((!augmentation) || (!m)) return;
+   EINA_LIST_FOREACH(_e_int_menus_augmentation_disabled, l, data)
+     if (eina_hash_find(_e_int_menus_augmentation, data) == augmentation)
+       return;
 
    EINA_LIST_FOREACH(augmentation, l, aug)
      if (aug->del.func) aug->del.func(aug->del.data, m);
@@ -1368,7 +1422,7 @@ _e_int_menus_shelves_pre_cb(void *data, E_Menu *m)
 
 	if (!s) continue;
 	if (s->zone->num != zone->num) continue;
-	if (s->cfg->container != con->num) continue;
+	if (s->cfg->container != (int) con->num) continue;
 
 	name = s->name;
 	if (!name) name = _("Shelf #");	

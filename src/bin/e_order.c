@@ -3,15 +3,12 @@
  */
 #include "e.h"
 
-/* TODO: We need to free out efreet_desktop's! */
-
 /* local subsystem functions */
-static void _e_order_free       (E_Order *eo);
-static void _e_order_cb_monitor (void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path);
-static void _e_order_read       (E_Order *eo);
-static void _e_order_save       (E_Order *eo);
-
-static int  _e_order_cb_efreet_desktop_change(void *data, int ev_type, void *ev);
+static void _e_order_free(E_Order *eo);
+static void _e_order_cb_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path);
+static void _e_order_read(E_Order *eo);
+static void _e_order_save(E_Order *eo);
+static Eina_Bool _e_order_cb_efreet_cache_update(void *data, int ev_type, void *ev);
 
 static Eina_List *orders = NULL;
 static Eina_List *handlers = NULL;
@@ -20,7 +17,11 @@ static Eina_List *handlers = NULL;
 EAPI int
 e_order_init(void)
 {
-   handlers = eina_list_append(handlers, ecore_event_handler_add(EFREET_EVENT_DESKTOP_CHANGE, _e_order_cb_efreet_desktop_change, NULL));
+   handlers = 
+     eina_list_append(handlers, 
+                      ecore_event_handler_add(EFREET_EVENT_DESKTOP_CACHE_UPDATE, 
+                                              _e_order_cb_efreet_cache_update, 
+                                              NULL));
    efreet_menu_file_set(e_config->default_system_menu);
    return 1;
 }
@@ -152,6 +153,7 @@ e_order_clear(E_Order *eo)
 static void
 _e_order_free(E_Order *eo)
 {
+   if (eo->delay) ecore_timer_del(eo->delay);
    E_FREE_LIST(eo->desktops, efreet_desktop_free);
    if (eo->path) eina_stringshare_del(eo->path);
    if (eo->monitor) ecore_file_monitor_del(eo->monitor);
@@ -159,16 +161,25 @@ _e_order_free(E_Order *eo)
    free(eo);
 }
 
-static void
-_e_order_cb_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path)
+static Eina_Bool
+_e_order_cb_monitor_delay(void *data)
 {
-   E_Order *eo;
-
-   eo = data;
-
+   E_Order *eo = data;
+   
    /* It doesn't really matter what the change is, just re-read the file */
    _e_order_read(eo);
    if (eo->cb.update) eo->cb.update(eo->cb.data, eo);
+   eo->delay = NULL;
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static void
+_e_order_cb_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path)
+{
+   E_Order *eo = data;
+
+   if (eo->delay) ecore_timer_del(eo->delay);
+   eo->delay = ecore_timer_add(0.2, _e_order_cb_monitor_delay, eo);
 }
 
 static void
@@ -200,20 +211,16 @@ _e_order_read(E_Order *eo)
 		    }
 		  if (len > 0)
 		    {
-		       Efreet_Desktop *desktop;
+		       Efreet_Desktop *desktop = NULL;
 		       
-		       desktop = NULL;
 		       if (buf[0] == '/')
 		         desktop = efreet_desktop_get(buf);
 		       if (!desktop)
 		         desktop = efreet_desktop_get(ecore_file_file_get(buf));
 		       if (!desktop)
-			 {
-			    desktop = efreet_util_desktop_file_id_find(ecore_file_file_get(buf));
-			    /* Need to ref this as we only get a cache pointer from efreet_util */
-			    if (desktop) efreet_desktop_ref(desktop);
-			 }
-		       if (desktop) eo->desktops = eina_list_append(eo->desktops, desktop);
+			 desktop = efreet_util_desktop_file_id_find(ecore_file_file_get(buf));
+		       if (desktop) 
+                         eo->desktops = eina_list_append(eo->desktops, desktop);
 		    }
 	       }
 	  }
@@ -239,77 +246,25 @@ _e_order_save(E_Order *eo)
 
 	id = efreet_util_path_to_file_id(desktop->orig_path);
 	if (id)
-	  {
-	     fprintf(f, "%s\n", id);
-	  }
+          fprintf(f, "%s\n", id);
 	else
-	  {
-	     fprintf(f, "%s\n", desktop->orig_path);
-	  }
+          fprintf(f, "%s\n", desktop->orig_path);
      }
 
    fclose(f);
 }
 
-static int
-_e_order_cb_efreet_desktop_change(void *data, int ev_type, void *ev)
+static Eina_Bool
+_e_order_cb_efreet_cache_update(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *ev)
 {
-   Efreet_Event_Desktop_Change *event;
    Eina_List *l;
    E_Order *eo;
 
-   event = ev;
-   switch (event->change)
+   /* reread all .order files */
+   EINA_LIST_FOREACH(orders, l, eo)
      {
-      case EFREET_DESKTOP_CHANGE_ADD:
-	 /* If a desktop is added, reread all .order files */
-	 EINA_LIST_FOREACH(orders, l, eo)
-	   {
-	      _e_order_read(eo);
-	      if (eo->cb.update) eo->cb.update(eo->cb.data, eo);
-	   }
-	 break;
-      case EFREET_DESKTOP_CHANGE_REMOVE:
-	 /* If a desktop is removed, drop the .desktop pointer */
-	 EINA_LIST_FOREACH(orders, l, eo)
-	   {
-	      Eina_List *l2;
-	      Efreet_Desktop *desktop;
-	      int changed = 0;
-
-	      EINA_LIST_FOREACH(eo->desktops, l2, desktop)
-		{
-		   if (desktop == event->current)
-		     {
-			efreet_desktop_free(desktop);
-			eo->desktops = eina_list_remove_list(eo->desktops, l2);
-			changed = 1;
-		     }
-		}
-	      if ((changed) && (eo->cb.update)) eo->cb.update(eo->cb.data, eo);
-	   }
-	 break;
-      case EFREET_DESKTOP_CHANGE_UPDATE:
-	 /* If a desktop is updated, point to the new desktop and update */
-	 EINA_LIST_FOREACH(orders, l, eo)
-	   {
-	      Eina_List *l2;
-	      Efreet_Desktop *desktop;
-	      int changed = 0;
-
-	      EINA_LIST_FOREACH(eo->desktops, l2, desktop)
-		{
-		   if (desktop == event->previous)
-		     {
-			efreet_desktop_free(desktop);
-			efreet_desktop_ref(event->current);
-			l2->data = event->current;
-			changed = 1;
-		     }
-		}
-	      if ((changed) && (eo->cb.update)) eo->cb.update(eo->cb.data, eo);
-	   }
-	 break;
+	_e_order_read(eo);
+	if (eo->cb.update) eo->cb.update(eo->cb.data, eo);
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }

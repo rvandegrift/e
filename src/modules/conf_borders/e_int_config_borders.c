@@ -18,13 +18,13 @@ struct _E_Config_Dialog_Data
    int remember_border;
 };
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_borders(E_Container *con, const char *params __UNUSED__) 
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
 
-   if (e_config_dialog_find("E", "_config_border_style_dialog")) return NULL;
+   if (e_config_dialog_find("E", "appearance/borders")) return NULL;
    v = _config_view_new();
    if (!v) return NULL;
    cfd = e_config_dialog_new(con, _("Default Border Style"), 
@@ -33,7 +33,7 @@ e_int_config_borders(E_Container *con, const char *params __UNUSED__)
    return cfd;
 }
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_borders_border(E_Container *con __UNUSED__, const char *params) 
 {
    E_Config_Dialog *cfd;
@@ -48,7 +48,7 @@ e_int_config_borders_border(E_Container *con __UNUSED__, const char *params)
    if (!v) return NULL;
    cfd = e_config_dialog_new(bd->zone->container, 
 			     _("Window Border Selection"), 
-			     "E", "internal/borders_border", 
+			     "E", "_config_border_border_style_dialog", 
 			     "preferences-system-windows", 0, v, bd);
    bd->border_border_dialog = cfd;
    return cfd;

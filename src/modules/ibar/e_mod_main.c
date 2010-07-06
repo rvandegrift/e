@@ -112,7 +112,7 @@ static void _ibar_inst_cb_leave(void *data, const char *type, void *event_info);
 static void _ibar_inst_cb_drop(void *data, const char *type, void *event_info);
 static void _ibar_drop_position_update(Instance *inst, Evas_Coord x, Evas_Coord y);
 static void _ibar_inst_cb_scroll(void *data);
-static int  _ibar_cb_config_icon_theme(void *data, int ev_type, void *ev);
+static Eina_Bool  _ibar_cb_config_icon_theme(void *data, int ev_type, void *ev);
 
 static E_Config_DD *conf_edd = NULL;
 static E_Config_DD *conf_item_edd = NULL;
@@ -272,7 +272,7 @@ _ibar_new(Evas *evas, Instance *inst)
      e_user_dir_snprintf(buf, sizeof(buf), "applications/bar/%s/.order", 
                          inst->ci->dir);
    else
-     ecore_strlcpy(buf, inst->ci->dir, sizeof(buf));
+     eina_strlcpy(buf, inst->ci->dir, sizeof(buf));
    b->apps = e_order_new(buf);
    e_order_update_callback_set(b->apps, _ibar_cb_app_change, b);
    _ibar_fill(b);
@@ -491,7 +491,7 @@ _ibar_config_update(Config_Item *ci)
           e_user_dir_snprintf(buf, sizeof(buf), "applications/bar/%s/.order", 
                               inst->ci->dir);
 	else
-	  ecore_strlcpy(buf, inst->ci->dir, sizeof(buf));
+	  eina_strlcpy(buf, inst->ci->dir, sizeof(buf));
 	inst->ibar->apps = e_order_new(buf);
 	_ibar_fill(inst->ibar);
 	_ibar_resize_handle(inst->ibar);
@@ -743,10 +743,8 @@ _ibar_cb_menu_post(void *data, E_Menu *m)
 static void
 _ibar_cb_icon_mouse_in(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
-   Evas_Event_Mouse_In *ev;
    IBar_Icon *ic;
 
-   ev = event_info;
    ic = data;
    _ibar_icon_signal_emit(ic, "e,state,focused", "e");
    if (ic->ibar->inst->ci->show_label)
@@ -756,10 +754,8 @@ _ibar_cb_icon_mouse_in(void *data, Evas *e, Evas_Object *obj, void *event_info)
 static void
 _ibar_cb_icon_mouse_out(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
-   Evas_Event_Mouse_Out *ev;
    IBar_Icon *ic;
 
-   ev = event_info;
    ic = data;
    _ibar_icon_signal_emit(ic, "e,state,unfocused", "e");
    if (ic->ibar->inst->ci->show_label)
@@ -1096,10 +1092,8 @@ _ibar_inst_cb_move(void *data, const char *type, void *event_info)
 static void
 _ibar_inst_cb_leave(void *data, const char *type, void *event_info)
 {
-   E_Event_Dnd_Leave *ev;
    Instance *inst;
 
-   ev = event_info;
    inst = data;
    inst->ibar->ic_drop_before = NULL;
    evas_object_del(inst->ibar->o_drop);
@@ -1335,8 +1329,8 @@ e_modapi_save(E_Module *m)
    return 1;
 }
 
-static int
-_ibar_cb_config_icon_theme(void *data, int ev_type, void *ev)
+static Eina_Bool
+_ibar_cb_config_icon_theme(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *ev)
 {
    const Eina_List *l;
    Instance *inst;
@@ -1349,5 +1343,5 @@ _ibar_cb_config_icon_theme(void *data, int ev_type, void *ev)
 	EINA_LIST_FOREACH(inst->ibar->icons, l2, icon)
 	  _ibar_icon_fill(icon);
      }
-   return 1;
+   return ECORE_CALLBACK_PASS_ON;
 }

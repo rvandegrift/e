@@ -13,7 +13,7 @@ static void _cb_off_slider_change(void *data, Evas_Object *obj);
 static int _e_int_config_dpms_available(void);
 static int _e_int_config_dpms_capable(void);
 
-static void _cb_disable_check_list(void *data, Evas_Object *obj);
+static void _cb_disable_changed(void *data, Evas_Object *obj);
 
 struct _E_Config_Dialog_Data
 {
@@ -41,7 +41,7 @@ struct _E_Config_Dialog_Data
 static E_Dialog *dpms_dialog = NULL;
 
 static void
-_cb_dpms_dialog_ok(void *data, E_Dialog *dia)
+_cb_dpms_dialog_ok(void *data __UNUSED__, E_Dialog *dia __UNUSED__)
 {
    e_object_del(E_OBJECT(dpms_dialog));
    dpms_dialog = NULL;
@@ -89,7 +89,7 @@ _e_int_config_dpms_available(void)
    return 0;
 }
 
-EAPI E_Config_Dialog *
+E_Config_Dialog *
 e_int_config_dpms(E_Container *con, const char *params __UNUSED__)
 {
    E_Config_Dialog *cfd;
@@ -127,6 +127,16 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    cfdata->off_timeout = e_config->dpms_off_timeout / 60;
 }
 
+static void
+_list_disabled_state_apply(Eina_List *list, Eina_Bool disabled)
+{
+   Eina_List *l;
+   Evas_Object *o;
+
+   EINA_LIST_FOREACH(list, l, o)
+      e_widget_disabled_set(o, disabled);
+}
+
 static void *
 _create_data(E_Config_Dialog *cfd)
 {
@@ -144,14 +154,14 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
   eina_list_free(cfdata->dpms_list);
   E_FREE(cfdata);
 }
 
 static int
-_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    e_config->dpms_enable = cfdata->enable_dpms;
    e_config->dpms_standby_enable = cfdata->enable_standby;
@@ -169,7 +179,7 @@ _apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
 /* advanced window */
 static int
-_advanced_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_advanced_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    return (e_config->dpms_enable != cfdata->enable_dpms) ||
 	  (e_config->dpms_standby_enable != cfdata->enable_standby) ||
@@ -188,7 +198,7 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
+_advanced_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *of, *ob;
    Evas_Object *dpms_check;
@@ -206,7 +216,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    cfdata->dpms_list = eina_list_append(cfdata->dpms_list, ob);
    e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    ob = e_widget_slider_add(evas, 1, 0, _("%1.0f minutes"), 1.0, 90.0, 1.0, 0,
-			    &(cfdata->standby_timeout), NULL, 200);
+			    &(cfdata->standby_timeout), NULL, 100);
    e_widget_on_change_hook_set(ob, _cb_standby_slider_change, cfdata);
    cfdata->standby_slider = ob;
    cfdata->dpms_list = eina_list_append(cfdata->dpms_list, ob);
@@ -218,7 +228,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    cfdata->dpms_list = eina_list_append(cfdata->dpms_list, ob);
    e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    ob = e_widget_slider_add(evas, 1, 0, _("%1.0f minutes"), 1.0, 90.0, 1.0, 0,
-			    &(cfdata->suspend_timeout), NULL, 200);
+			    &(cfdata->suspend_timeout), NULL, 100);
    e_widget_on_change_hook_set(ob, _cb_suspend_slider_change, cfdata);
    cfdata->suspend_slider = ob;
    cfdata->dpms_list = eina_list_append(cfdata->dpms_list, ob);
@@ -230,7 +240,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    cfdata->dpms_list = eina_list_append(cfdata->dpms_list, ob);
    e_widget_disabled_set(ob, !cfdata->enable_standby); // set state from saved config
    ob = e_widget_slider_add(evas, 1, 0, _("%1.0f minutes"), 1.0, 90.0, 1.0, 0,
-			    &(cfdata->off_timeout), NULL, 200);
+			    &(cfdata->off_timeout), NULL, 100);
    e_widget_on_change_hook_set(ob, _cb_off_slider_change, cfdata);
    cfdata->off_slider = ob;
    cfdata->dpms_list = eina_list_append(cfdata->dpms_list, ob);
@@ -238,7 +248,9 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    e_widget_framelist_object_append(of, ob);
 
    // handler for enable/disable widget array
-   e_widget_on_change_hook_set(dpms_check, _cb_disable_check_list, cfdata->dpms_list);
+   e_widget_on_change_hook_set(dpms_check, _cb_disable_changed, cfdata->dpms_list);
+   // setting initial state
+   _list_disabled_state_apply(cfdata->dpms_list, !cfdata->enable_dpms);
 
    e_widget_list_object_append(o, of, 1, 1, 0.5);
    return o;
@@ -246,7 +258,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 
 /* general functionality/callbacks */
 static void
-_cb_standby_slider_change(void *data, Evas_Object *obj)
+_cb_standby_slider_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata = data;
 
@@ -269,7 +281,7 @@ _cb_standby_slider_change(void *data, Evas_Object *obj)
 }
 
 static void
-_cb_suspend_slider_change(void *data, Evas_Object *obj)
+_cb_suspend_slider_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata = data;
 
@@ -291,7 +303,7 @@ _cb_suspend_slider_change(void *data, Evas_Object *obj)
 }
 
 static void
-_cb_off_slider_change(void *data, Evas_Object *obj)
+_cb_off_slider_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata = data;
 
@@ -318,12 +330,7 @@ _cb_off_slider_change(void *data, Evas_Object *obj)
  * @param obj A Evas_Object checkbox created with e_widget_check_add()
  */
 static void
-_cb_disable_check_list(void *data, Evas_Object *obj)
+_cb_disable_changed(void *data, Evas_Object *obj)
 {
-   Eina_List *list = (Eina_List*) data;
-   Eina_List *l;
-   Evas_Object *o;
-
-   EINA_LIST_FOREACH(list, l, o)
-      e_widget_disabled_set(o, !e_widget_check_checked_get(obj));
+   _list_disabled_state_apply(data, !e_widget_check_checked_get(obj));
 }

@@ -320,7 +320,7 @@ precache(void)
 static int
 find_valgrind(char *path, size_t path_len)
 {
-   char *env = getenv("PATH");
+   const char *env = getenv("PATH");
 
    while (env)
      {
@@ -359,15 +359,28 @@ find_valgrind(char *path, size_t path_len)
 #define VALGRIND_MODE_ALL 15
 
 static int
-valgrind_append(char **dst, int valgrind_mode, const char *valgrind_path, const char *valgrind_log)
+valgrind_append(char **dst, int valgrind_mode, int valgrind_tool, char *valgrind_path, const char *valgrind_log)
 {
    int i = 0;
+
+   if (valgrind_tool)
+     {
+	dst[i++] = valgrind_path;
+
+	switch (valgrind_tool)
+	  {
+	   case 1: dst[i++] = "--tool=massif"; break;
+	   case 2: dst[i++] = "--tool=callgrind"; break;
+	  }
+
+	return i;
+     }
 
    if (!valgrind_mode)
      return 0;
    dst[i++] = valgrind_path;
    dst[i++] = "--track-origins=yes";
-   dst[i++] = "--malloc-fill=0xabc79"; /* invalid pointer, make it crash */
+   dst[i++] = "--malloc-fill=13"; /* invalid pointer, make it crash */
 
    if (valgrind_log)
      {
@@ -404,8 +417,10 @@ int
 main(int argc, char **argv)
 {
    int i, do_precache = 0, valgrind_mode = 0;
+   int valgrind_tool = 0;
    char buf[16384], **args, *p;
-   char valgrind_path[PATH_MAX] = "", *valgrind_log = NULL;
+   char valgrind_path[PATH_MAX] = "";
+   const char *valgrind_log = NULL;
 
    prefix_determine(argv[0]);
 
@@ -451,6 +466,14 @@ main(int argc, char **argv)
 	     else
 	       printf("Unknown valgrind option: %s\n", argv[i]);
 	  }
+	else if (!strcmp(argv[i], "-massif"))
+	  {
+	     valgrind_tool = 1;
+	  }
+	else if (!strcmp(argv[i], "-callgrind"))
+	  {
+	     valgrind_tool = 2;
+	  }
         else if ((!strcmp(argv[i], "-h")) ||
 		 (!strcmp(argv[i], "-help")) ||
 		 (!strcmp(argv[i], "--help")))
@@ -466,6 +489,10 @@ main(int argc, char **argv)
 		"\t\t   4 = check leak\n"
 		"\t\t   8 = show reachable after processes finish.\n"
 		"\t\t all = all of above\n"
+		"\t-massif\n"
+		"\t\tRun enlightenment from inside massif valgrind tool.\n"
+		"\t-callgrind\n"
+		"\t\tRun enlightenment from inside callgrind valgrind tool.\n"
 		"\t-valgrind-log-file=<FILENAME>\n"
 		"\t\tSave valgrind log to file, see valgrind's --log-file for details.\n"
 		"\n"
@@ -477,7 +504,7 @@ main(int argc, char **argv)
 	  }
      }
 
-   if (valgrind_mode)
+   if (valgrind_mode || valgrind_tool)
      {
 	if (!find_valgrind(valgrind_path, sizeof(valgrind_path)))
 	  {
@@ -499,7 +526,6 @@ main(int argc, char **argv)
      {
 	void *lib, *func;
 
-	do_precache = 0;
 	/* sanity checks - if precache might fail - check here first */
 	lib = dlopen("libevas.so", RTLD_GLOBAL | RTLD_LAZY);
 	if (!lib) dlopen("libevas.so.1", RTLD_GLOBAL | RTLD_LAZY);
@@ -529,12 +555,13 @@ main(int argc, char **argv)
    snprintf(buf, sizeof(buf), "%s/bin/enlightenment", _prefix_path);
 
    args = alloca((argc + 2 + VALGRIND_MAX_ARGS) * sizeof(char *));
-   if (!getenv("DBUS_SESSION_BUS_ADDRESS"))
+   if ((!getenv("DBUS_SESSION_BUS_ADDRESS")) &&
+       (!getenv("DBUS_LAUNCHD_SESSION_BUS_SOCKET")))
      {
 	args[0] = "dbus-launch";
 	args[1] = "--exit-with-session";
 
-	i = 2 + valgrind_append(args + 2, valgrind_mode, valgrind_path, valgrind_log);
+	i = 2 + valgrind_append(args + 2, valgrind_mode, valgrind_tool, valgrind_path, valgrind_log);
 	args[i++] = buf;
 	copy_args(args + i, argv + 1, argc - 1);
 	args[i + argc - 1] = NULL;
@@ -542,7 +569,7 @@ main(int argc, char **argv)
      }
 
    /* dbus-launch failed - run e direct */
-   i = valgrind_append(args, valgrind_mode, valgrind_path, valgrind_log);
+   i = valgrind_append(args, valgrind_mode, valgrind_tool, valgrind_path, valgrind_log);
    args[i++] = buf;
    copy_args(args + i, argv + 1, argc - 1);
    args[i + argc - 1] = NULL;

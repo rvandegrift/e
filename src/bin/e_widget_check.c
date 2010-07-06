@@ -206,9 +206,6 @@ _e_wid_do(Evas_Object *obj)
 static void
 _e_wid_activate_hook(Evas_Object *obj)
 {
-   E_Widget_Data *wd;
-   
-   wd = e_widget_data_get(obj);
    _e_wid_do(obj);
 }
 
@@ -228,7 +225,6 @@ static void
 _e_wid_signal_cb1(void *data, Evas_Object *obj, const char *emission, const char *source)
 {
    _e_wid_do(data);
-   e_widget_change(data);
 }
 
 static void
