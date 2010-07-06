@@ -5,7 +5,7 @@ include /usr/share/cdbs/1/rules/debhelper.mk
 
 DEB_HOST_GNU_SYSTEM=$(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
 DEB_HOST_GNU_CPU=$(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
-SVN_RELEASE=$(shell grep '^release' configure.ac | cut -d\" -f2)
+SVN_RELEASE=$(shell grep -o ver-svn-.. configure.ac)
 ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
 
 install/e17-data::
