@@ -37,9 +37,9 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = enlightenment$(EXEEXT) enlightenment_imc$(EXEEXT) \
 	enlightenment_start$(EXEEXT)
-internal_bin_PROGRAMS = enlightenment_init$(EXEEXT) \
-	enlightenment_fm$(EXEEXT) enlightenment_fm_op$(EXEEXT) \
-	enlightenment_sys$(EXEEXT) enlightenment_thumb$(EXEEXT)
+internal_bin_PROGRAMS = enlightenment_fm_op$(EXEEXT) \
+	enlightenment_init$(EXEEXT) enlightenment_sys$(EXEEXT) \
+	enlightenment_thumb$(EXEEXT)
 subdir = src/bin
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -49,9 +49,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 $(top_srcdir)/m4/gettext.m4 \
 	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/nls.m4 \
-	$(top_srcdir)/m4/po.m4 $(top_srcdir)/m4/progtest.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
+	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -62,62 +64,62 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(internal_bindir)" \
 	"$(DESTDIR)$(installed_headersdir)"
 PROGRAMS = $(bin_PROGRAMS) $(internal_bin_PROGRAMS)
 am__objects_1 =
-am__objects_2 = e_user.$(OBJEXT) e_manager.$(OBJEXT) e_path.$(OBJEXT) \
-	e_init.$(OBJEXT) e_ipc.$(OBJEXT) e_msgbus.$(OBJEXT) \
-	e_error.$(OBJEXT) e_container.$(OBJEXT) e_zone.$(OBJEXT) \
-	e_desk.$(OBJEXT) e_border.$(OBJEXT) e_pointer.$(OBJEXT) \
-	e_config.$(OBJEXT) e_config_data.$(OBJEXT) e_menu.$(OBJEXT) \
-	e_object.$(OBJEXT) e_icon.$(OBJEXT) e_box.$(OBJEXT) \
-	e_flowlayout.$(OBJEXT) e_int_menus.$(OBJEXT) \
-	e_module.$(OBJEXT) e_atoms.$(OBJEXT) e_utils.$(OBJEXT) \
-	e_canvas.$(OBJEXT) e_focus.$(OBJEXT) e_place.$(OBJEXT) \
-	e_resist.$(OBJEXT) e_startup.$(OBJEXT) e_hints.$(OBJEXT) \
-	e_signals.$(OBJEXT) e_xinerama.$(OBJEXT) e_table.$(OBJEXT) \
-	e_layout.$(OBJEXT) e_test.$(OBJEXT) e_font.$(OBJEXT) \
-	e_intl.$(OBJEXT) e_intl_data.$(OBJEXT) e_theme.$(OBJEXT) \
-	e_dnd.$(OBJEXT) e_bindings.$(OBJEXT) e_moveresize.$(OBJEXT) \
-	e_actions.$(OBJEXT) e_popup.$(OBJEXT) e_gadcon_popup.$(OBJEXT) \
-	e_ipc_codec.$(OBJEXT) e_prefix.$(OBJEXT) e_datastore.$(OBJEXT) \
-	e_msg.$(OBJEXT) e_alert.$(OBJEXT) e_maximize.$(OBJEXT) \
-	e_grabinput.$(OBJEXT) e_bg.$(OBJEXT) e_remember.$(OBJEXT) \
-	e_win.$(OBJEXT) e_pan.$(OBJEXT) e_dialog.$(OBJEXT) \
-	e_about.$(OBJEXT) e_theme_about.$(OBJEXT) e_editable.$(OBJEXT) \
-	e_entry.$(OBJEXT) e_widget.$(OBJEXT) e_widget_check.$(OBJEXT) \
-	e_widget_radio.$(OBJEXT) e_widget_framelist.$(OBJEXT) \
-	e_widget_list.$(OBJEXT) e_widget_button.$(OBJEXT) \
-	e_widget_label.$(OBJEXT) e_widget_frametable.$(OBJEXT) \
-	e_widget_table.$(OBJEXT) e_widget_entry.$(OBJEXT) \
-	e_widget_image.$(OBJEXT) e_config_dialog.$(OBJEXT) \
-	e_configure.$(OBJEXT) e_int_border_locks.$(OBJEXT) \
-	e_thumb.$(OBJEXT) e_int_border_remember.$(OBJEXT) \
-	e_eap_editor.$(OBJEXT) e_scrollframe.$(OBJEXT) \
-	e_int_border_menu.$(OBJEXT) e_ilist.$(OBJEXT) \
-	e_livethumb.$(OBJEXT) e_widget_ilist.$(OBJEXT) \
-	e_widget_config_list.$(OBJEXT) e_slider.$(OBJEXT) \
-	e_widget_slider.$(OBJEXT) e_desklock.$(OBJEXT) \
-	e_screensaver.$(OBJEXT) e_dpms.$(OBJEXT) \
-	e_int_config_modules.$(OBJEXT) e_exehist.$(OBJEXT) \
-	e_color_class.$(OBJEXT) e_widget_textblock.$(OBJEXT) \
-	e_stolen.$(OBJEXT) e_gadcon.$(OBJEXT) e_shelf.$(OBJEXT) \
-	e_widget_preview.$(OBJEXT) e_int_shelf_config.$(OBJEXT) \
-	e_int_gadcon_config.$(OBJEXT) e_confirm_dialog.$(OBJEXT) \
-	e_int_border_prop.$(OBJEXT) e_entry_dialog.$(OBJEXT) \
-	e_fm.$(OBJEXT) e_fm_dbus.$(OBJEXT) e_fm_op_registry.$(OBJEXT) \
-	e_widget_scrollframe.$(OBJEXT) e_sha1.$(OBJEXT) \
-	e_widget_fsel.$(OBJEXT) e_fm_mime.$(OBJEXT) e_color.$(OBJEXT) \
-	e_spectrum.$(OBJEXT) e_widget_spectrum.$(OBJEXT) \
-	e_widget_cslider.$(OBJEXT) e_widget_csel.$(OBJEXT) \
-	e_widget_color_well.$(OBJEXT) e_color_dialog.$(OBJEXT) \
-	e_sys.$(OBJEXT) e_obj_dialog.$(OBJEXT) \
-	e_widget_aspect.$(OBJEXT) e_widget_deskpreview.$(OBJEXT) \
-	e_filereg.$(OBJEXT) e_fm_prop.$(OBJEXT) e_mouse.$(OBJEXT) \
-	e_order.$(OBJEXT) e_exec.$(OBJEXT) \
-	e_widget_font_preview.$(OBJEXT) e_fm_custom.$(OBJEXT) \
-	e_toolbar.$(OBJEXT) e_int_toolbar_config.$(OBJEXT) \
-	e_powersave.$(OBJEXT) e_slidesel.$(OBJEXT) \
-	e_slidecore.$(OBJEXT) e_widget_flist.$(OBJEXT) \
-	e_scale.$(OBJEXT) e_widget_toolbar.$(OBJEXT) \
-	e_widget_toolbook.$(OBJEXT) e_acpi.$(OBJEXT) $(am__objects_1)
+am__objects_2 = e_about.$(OBJEXT) e_acpi.$(OBJEXT) e_actions.$(OBJEXT) \
+	e_alert.$(OBJEXT) e_atoms.$(OBJEXT) e_bg.$(OBJEXT) \
+	e_bindings.$(OBJEXT) e_border.$(OBJEXT) e_box.$(OBJEXT) \
+	e_canvas.$(OBJEXT) e_color.$(OBJEXT) e_color_class.$(OBJEXT) \
+	e_color_dialog.$(OBJEXT) e_config.$(OBJEXT) \
+	e_config_data.$(OBJEXT) e_config_dialog.$(OBJEXT) \
+	e_configure.$(OBJEXT) e_confirm_dialog.$(OBJEXT) \
+	e_container.$(OBJEXT) e_datastore.$(OBJEXT) e_desk.$(OBJEXT) \
+	e_desklock.$(OBJEXT) e_dialog.$(OBJEXT) e_dnd.$(OBJEXT) \
+	e_dpms.$(OBJEXT) e_eap_editor.$(OBJEXT) e_editable.$(OBJEXT) \
+	e_entry.$(OBJEXT) e_entry_dialog.$(OBJEXT) e_error.$(OBJEXT) \
+	e_exec.$(OBJEXT) e_exehist.$(OBJEXT) e_filereg.$(OBJEXT) \
+	e_flowlayout.$(OBJEXT) e_fm.$(OBJEXT) e_fm_custom.$(OBJEXT) \
+	e_fm_device.$(OBJEXT) e_fm_mime.$(OBJEXT) \
+	e_fm_op_registry.$(OBJEXT) e_fm_prop.$(OBJEXT) \
+	e_fm_shared_codec.$(OBJEXT) e_fm_shared_device.$(OBJEXT) \
+	e_focus.$(OBJEXT) e_font.$(OBJEXT) e_gadcon.$(OBJEXT) \
+	e_gadcon_popup.$(OBJEXT) e_grabinput.$(OBJEXT) \
+	e_hints.$(OBJEXT) e_icon.$(OBJEXT) e_ilist.$(OBJEXT) \
+	e_init.$(OBJEXT) e_int_border_locks.$(OBJEXT) \
+	e_int_border_menu.$(OBJEXT) e_int_border_prop.$(OBJEXT) \
+	e_int_border_remember.$(OBJEXT) e_int_config_modules.$(OBJEXT) \
+	e_int_gadcon_config.$(OBJEXT) e_intl.$(OBJEXT) \
+	e_intl_data.$(OBJEXT) e_int_menus.$(OBJEXT) \
+	e_int_shelf_config.$(OBJEXT) e_int_toolbar_config.$(OBJEXT) \
+	e_ipc.$(OBJEXT) e_ipc_codec.$(OBJEXT) e_layout.$(OBJEXT) \
+	e_livethumb.$(OBJEXT) e_manager.$(OBJEXT) e_maximize.$(OBJEXT) \
+	e_menu.$(OBJEXT) e_module.$(OBJEXT) e_mouse.$(OBJEXT) \
+	e_moveresize.$(OBJEXT) e_msgbus.$(OBJEXT) e_msg.$(OBJEXT) \
+	e_obj_dialog.$(OBJEXT) e_object.$(OBJEXT) e_order.$(OBJEXT) \
+	e_pan.$(OBJEXT) e_path.$(OBJEXT) e_place.$(OBJEXT) \
+	e_pointer.$(OBJEXT) e_popup.$(OBJEXT) e_powersave.$(OBJEXT) \
+	e_prefix.$(OBJEXT) e_randr.$(OBJEXT) e_remember.$(OBJEXT) \
+	e_resist.$(OBJEXT) e_scale.$(OBJEXT) e_screensaver.$(OBJEXT) \
+	e_scrollframe.$(OBJEXT) e_sha1.$(OBJEXT) e_shelf.$(OBJEXT) \
+	e_signals.$(OBJEXT) e_slidecore.$(OBJEXT) e_slider.$(OBJEXT) \
+	e_slidesel.$(OBJEXT) e_spectrum.$(OBJEXT) e_startup.$(OBJEXT) \
+	e_stolen.$(OBJEXT) e_sys.$(OBJEXT) e_table.$(OBJEXT) \
+	e_test.$(OBJEXT) e_theme_about.$(OBJEXT) e_theme.$(OBJEXT) \
+	e_thumb.$(OBJEXT) e_toolbar.$(OBJEXT) e_user.$(OBJEXT) \
+	e_utils.$(OBJEXT) e_widget_aspect.$(OBJEXT) \
+	e_widget_button.$(OBJEXT) e_widget.$(OBJEXT) \
+	e_widget_check.$(OBJEXT) e_widget_color_well.$(OBJEXT) \
+	e_widget_config_list.$(OBJEXT) e_widget_csel.$(OBJEXT) \
+	e_widget_cslider.$(OBJEXT) e_widget_deskpreview.$(OBJEXT) \
+	e_widget_entry.$(OBJEXT) e_widget_flist.$(OBJEXT) \
+	e_widget_font_preview.$(OBJEXT) e_widget_framelist.$(OBJEXT) \
+	e_widget_frametable.$(OBJEXT) e_widget_fsel.$(OBJEXT) \
+	e_widget_ilist.$(OBJEXT) e_widget_image.$(OBJEXT) \
+	e_widget_label.$(OBJEXT) e_widget_list.$(OBJEXT) \
+	e_widget_preview.$(OBJEXT) e_widget_radio.$(OBJEXT) \
+	e_widget_scrollframe.$(OBJEXT) e_widget_slider.$(OBJEXT) \
+	e_widget_spectrum.$(OBJEXT) e_widget_table.$(OBJEXT) \
+	e_widget_textblock.$(OBJEXT) e_widget_toolbar.$(OBJEXT) \
+	e_widget_toolbook.$(OBJEXT) e_win.$(OBJEXT) \
+	e_xinerama.$(OBJEXT) e_zone.$(OBJEXT) $(am__objects_1)
 am_enlightenment_OBJECTS = e_main.$(OBJEXT) $(am__objects_2)
 enlightenment_OBJECTS = $(am_enlightenment_OBJECTS)
 enlightenment_DEPENDENCIES =
@@ -127,15 +129,6 @@ am__v_lt_0 = --silent
 enlightenment_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(enlightenment_LDFLAGS) $(LDFLAGS) -o $@
-am_enlightenment_fm_OBJECTS = enlightenment_fm-e_fm_main.$(OBJEXT) \
-	enlightenment_fm-e_user.$(OBJEXT) \
-	enlightenment_fm-e_sha1.$(OBJEXT)
-enlightenment_fm_OBJECTS = $(am_enlightenment_fm_OBJECTS)
-enlightenment_fm_DEPENDENCIES =
-enlightenment_fm_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(enlightenment_fm_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
-	-o $@
 am_enlightenment_fm_op_OBJECTS =  \
 	enlightenment_fm_op-e_fm_op.$(OBJEXT)
 enlightenment_fm_op_OBJECTS = $(am_enlightenment_fm_op_OBJECTS)
@@ -144,8 +137,8 @@ enlightenment_fm_op_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(enlightenment_fm_op_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_enlightenment_imc_OBJECTS = e_intl_data.$(OBJEXT) \
-	e_config_data.$(OBJEXT) e_imc_main.$(OBJEXT)
+am_enlightenment_imc_OBJECTS = e_config_data.$(OBJEXT) \
+	e_imc_main.$(OBJEXT) e_intl_data.$(OBJEXT)
 enlightenment_imc_OBJECTS = $(am_enlightenment_imc_OBJECTS)
 enlightenment_imc_DEPENDENCIES =
 am_enlightenment_init_OBJECTS = e_init_main.$(OBJEXT) \
@@ -158,8 +151,8 @@ enlightenment_start_DEPENDENCIES =
 am_enlightenment_sys_OBJECTS = e_sys_main.$(OBJEXT)
 enlightenment_sys_OBJECTS = $(am_enlightenment_sys_OBJECTS)
 enlightenment_sys_DEPENDENCIES =
-am_enlightenment_thumb_OBJECTS = e_thumb_main.$(OBJEXT) \
-	e_user.$(OBJEXT) e_sha1.$(OBJEXT)
+am_enlightenment_thumb_OBJECTS = e_sha1.$(OBJEXT) \
+	e_thumb_main.$(OBJEXT) e_user.$(OBJEXT)
 enlightenment_thumb_OBJECTS = $(am_enlightenment_thumb_OBJECTS)
 enlightenment_thumb_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -188,14 +181,21 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(enlightenment_SOURCES) $(enlightenment_fm_SOURCES) \
-	$(enlightenment_fm_op_SOURCES) $(enlightenment_imc_SOURCES) \
-	$(enlightenment_init_SOURCES) $(enlightenment_start_SOURCES) \
-	$(enlightenment_sys_SOURCES) $(enlightenment_thumb_SOURCES)
-DIST_SOURCES = $(enlightenment_SOURCES) $(enlightenment_fm_SOURCES) \
-	$(enlightenment_fm_op_SOURCES) $(enlightenment_imc_SOURCES) \
-	$(enlightenment_init_SOURCES) $(enlightenment_start_SOURCES) \
-	$(enlightenment_sys_SOURCES) $(enlightenment_thumb_SOURCES)
+SOURCES = $(enlightenment_SOURCES) $(enlightenment_fm_op_SOURCES) \
+	$(enlightenment_imc_SOURCES) $(enlightenment_init_SOURCES) \
+	$(enlightenment_start_SOURCES) $(enlightenment_sys_SOURCES) \
+	$(enlightenment_thumb_SOURCES)
+DIST_SOURCES = $(enlightenment_SOURCES) $(enlightenment_fm_op_SOURCES) \
+	$(enlightenment_imc_SOURCES) $(enlightenment_init_SOURCES) \
+	$(enlightenment_start_SOURCES) $(enlightenment_sys_SOURCES) \
+	$(enlightenment_thumb_SOURCES)
+RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
+	html-recursive info-recursive install-data-recursive \
+	install-dvi-recursive install-exec-recursive \
+	install-html-recursive install-info-recursive \
+	install-pdf-recursive install-ps-recursive install-recursive \
+	installcheck-recursive installdirs-recursive pdf-recursive \
+	ps-recursive uninstall-recursive
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -218,9 +218,40 @@ am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
 DATA = $(installed_headers_DATA)
+RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
+  distclean-recursive maintainer-clean-recursive
+AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
+	$(RECURSIVE_CLEAN_TARGETS:-recursive=) tags TAGS ctags CTAGS \
+	distdir
 ETAGS = etags
 CTAGS = ctags
+DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+am__relativize = \
+  dir0=`pwd`; \
+  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
+  sed_rest='s,^[^/]*/*,,'; \
+  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
+  sed_butlast='s,/*[^/]*$$,,'; \
+  while test -n "$$dir1"; do \
+    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
+    if test "$$first" != "."; then \
+      if test "$$first" = ".."; then \
+        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
+        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
+      else \
+        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
+        if test "$$first2" = "$$first"; then \
+          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
+        else \
+          dir2="../$$dir2"; \
+        fi; \
+        dir0="$$dir0"/"$$first"; \
+      fi; \
+    fi; \
+    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
+  done; \
+  reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALL_LINGUAS = @ALL_LINGUAS@
@@ -264,6 +295,9 @@ EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
 EGREP = @EGREP@
+ENOTIFY_CFLAGS = @ENOTIFY_CFLAGS@
+ENOTIFY_LIBS = @ENOTIFY_LIBS@
+ENOTIFY_VERSION = @ENOTIFY_VERSION@
 EOFONO_CFLAGS = @EOFONO_CFLAGS@
 EOFONO_LIBS = @EOFONO_LIBS@
 EOFONO_VERSION = @EOFONO_VERSION@
@@ -297,6 +331,7 @@ HAVE_BATTERY = @HAVE_BATTERY@
 HAVE_EBLUEZ = @HAVE_EBLUEZ@
 HAVE_ECONNMAN = @HAVE_ECONNMAN@
 HAVE_ECORE_IMF = @HAVE_ECORE_IMF@
+HAVE_ENOTIFY = @HAVE_ENOTIFY@
 HAVE_EOFONO = @HAVE_EOFONO@
 HAVE_EXCHANGE = @HAVE_EXCHANGE@
 HAVE_TEMPERATURE = @HAVE_TEMPERATURE@
@@ -506,303 +541,311 @@ top_srcdir = @top_srcdir@
 version_info = @version_info@
 x_cflags = @x_cflags@
 x_libs = @x_libs@
+SUBDIRS = e_fm
 MAINTAINERCLEANFILES = Makefile.in
-INCLUDES = -I$(top_builddir) \
-           -I$(top_srcdir) \
-	   -I$(top_srcdir)/src/bin \
-	   -I$(top_srcdir)/src/lib \
-	   @e_cflags@ \
-	   @x_cflags@ \
-	   @cf_cflags@ \
-	   @VALGRIND_CFLAGS@ \
-	   @EDJE_DEF@ \
-	   -DPACKAGE_BIN_DIR=\"@PACKAGE_BIN_DIR@\" \
-	   -DPACKAGE_LIB_DIR=\"@PACKAGE_LIB_DIR@\" \
-	   -DPACKAGE_DATA_DIR=\"@PACKAGE_DATA_DIR@\" \
-	   -DLOCALE_DIR=\"@LOCALE_DIR@\" \
-	   -DPACKAGE_SYSCONF_DIR=\"@PACKAGE_SYSCONF_DIR@\"
+INCLUDES = \
+-I$(top_builddir) \
+-I$(top_srcdir) \
+-I$(top_srcdir)/src/bin \
+-I$(top_srcdir)/src/lib \
+@e_cflags@ \
+@x_cflags@ \
+@cf_cflags@ \
+@VALGRIND_CFLAGS@ \
+@EDJE_DEF@ \
+-DPACKAGE_BIN_DIR=\"@PACKAGE_BIN_DIR@\" \
+-DPACKAGE_LIB_DIR=\"@PACKAGE_LIB_DIR@\" \
+-DPACKAGE_DATA_DIR=\"@PACKAGE_DATA_DIR@\" \
+-DLOCALE_DIR=\"@LOCALE_DIR@\" \
+-DPACKAGE_SYSCONF_DIR=\"@PACKAGE_SYSCONF_DIR@\"
 
 internal_bindir = $(libdir)/enlightenment/utils
 ENLIGHTENMENTHEADERS = \
-e.h \
-e_includes.h \
-e_mmx.h \
-e_user.h \
-e_manager.h \
-e_path.h \
-e_init.h \
-e_ipc.h \
-e_msgbus.h \
-e_error.h \
-e_container.h \
-e_zone.h \
-e_desk.h \
-e_border.h \
-e_pointer.h \
-e_config.h \
-e_menu.h \
-e_object.h \
-e_icon.h \
-e_box.h \
-e_flowlayout.h \
-e_int_menus.h \
-e_module.h \
-e_atoms.h \
-e_utils.h \
-e_canvas.h \
-e_focus.h \
-e_place.h \
-e_resist.h \
-e_startup.h \
-e_hints.h \
-e_signals.h \
-e_xinerama.h \
-e_table.h \
-e_layout.h \
-e_test.h \
-e_font.h \
-e_intl.h \
-e_theme.h \
-e_dnd.h \
-e_bindings.h \
-e_moveresize.h \
-e_actions.h \
-e_popup.h \
-e_gadcon_popup.h \
-e_ipc_codec.h \
-e_prefix.h \
-e_datastore.h \
-e_msg.h \
-e_alert.h \
-e_maximize.h \
-e_grabinput.h \
-e_bg.h \
-e_remember.h \
-e_win.h \
-e_pan.h \
-e_dialog.h \
 e_about.h \
-e_theme_about.h \
-e_editable.h \
-e_entry.h \
-e_widget.h \
-e_widget_check.h \
-e_widget_radio.h \
-e_widget_framelist.h \
-e_widget_list.h \
-e_widget_button.h \
-e_widget_label.h \
-e_widget_frametable.h \
-e_widget_table.h \
-e_widget_entry.h \
-e_widget_image.h \
-e_config_dialog.h \
-e_configure.h \
-e_int_border_locks.h \
-e_thumb.h \
-e_int_border_remember.h \
-e_eap_editor.h \
-e_scrollframe.h \
-e_int_border_menu.h \
-e_ilist.h \
-e_livethumb.h \
-e_widget_ilist.h \
-e_widget_config_list.h \
-e_slider.h \
-e_widget_slider.h \
-e_desklock.h \
-e_screensaver.h \
-e_dpms.h \
-e_int_config_modules.h \
-e_exehist.h \
+e_acpi.h \
+e_actions.h \
+e_alert.h \
+e_atoms.h \
+e_bg.h \
+e_bindings.h \
+e_border.h \
+e_box.h \
+e_canvas.h \
 e_color_class.h \
-e_widget_textblock.h \
-e_stolen.h \
-e_gadcon.h \
-e_shelf.h \
-e_widget_preview.h \
-e_int_shelf_config.h \
-e_int_gadcon_config.h \
+e_color_dialog.h  \
+e_color.h \
+e_config_data.h \
+e_config_dialog.h \
+e_config.h \
+e_configure.h \
 e_confirm_dialog.h \
-e_int_border_prop.h \
+e_container.h \
+e_datastore.h \
+e_desk.h \
+e_desklock.h \
+e_dialog.h \
+e_dnd.h \
+e_dpms.h \
+e_eap_editor.h \
+e_editable.h \
 e_entry_dialog.h \
+e_entry.h \
+e_error.h \
+e_exec.h \
+e_exehist.h \
+e_filereg.h \
+e_flowlayout.h \
+e_fm_custom.h \
+e_fm_device.h \
 e_fm.h \
+e_fm_mime.h \
 e_fm_op.h \
 e_fm_op_registry.h \
-e_fm_dbus.h \
-e_widget_scrollframe.h \
-e_sha1.h \
-e_widget_fsel.h \
-e_fm_mime.h \
-e_color.h \
-e_spectrum.h \
-e_widget_spectrum.h \
-e_widget_cslider.h \
-e_widget_csel.h \
-e_widget_color_well.h \
-e_color_dialog.h  \
-e_sys.h \
-e_obj_dialog.h \
-e_widget_aspect.h \
-e_filereg.h \
-e_widget_deskpreview.h \
 e_fm_prop.h \
-e_mouse.h \
-e_order.h \
-e_exec.h \
-e_widget_font_preview.h \
-e_fm_custom.h \
-e_fm_shared.h \
-e_config_data.h \
+e_fm_shared_codec.h \
+e_fm_shared_device.h \
+e_fm_shared_types.h \
+e_focus.h \
+e_font.h \
+e_gadcon.h \
+e_gadcon_popup.h \
+e_grabinput.h \
+e.h \
+e_hints.h \
+e_icon.h \
+e_ilist.h \
+e_includes.h \
+e_init.h \
+e_int_border_locks.h \
+e_int_border_menu.h \
+e_int_border_prop.h \
+e_int_border_remember.h \
+e_int_config_modules.h \
+e_int_gadcon_config.h \
 e_intl_data.h \
-e_toolbar.h \
+e_intl.h \
+e_int_menus.h \
+e_int_shelf_config.h \
 e_int_toolbar_config.h \
+e_ipc_codec.h \
+e_ipc.h \
+e_layout.h \
+e_livethumb.h \
+e_manager.h \
+e_maximize.h \
+e_menu.h \
+e_mmx.h \
+e_module.h \
+e_mouse.h \
+e_moveresize.h \
+e_msgbus.h \
+e_msg.h \
+e_obj_dialog.h \
+e_object.h \
+e_order.h \
+e_pan.h \
+e_path.h \
+e_place.h \
+e_pointer.h \
+e_popup.h \
 e_powersave.h \
-e_slidesel.h \
-e_slidecore.h \
-e_widget_flist.h \
+e_prefix.h \
+e_randr.h \
+e_remember.h \
+e_resist.h \
 e_scale.h \
+e_screensaver.h \
+e_scrollframe.h \
+e_sha1.h \
+e_shelf.h \
+e_signals.h \
+e_slidecore.h \
+e_slider.h \
+e_slidesel.h \
+e_spectrum.h \
+e_startup.h \
+e_stolen.h \
+e_sys.h \
+e_table.h \
+e_test.h \
+e_theme_about.h \
+e_theme.h \
+e_thumb.h \
+e_toolbar.h \
+e_user.h \
+e_utils.h \
+e_widget_aspect.h \
+e_widget_button.h \
+e_widget_check.h \
+e_widget_color_well.h \
+e_widget_config_list.h \
+e_widget_csel.h \
+e_widget_cslider.h \
+e_widget_deskpreview.h \
+e_widget_entry.h \
+e_widget_flist.h \
+e_widget_font_preview.h \
+e_widget_framelist.h \
+e_widget_frametable.h \
+e_widget_fsel.h \
+e_widget.h \
+e_widget_ilist.h \
+e_widget_image.h \
+e_widget_label.h \
+e_widget_list.h \
+e_widget_preview.h \
+e_widget_radio.h \
+e_widget_scrollframe.h \
+e_widget_slider.h \
+e_widget_spectrum.h \
+e_widget_table.h \
+e_widget_textblock.h \
 e_widget_toolbar.h \
 e_widget_toolbook.h \
-e_acpi.h
+e_win.h \
+e_xinerama.h \
+e_zone.h
 
 enlightenment_src = \
-e_user.c \
-e_manager.c \
-e_path.c \
-e_init.c \
-e_ipc.c \
-e_msgbus.c \
-e_error.c \
-e_container.c \
-e_zone.c \
-e_desk.c \
+e_about.c \
+e_acpi.c \
+e_actions.c \
+e_alert.c \
+e_atoms.c \
+e_bg.c \
+e_bindings.c \
 e_border.c \
-e_pointer.c \
+e_box.c \
+e_canvas.c \
+e_color.c \
+e_color_class.c \
+e_color_dialog.c \
 e_config.c \
 e_config_data.c \
-e_menu.c \
-e_object.c \
-e_icon.c \
-e_box.c \
-e_flowlayout.c \
-e_int_menus.c \
-e_module.c \
-e_atoms.c \
-e_utils.c \
-e_canvas.c \
-e_focus.c \
-e_place.c \
-e_resist.c \
-e_startup.c \
-e_hints.c \
-e_signals.c \
-e_xinerama.c \
-e_table.c \
-e_layout.c \
-e_test.c \
-e_font.c \
-e_intl.c \
-e_intl_data.c \
-e_theme.c \
-e_dnd.c \
-e_bindings.c \
-e_moveresize.c \
-e_actions.c \
-e_popup.c \
-e_gadcon_popup.c \
-e_ipc_codec.c \
-e_prefix.c \
-e_datastore.c \
-e_msg.c \
-e_alert.c \
-e_maximize.c \
-e_grabinput.c \
-e_bg.c \
-e_remember.c \
-e_win.c \
-e_pan.c \
-e_dialog.c \
-e_about.c \
-e_theme_about.c \
-e_editable.c \
-e_entry.c \
-e_widget.c \
-e_widget_check.c \
-e_widget_radio.c \
-e_widget_framelist.c \
-e_widget_list.c \
-e_widget_button.c \
-e_widget_label.c \
-e_widget_frametable.c \
-e_widget_table.c \
-e_widget_entry.c \
-e_widget_image.c \
 e_config_dialog.c \
 e_configure.c \
-e_int_border_locks.c \
-e_thumb.c \
-e_int_border_remember.c \
-e_eap_editor.c \
-e_scrollframe.c \
-e_int_border_menu.c \
-e_ilist.c \
-e_livethumb.c \
-e_widget_ilist.c \
-e_widget_config_list.c \
-e_slider.c \
-e_widget_slider.c \
-e_desklock.c \
-e_screensaver.c \
-e_dpms.c \
-e_int_config_modules.c \
-e_exehist.c \
-e_color_class.c \
-e_widget_textblock.c \
-e_stolen.c \
-e_gadcon.c \
-e_shelf.c \
-e_widget_preview.c \
-e_int_shelf_config.c \
-e_int_gadcon_config.c \
 e_confirm_dialog.c \
-e_int_border_prop.c \
+e_container.c \
+e_datastore.c \
+e_desk.c \
+e_desklock.c \
+e_dialog.c \
+e_dnd.c \
+e_dpms.c \
+e_eap_editor.c \
+e_editable.c \
+e_entry.c \
 e_entry_dialog.c \
-e_fm.c \
-e_fm_dbus.c \
-e_fm_op_registry.c \
-e_widget_scrollframe.c \
-e_sha1.c \
-e_widget_fsel.c \
-e_fm_mime.c \
-e_color.c \
-e_spectrum.c \
-e_widget_spectrum.c \
-e_widget_cslider.c \
-e_widget_csel.c \
-e_widget_color_well.c \
-e_color_dialog.c \
-e_sys.c \
-e_obj_dialog.c \
-e_widget_aspect.c \
-e_widget_deskpreview.c \
-e_filereg.c \
-e_fm_prop.c \
-e_mouse.c \
-e_order.c \
+e_error.c \
 e_exec.c \
-e_widget_font_preview.c \
+e_exehist.c \
+e_filereg.c \
+e_flowlayout.c \
+e_fm.c \
 e_fm_custom.c \
-e_toolbar.c \
+e_fm_device.c \
+e_fm_mime.c \
+e_fm_op_registry.c \
+e_fm_prop.c \
+e_fm_shared_codec.c \
+e_fm_shared_device.c \
+e_focus.c \
+e_font.c \
+e_gadcon.c \
+e_gadcon_popup.c \
+e_grabinput.c \
+e_hints.c \
+e_icon.c \
+e_ilist.c \
+e_init.c \
+e_int_border_locks.c \
+e_int_border_menu.c \
+e_int_border_prop.c \
+e_int_border_remember.c \
+e_int_config_modules.c \
+e_int_gadcon_config.c \
+e_intl.c \
+e_intl_data.c \
+e_int_menus.c \
+e_int_shelf_config.c \
 e_int_toolbar_config.c \
+e_ipc.c \
+e_ipc_codec.c \
+e_layout.c \
+e_livethumb.c \
+e_manager.c \
+e_maximize.c \
+e_menu.c \
+e_module.c \
+e_mouse.c \
+e_moveresize.c \
+e_msgbus.c \
+e_msg.c \
+e_obj_dialog.c \
+e_object.c \
+e_order.c \
+e_pan.c \
+e_path.c \
+e_place.c \
+e_pointer.c \
+e_popup.c \
 e_powersave.c \
-e_slidesel.c \
-e_slidecore.c \
-e_widget_flist.c \
+e_prefix.c \
+e_randr.c \
+e_remember.c \
+e_resist.c \
 e_scale.c \
+e_screensaver.c \
+e_scrollframe.c \
+e_sha1.c \
+e_shelf.c \
+e_signals.c \
+e_slidecore.c \
+e_slider.c \
+e_slidesel.c \
+e_spectrum.c \
+e_startup.c \
+e_stolen.c \
+e_sys.c \
+e_table.c \
+e_test.c \
+e_theme_about.c \
+e_theme.c \
+e_thumb.c \
+e_toolbar.c \
+e_user.c \
+e_utils.c \
+e_widget_aspect.c \
+e_widget_button.c \
+e_widget.c \
+e_widget_check.c \
+e_widget_color_well.c \
+e_widget_config_list.c \
+e_widget_csel.c \
+e_widget_cslider.c \
+e_widget_deskpreview.c \
+e_widget_entry.c \
+e_widget_flist.c \
+e_widget_font_preview.c \
+e_widget_framelist.c \
+e_widget_frametable.c \
+e_widget_fsel.c \
+e_widget_ilist.c \
+e_widget_image.c \
+e_widget_label.c \
+e_widget_list.c \
+e_widget_preview.c \
+e_widget_radio.c \
+e_widget_scrollframe.c \
+e_widget_slider.c \
+e_widget_spectrum.c \
+e_widget_table.c \
+e_widget_textblock.c \
 e_widget_toolbar.c \
 e_widget_toolbook.c \
-e_acpi.c \
+e_win.c \
+e_xinerama.c \
+e_zone.c \
 $(ENLIGHTENMENTHEADERS)
 
 enlightenment_SOURCES = \
@@ -813,29 +856,21 @@ enlightenment_LDFLAGS = -export-dynamic
 enlightenment_LDADD = @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ -lm
 enlightenment_imc_SOURCES = \
 e.h \
-e_intl_data.c \
 e_config_data.c \
-e_imc_main.c
+e_imc_main.c \
+e_intl_data.c
 
-# $(enlightenment_src)
 enlightenment_imc_LDADD = @E_IMC_LIBS@
 enlightenment_start_SOURCES = \
 e_start_main.c
 
 enlightenment_start_LDADD = @dlopen_libs@
 enlightenment_thumb_SOURCES = \
+e_sha1.c \
 e_thumb_main.c \
-e_user.c \
-e_sha1.c
+e_user.c
 
 enlightenment_thumb_LDADD = @E_THUMB_LIBS@
-enlightenment_fm_SOURCES = \
-e_fm_main.c \
-e_user.c \
-e_sha1.c
-
-enlightenment_fm_LDADD = @E_FM_LIBS@
-enlightenment_fm_CFLAGS = $(INCLUDES)
 enlightenment_fm_op_SOURCES = \
 e_fm_op.c
 
@@ -857,7 +892,7 @@ enlightenment_init_LDADD = @E_INIT_LIBS@
 setuid_root_mode = a=rx,u+xs
 installed_headersdir = $(prefix)/include/enlightenment
 installed_headers_DATA = $(ENLIGHTENMENTHEADERS)
-all: all-am
+all: all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -980,9 +1015,6 @@ clean-internal_binPROGRAMS:
 enlightenment$(EXEEXT): $(enlightenment_OBJECTS) $(enlightenment_DEPENDENCIES) 
 	@rm -f enlightenment$(EXEEXT)
 	$(AM_V_CCLD)$(enlightenment_LINK) $(enlightenment_OBJECTS) $(enlightenment_LDADD) $(LIBS)
-enlightenment_fm$(EXEEXT): $(enlightenment_fm_OBJECTS) $(enlightenment_fm_DEPENDENCIES) 
-	@rm -f enlightenment_fm$(EXEEXT)
-	$(AM_V_CCLD)$(enlightenment_fm_LINK) $(enlightenment_fm_OBJECTS) $(enlightenment_fm_LDADD) $(LIBS)
 enlightenment_fm_op$(EXEEXT): $(enlightenment_fm_op_OBJECTS) $(enlightenment_fm_op_DEPENDENCIES) 
 	@rm -f enlightenment_fm_op$(EXEEXT)
 	$(AM_V_CCLD)$(enlightenment_fm_op_LINK) $(enlightenment_fm_op_OBJECTS) $(enlightenment_fm_op_LDADD) $(LIBS)
@@ -1044,10 +1076,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_flowlayout.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_custom.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_dbus.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_device.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_mime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_op_registry.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_prop.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_shared_codec.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_fm_shared_device.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_focus.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_font.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_gadcon.Po@am__quote@
@@ -1093,6 +1127,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_popup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_powersave.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_prefix.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_remember.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_resist.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_scale.Po@am__quote@
@@ -1150,9 +1185,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_xinerama.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_zone.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_fm-e_fm_main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_fm-e_sha1.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_fm-e_user.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_fm_op-e_fm_op.Po@am__quote@
 
 .c.o:
@@ -1178,54 +1210,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
-
-enlightenment_fm-e_fm_main.o: e_fm_main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -MT enlightenment_fm-e_fm_main.o -MD -MP -MF $(DEPDIR)/enlightenment_fm-e_fm_main.Tpo -c -o enlightenment_fm-e_fm_main.o `test -f 'e_fm_main.c' || echo '$(srcdir)/'`e_fm_main.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_fm-e_fm_main.Tpo $(DEPDIR)/enlightenment_fm-e_fm_main.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_fm_main.c' object='enlightenment_fm-e_fm_main.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -c -o enlightenment_fm-e_fm_main.o `test -f 'e_fm_main.c' || echo '$(srcdir)/'`e_fm_main.c
-
-enlightenment_fm-e_fm_main.obj: e_fm_main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -MT enlightenment_fm-e_fm_main.obj -MD -MP -MF $(DEPDIR)/enlightenment_fm-e_fm_main.Tpo -c -o enlightenment_fm-e_fm_main.obj `if test -f 'e_fm_main.c'; then $(CYGPATH_W) 'e_fm_main.c'; else $(CYGPATH_W) '$(srcdir)/e_fm_main.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_fm-e_fm_main.Tpo $(DEPDIR)/enlightenment_fm-e_fm_main.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_fm_main.c' object='enlightenment_fm-e_fm_main.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -c -o enlightenment_fm-e_fm_main.obj `if test -f 'e_fm_main.c'; then $(CYGPATH_W) 'e_fm_main.c'; else $(CYGPATH_W) '$(srcdir)/e_fm_main.c'; fi`
-
-enlightenment_fm-e_user.o: e_user.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -MT enlightenment_fm-e_user.o -MD -MP -MF $(DEPDIR)/enlightenment_fm-e_user.Tpo -c -o enlightenment_fm-e_user.o `test -f 'e_user.c' || echo '$(srcdir)/'`e_user.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_fm-e_user.Tpo $(DEPDIR)/enlightenment_fm-e_user.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_user.c' object='enlightenment_fm-e_user.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -c -o enlightenment_fm-e_user.o `test -f 'e_user.c' || echo '$(srcdir)/'`e_user.c
-
-enlightenment_fm-e_user.obj: e_user.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -MT enlightenment_fm-e_user.obj -MD -MP -MF $(DEPDIR)/enlightenment_fm-e_user.Tpo -c -o enlightenment_fm-e_user.obj `if test -f 'e_user.c'; then $(CYGPATH_W) 'e_user.c'; else $(CYGPATH_W) '$(srcdir)/e_user.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_fm-e_user.Tpo $(DEPDIR)/enlightenment_fm-e_user.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_user.c' object='enlightenment_fm-e_user.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -c -o enlightenment_fm-e_user.obj `if test -f 'e_user.c'; then $(CYGPATH_W) 'e_user.c'; else $(CYGPATH_W) '$(srcdir)/e_user.c'; fi`
-
-enlightenment_fm-e_sha1.o: e_sha1.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -MT enlightenment_fm-e_sha1.o -MD -MP -MF $(DEPDIR)/enlightenment_fm-e_sha1.Tpo -c -o enlightenment_fm-e_sha1.o `test -f 'e_sha1.c' || echo '$(srcdir)/'`e_sha1.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_fm-e_sha1.Tpo $(DEPDIR)/enlightenment_fm-e_sha1.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_sha1.c' object='enlightenment_fm-e_sha1.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -c -o enlightenment_fm-e_sha1.o `test -f 'e_sha1.c' || echo '$(srcdir)/'`e_sha1.c
-
-enlightenment_fm-e_sha1.obj: e_sha1.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -MT enlightenment_fm-e_sha1.obj -MD -MP -MF $(DEPDIR)/enlightenment_fm-e_sha1.Tpo -c -o enlightenment_fm-e_sha1.obj `if test -f 'e_sha1.c'; then $(CYGPATH_W) 'e_sha1.c'; else $(CYGPATH_W) '$(srcdir)/e_sha1.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_fm-e_sha1.Tpo $(DEPDIR)/enlightenment_fm-e_sha1.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_sha1.c' object='enlightenment_fm-e_sha1.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_CFLAGS) $(CFLAGS) -c -o enlightenment_fm-e_sha1.obj `if test -f 'e_sha1.c'; then $(CYGPATH_W) 'e_sha1.c'; else $(CYGPATH_W) '$(srcdir)/e_sha1.c'; fi`
 
 enlightenment_fm_op-e_fm_op.o: e_fm_op.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_op_CFLAGS) $(CFLAGS) -MT enlightenment_fm_op-e_fm_op.o -MD -MP -MF $(DEPDIR)/enlightenment_fm_op-e_fm_op.Tpo -c -o enlightenment_fm_op-e_fm_op.o `test -f 'e_fm_op.c' || echo '$(srcdir)/'`e_fm_op.c
@@ -1269,6 +1253,76 @@ uninstall-installed_headersDATA:
 	echo " ( cd '$(DESTDIR)$(installed_headersdir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(installed_headersdir)" && rm -f $$files
 
+# This directory's subdirectories are mostly independent; you can cd
+# into them and run `make' without going through this Makefile.
+# To change the values of `make' variables: instead of editing Makefiles,
+# (1) if the variable is set in `config.status', edit `config.status'
+#     (which will cause the Makefiles to be regenerated when you run `make');
+# (2) otherwise, pass the desired values on the `make' command line.
+$(RECURSIVE_TARGETS):
+	@fail= failcom='exit 1'; \
+	for f in x $$MAKEFLAGS; do \
+	  case $$f in \
+	    *=* | --[!k]*);; \
+	    *k*) failcom='fail=yes';; \
+	  esac; \
+	done; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
+
+$(RECURSIVE_CLEAN_TARGETS):
+	@fail= failcom='exit 1'; \
+	for f in x $$MAKEFLAGS; do \
+	  case $$f in \
+	    *=* | --[!k]*);; \
+	    *k*) failcom='fail=yes';; \
+	  esac; \
+	done; \
+	dot_seen=no; \
+	case "$@" in \
+	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
+	  *) list='$(SUBDIRS)' ;; \
+	esac; \
+	rev=''; for subdir in $$list; do \
+	  if test "$$subdir" = "."; then :; else \
+	    rev="$$subdir $$rev"; \
+	  fi; \
+	done; \
+	rev="$$rev ."; \
+	target=`echo $@ | sed s/-recursive//`; \
+	for subdir in $$rev; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done && test -z "$$fail"
+tags-recursive:
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  test "$$subdir" = . || ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
+	done
+ctags-recursive:
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  test "$$subdir" = . || ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) ctags); \
+	done
+
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -1279,10 +1333,23 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	set x; \
 	here=`pwd`; \
+	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
+	  include_option=--etags-include; \
+	  empty_fix=.; \
+	else \
+	  include_option=--include; \
+	  empty_fix=; \
+	fi; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test ! -f $$subdir/TAGS || \
+	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
+	  fi; \
+	done; \
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
@@ -1301,7 +1368,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 	  fi; \
 	fi
 ctags: CTAGS
-CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+CTAGS: ctags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -1351,22 +1418,51 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test -d "$(distdir)/$$subdir" \
+	    || $(MKDIR_P) "$(distdir)/$$subdir" \
+	    || exit 1; \
+	  fi; \
+	done
+	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
+	    $(am__relativize); \
+	    new_distdir=$$reldir; \
+	    dir1=$$subdir; dir2="$(top_distdir)"; \
+	    $(am__relativize); \
+	    new_top_distdir=$$reldir; \
+	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
+	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
+	    ($(am__cd) $$subdir && \
+	      $(MAKE) $(AM_MAKEFLAGS) \
+	        top_distdir="$$new_top_distdir" \
+	        distdir="$$new_distdir" \
+		am__remove_distdir=: \
+		am__skip_length_check=: \
+		am__skip_mode_fix=: \
+	        distdir) \
+	      || exit 1; \
+	  fi; \
+	done
 check-am: all-am
-check: check-am
+check: check-recursive
 all-am: Makefile $(PROGRAMS) $(DATA)
-installdirs:
+installdirs: installdirs-recursive
+installdirs-am:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(internal_bindir)" "$(DESTDIR)$(installed_headersdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
-install-exec: install-exec-am
-install-data: install-data-am
-uninstall: uninstall-am
+install: install-recursive
+install-exec: install-exec-recursive
+install-data: install-data-recursive
+uninstall: uninstall-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-am
+installcheck: installcheck-recursive
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -1384,26 +1480,26 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
-clean: clean-am
+clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-internal_binPROGRAMS \
 	clean-libtool mostlyclean-am
 
-distclean: distclean-am
+distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-am
+dvi: dvi-recursive
 
 dvi-am:
 
-html: html-am
+html: html-recursive
 
 html-am:
 
-info: info-am
+info: info-recursive
 
 info-am:
 
@@ -1411,58 +1507,60 @@ install-data-am: install-installed_headersDATA \
 	install-internal_binPROGRAMS
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
-install-dvi: install-dvi-am
+install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
 install-exec-am: install-binPROGRAMS
 
-install-html: install-html-am
+install-html: install-html-recursive
 
 install-html-am:
 
-install-info: install-info-am
+install-info: install-info-recursive
 
 install-info-am:
 
 install-man:
 
-install-pdf: install-pdf-am
+install-pdf: install-pdf-recursive
 
 install-pdf-am:
 
-install-ps: install-ps-am
+install-ps: install-ps-recursive
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-am
+maintainer-clean: maintainer-clean-recursive
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-am
+mostlyclean: mostlyclean-recursive
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-am
+pdf: pdf-recursive
 
 pdf-am:
 
-ps: ps-am
+ps: ps-recursive
 
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-installed_headersDATA \
 	uninstall-internal_binPROGRAMS
 
-.MAKE: install-am install-data-am install-strip
+.MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) ctags-recursive \
+	install-am install-data-am install-strip tags-recursive
 
-.PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
+.PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
+	all all-am check check-am clean clean-binPROGRAMS \
 	clean-generic clean-internal_binPROGRAMS clean-libtool ctags \
-	distclean distclean-compile distclean-generic \
+	ctags-recursive distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-binPROGRAMS \
 	install-data install-data-am install-data-hook install-dvi \
@@ -1471,11 +1569,12 @@ uninstall-am: uninstall-binPROGRAMS uninstall-installed_headersDATA \
 	install-installed_headersDATA install-internal_binPROGRAMS \
 	install-man install-pdf install-pdf-am install-ps \
 	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am uninstall-binPROGRAMS \
-	uninstall-installed_headersDATA uninstall-internal_binPROGRAMS
+	installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-recursive uninstall uninstall-am \
+	uninstall-binPROGRAMS uninstall-installed_headersDATA \
+	uninstall-internal_binPROGRAMS
 
 install-data-hook:
 	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_sys$(EXEEXT) || true

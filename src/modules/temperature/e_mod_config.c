@@ -170,7 +170,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata) 
+_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata) 
 {
    Evas_Object *otb, *ol, *ow;
    E_Radio_Group *rg;
@@ -197,7 +197,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 
    ol = e_widget_list_add(evas, 0, 0);
    rg = e_widget_radio_group_new(&(cfdata->unit_method));
-   ow = e_widget_radio_add(evas, _("Celcius"), CELCIUS, rg);
+   ow = e_widget_radio_add(evas, _("Celsius"), CELCIUS, rg);
    e_widget_on_change_hook_set(ow, _cb_display_changed, cfdata);
    e_widget_list_object_append(ol, ow, 1, 1, 0.5);
    ow = e_widget_radio_add(evas, _("Fahrenheit"), FAHRENHEIT, rg);
@@ -255,7 +255,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 }
 
 static int 
-_basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata) 
 {
    cfdata->inst->poll_interval = cfdata->poll.interval;
    cfdata->inst->units = cfdata->unit_method;

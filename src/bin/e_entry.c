@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #ifdef HAVE_ECORE_IMF
@@ -59,7 +56,7 @@ static void _e_entry_cb_paste(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_entry_cb_select_all(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_entry_cb_delete(void *data, E_Menu *m, E_Menu_Item *mi);
 #ifdef HAVE_ECORE_IMF
-static int _e_entry_cb_imf_retrieve_surrounding(void *data, Ecore_IMF_Context *ctx, char **text, int *cursor_pos);
+static Eina_Bool _e_entry_cb_imf_retrieve_surrounding(void *data, Ecore_IMF_Context *ctx, char **text, int *cursor_pos);
 static Eina_Bool _e_entry_cb_imf_event_commit(void *data, int type, void *event);
 static Eina_Bool _e_entry_cb_imf_event_delete_surrounding(void *data, int type, void *event);
 #endif
@@ -345,7 +342,7 @@ e_entry_disable(Evas_Object *entry)
 
 /* Called when a key has been pressed by the user */
 static void
-_e_entry_key_down_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj, void *event_info)
+_e_entry_key_down_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
 {
    E_Entry_Smart_Data *sd;
 
@@ -373,7 +370,7 @@ _e_entry_key_down_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj
 
 /* Called when a key has been released by the user */
 static void
-_e_entry_key_up_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj, void *event_info)
+_e_entry_key_up_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
 {
    E_Entry_Smart_Data *sd;
 
@@ -396,7 +393,7 @@ _e_entry_key_up_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj, 
 
 /* Called when the entry object is pressed by the mouse */
 static void
-_e_entry_mouse_down_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj, void *event_info)
+_e_entry_mouse_down_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
 {
    E_Entry_Smart_Data *sd;
    Evas_Event_Mouse_Down *event;
@@ -551,7 +548,7 @@ _e_entry_mouse_down_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *o
 
 /* Called when the entry object is released by the mouse */
 static void
-_e_entry_mouse_up_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj, void *event_info)
+_e_entry_mouse_up_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
 {
    E_Entry_Smart_Data *sd;
    
@@ -580,7 +577,7 @@ _e_entry_mouse_up_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj
 
 /* Called when the mouse moves over the entry object */
 static void
-_e_entry_mouse_move_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *obj, void *event_info)
+_e_entry_mouse_move_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
 {
    E_Entry_Smart_Data *sd;
    Evas_Event_Mouse_Move *event;
@@ -625,7 +622,7 @@ _e_entry_mouse_move_cb(__UNUSED__ void *data, __UNUSED__ Evas *e, Evas_Object *o
 
 /* Called when the the "selection_notify" event is emitted */
 static Eina_Bool
-_e_entry_x_selection_notify_handler(void *data, __UNUSED__ int type, void *event)
+_e_entry_x_selection_notify_handler(void *data, int type __UNUSED__, void *event)
 {
    Evas_Object *entry;
    E_Entry_Smart_Data *sd;
@@ -1069,12 +1066,12 @@ _e_entry_smart_add(Evas_Object *object)
         ecore_imf_context_retrieve_surrounding_callback_set(sd->imf_context,
                                                             _e_entry_cb_imf_retrieve_surrounding,
                                                             sd);
-        sd->imf_ee_commit_handler = ecore_event_handler_add(ECORE_IMF_EVENT_COMMIT,
-                                                            _e_entry_cb_imf_event_commit,
-                                                            object);
-        sd->imf_ee_delete_handler = ecore_event_handler_add(ECORE_IMF_EVENT_DELETE_SURROUNDING,
-                                                            _e_entry_cb_imf_event_delete_surrounding,
-                                                            sd);
+        sd->imf_ee_commit_handler = 
+          ecore_event_handler_add(ECORE_IMF_EVENT_COMMIT,
+                                  _e_entry_cb_imf_event_commit, object);
+        sd->imf_ee_delete_handler = 
+          ecore_event_handler_add(ECORE_IMF_EVENT_DELETE_SURROUNDING,
+                                  _e_entry_cb_imf_event_delete_surrounding, sd);
      }
 #endif
 
@@ -1232,7 +1229,7 @@ _e_entry_clip_unset(Evas_Object *object)
 }
 
 static void 
-_e_entry_cb_menu_post(void *data, E_Menu *m) 
+_e_entry_cb_menu_post(void *data, E_Menu *m __UNUSED__) 
 {
    E_Entry_Smart_Data *sd;
 
@@ -1243,7 +1240,7 @@ _e_entry_cb_menu_post(void *data, E_Menu *m)
 }
 
 static void 
-_e_entry_cb_cut(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_entry_cb_cut(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__) 
 {
    E_Entry_Smart_Data *sd;
    Evas_Object *editable;
@@ -1278,7 +1275,7 @@ _e_entry_cb_cut(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void 
-_e_entry_cb_copy(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_entry_cb_copy(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__) 
 {
    E_Entry_Smart_Data *sd;
    Evas_Object *editable;
@@ -1309,7 +1306,7 @@ _e_entry_cb_copy(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void 
-_e_entry_cb_paste(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_entry_cb_paste(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__) 
 {
    E_Entry_Smart_Data *sd;
    E_Win *win;
@@ -1323,18 +1320,17 @@ _e_entry_cb_paste(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void 
-_e_entry_cb_select_all(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_entry_cb_select_all(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__) 
 {
    E_Entry_Smart_Data *sd;
-   
-   sd = data;
 
+   sd = data;
    e_editable_select_all(sd->editable_object);
    _e_entry_x_selection_update(sd->entry_object);
 }
 
 static void 
-_e_entry_cb_delete(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_entry_cb_delete(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__) 
 {
    E_Entry_Smart_Data *sd;
    Evas_Object *editable;
@@ -1345,7 +1341,7 @@ _e_entry_cb_delete(void *data, E_Menu *m, E_Menu_Item *mi)
 
    sd = data;
    if (!sd->enabled) return;
-   
+
    editable = sd->editable_object;
    cursor_pos = e_editable_cursor_pos_get(editable);
    selection_pos = e_editable_selection_pos_get(editable);
@@ -1353,7 +1349,7 @@ _e_entry_cb_delete(void *data, E_Menu *m, E_Menu_Item *mi)
    end_pos = (cursor_pos >= selection_pos) ? cursor_pos : selection_pos;
    selecting = (start_pos != end_pos);
    if (!selecting) return;
-   
+
    range = e_editable_text_range_get(editable, start_pos, end_pos);
    if (range)
      {
@@ -1364,8 +1360,8 @@ _e_entry_cb_delete(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 #ifdef HAVE_ECORE_IMF
-static int
- _e_entry_cb_imf_retrieve_surrounding(void *data, Ecore_IMF_Context *ctx, char **text, int *cursor_pos)
+static Eina_Bool 
+_e_entry_cb_imf_retrieve_surrounding(void *data, Ecore_IMF_Context *ctx __UNUSED__, char **text, int *cursor_pos)
 {
    E_Entry_Smart_Data *sd;
 
@@ -1382,11 +1378,11 @@ static int
    if (cursor_pos)
      *cursor_pos = e_editable_cursor_pos_get(sd->editable_object);
 
-   return 1;
+   return EINA_TRUE;
 }
 
 static Eina_Bool
-_e_entry_cb_imf_event_commit(void *data, __UNUSED__ int type, void *event)
+_e_entry_cb_imf_event_commit(void *data, int type __UNUSED__, void *event)
 {
    Evas_Object *entry;
    E_Entry_Smart_Data *sd;
@@ -1421,7 +1417,7 @@ _e_entry_cb_imf_event_commit(void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_entry_cb_imf_event_delete_surrounding(void *data, __UNUSED__ int type, void *event)
+_e_entry_cb_imf_event_delete_surrounding(void *data, int type __UNUSED__, void *event)
 {
    E_Entry_Smart_Data *sd;
    Ecore_IMF_Event_Delete_Surrounding *ev = event;

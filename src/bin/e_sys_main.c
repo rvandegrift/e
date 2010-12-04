@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "config.h"
 
 #include <stdio.h>
@@ -33,7 +30,7 @@ main(int argc, char **argv)
    int test = 0;
    char *action, *cmd;
    uid_t uid;
-   gid_t gid, gl[1024], egid;
+   gid_t gid, gl[65536], egid;
 
    for (i = 1; i < argc; i++)
      {
@@ -65,8 +62,12 @@ main(int argc, char **argv)
    uid = getuid();
    gid = getgid();
    egid = getegid();
-   gn = getgroups(1024, gl);
-   
+   gn = getgroups(65536, gl);
+   if (gn < 0)
+     {
+	printf("ERROR: MEMBER OF MORE THAN 65536 GROUPS\n");
+	exit(3);
+     }
    if (setuid(0) != 0)
      {
 	printf("ERROR: UNABLE TO ASSUME ROOT PRIVILEDGES\n");

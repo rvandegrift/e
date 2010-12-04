@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
@@ -14,7 +11,7 @@ static Eina_List *orders = NULL;
 static Eina_List *handlers = NULL;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_order_init(void)
 {
    handlers = 
@@ -26,7 +23,7 @@ e_order_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_order_shutdown(void)
 {
    orders = eina_list_free(orders);
@@ -174,7 +171,7 @@ _e_order_cb_monitor_delay(void *data)
 }
 
 static void
-_e_order_cb_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path)
+_e_order_cb_monitor(void *data, Ecore_File_Monitor *em __UNUSED__, Ecore_File_Event event __UNUSED__, const char *path __UNUSED__)
 {
    E_Order *eo = data;
 
@@ -255,7 +252,7 @@ _e_order_save(E_Order *eo)
 }
 
 static Eina_Bool
-_e_order_cb_efreet_cache_update(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *ev)
+_e_order_cb_efreet_cache_update(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__)
 {
    Eina_List *l;
    E_Order *eo;

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 #define E_MODULE_API_VERSION 7
@@ -54,8 +51,8 @@ struct _E_Module_Api
    const char *name;
 };
 
-EAPI int          e_module_init(void);
-EAPI int          e_module_shutdown(void);
+EINTERN int          e_module_init(void);
+EINTERN int          e_module_shutdown(void);
 
 EAPI void         e_module_all_load(void);
 EAPI E_Module    *e_module_new(const char *name);

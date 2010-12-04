@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -1368,7 +1364,7 @@ linux_pmu_check(void)
 		    }
 		  else
 		    {
-		       /* Charging - works in paralell */
+		       /* Charging - works in parallel */
 		       seconds = MAX(timeleft, seconds);
 		    }
 	       }

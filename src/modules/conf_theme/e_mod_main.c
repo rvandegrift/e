@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -22,7 +19,7 @@ EAPI void *
 e_modapi_init(E_Module *m)
 {
    e_configure_registry_category_add("appearance", 10, _("Look"), NULL, 
-                                     "preferences-appearance");
+                                     "preferences-look");
    e_configure_registry_item_add("appearance/theme", 20, _("Theme"), NULL, 
                                  "preferences-desktop-theme", 
                                  e_int_config_theme);
@@ -37,7 +34,7 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int
-e_modapi_shutdown(E_Module *m)
+e_modapi_shutdown(E_Module *m __UNUSED__)
 {
    E_Config_Dialog *cfd;
 
@@ -58,21 +55,21 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int
-e_modapi_save(E_Module *m)
+e_modapi_save(E_Module *m __UNUSED__)
 {
    return 1;
 }
 
 /* menu item callback(s) */
 static void 
-_e_mod_run_cb(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_mod_run_cb(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__)
 {
    e_configure_registry_call("appearance/theme", m->zone->container, NULL);
 }
 
 /* menu item add hook */
 static void
-_e_mod_menu_add(void *data, E_Menu *m)
+_e_mod_menu_add(void *data __UNUSED__, E_Menu *m)
 {
    E_Menu_Item *mi;
    

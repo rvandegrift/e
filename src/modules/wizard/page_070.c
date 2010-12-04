@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 /* Adding application icons */
 #include "e.h"
 #include "e_mod_main.h"
@@ -123,57 +120,57 @@ _app_write(App *a)
 }
 
 EAPI int
-wizard_page_init(E_Wizard_Page *pg)
+wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 {
    Eina_List *desks = NULL;
    Efreet_Desktop *desk;
    int i;
-   
+
    desks = efreet_util_desktop_name_glob_list("*");
    EINA_LIST_FREE(desks, desk)
-          {
-             char dbuf[4096];
+     {
+        char dbuf[4096];
 
-             if (!desk->exec)
-	       {
-		  efreet_desktop_free(desk);
-		  continue;
-	       }
-             if (sscanf(desk->exec, "%4000s", dbuf) == 1)
+        if (!desk->exec)
+          {
+             efreet_desktop_free(desk);
+             continue;
+          }
+        if (sscanf(desk->exec, "%4000s", dbuf) == 1)
+          {
+             for (i = 0; i < (sizeof(apps) / sizeof(App)); i++)
                {
-                  for (i = 0; i < (sizeof(apps) / sizeof(App)); i++)
+                  if (apps[i].found == 0)
                     {
-                       if (apps[i].found == 0)
-                         {
-                            char abuf[4096];
+                       char abuf[4096];
                             
-                            if (sscanf(apps[i].exec, "%4000s", abuf) == 1)
-                              {
-                                 char *p1, *p2;
+                       if (sscanf(apps[i].exec, "%4000s", abuf) == 1)
+                         {
+                            char *p1, *p2;
                                  
-                                 if (!ecore_file_app_installed(abuf))
-                                   {
-                                      /* can't find exe - mark as not available */
-                                      apps[i].found = -1;
-                                   }
-                                 else
-                                   {
-                                      p1 = strrchr(dbuf, '/');
-                                      if (p1) p1++;
-                                      else p1 = dbuf;
-                                      p2 = strrchr(abuf, '/');
-                                      if (p2) p2++;
-                                      else p2 = abuf;
-                                      if (!strcmp(p1, p2))
-                                        /* mark as found in .desktops */
-                                        apps[i].found = 2;
-                                   }
+                            if (!ecore_file_app_installed(abuf))
+                              {
+                                 /* can't find exe - mark as not available */
+                                 apps[i].found = -1;
+                              }
+                            else
+                              {
+                                 p1 = strrchr(dbuf, '/');
+                                 if (p1) p1++;
+                                 else p1 = dbuf;
+                                 p2 = strrchr(abuf, '/');
+                                 if (p2) p2++;
+                                 else p2 = abuf;
+                                 if (!strcmp(p1, p2))
+                                   /* mark as found in .desktops */
+                                   apps[i].found = 2;
                               }
                          }
                     }
                }
-	     efreet_desktop_free(desk);
           }
+        efreet_desktop_free(desk);
+     }
 
    // FIXME: list all apps and of the apps either already installed, or to be
    // created, offer them to be added to ibar by default. (actually should be
@@ -181,10 +178,11 @@ wizard_page_init(E_Wizard_Page *pg)
    return 1;
 }
 EAPI int
-wizard_page_shutdown(E_Wizard_Page *pg)
+wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
+
 EAPI int
 wizard_page_show(E_Wizard_Page *pg)
 {
@@ -212,7 +210,7 @@ wizard_page_show(E_Wizard_Page *pg)
      {
         if (apps[i].found == 0)
           {
-             char *icon;
+             const char *icon;
 
              apps[i].found = 1;
              icon = efreet_icon_path_find(e_config->icon_theme, 
@@ -220,7 +218,6 @@ wizard_page_show(E_Wizard_Page *pg)
              ck = e_widget_check_icon_add(pg->evas, apps[i].name, 
                                           icon, 32 * e_scale, 32 * e_scale,
                                           &(apps[i].found));
-             if (icon) free(icon);
              e_widget_list_object_append(li, ck, 1, 1, 0.0);
              evas_object_show(ck);
           }
@@ -258,7 +255,7 @@ wizard_page_hide(E_Wizard_Page *pg)
    return 1;
 }
 EAPI int
-wizard_page_apply(E_Wizard_Page *pg)
+wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
    // FIXME: write ~/.e/e/applications/bar/default/.order
    // which should contain whatever apps the user wants in their bar by

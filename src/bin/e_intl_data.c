@@ -1,15 +1,12 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* This file is the counterpart for data storage of e_intl */
 /* This only needs to be separate because the e_imc binary and other third parties
-   many waht to include the functionality to read IMC data from EET files
+   many want to include the functionality to read IMC data from EET files
  */
 static Eet_Data_Descriptor *_e_intl_input_method_config_edd = NULL;
 
-EAPI int
+EINTERN int
 e_intl_data_init(void)
 {
    _e_intl_input_method_config_edd = E_CONFIG_DD_NEW("input_method_config", E_Input_Method_Config);
@@ -24,7 +21,7 @@ e_intl_data_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_intl_data_shutdown(void)
 {
    E_CONFIG_DD_FREE(_e_intl_input_method_config_edd);
@@ -63,7 +60,7 @@ e_intl_input_method_config_write(Eet_File *imc_file, E_Input_Method_Config *imc)
 EAPI void
 e_intl_input_method_config_free(E_Input_Method_Config *imc)
 {
-   if (imc != NULL)
+   if (imc)
      {
 	if (imc->e_im_name) eina_stringshare_del(imc->e_im_name);
 	if (imc->gtk_im_module) eina_stringshare_del(imc->gtk_im_module);

@@ -5,6 +5,7 @@
 static Eina_Bool _e_mod_quickpanel_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_mouse_up(void *data, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_mod_quickpanel_cb_border_remove(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_border_resize(void *data __UNUSED__, int type __UNUSED__, void *event);
 static void _e_mod_quickpanel_cb_post_fetch(void *data __UNUSED__, void *data2);
 static void _e_mod_quickpanel_cb_free(E_Illume_Quickpanel *qp);
@@ -35,6 +36,11 @@ e_mod_quickpanel_init(void)
      eina_list_append(_qp_hdls, 
                       ecore_event_handler_add(E_EVENT_BORDER_ADD, 
                                               _e_mod_quickpanel_cb_border_add, 
+                                              NULL));
+   _qp_hdls = 
+     eina_list_append(_qp_hdls, 
+                      ecore_event_handler_add(E_EVENT_BORDER_REMOVE, 
+                                              _e_mod_quickpanel_cb_border_remove,
                                               NULL));
 
    _qp_hdls = 
@@ -78,8 +84,7 @@ e_mod_quickpanel_new(E_Zone *zone)
 
    /* set quickpanel zone */
    qp->zone = zone;
-   qp->dir = 0;
-
+   qp->vert.dir = 0;
    qp->mouse_hdl = ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP, 
                                            _e_mod_quickpanel_cb_mouse_up, qp);
 
@@ -91,6 +96,8 @@ e_mod_quickpanel_show(E_Illume_Quickpanel *qp)
 {
    E_Illume_Config_Zone *cz;
    int duration;
+
+   if (!qp) return;
 
    /* delete the animator if it exists */
    if (qp->animator) ecore_animator_del(qp->animator);
@@ -107,7 +114,7 @@ e_mod_quickpanel_show(E_Illume_Quickpanel *qp)
 
    /* grab the height of the indicator */
    cz = e_illume_zone_config_get(qp->zone->id);
-   qp->ih = cz->indicator.size;
+   qp->vert.isize = cz->indicator.size;
 
    /* check animation duration */
    if (duration <= 0) 
@@ -116,14 +123,14 @@ e_mod_quickpanel_show(E_Illume_Quickpanel *qp)
         E_Border *bd;
         int ny = 0;
 
-	ny = qp->ih;
-	if (qp->dir == 1) ny = 0;
+	ny = qp->vert.isize;
+	if (qp->vert.dir == 1) ny = 0;
 
         /* if we are not animating, just show the borders */
         EINA_LIST_FOREACH(qp->borders, l, bd) 
           {
              if (!bd->visible) e_illume_border_show(bd);
-             if (qp->dir == 0) 
+             if (qp->vert.dir == 0) 
 	       {
 		  e_border_fx_offset(bd, 0, ny);
 		  ny += bd->h;
@@ -160,13 +167,13 @@ _e_mod_quickpanel_cb_client_message(void *data __UNUSED__, int type __UNUSED__, 
      {
         E_Zone *zone;
 
-        if (zone = e_util_zone_window_find(ev->win)) 
+        if ((zone = e_util_zone_window_find(ev->win))) 
           {
              E_Illume_Quickpanel *qp;
 
-             if (qp = e_illume_quickpanel_by_zone_get(zone)) 
+             if ((qp = e_illume_quickpanel_by_zone_get(zone))) 
                {
-                  if (ev->data.l[0] == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_OFF)
+                  if (ev->data.l[0] == (int)ECORE_X_ATOM_E_ILLUME_QUICKPANEL_OFF)
                     _e_mod_quickpanel_hide(qp);
                   else
                     e_mod_quickpanel_show(qp);
@@ -177,11 +184,11 @@ _e_mod_quickpanel_cb_client_message(void *data __UNUSED__, int type __UNUSED__, 
      {
         E_Zone *zone;
 
-        if (zone = e_util_zone_window_find(ev->win)) 
+        if ((zone = e_util_zone_window_find(ev->win))) 
           {
              E_Illume_Quickpanel *qp;
 
-             if (qp = e_illume_quickpanel_by_zone_get(zone)) 
+             if ((qp = e_illume_quickpanel_by_zone_get(zone))) 
                {
                   if (qp->visible) 
 		    _e_mod_quickpanel_hide(qp);
@@ -195,8 +202,10 @@ _e_mod_quickpanel_cb_client_message(void *data __UNUSED__, int type __UNUSED__, 
         E_Border *bd;
         E_Illume_Quickpanel *qp;
 
-        if (!(bd = e_border_find_by_client_window(ev->win))) return ECORE_CALLBACK_PASS_ON;
-        if (!(qp = e_illume_quickpanel_by_zone_get(bd->zone))) return ECORE_CALLBACK_PASS_ON;
+        if (!(bd = e_border_find_by_client_window(ev->win))) 
+          return ECORE_CALLBACK_PASS_ON;
+        if (!(qp = e_illume_quickpanel_by_zone_get(bd->zone))) 
+          return ECORE_CALLBACK_PASS_ON;
         _e_mod_quickpanel_position_update(qp);
      }
 
@@ -210,7 +219,7 @@ _e_mod_quickpanel_cb_mouse_up(void *data, int type __UNUSED__, void *event)
    E_Illume_Quickpanel *qp;
 
    ev = event;
-   qp = data;
+   if (!(qp = data)) return ECORE_CALLBACK_PASS_ON;
    if (ev->event_window != qp->clickwin) return ECORE_CALLBACK_PASS_ON;
    if (qp->visible) e_mod_quickpanel_hide(qp);
    return ECORE_CALLBACK_PASS_ON;
@@ -225,24 +234,28 @@ _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type __UNUSED__, void
    int iy;
 
    ev = event;
-   if (!ev->border->client.illume.quickpanel.quickpanel) return ECORE_CALLBACK_PASS_ON;
+   if (!ev->border->client.illume.quickpanel.quickpanel) 
+     return ECORE_CALLBACK_PASS_ON;
 
-   zone = ev->border->zone;
+   if (!(zone = ev->border->zone)) return ECORE_CALLBACK_PASS_ON;
 
    /* if this border should be on a different zone, get requested zone */
-   if (zone->num != ev->border->client.illume.quickpanel.zone) 
+   if ((int)zone->num != ev->border->client.illume.quickpanel.zone) 
      {
         E_Container *con;
         int zn = 0;
 
         /* find this zone */
-        con = e_container_current_get(e_manager_current_get());
+        if (!(con = e_container_current_get(e_manager_current_get())))
+          return ECORE_CALLBACK_PASS_ON;
         zn = ev->border->client.illume.quickpanel.zone;
         zone = e_util_container_zone_number_get(con->num, zn);
         if (!zone) zone = e_util_container_zone_number_get(con->num, 0);
+        if (!zone) return ECORE_CALLBACK_PASS_ON;
      }
 
-   if (!(qp = e_illume_quickpanel_by_zone_get(zone))) return ECORE_CALLBACK_PASS_ON;
+   if (!(qp = e_illume_quickpanel_by_zone_get(zone))) 
+     return ECORE_CALLBACK_PASS_ON;
 
    /* set position and zone */
    e_illume_border_indicator_pos_get(zone, NULL, &iy);
@@ -254,10 +267,54 @@ _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type __UNUSED__, void
    /* hide this border */
    e_illume_border_hide(ev->border);
 
-   qp->h += ev->border->h;
+   qp->vert.size += ev->border->h;
 
    /* add this border to QP border collection */
    qp->borders = eina_list_append(qp->borders, ev->border);
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_e_mod_quickpanel_cb_border_remove(void *data __UNUSED__, int type __UNUSED__, void *event) 
+{
+   E_Event_Border_Remove *ev;
+   E_Illume_Quickpanel *qp;
+   E_Zone *zone;
+   Eina_List *l;
+   E_Border *bd;
+
+   ev = event;
+   if (!ev->border->client.illume.quickpanel.quickpanel) 
+     return ECORE_CALLBACK_PASS_ON;
+
+   if (!(zone = ev->border->zone)) return ECORE_CALLBACK_PASS_ON;
+
+   /* if this border should be on a different zone, get requested zone */
+   if ((int)zone->num != ev->border->client.illume.quickpanel.zone) 
+     {
+        E_Container *con;
+        int zn = 0;
+
+        /* find this zone */
+        if (!(con = e_container_current_get(e_manager_current_get())))
+          return ECORE_CALLBACK_PASS_ON;
+        zn = ev->border->client.illume.quickpanel.zone;
+        zone = e_util_container_zone_number_get(con->num, zn);
+        if (!zone) zone = e_util_container_zone_number_get(con->num, 0);
+        if (!zone) return ECORE_CALLBACK_PASS_ON;
+     }
+
+   if (!(qp = e_illume_quickpanel_by_zone_get(zone))) 
+     return ECORE_CALLBACK_PASS_ON;
+
+   /* add this border to QP border collection */
+   if (qp->borders) 
+     qp->borders = eina_list_remove(qp->borders, ev->border);
+
+   qp->vert.size = 0;
+   EINA_LIST_FOREACH(qp->borders, l, bd)
+     qp->vert.size += bd->h;
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -271,12 +328,14 @@ _e_mod_quickpanel_cb_border_resize(void *data __UNUSED__, int type __UNUSED__, v
    E_Border *bd;
 
    ev = event;
-   if (!ev->border->client.illume.quickpanel.quickpanel) return ECORE_CALLBACK_PASS_ON;
-   if (!(qp = e_illume_quickpanel_by_zone_get(ev->border->zone))) return ECORE_CALLBACK_PASS_ON;
+   if (!ev->border->client.illume.quickpanel.quickpanel) 
+     return ECORE_CALLBACK_PASS_ON;
+   if (!(qp = e_illume_quickpanel_by_zone_get(ev->border->zone))) 
+     return ECORE_CALLBACK_PASS_ON;
 
-   qp->h = 0;
+   qp->vert.size = 0;
    EINA_LIST_FOREACH(qp->borders, l, bd)
-     qp->h += bd->h;
+     qp->vert.size += bd->h;
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -333,17 +392,18 @@ _e_mod_quickpanel_cb_delay_hide(void *data)
 static void 
 _e_mod_quickpanel_slide(E_Illume_Quickpanel *qp, int visible, double len) 
 {
+   if (!qp) return;
    qp->start = ecore_loop_time_get();
    qp->len = len;
-   qp->adjust_start = qp->adjust;
-   qp->adjust_end = 0;
-   if (qp->dir == 0) 
+   qp->vert.adjust_start = qp->vert.adjust;
+   qp->vert.adjust_end = 0;
+   if (qp->vert.dir == 0) 
      {
-	if (visible) qp->adjust_end = qp->h;
+	if (visible) qp->vert.adjust_end = qp->vert.size;
      }
    else 
      {
-	if (visible) qp->adjust_end = -qp->h;
+	if (visible) qp->vert.adjust_end = -qp->vert.size;
      }
 
    if (!qp->animator) 
@@ -355,6 +415,8 @@ _e_mod_quickpanel_hide(E_Illume_Quickpanel *qp)
 {
    int duration;
 
+   if (!qp) return;
+
    /* delete the animator if it exists */
    if (qp->animator) ecore_animator_del(qp->animator);
    qp->animator = NULL;
@@ -364,7 +426,7 @@ _e_mod_quickpanel_hide(E_Illume_Quickpanel *qp)
    qp->timer = NULL;
 
    /* if it's not visible, we can't hide it */
-   if ((!qp->visible) || (!qp->borders)) return;
+   if (!qp->visible) return;
 
    duration = _e_illume_cfg->animation.quickpanel.duration;
 
@@ -405,9 +467,10 @@ _e_mod_quickpanel_cb_animate(void *data)
    else 
      t = qp->len;
 
-   qp->adjust = (qp->adjust_end * v) + (qp->adjust_start * (1.0 - v));
+   qp->vert.adjust = ((qp->vert.adjust_end * v) + 
+                      (qp->vert.adjust_start * (1.0 - v)));
 
-   if (qp->dir == 0) _e_mod_quickpanel_animate_down(qp);
+   if (qp->vert.dir == 0) _e_mod_quickpanel_animate_down(qp);
    else _e_mod_quickpanel_animate_up(qp);
 
    if (t == qp->len) 
@@ -436,13 +499,15 @@ _e_mod_quickpanel_position_update(E_Illume_Quickpanel *qp)
    E_Border *bd;
    int iy = 0;
 
+   if (!qp) return;
    _e_mod_quickpanel_hide(qp);
+   if (!qp->zone) return;
    e_illume_border_indicator_pos_get(qp->zone, NULL, &iy);
    EINA_LIST_FOREACH(qp->borders, l, bd) 
      e_border_move(bd, qp->zone->x, iy);
 
-   qp->dir = 0;
-   if ((iy + qp->ih + qp->h) > qp->zone->h) qp->dir = 1;
+   qp->vert.dir = 0;
+   if ((iy + qp->vert.isize + qp->vert.size) > qp->zone->h) qp->vert.dir = 1;
 }
 
 static void 
@@ -452,13 +517,14 @@ _e_mod_quickpanel_animate_down(E_Illume_Quickpanel *qp)
    E_Border *bd;
    int pbh = 0;
 
-   pbh = (qp->ih - qp->h);
+   if (!qp) return;
+   pbh = (qp->vert.isize - qp->vert.size);
    EINA_LIST_FOREACH(qp->borders, l, bd) 
      {
         /* don't adjust borders that are being deleted */
         if (e_object_is_del(E_OBJECT(bd))) continue;
-	if (bd->fx.y != (qp->adjust + pbh)) 
-	  e_border_fx_offset(bd, 0, (qp->adjust + pbh));
+	if (bd->fx.y != (qp->vert.adjust + pbh)) 
+	  e_border_fx_offset(bd, 0, (qp->vert.adjust + pbh));
 	pbh += bd->h;
 
         if (!qp->visible) 
@@ -485,14 +551,15 @@ _e_mod_quickpanel_animate_up(E_Illume_Quickpanel *qp)
    E_Border *bd;
    int pbh = 0;
 
-   pbh = qp->h;
+   if (!qp) return;
+   pbh = qp->vert.size;
    EINA_LIST_FOREACH(qp->borders, l, bd) 
      {
         /* don't adjust borders that are being deleted */
         if (e_object_is_del(E_OBJECT(bd))) continue;
 	pbh -= bd->h;
-	if (bd->fx.y != (qp->adjust + pbh)) 
-	  e_border_fx_offset(bd, 0, (qp->adjust + pbh));
+	if (bd->fx.y != (qp->vert.adjust + pbh)) 
+	  e_border_fx_offset(bd, 0, (qp->vert.adjust + pbh));
 
         if (!qp->visible) 
           {
@@ -516,8 +583,11 @@ _e_mod_quickpanel_clickwin_show(E_Illume_Quickpanel *qp)
 {
    E_Border *ind;
 
-   if (!qp->borders) return;
+   if ((!qp) || (!qp->borders) || (!qp->zone)) return;
    if (!(ind = eina_list_nth(qp->borders, 0))) return;
+
+   if (qp->clickwin) ecore_x_window_free(qp->clickwin);
+   qp->clickwin = 0;
    qp->clickwin = ecore_x_window_input_new(qp->zone->container->win, 
 					   qp->zone->x, qp->zone->y, 
 					   qp->zone->w, qp->zone->h);
@@ -535,6 +605,7 @@ _e_mod_quickpanel_clickwin_show(E_Illume_Quickpanel *qp)
 static void 
 _e_mod_quickpanel_clickwin_hide(E_Illume_Quickpanel *qp) 
 {
+   if (!qp) return;
    if (qp->clickwin) ecore_x_window_free(qp->clickwin);
    qp->clickwin = 0;
 }

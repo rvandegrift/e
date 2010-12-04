@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 static Eina_Bool _e_fm2_custom_file_hash_foreach_list(const Eina_Hash *hash, const void *key, void *data, void *fdata);
@@ -29,7 +26,7 @@ static int _e_fm2_custom_init = 0;
  */
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_fm2_custom_file_init(void)
 {
    Eet_Data_Descriptor_Class eddc;
@@ -37,7 +34,7 @@ e_fm2_custom_file_init(void)
    _e_fm2_custom_init++;
    if (_e_fm2_custom_init > 1) return _e_fm2_custom_init;
 
-   if (!eet_eina_stream_data_descriptor_class_set(&eddc, "e_fm2_custom_dir", sizeof (E_Fm2_Custom_Dir)))
+   if (!eet_eina_stream_data_descriptor_class_set(&eddc, sizeof (eddc), "e_fm2_custom_dir", sizeof (E_Fm2_Custom_Dir)))
      {
 	_e_fm2_custom_init--;
 	return 0;
@@ -84,7 +81,7 @@ e_fm2_custom_file_init(void)
    return 1;
 }
 
-EAPI void
+EINTERN void
 e_fm2_custom_file_shutdown(void)
 {
    _e_fm2_custom_init--;
@@ -278,7 +275,7 @@ struct _E_Custom_List
 };
 
 static Eina_Bool
-_e_fm2_custom_file_hash_foreach_list(const Eina_Hash *hash, const void *key, void *data, void *fdata)
+_e_fm2_custom_file_hash_foreach_list(const Eina_Hash *hash __UNUSED__, const void *key, void *data __UNUSED__, void *fdata)
 {
    struct _E_Custom_List *cl;
 
@@ -328,14 +325,14 @@ _e_fm2_custom_hash_key_sub_list(const Eina_Hash *hash, const void *str)
 */
 
 static Eina_Bool
-_e_fm2_custom_file_hash_foreach(const Eina_Hash *hash, const void *key, void *data, void *fdata)
+_e_fm2_custom_file_hash_foreach(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__)
 {
    _e_fm2_custom_file_del(data);
    return 1;
 }
 
 static Eina_Bool
-_e_fm2_custom_file_hash_foreach_save(const Eina_Hash *hash, const void *key, void *data, void *fdata)
+_e_fm2_custom_file_hash_foreach_save(const Eina_Hash *hash __UNUSED__, const void *key, void *data, void *fdata)
 {
    Eet_File *ef;
    E_Fm2_Custom_File *cf;
@@ -429,7 +426,7 @@ _e_fm2_custom_file_info_free(void)
 }
 
 static void
-_e_fm2_custom_file_cb_defer_save(void *data)
+_e_fm2_custom_file_cb_defer_save(void *data __UNUSED__)
 {
    _e_fm2_custom_file_info_save();
    _e_fm2_custom_file_info_free();

@@ -1,9 +1,6 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
-EAPI int
+EINTERN int
 e_color_class_init(void)
 {
    const Eina_List *l;
@@ -23,7 +20,7 @@ e_color_class_init(void)
   return 1;
 }
 
-EAPI int
+EINTERN int
 e_color_class_shutdown(void)
 {
    return 1;

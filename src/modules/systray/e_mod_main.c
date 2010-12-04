@@ -9,11 +9,7 @@
  * @todo: implement messages/popup part of the spec (anyone using this at all?)
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <e.h>
+#include "e.h"
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include "e_mod_main.h"
@@ -147,18 +143,20 @@ static void
 _systray_menu_new(Instance *inst, Evas_Event_Mouse_Down *ev)
 {
    E_Zone *zone;
-   E_Menu *mn;
+   E_Menu *ma, *mg;
    int x, y;
 
    zone = e_util_zone_current_get(e_manager_current_get());
 
-   mn = e_menu_new();
-   e_menu_post_deactivate_callback_set(mn, _systray_menu_cb_post, inst);
-   inst->menu = mn;
+   ma = e_menu_new();
+   e_menu_post_deactivate_callback_set(ma, _systray_menu_cb_post, inst);
+   inst->menu = ma;
 
-   e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
+   mg = e_menu_new();
+
+   e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
    e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon, &x, &y, NULL, NULL);
-   e_menu_activate_mouse(mn, zone, x + ev->output.x, y + ev->output.y,
+   e_menu_activate_mouse(ma, zone, x + ev->output.x, y + ev->output.y,
 			 1, 1, E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
 }
 
@@ -883,7 +881,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 {
    Instance *inst;
 
-   fprintf(stderr, "SYSTRAY: init name=%s, id=%s, style=%s\n", name, id, style);
+   // fprintf(stderr, "SYSTRAY: init name=%s, id=%s, style=%s\n", name, id, style);
 
    if (!systray_mod)
      return NULL;
@@ -906,10 +904,11 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 	E_FREE(inst);
 	return NULL;
      }
+
    if ((gc->shelf) && (gc->shelf->popup))
      inst->win.parent = gc->shelf->popup->evas_win;
    else
-     inst->win.parent = inst->con->bg_win;
+     inst->win.parent = (Ecore_X_Window) ecore_evas_window_get(gc->ecore_evas);
 
    inst->win.base = None;
    inst->win.selection = None;
@@ -967,7 +966,7 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 {
    Instance *inst = gcc->data;
 
-   fprintf(stderr, "SYSTRAY: shutdown %p, inst=%p\n", gcc, inst);
+   // fprintf(stderr, "SYSTRAY: shutdown %p, inst=%p\n", gcc, inst);
 
    if (!inst)
      return;
@@ -1063,19 +1062,19 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
 	 break;
       case E_GADCON_ORIENT_CORNER_LT:
 	 signal = "e,action,orient,corner_lt";
-	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_HORZ;
+	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_VERT;
 	 break;
       case E_GADCON_ORIENT_CORNER_RT:
 	 signal = "e,action,orient,corner_rt";
-	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_HORZ;
+	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_VERT;
 	 break;
       case E_GADCON_ORIENT_CORNER_LB:
 	 signal = "e,action,orient,corner_lb";
-	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_HORZ;
+	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_VERT;
 	 break;
       case E_GADCON_ORIENT_CORNER_RB:
 	 signal = "e,action,orient,corner_rb";
-	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_HORZ;
+	 systray_orient = _NET_SYSTEM_TRAY_ORIENTATION_VERT;
 	 break;
       default:
 	 signal = "e,action,orient,horiz";

@@ -131,49 +131,11 @@ _evry_cb_item_changed(__UNUSED__ void *data, __UNUSED__ int type, void *event)
    return ECORE_CALLBACK_PASS_ON;
 }
 
-static Eina_Bool
-_cb_show_timer(void *data)
-{
-   Evry_Window *win = data;
-   Evry_Selector *sel;
-
-   win->show_timer = NULL;
-
-   _evry_selector_activate(SUBJ_SEL, 0);
-   sel = CUR_SEL;
-
-   if (sel && sel->state && evry_conf->views)
-     {
-	if (evry_conf->first_run)
-	  {
-	     evry_view_toggle(sel->state, "?");
-	     evry_conf->first_run = EINA_FALSE;
-	  }
-
-	edje_object_signal_emit(win->o_main, "list:e,state,list_show", "e");
-	edje_object_signal_emit(win->o_main, "list:e,state,entry_show", "e");
-	win->visible = EINA_TRUE;
-     }
-
-   return ECORE_CALLBACK_CANCEL;
-}
-
-static Eina_Bool
-_cb_hide_timer(void *data)
-{
-   Evry_Window *win = data;
-
-   win->hide_timer = NULL;
-   evry_hide(win, 0);
-
-   return ECORE_CALLBACK_CANCEL;
-}
-
 Evry_Window *
 evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params)
 {
    Evry_Window *win;
-   Ecore_X_Window input_window;
+   Evry_Selector *sel;
 
    E_OBJECT_CHECK_RETURN(zone, 0);
    E_OBJECT_TYPE_CHECK_RETURN(zone, E_ZONE_TYPE, 0);
@@ -189,7 +151,7 @@ evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params)
    if (e_grabinput_get(win->ewin->evas_win, 0, win->ewin->evas_win))
      win->grab = 1;
    else
-     ERR("could not aquire grab");
+     ERR("could not acquire grab");
 
    evry_history_load();
 
@@ -251,15 +213,30 @@ evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params)
    _evry_selector_plugins_get(SUBJ_SEL, NULL, params);
    _evry_selector_update(SUBJ_SEL);
 
-   if (!evry_conf->hide_input || edge)
-     edje_object_signal_emit(win->o_main, "list:e,state,entry_show", "e");
+   windows = eina_list_append(windows, win);
 
    if (!evry_conf->hide_list || edge)
-     win->show_timer = ecore_timer_add(0.01, _cb_show_timer, win);
-   else
-     _evry_selector_activate(SUBJ_SEL, 0);
+     {
+	_evry_selector_activate(SUBJ_SEL, 0);
+	sel = CUR_SEL;
 
-   windows = eina_list_append(windows, win);
+	if (sel && sel->state && evry_conf->views)
+	  {
+	     if (evry_conf->first_run)
+	       {
+		  evry_view_toggle(sel->state, "?");
+		  evry_conf->first_run = EINA_FALSE;
+	       }
+
+	     edje_object_signal_emit(win->o_main, "list:e,state,list_show", "e");
+	     edje_object_signal_emit(win->o_main, "list:e,state,entry_show", "e");
+	     win->visible = EINA_TRUE;
+	  }
+     }
+   else
+     {
+	_evry_selector_activate(SUBJ_SEL, 0);
+     }
 
    return win;
 }
@@ -303,7 +280,6 @@ evry_hide(Evry_Window *win, int clear)
 
 	sel = CUR_SEL;
 	s = sel->state;
-
 	_evry_clear(sel);
 	_evry_clear(sel);
 
@@ -320,11 +296,6 @@ evry_hide(Evry_Window *win, int clear)
      {
 	return;
      }
-
-   if (win->show_timer)
-     ecore_timer_del(win->show_timer);
-   if (win->hide_timer)
-     ecore_timer_del(win->hide_timer);
 
    win->visible = EINA_FALSE;
 
@@ -616,8 +587,8 @@ evry_plugin_update(Evry_Plugin *p, int action)
    if (!(win = sel->win))
      return;
 
-   if (s->request != p->request)
-     return;
+   // if (s->request != p->request)
+   //   return;
 
    DBG("update %d %d %s", s->request, p->request, p->name);
 
@@ -650,7 +621,8 @@ evry_plugin_update(Evry_Plugin *p, int action)
 	_evry_aggregator_fetch(s);
 
 	/* select first plugin */
-	if ((!s->plugin) || (s->plugin_auto_selected))
+	if ((!s->plugin) || (s->plugin_auto_selected) ||
+	    !(eina_list_data_find(s->cur_plugins, s->plugin)))
 	  {
 	     _evry_plugin_select(s, NULL);
 	  }
@@ -728,7 +700,7 @@ _evry_cb_win_delete(E_Win *ewin)
 static void
 _evry_cb_win_move(E_Win *ewin)
 {
-   Evry_Window *win = ewin->data;
+   /* Evry_Window *win = ewin->data; */
    /* evas_object_resize(win->o_main, ewin->w, ewin->h); */
    /* if (win->input_window)
     *   ecore_x_window_move(win->input_window, win->ewin->x, win->ewin->y); */
@@ -848,12 +820,14 @@ _evry_window_new(E_Zone *zone, E_Zone_Edge edge)
 
 	x += zone->x;
 	y += zone->y;
-	
+
 	mw += offset_s*2;
 	mh += offset_s*2;
      }
 
    e_win_move_resize(win->ewin, x, y, mw, mh);
+   win->ewin->w = mw;
+   win->ewin->h = mh;
 
    o = win->o_main;
    evas_object_move(o, 0, 0);
@@ -871,46 +845,11 @@ _evry_window_new(E_Zone *zone, E_Zone_Edge edge)
    return win;
 }
 
+#if 0
 static void
 _evry_cb_drag_finished(E_Drag *drag, int dropped)
 {
    E_FREE(drag->data);
-}
-
-#if 0
-static Eina_Bool
-_evry_cb_mouse_in(__UNUSED__ void *data, int type, void *event)
-{
-   Ecore_X_Event_Mouse_In *ev = event;
-
-   if (ev->event_win != input_window)
-     return ECORE_CALLBACK_PASS_ON;
-
-   e_grabinput_get(input_window, 0, input_window);
-
-   if (win && win->hide_timer)
-     {
-	ecore_timer_del(win->hide_timer);
-	win->hide_timer = NULL;
-     }
-
-   return ECORE_CALLBACK_PASS_ON;
-}
-
-static Eina_Bool
-_evry_cb_mouse_out(__UNUSED__ void *data, __UNUSED__ int type, void *event)
-{
-   Ecore_X_Event_Mouse_In *ev = event;
-
-   if (!win || (ev->event_win != input_window))
-     return ECORE_CALLBACK_PASS_ON;
-
-   if (win->hide_timer)
-     return ECORE_CALLBACK_PASS_ON;
-
-   win->hide_timer = ecore_timer_add(0.3, _cb_hide_timer, win);
-
-   return ECORE_CALLBACK_PASS_ON;
 }
 #endif
 
@@ -1561,9 +1500,8 @@ evry_state_push(Evry_Selector *sel, Eina_List *plugins)
 {
    Evry_State *s, *new_state;
    Eina_List *l;
-   Evry_Plugin *p, *pp;
+   Evry_Plugin *p;
    Evry_View *view = NULL;
-   int browse_aggregator = 0;
    Evry_Window *win = sel->win;
 
    s = sel->state;
@@ -1653,7 +1591,7 @@ evry_browse_item(Evry_Item *it)
 	     if ((pref) && (!strcmp(p->name, pref->name)))
 	       continue;
 
-	     if (pp = p->browse(p, it))
+	     if ((pp = p->browse(p, it)))
 	       plugins = eina_list_append(plugins, pp);
 	  }
      }
@@ -1758,9 +1696,6 @@ int
 evry_selectors_switch(Evry_Window *win, int dir, int slide)
 {
    Evry_State *s = (CUR_SEL)->state;
-
-   if (win->show_timer)
-     _cb_show_timer(NULL);
 
    if ((CUR_SEL)->update_timer)
      {
@@ -1894,7 +1829,7 @@ _evry_cheat_history(Evry_State *s, int promote, int delete)
 	else if (promote)
 	  {
 	     hi->count += 5;
-	     hi->last_used = ecore_time_get();
+	     hi->last_used = ecore_time_unix_get();
 	  }
 	else /* demote */
 	  {
@@ -1950,7 +1885,6 @@ _evry_cb_key_down(void *data __UNUSED__, int type __UNUSED__, void *event)
 #endif
    else if (ev->modifiers)
      {
-	E_Action *act;
 	Eina_List *l;
 	E_Config_Binding_Key *bind;
 	E_Binding_Modifier mod;

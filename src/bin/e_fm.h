@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 /* IGNORE this code for now! */
@@ -50,9 +47,7 @@ typedef struct _E_Fm2_Config      E_Fm2_Config;
 typedef struct _E_Fm2_Icon        E_Fm2_Icon;
 typedef struct _E_Fm2_Icon_Info   E_Fm2_Icon_Info;
 
-#define E_FM_SHARED_DATATYPES
-#include "e_fm_shared.h"
-#undef E_FM_SHARED_DATATYPES
+#include "e_fm_shared_types.h"
 
 #else
 #ifndef E_FM_H
@@ -63,14 +58,14 @@ struct _E_Fm2_Config
    /* general view mode */
    struct {
       E_Fm2_View_Mode mode;
-      unsigned char   open_dirs_in_place;
-      unsigned char   selector;
-      unsigned char   single_click;
-      unsigned char   no_subdir_jump;
-      unsigned char   no_subdir_drop;
-      unsigned char   always_order;
-      unsigned char   link_drop;
-      unsigned char   fit_custom_pos;
+      Eina_Bool   open_dirs_in_place : 1;
+      Eina_Bool   selector : 1;
+      Eina_Bool   single_click : 1;
+      Eina_Bool   no_subdir_jump : 1;
+      Eina_Bool   no_subdir_drop : 1;
+      Eina_Bool   always_order : 1;
+      Eina_Bool   link_drop : 1;
+      Eina_Bool   fit_custom_pos : 1;
       unsigned int    single_click_delay;
    } view;
    /* display of icons */
@@ -79,32 +74,34 @@ struct _E_Fm2_Config
 	 int w, h;
       } icon, list;
       struct {
-	 unsigned char w, h;
+	 unsigned char w;
+	 unsigned char h;
       } fixed;
       struct {
-	 unsigned char show;
+	 Eina_Bool show : 1;
       } extension;
       const char *key_hint;
    } icon;
    /* how to sort files */
    struct {
       struct {
-	 unsigned char no_case;
+	 Eina_Bool no_case : 1;
 	 struct {
-	    unsigned char first;
-	    unsigned char last;
+	    Eina_Bool first : 1;
+	    Eina_Bool last : 1;
 	 } dirs;
       } sort;
    } list;
    /* control how you can select files */
    struct {
-      unsigned char single, windows_modifiers;
+      Eina_Bool single : 1;
+      Eina_Bool windows_modifiers : 1;
    } selection;
    /* the background - if any, and how to handle it */
    /* FIXME: not implemented yet */
    struct {
       const char *background, *frame, *icons;
-      unsigned char fixed;
+      Eina_Bool fixed : 1;
    } theme;
 };
 
@@ -123,15 +120,17 @@ struct _E_Fm2_Icon_Info
    const char       *category;
    struct stat       statinfo;
    unsigned char     icon_type;
-   unsigned char     mount : 1;
-   unsigned char     removable : 1;
-   unsigned char     removable_full : 1;
-   unsigned char     deleted : 1;
-   unsigned char     broken_link : 1;
+   Eina_Bool     mount : 1;
+   Eina_Bool     removable : 1;
+   Eina_Bool     removable_full : 1;
+   Eina_Bool     deleted : 1;
+   Eina_Bool     broken_link : 1;
 };
 
-EAPI int                   e_fm2_init(void);
-EAPI int                   e_fm2_shutdown(void);
+typedef void (*E_Fm_Cb) (void *data, Evas_Object *obj, E_Menu *m, E_Fm2_Icon_Info *info);
+
+EINTERN int                   e_fm2_init(void);
+EINTERN int                   e_fm2_shutdown(void);
 EAPI Evas_Object          *e_fm2_add(Evas *evas);
 EAPI void                  e_fm2_path_set(Evas_Object *obj, const char *dev, const char *path);
 EAPI void                  e_fm2_custom_theme_set(Evas_Object *obj, const char *path);
@@ -151,9 +150,9 @@ EAPI Eina_List            *e_fm2_selected_list_get(Evas_Object *obj);
 EAPI Eina_List            *e_fm2_all_list_get(Evas_Object *obj);
 EAPI void                  e_fm2_select_set(Evas_Object *obj, const char *file, int select);
 EAPI void                  e_fm2_file_show(Evas_Object *obj, const char *file);
-EAPI void                  e_fm2_icon_menu_replace_callback_set(Evas_Object *obj, void (*func) (void *data, Evas_Object *obj, E_Menu *m, E_Fm2_Icon_Info *info), void *data);
-EAPI void                  e_fm2_icon_menu_start_extend_callback_set(Evas_Object *obj, void (*func) (void *data, Evas_Object *obj, E_Menu *m, E_Fm2_Icon_Info *info), void *data);
-EAPI void                  e_fm2_icon_menu_end_extend_callback_set(Evas_Object *obj, void (*func) (void *data, Evas_Object *obj, E_Menu *m, E_Fm2_Icon_Info *info), void *data);
+EAPI void                  e_fm2_icon_menu_replace_callback_set(Evas_Object *obj, E_Fm_Cb func, void *data);
+EAPI void                  e_fm2_icon_menu_start_extend_callback_set(Evas_Object *obj, E_Fm_Cb func, void *data);
+EAPI void                  e_fm2_icon_menu_end_extend_callback_set(Evas_Object *obj, E_Fm_Cb func, void *data);
 EAPI void                  e_fm2_icon_menu_flags_set(Evas_Object *obj, E_Fm2_Menu_Flags flags);
 EAPI E_Fm2_Menu_Flags      e_fm2_icon_menu_flags_get(Evas_Object *obj);
 EAPI void                  e_fm2_view_flags_set(Evas_Object *obj, E_Fm2_View_Flags flags);
@@ -170,10 +169,8 @@ EAPI void                  e_fm2_all_icons_update(void);
 
 EAPI void                  e_fm2_operation_abort(int id);
 
-EAPI Evas_Object *
-  e_fm2_icon_get(Evas *evas, E_Fm2_Icon *ic,
-		 void (*gen_func) (void *data, Evas_Object *obj, void *event_info),
-		 void *data, int force_gen, const char **type_ret);
+EAPI Evas_Object *e_fm2_icon_get(Evas *evas, E_Fm2_Icon *ic, Evas_Smart_Cb gen_func,
+                                 void *data, int force_gen, const char **type_ret);
 EAPI E_Fm2_Icon_Info *e_fm2_icon_file_info_get(E_Fm2_Icon *ic);
 EAPI void        e_fm2_icon_geometry_get(E_Fm2_Icon *ic, int *x, int *y, int *w, int *h);
 

@@ -1,5 +1,4 @@
 #include <e.h>
-#include "config.h"
 #include "e_mod_main.h"
 #include "e_mod_gadman.h"
 #include "e_mod_config.h"
@@ -203,8 +202,6 @@ gadman_gadget_place(E_Config_Gadcon_Client *cf, Gadman_Layer_Type layer, E_Zone 
    else
      edje_object_signal_emit(gcc->o_frame, "e,state,visibility,plain", "e");
 
-   gcc->o_box = gcc->o_frame;
-
    /* swallow the client inside the frame */
    edje_object_part_swallow(gcc->o_frame, "e.swallow.content", gcc->o_base);
    evas_object_event_callback_add(gcc->o_frame, EVAS_CALLBACK_MOUSE_DOWN, 
@@ -228,7 +225,7 @@ E_Gadcon_Client *
 gadman_gadget_add(const E_Gadcon_Client_Class *cc, Gadman_Layer_Type layer)
 {
    E_Config_Gadcon_Client *cf = NULL;
-   E_Gadcon_Client *gcc;
+   E_Gadcon_Client *gcc = NULL;
    E_Gadcon *gc;
    int w, h;
 
@@ -314,7 +311,7 @@ gadman_gadget_edit_start(E_Gadcon_Client *gcc)
 }
 
 void
-gadman_gadget_edit_end(void *data, Evas_Object *obj, const char *emission, const char *source)
+gadman_gadget_edit_end(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    unsigned int layer;
 
@@ -692,7 +689,7 @@ _apply_widget_position(E_Gadcon_Client *gcc)
 }
 
 static void
-_attach_menu(void *data, E_Gadcon_Client *gcc, E_Menu *menu)
+_attach_menu(void *data __UNUSED__, E_Gadcon_Client *gcc, E_Menu *menu)
 {
    E_Menu *mn;
    E_Menu_Item *mi;
@@ -702,10 +699,20 @@ _attach_menu(void *data, E_Gadcon_Client *gcc, E_Menu *menu)
    //printf("Attach menu (gcc: %x id: %s) [%s]\n", gcc, gcc->cf->id, gcc->cf->style);
    if (!gcc) return;
 
+   mi = e_menu_item_new(menu);
+   e_menu_item_separator_set(mi, 1);
+
+   /* Move / resize*/
+   mi = e_menu_item_new(menu);
+   e_menu_item_label_set(mi, _("Begin move/resize"));
+   e_util_menu_item_theme_icon_set(mi, "transform-scale");
+   e_menu_item_callback_set(mi, on_menu_edit, gcc);
+
+
+   /* plain / inset */
    if (!gcc->cf->style)
      gcc->cf->style = eina_stringshare_add(E_GADCON_CLIENT_STYLE_INSET);
 
-   /* plain / inset */
    mn = e_menu_new();
    mi = e_menu_item_new(mn);
    e_menu_item_label_set(mi, _("Plain"));
@@ -753,7 +760,7 @@ _attach_menu(void *data, E_Gadcon_Client *gcc, E_Menu *menu)
 
    mi = e_menu_item_new(menu);
    e_menu_item_label_set(mi, _("Appearance"));
-   e_util_menu_item_theme_icon_set(mi, "preferences-appearance");
+   e_util_menu_item_theme_icon_set(mi, "preferences-look");
    e_menu_item_submenu_set(mi, mn);
    e_object_del(E_OBJECT(mn));
 
@@ -781,25 +788,25 @@ _attach_menu(void *data, E_Gadcon_Client *gcc, E_Menu *menu)
 
    mi = e_menu_item_new(menu);
    e_menu_item_label_set(mi, _("Behavior"));
-   e_util_menu_item_theme_icon_set(mi, "preferences-appearance");
+   e_util_menu_item_theme_icon_set(mi, "preferences-look");
    e_menu_item_submenu_set(mi, mn);
    e_object_del(E_OBJECT(mn));
 
-   /* Move / resize*/
    mi = e_menu_item_new(menu);
-   e_menu_item_label_set(mi, _("Begin move/resize this gadget"));
-   e_util_menu_item_theme_icon_set(mi, "transform-scale");
-   e_menu_item_callback_set(mi, on_menu_edit, gcc);
+   e_menu_item_separator_set(mi, 1);
 
    e_gadcon_client_add_location_menu(gcc, menu);
 
    /* Remove this gadgets */
    mi = e_menu_item_new(menu);
-   e_menu_item_label_set(mi, _("Remove this gadget"));
+   e_menu_item_label_set(mi, _("Remove"));
    e_util_menu_item_theme_icon_set(mi, "list-remove");
    e_menu_item_callback_set(mi, on_menu_delete, gcc);
 
    /* Add other gadgets */
+   mi = e_menu_item_new(menu);
+   e_menu_item_separator_set(mi, 1);
+
    mi = e_menu_item_new(menu);
    e_menu_item_label_set(mi, _("Add other gadgets"));
    e_util_menu_item_theme_icon_set(mi, "list-add");
@@ -853,7 +860,7 @@ _get_bind_text(const char* action)
 
 /* Callbacks */
 static void
-on_shape_change(void *data, E_Container_Shape *es, E_Container_Shape_Change ch)
+on_shape_change(void *data __UNUSED__, E_Container_Shape *es, E_Container_Shape_Change ch __UNUSED__)
 {
    const Eina_List *l, *g;
    E_Gadcon *gc;
@@ -882,7 +889,7 @@ on_shape_change(void *data, E_Container_Shape *es, E_Container_Shape_Change ch)
 }
 
 static void
-on_menu_style_plain(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_style_plain(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Gadcon_Client *gcc;
 
@@ -899,7 +906,7 @@ on_menu_style_plain(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-on_menu_style_inset(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_style_inset(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Gadcon_Client *gcc;
 
@@ -915,7 +922,6 @@ on_menu_style_inset(void *data, E_Menu *m, E_Menu_Item *mi)
 
    e_config_save_queue();
 }
-
 
 static void
 _menu_style_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
@@ -958,25 +964,25 @@ _menu_style_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
 }
 
 static void
-on_menu_style_float(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_style_float(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    _menu_style_orient(data, E_GADCON_ORIENT_FLOAT);
 }
 
 static void
-on_menu_style_horiz(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_style_horiz(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    _menu_style_orient(data, E_GADCON_ORIENT_HORIZ);
 }
 
 static void
-on_menu_style_vert(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_style_vert(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    _menu_style_orient(data, E_GADCON_ORIENT_VERT);
 }
 
 static void
-on_menu_layer_bg(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_layer_bg(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    const Eina_List *l;
    E_Config_Gadcon_Client *cf;
@@ -1007,7 +1013,7 @@ on_menu_layer_bg(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-on_menu_layer_top(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_layer_top(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    const Eina_List *l;
    E_Config_Gadcon_Client *cf;
@@ -1040,13 +1046,13 @@ on_menu_layer_top(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-on_menu_edit(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_edit(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    gadman_gadget_edit_start(data);
 }
 
 static void
-on_menu_add(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_add(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__)
 {
    if (Man->visible)
      gadman_gadgets_hide();
@@ -1054,14 +1060,14 @@ on_menu_add(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-on_menu_delete(void *data, E_Menu *m, E_Menu_Item *mi)
+on_menu_delete(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    gadman_gadget_del(data);
    e_config_save_queue();
 }
 
 static void
-on_frame_click(void *data, Evas *e, Evas_Object *obj, void *event_info)
+on_frame_click(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
 {
    Evas_Event_Mouse_Down *ev;
    E_Gadcon_Client *gcc;
@@ -1076,14 +1082,15 @@ on_frame_click(void *data, Evas *e, Evas_Object *obj, void *event_info)
 
    if (ev->button == 5)
      {
-	E_Menu *mn;
+	E_Menu *ma, *mg;
 	int cx, cy, cw, ch;
 
-	mn = e_menu_new();
-	gcc->menu = mn;
-	e_gadcon_client_util_menu_items_append(gcc, mn, 0);
+	ma = e_menu_new();
+	gcc->menu = ma;
+	mg = e_menu_new();
+	e_gadcon_client_util_menu_items_append(gcc, ma, mg, 0);
 	e_gadcon_canvas_zone_geometry_get(gcc->gadcon, &cx, &cy, &cw, &ch);
-	e_menu_activate_mouse(mn,
+	e_menu_activate_mouse(ma,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
@@ -1091,7 +1098,7 @@ on_frame_click(void *data, Evas *e, Evas_Object *obj, void *event_info)
 }
 
 static void
-on_top(void *data, Evas_Object *o, const char *em, const char *src)
+on_top(void *data, Evas_Object *o __UNUSED__, const char *em __UNUSED__, const char *src __UNUSED__)
 {
    static int ox, oy, ow, oh; //Object coord
    static int dy;             //Mouse offset
@@ -1143,7 +1150,7 @@ on_top(void *data, Evas_Object *o, const char *em, const char *src)
 }
 
 static void
-on_right(void *data, Evas_Object *o, const char *em, const char *src)
+on_right(void *data, Evas_Object *o __UNUSED__, const char *em __UNUSED__, const char *src __UNUSED__)
 {
    Evas_Object *mover;
    static int ox, oy, ow, oh; //Object coord
@@ -1184,7 +1191,7 @@ on_right(void *data, Evas_Object *o, const char *em, const char *src)
 }
 
 static void
-on_down(void *data, Evas_Object *o, const char *em, const char *src)
+on_down(void *data, Evas_Object *o __UNUSED__, const char *em __UNUSED__, const char *src __UNUSED__)
 {
    Evas_Object *mover;
    static int ox, oy, ow, oh; //Object coord
@@ -1225,7 +1232,7 @@ on_down(void *data, Evas_Object *o, const char *em, const char *src)
 }
 
 static void
-on_left(void *data, Evas_Object *o, const char *em, const char *src)
+on_left(void *data, Evas_Object *o __UNUSED__, const char *em __UNUSED__, const char *src __UNUSED__)
 {
    Evas_Object *mover;
    static int ox, oy, ow, oh; //Object coord
@@ -1278,7 +1285,7 @@ on_left(void *data, Evas_Object *o, const char *em, const char *src)
 }
 
 static void
-on_move(void *data, Evas_Object *o, const char *em, const char *src)
+on_move(void *data, Evas_Object *o __UNUSED__, const char *em __UNUSED__, const char *src __UNUSED__)
 {
    Evas_Object *mover;
    static int dx, dy;  //Offset of mouse pointer inside the mover
@@ -1359,7 +1366,7 @@ on_move(void *data, Evas_Object *o, const char *em, const char *src)
 }
 
 static void
-on_bg_click(void *data, Evas_Object *o, const char *em, const char *src)
+on_bg_click(void *data __UNUSED__, Evas_Object *o __UNUSED__, const char *em __UNUSED__, const char *src __UNUSED__)
 {
    gadman_gadgets_hide();
 }

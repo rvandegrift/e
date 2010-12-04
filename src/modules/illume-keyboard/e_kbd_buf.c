@@ -2,8 +2,6 @@
 #include "e_kbd_buf.h"
 #include "e_kbd_dict.h"
 
-#include <math.h>
-
 static E_Kbd_Buf_Layout *
 _e_kbd_buf_new(void)
 {
@@ -58,7 +56,7 @@ _e_kbd_buf_actual_string_clear(E_Kbd_Buf *kb)
 }
 
 static E_Kbd_Buf_Key *
-_e_kbd_buf_at_coord_get(E_Kbd_Buf *kb, E_Kbd_Buf_Layout *kbl, int x, int y)
+_e_kbd_buf_at_coord_get(E_Kbd_Buf *kb __UNUSED__, E_Kbd_Buf_Layout *kbl, int x, int y)
 {
    Eina_List *l;
    
@@ -78,7 +76,7 @@ _e_kbd_buf_at_coord_get(E_Kbd_Buf *kb, E_Kbd_Buf_Layout *kbl, int x, int y)
 }
 
 static E_Kbd_Buf_Key *
-_e_kbd_buf_closest_get(E_Kbd_Buf *kb, E_Kbd_Buf_Layout *kbl, int x, int y)
+_e_kbd_buf_closest_get(E_Kbd_Buf *kb __UNUSED__, E_Kbd_Buf_Layout *kbl, int x, int y)
 {
    Eina_List *l;
    E_Kbd_Buf_Key *ky_closest = NULL;
@@ -106,7 +104,7 @@ _e_kbd_buf_closest_get(E_Kbd_Buf *kb, E_Kbd_Buf_Layout *kbl, int x, int y)
 }
 
 static const char *
-_e_kbd_buf_keystroke_key_string_get(E_Kbd_Buf *kb, E_Kbd_Buf_Keystroke *ks, E_Kbd_Buf_Key *ky)
+_e_kbd_buf_keystroke_key_string_get(E_Kbd_Buf *kb __UNUSED__, E_Kbd_Buf_Keystroke *ks, E_Kbd_Buf_Key *ky)
 {
    const char *str = NULL;
    
@@ -193,7 +191,6 @@ _e_kbd_buf_matches_find(Eina_List *matches, const char *s)
 static void
 _e_kbd_buf_matches_update(E_Kbd_Buf *kb)
 {
-   Eina_List *matches = NULL;
    const char *word;
    int pri, i;
    E_Kbd_Dict *dicts[3];
@@ -235,7 +232,7 @@ _e_kbd_buf_cb_data_dict_reload(void *data)
 }
 
 static void
-_e_kbd_buf_cb_data_dict_change(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path)
+_e_kbd_buf_cb_data_dict_change(void *data, Ecore_File_Monitor *em __UNUSED__, Ecore_File_Event event __UNUSED__, const char *path __UNUSED__)
 {
    E_Kbd_Buf *kb;
    
@@ -377,13 +374,13 @@ EAPI void
 e_kbd_buf_layout_key_add(E_Kbd_Buf *kb, const char *key,  const char *key_shift, const char *key_capslock, int x, int y, int w, int h)
 {
    E_Kbd_Buf_Key *ky;
-   
+
    if (!key) return;
    if (!kb->layout) kb->layout = _e_kbd_buf_new();
    if (!kb->layout) return;
    ky = E_NEW(E_Kbd_Buf_Key, 1);
    if (!ky) return;
-   if (key) ky->key = eina_stringshare_add(key);
+   ky->key = eina_stringshare_add(key);
    if (key_shift) ky->key_shift = eina_stringshare_add(key_shift);
    if (key_capslock) ky->key_capslock = eina_stringshare_add(key_capslock);
    ky->x = x;
@@ -443,8 +440,8 @@ _e_kbd_buf_keystroke_point_add(E_Kbd_Buf *kb, E_Kbd_Buf_Keystroke *ks)
      {
 	E_Kbd_Buf_Key *ky;
 	const char *str;
-	int px, py, dx, dy, d, fuzz;
-	
+	int px, py, dx, dy, d;
+
 	ky = l->data;
 	px = ky->x + (ky->w / 2);
 	py = ky->y + (ky->h / 2);

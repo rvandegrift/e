@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e_mmx.h"
 #include "e_object.h"
 #include "e_user.h"
@@ -34,6 +31,7 @@
 #include "e_hints.h"
 #include "e_signals.h"
 #include "e_xinerama.h"
+#include "e_randr.h"
 #include "e_table.h"
 #include "e_layout.h"
 #include "e_font.h"

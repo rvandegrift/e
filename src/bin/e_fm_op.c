@@ -1,7 +1,3 @@
-/*
- * vim:cindent:ts=8:sw=3:sts=8:expandtab:cino=>5n-3f0^-2{2
- */
-
 #include "config.h"
 
 #ifndef _FILE_OFFSET_BITS
@@ -383,7 +379,7 @@ _e_fm_op_task_free(void *t)
 /* Removes link task from work queue.
  * Link task is not NULL in case of MOVE. Then two tasks are created: copy and remove.
  * Remove task is a link task for the copy task. If copy task is aborted (e.g. error 
- * occured and user chooses to ignore this), then the remove task is removed from 
+ * occurred and user chooses to ignore this), then the remove task is removed from
  * queue with this functions.
  */
 static void 
@@ -414,7 +410,7 @@ _e_fm_op_remove_link_task(E_Fm_Op_Task *task)
  * did not actually read enough data.
  */
 static Eina_Bool
-_e_fm_op_stdin_data(void *data, Ecore_Fd_Handler * fd_handler)
+_e_fm_op_stdin_data(void *data __UNUSED__, Ecore_Fd_Handler * fd_handler)
 {
    int fd;
    static char *buf = NULL;
@@ -641,7 +637,7 @@ _e_fm_op_idler_handle_error(int *mark, Eina_List **queue, Eina_List **node, E_Fm
  * After this, just finish everything.
  */
 static Eina_Bool
-_e_fm_op_work_idler(void *data)
+_e_fm_op_work_idler(void *data __UNUSED__)
 {
    /* E_Fm_Op_Task is marked static here because _e_fm_op_work_queue can be populated with another
     * tasks between calls. So it is possible when a part of file is copied and then 
@@ -668,7 +664,7 @@ _e_fm_op_work_idler(void *data)
      {
         if ((_e_fm_op_separator) && 
             (_e_fm_op_work_queue == _e_fm_op_separator) && 
-            (_e_fm_op_scan_idler_p == NULL))
+            (!_e_fm_op_scan_idler_p))
           {
              /* You may want to look at the comment in _e_fm_op_scan_atom() about this separator thing. */
              _e_fm_op_work_queue = eina_list_remove_list(_e_fm_op_work_queue, _e_fm_op_separator);
@@ -676,7 +672,7 @@ _e_fm_op_work_idler(void *data)
              return ECORE_CALLBACK_RENEW;
           }
 
-        if ((_e_fm_op_scan_idler_p == NULL) && (!_e_fm_op_work_error) && 
+        if ((!_e_fm_op_scan_idler_p) && (!_e_fm_op_work_error) && 
             (!_e_fm_op_scan_error))
           ecore_main_loop_quit();
 
@@ -719,7 +715,7 @@ _e_fm_op_work_idler(void *data)
  * for those files. And we don't have _e_fm_op_separator here.
  */
 Eina_Bool
-_e_fm_op_scan_idler(void *data)
+_e_fm_op_scan_idler(void *data __UNUSED__)
 {
    static Eina_List *node = NULL;
    E_Fm_Op_Task *task = NULL;
@@ -854,7 +850,7 @@ _e_fm_op_scan_idler(void *data)
  * are for this format string,
  */
 static void
-_e_fm_op_send_error(E_Fm_Op_Task * task, E_Fm_Op_Type type, const char *fmt, ...)
+_e_fm_op_send_error(E_Fm_Op_Task *task __UNUSED__, E_Fm_Op_Type type, const char *fmt, ...)
 {
    va_list ap;
    char buffer[READBUFSIZE];
@@ -1216,14 +1212,14 @@ _e_fm_op_open_files(E_Fm_Op_Task *task)
    if (!data->from) 
      {
         data->from = fopen(task->src.name, "rb");
-        if (data->from == NULL)
+        if (!data->from)
           _E_FM_OP_ERROR_SEND_WORK(task, E_FM_OP_ERROR, "Cannot open file '%s' for reading: %s.", task->src.name);
      }
 
    if (!data->to)
      {
         data->to = fopen(task->dst.name, "wb");
-        if (data->to == NULL)
+        if (!data->to)
           _E_FM_OP_ERROR_SEND_WORK(task, E_FM_OP_ERROR, "Cannot open file '%s' for writing: %s.", task->dst.name);
      }
 

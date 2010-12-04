@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 static void _e_help(void);
@@ -130,7 +127,7 @@ main(int argc, char **argv)
      {
 	write_imc = calloc(sizeof(E_Input_Method_Config), 1);
 	write_imc->version = E_INTL_INPUT_METHOD_CONFIG_VERSION;
-	if (read_imc != NULL)
+	if (read_imc)
 	  {
 	     write_imc->e_im_name = read_imc->e_im_name;
 	     write_imc->gtk_im_module = read_imc->gtk_im_module;
@@ -140,17 +137,17 @@ main(int argc, char **argv)
 	     write_imc->e_im_setup_exec = read_imc->e_im_setup_exec;
 	  }
 	     
-	if (set_name != NULL)	
+	if (set_name)	
 	  write_imc->e_im_name = set_name;     
-	if (set_gtk_im_module != NULL)     
+	if (set_gtk_im_module)     
 	  write_imc->gtk_im_module = set_gtk_im_module;     
-	if (set_qt_im_module != NULL)     
+	if (set_qt_im_module)     
 	  write_imc->qt_im_module = set_qt_im_module;
-	if (set_xmodifiers != NULL)     
+	if (set_xmodifiers)     
 	  write_imc->xmodifiers = set_xmodifiers;
-	if (set_exe != NULL)
+	if (set_exe)
 	  write_imc->e_im_exec = set_exe;
-	if (set_setup != NULL)
+	if (set_setup)
 	  write_imc->e_im_setup_exec = set_setup;
 
 	

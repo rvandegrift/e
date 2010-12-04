@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 typedef struct _E_Resist_Rect E_Resist_Rect;
@@ -126,7 +123,7 @@ e_resist_container_border_position(E_Container *con, Eina_List *skiplist,
 }
 
 EAPI int
-e_resist_container_gadman_position(E_Container *con, Eina_List *skiplist,
+e_resist_container_gadman_position(E_Container *con, Eina_List *skiplist __UNUSED__,
 				   int px, int py, int pw, int ph,
 				   int x, int y, int w, int h,
 				   int *rx, int *ry)

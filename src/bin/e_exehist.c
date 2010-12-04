@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include <libgen.h>
 
@@ -43,7 +40,7 @@ static E_Powersave_Deferred_Action *_e_exehist_unload_defer = NULL;
 static int _e_exehist_changes = 0;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_exehist_init(void)
 {
    _e_exehist_config_item_edd = E_CONFIG_DD_NEW("E_Exehist_Item", E_Exehist_Item);
@@ -69,7 +66,7 @@ e_exehist_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_exehist_shutdown(void)
 {
    if (_e_exehist_unload_defer)
@@ -99,7 +96,7 @@ e_exehist_add(const char *launch_method, const char *exe)
    ei->launch_method = eina_stringshare_add(launch_method);
    ei->exe = eina_stringshare_add(exe);
    ei->normalized_exe = _e_exehist_normalize_exe(exe);
-   ei->exetime = ecore_time_get();
+   ei->exetime = ecore_time_unix_get();
    _e_exehist->history = eina_list_append(_e_exehist->history, ei);
    _e_exehist_limit();
    _e_exehist_changes++;
@@ -314,7 +311,7 @@ e_exehist_mime_desktop_add(const char *mime, Efreet_Desktop *desktop)
      }
    ei->launch_method = eina_stringshare_add(mime);
    ei->exe = eina_stringshare_add(f);
-   ei->exetime = ecore_time_get();
+   ei->exetime = ecore_time_unix_get();
    _e_exehist->mimes = eina_list_append(_e_exehist->mimes, ei);
    _e_exehist_limit();
    _e_exehist_changes++;
@@ -478,7 +475,7 @@ _e_exehist_normalize_exe(const char *exe)
 }
 
 static void
-_e_exehist_cb_unload(void *data)
+_e_exehist_cb_unload(void *data __UNUSED__)
 {
    if (_e_exehist_changes)
      {

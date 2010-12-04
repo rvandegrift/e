@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
@@ -16,13 +13,13 @@ static void _e_win_cb_delete(Ecore_Evas *ee);
 static Eina_List *wins = NULL;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_win_init(void)
 {
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_win_shutdown(void)
 {
 /*   

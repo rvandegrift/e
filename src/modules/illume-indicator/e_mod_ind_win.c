@@ -20,17 +20,21 @@ static void _e_mod_ind_win_cb_menu_pre(void *data, E_Menu *mn);
 static void _e_mod_ind_win_cb_menu_post(void *data, E_Menu *mn __UNUSED__);
 static void _e_mod_ind_win_cb_menu_contents(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi __UNUSED__);
 static void _e_mod_ind_win_cb_menu_edit(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi __UNUSED__);
+static void _e_mod_ind_win_cb_show(Ecore_Evas *ee);
+static void _e_mod_ind_win_cb_hide(Ecore_Evas *ee);
 
 Ind_Win *
 e_mod_ind_win_new(E_Zone *zone) 
 {
    Ind_Win *iwin;
    Ecore_X_Window_State states[2];
+   Evas_Coord h = 0;
 
    /* create our new indicator window object */
    iwin = E_OBJECT_ALLOC(Ind_Win, IND_WIN_TYPE, _e_mod_ind_win_cb_free);
    if (!iwin) return NULL;
 
+   h = (il_ind_cfg->height * e_scale);
    iwin->zone = zone;
 
    /* create new window */
@@ -52,6 +56,11 @@ e_mod_ind_win_new(E_Zone *zone)
 
    /* set this window to not accept or take focus */
    ecore_x_icccm_hints_set(iwin->win->evas_win, 0, 0, 0, 0, 0, 0, 0);
+
+   /* create the popup */
+   iwin->popup = e_popup_new(zone, 0, 0, zone->w, h);
+   e_popup_name_set(iwin->popup, "indicator");
+   e_popup_layer_set(iwin->popup, 200);
 
    /* create our event rectangle */
    iwin->o_event = evas_object_rectangle_add(iwin->win->evas);
@@ -81,11 +90,12 @@ e_mod_ind_win_new(E_Zone *zone)
    evas_object_move(iwin->o_base, 0, 0);
    evas_object_show(iwin->o_base);
 
+   e_popup_edje_bg_object_set(iwin->popup, iwin->o_base);
+
    /* create our gadget container */
    iwin->gadcon = e_gadcon_swallowed_new("illume-indicator", zone->id, 
                                          iwin->o_base, "e.swallow.content");
-   edje_extern_object_min_size_set(iwin->gadcon->o_container, 
-                                   zone->w, (il_ind_cfg->height * e_scale));
+   edje_extern_object_min_size_set(iwin->gadcon->o_container, zone->w, h);
    e_gadcon_min_size_request_callback_set(iwin->gadcon, 
                                           _e_mod_ind_win_cb_min_size_request, 
                                           iwin);
@@ -98,7 +108,8 @@ e_mod_ind_win_new(E_Zone *zone)
    e_gadcon_ecore_evas_set(iwin->gadcon, iwin->win->ecore_evas);
 
    e_gadcon_util_menu_attach_func_set(iwin->gadcon, 
-                                      _e_mod_ind_win_cb_menu_items_append, iwin);
+                                      _e_mod_ind_win_cb_menu_items_append, 
+                                      iwin);
    e_gadcon_populate(iwin->gadcon);
 
    /* hook into property change so we can adjust w/ e_scale */
@@ -115,15 +126,23 @@ e_mod_ind_win_new(E_Zone *zone)
                                               _e_mod_ind_win_cb_zone_resize, 
                                               iwin));
 
-   /* set minimum size of this window */
-   e_win_size_min_set(iwin->win, zone->w, (il_ind_cfg->height * e_scale));
+   /* set minimum size of this window & popup */
+   e_win_size_min_set(iwin->win, zone->w, h);
+   ecore_evas_size_min_set(iwin->popup->ecore_evas, zone->w, h);
 
    /* position and resize this window */
-   e_win_move_resize(iwin->win, zone->x, zone->y, zone->w, 
-                     (il_ind_cfg->height * e_scale));
+   e_win_move_resize(iwin->win, zone->x, zone->y, zone->w, h);
+   e_popup_move_resize(iwin->popup, zone->x, zone->y, zone->w, h);
 
    /* show the window */
    e_win_show(iwin->win);
+   e_popup_show(iwin->popup);
+
+   /* setup callbacks for show/hide so we can do the proper thing with the 
+    * popup */
+   ecore_evas_data_set(iwin->win->ecore_evas, "iwin", iwin);
+   ecore_evas_callback_show_set(iwin->win->ecore_evas, _e_mod_ind_win_cb_show);
+   ecore_evas_callback_hide_set(iwin->win->ecore_evas, _e_mod_ind_win_cb_hide);
 
    /* set this window on proper zone */
    e_border_zone_set(iwin->win->border, zone);
@@ -135,8 +154,7 @@ e_mod_ind_win_new(E_Zone *zone)
 
    /* tell conformant apps our position and size */
    ecore_x_e_illume_indicator_geometry_set(zone->black_win, zone->x, zone->y, 
-                                           zone->w, 
-                                           (il_ind_cfg->height * e_scale));
+                                           zone->w, h);
 
    return iwin;
 }
@@ -172,6 +190,9 @@ _e_mod_ind_win_cb_free(Ind_Win *iwin)
    /* tell conformant apps our position and size */
    ecore_x_e_illume_indicator_geometry_set(iwin->zone->black_win, 0, 0, 0, 0);
 
+   if (iwin->popup) e_object_del(E_OBJECT(iwin->popup));
+   iwin->popup = NULL;
+
    /* delete the window */
    if (iwin->win) e_object_del(E_OBJECT(iwin->win));
    iwin->win = NULL;
@@ -185,15 +206,20 @@ _e_mod_ind_win_cb_win_prop(void *data, int type __UNUSED__, void *event)
 {
    Ind_Win *iwin;
    Ecore_X_Event_Window_Property *ev;
+   Evas_Coord h = 0;
 
    ev = event;
 
    if (!(iwin = data)) return ECORE_CALLBACK_PASS_ON;
-   if (ev->win != iwin->win->container->manager->root) return ECORE_CALLBACK_PASS_ON;
+   if (ev->win != iwin->win->container->manager->root) 
+     return ECORE_CALLBACK_PASS_ON;
    if (ev->atom != ATM_ENLIGHTENMENT_SCALE) return ECORE_CALLBACK_PASS_ON;
 
+   h = (il_ind_cfg->height * e_scale);
+
    /* set minimum size of this window */
-   e_win_size_min_set(iwin->win, iwin->zone->w, (il_ind_cfg->height * e_scale));
+   e_win_size_min_set(iwin->win, iwin->zone->w, h);
+   ecore_evas_size_min_set(iwin->popup->ecore_evas, iwin->zone->w, h);
 
    /* NB: Not sure why, but we need to tell this border to fetch icccm 
     * size position hints now :( (NOTE: This was not needed a few days ago) 
@@ -201,12 +227,13 @@ _e_mod_ind_win_cb_win_prop(void *data, int type __UNUSED__, void *event)
    iwin->win->border->client.icccm.fetch.size_pos_hints = 1;
 
    /* resize this window */
-   e_win_resize(iwin->win, iwin->zone->w, (il_ind_cfg->height * e_scale));
+   e_win_resize(iwin->win, iwin->zone->w, h);
+   e_popup_resize(iwin->popup, iwin->zone->w, h);
 
    /* tell conformant apps our position and size */
    ecore_x_e_illume_indicator_geometry_set(iwin->zone->black_win, 
                                            iwin->win->x, iwin->win->y, 
-                                           iwin->win->w, (il_ind_cfg->height * e_scale));
+                                           iwin->win->w, h);
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -216,13 +243,17 @@ _e_mod_ind_win_cb_zone_resize(void *data, int type __UNUSED__, void *event)
 {
    Ind_Win *iwin;
    E_Event_Zone_Move_Resize *ev;
+   Evas_Coord h = 0;
 
    ev = event;
    if (!(iwin = data)) return ECORE_CALLBACK_PASS_ON;
    if (ev->zone != iwin->zone) return ECORE_CALLBACK_PASS_ON;
 
+   h = (il_ind_cfg->height * e_scale);
+
    /* set minimum size of this window to match zone size */
-   e_win_size_min_set(iwin->win, ev->zone->w, (il_ind_cfg->height * e_scale));
+   e_win_size_min_set(iwin->win, ev->zone->w, h);
+   ecore_evas_size_min_set(iwin->popup->ecore_evas, ev->zone->w, h);
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -233,6 +264,7 @@ _e_mod_ind_win_cb_resize(E_Win *win)
    Ind_Win *iwin;
 
    if (!(iwin = win->data)) return;
+   if (iwin->popup) e_popup_resize(iwin->popup, win->w, win->h);
    if (iwin->o_event) evas_object_resize(iwin->o_event, win->w, win->h);
    if (iwin->o_base) evas_object_resize(iwin->o_base, win->w, win->h);
    if (iwin->gadcon->o_container)
@@ -259,11 +291,6 @@ _e_mod_ind_win_cb_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj
         iwin->drag.dnd = 0;
         iwin->drag.y = ev->output.y;
         iwin->drag.by = iwin->win->border->y;
-
-        /* change mouse pointer to indicate we are dragging */
-        if (iwin->win->border->pointer) 
-          e_pointer_type_push(iwin->win->border->pointer, 
-                              iwin->win->border, "move");
      }
    else if (ev->button == 3) 
      {
@@ -292,8 +319,9 @@ _e_mod_ind_win_cb_mouse_up(void *data, Evas *evas __UNUSED__, Evas_Object *obj _
    Evas_Event_Mouse_Up *ev;
 
    ev = event;
-   if (ev->button != 1) return;
    if (!(iwin = data)) return;
+
+   if (ev->button != 1) return;
 
    /* if we are not dragging, send message to toggle quickpanel state */
    if ((!iwin->drag.dnd) && (iwin->mouse_down == 1)) 
@@ -310,7 +338,8 @@ _e_mod_ind_win_cb_mouse_up(void *data, Evas *evas __UNUSED__, Evas_Object *obj _
         bd = iwin->win->border;
 
         /* reset mouse pointer */
-        if (bd->pointer) e_pointer_type_pop(bd->pointer, bd, "move");
+        if (bd->pointer) 
+          e_pointer_type_pop(bd->pointer, bd, "move");
 
         /* tell edj we are done moving */
         edje_object_signal_emit(iwin->o_base, "e,action,move,stop", "e");
@@ -343,6 +372,11 @@ _e_mod_ind_win_cb_mouse_move(void *data, Evas *evas __UNUSED__, Evas_Object *obj
      {
         iwin->drag.dnd = 1;
         iwin->drag.start = 0;
+
+        /* change mouse pointer to indicate we are dragging */
+        if (iwin->win->border->pointer) 
+          e_pointer_type_push(iwin->win->border->pointer, 
+                              iwin->win->border, "move");
 
         /* tell edj we are going to start moving */
         edje_object_signal_emit(iwin->o_base, "e,action,move,start", "e");
@@ -397,6 +431,7 @@ _e_mod_ind_win_cb_mouse_move(void *data, Evas *evas __UNUSED__, Evas_Object *obj
              bd->y = ny;
              bd->changes.pos = 1;
              bd->changed = 1;
+             e_popup_move(iwin->popup, iwin->popup->x, ny);
           }
      }
 }
@@ -511,4 +546,22 @@ _e_mod_ind_win_cb_menu_edit(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi _
      e_gadcon_edit_end(iwin->gadcon);
    else
      e_gadcon_edit_begin(iwin->gadcon);
+}
+
+static void 
+_e_mod_ind_win_cb_show(Ecore_Evas *ee) 
+{
+   Ind_Win *iwin;
+
+   iwin = ecore_evas_data_get(ee, "iwin");
+   e_popup_show(iwin->popup);
+}
+
+static void 
+_e_mod_ind_win_cb_hide(Ecore_Evas *ee) 
+{
+   Ind_Win *iwin;
+
+   iwin = ecore_evas_data_get(ee, "iwin");
+   e_popup_hide(iwin->popup);
 }

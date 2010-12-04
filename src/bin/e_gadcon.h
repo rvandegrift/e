@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 #define E_GADCON_CLIENT(x) ((E_Gadcon_Client *)(x))
@@ -236,12 +233,12 @@ struct _E_Gadcon_Location
      } gadget_remove;
 };
 
-EAPI int              e_gadcon_init(void);
-EAPI int              e_gadcon_shutdown(void);
+EINTERN int              e_gadcon_init(void);
+EINTERN int              e_gadcon_shutdown(void);
 EAPI void             e_gadcon_provider_register(const E_Gadcon_Client_Class *cc);
 EAPI void             e_gadcon_provider_unregister(const E_Gadcon_Client_Class *cc);
 EAPI Eina_List       *e_gadcon_provider_list(void);
-EAPI E_Gadcon        *e_gadcon_swallowed_new(const char *name, int id, Evas_Object *obj, char *swallow_name);
+EAPI E_Gadcon        *e_gadcon_swallowed_new(const char *name, int id, Evas_Object *obj, const char *swallow_name);
 EAPI void             e_gadcon_custom_new(E_Gadcon *gc);
 EAPI void             e_gadcon_custom_del(E_Gadcon *gc);
 EAPI void             e_gadcon_swallowed_min_size_set(E_Gadcon *gc, Evas_Coord w, Evas_Coord h);
@@ -288,8 +285,9 @@ EAPI void             e_gadcon_client_autoscroll_update(E_Gadcon_Client *gcc, in
 EAPI void             e_gadcon_client_autoscroll_cb_set(E_Gadcon_Client *gcc, void (*func)(void *data), void *data);
 EAPI void             e_gadcon_client_resizable_set(E_Gadcon_Client *gcc, int resizable);
 EAPI int	      e_gadcon_client_geometry_get(E_Gadcon_Client *gcc, int *x, int *y, int *w, int *h);
+EAPI int              e_gadcon_client_viewport_geometry_get(E_Gadcon_Client *gcc, int *x, int *y, int *w, int *h);
 EAPI E_Zone          *e_gadcon_client_zone_get(E_Gadcon_Client *gcc);
-EAPI void             e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu, int flags);
+EAPI void             e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu_main, E_Menu *menu_gadget, int flags);
 EAPI void             e_gadcon_client_util_menu_attach(E_Gadcon_Client *gcc);
 EAPI void             e_gadcon_locked_set(E_Gadcon *gc, int lock);
 EAPI void             e_gadcon_urgent_show(E_Gadcon *gc);

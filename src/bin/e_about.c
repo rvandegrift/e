@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
@@ -23,7 +20,7 @@ e_about_new(E_Container *con)
    e_obj_dialog_obj_part_text_set
      (od, "e.textblock.about",
       _(
-	"Copyright &copy; 1999-2009, by the Enlightenment Development Team.<br>"
+	"Copyright &copy; 1999-2010, by the Enlightenment Development Team.<br>"
 	"<br>"
 	"We hope you enjoy using this software as much as we enjoyed "
 	"writing it.<br>"
@@ -34,7 +31,7 @@ e_about_new(E_Container *con)
 	"installed on your system.<br>"
 	"<br>"
 	"Enlightenment is under <hilight>HEAVY DEVELOPMENT</hilight> and it "
-	"is not stable. Many features are incomplete or even non-existant "
+	"is not stable. Many features are incomplete or even non-existent "
 	"yet and may have many bugs. You have been <hilight>WARNED!</hilight>"
 	)
       );

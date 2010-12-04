@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -90,7 +87,7 @@ _connman_toggle_offline_mode_cb(void *data, DBusMessage *msg __UNUSED__, DBusErr
 void
 _connman_toggle_offline_mode(E_Connman_Module_Context *ctxt)
 {
-   bool offline;
+   Eina_Bool offline;
 
    if ((!ctxt) || (!ctxt->has_manager))
      {
@@ -323,7 +320,7 @@ _connman_service_changed(void *data, const E_Connman_Element *element)
    E_Connman_Service *service = data;
    const char *str;
    unsigned char u8;
-   bool b;
+   Eina_Bool b;
 
 #define GSTR(name_, getter)				\
    str = NULL;						\
@@ -337,9 +334,9 @@ _connman_service_changed(void *data, const E_Connman_Element *element)
    GSTR(state, e_connman_service_state_get);
    GSTR(error, e_connman_service_error_get);
    GSTR(security, e_connman_service_security_get);
-   GSTR(ipv4_method, e_connman_service_ipv4_method_get);
-   GSTR(ipv4_address, e_connman_service_ipv4_address_get);
-   GSTR(ipv4_netmask, e_connman_service_ipv4_netmask_get);
+   GSTR(ipv4_method, e_connman_service_ipv4_configuration_method_get);
+   GSTR(ipv4_address, e_connman_service_ipv4_configuration_address_get);
+   GSTR(ipv4_netmask, e_connman_service_ipv4_configuration_netmask_get);
 #undef GSTR
 
    if ((service->state != e_str_failure) && (service->error))
@@ -391,7 +388,7 @@ _connman_service_new(E_Connman_Module_Context *ctxt, E_Connman_Element *element)
    E_Connman_Service *service;
    const char *str;
    unsigned char u8;
-   bool b;
+   Eina_Bool b;
 
    if (!element)
      return NULL;
@@ -1214,24 +1211,26 @@ static void
 _connman_menu_new(E_Connman_Instance *inst, Evas_Event_Mouse_Down *ev)
 {
    E_Zone *zone;
-   E_Menu *mn;
+   E_Menu *ma, *mg;
    E_Menu_Item *mi;
    int x, y;
 
    zone = e_util_zone_current_get(e_manager_current_get());
 
-   mn = e_menu_new();
-   e_menu_post_deactivate_callback_set(mn, _connman_menu_cb_post, inst);
-   inst->menu = mn;
+   ma = e_menu_new();
+   e_menu_post_deactivate_callback_set(ma, _connman_menu_cb_post, inst);
+   inst->menu = ma;
 
-   mi = e_menu_item_new(mn);
+   mg = e_menu_new();
+
+   mi = e_menu_item_new(mg);
    e_menu_item_label_set(mi, _("Settings"));
    e_util_menu_item_theme_icon_set(mi, "configure");
    e_menu_item_callback_set(mi, _connman_menu_cb_cfg, inst);
 
-   e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
+   e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
    e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon, &x, &y, NULL, NULL);
-   e_menu_activate_mouse(mn, zone, x + ev->output.x, y + ev->output.y,
+   e_menu_activate_mouse(ma, zone, x + ev->output.x, y + ev->output.y,
 			 1, 1, E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
    evas_event_feed_mouse_up(inst->gcc->gadcon->evas, ev->button,
 			    EVAS_BUTTON_NONE, ev->timestamp, NULL);

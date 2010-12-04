@@ -1,15 +1,15 @@
-prefix=/usr/local
+prefix=/usr/devel
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include/enlightenment
 modules=${exec_prefix}/lib/enlightenment/modules
-config_apps=/usr/local/share/enlightenment/config-apps
-release=ver-svn-06
+config_apps=/usr/devel/share/enlightenment/config-apps
+release=ver-pre-svn-08
 
 Name: enlightenment
 Description: Enlightenmnt Window Manager
-Requires: evas ecore ecore-x ecore-evas ecore-con ecore-ipc ecore-file eet edje efreet efreet-mime eina-0 dbus-1 edbus ehal ehal
-Version: 0.16.999.49898
+Requires: evas >= 1.0.0 ecore >= 1.0.0 ecore-x >= 1.0.0 ecore-evas >= 1.0.0 ecore-con >= 1.0.0 ecore-ipc >= 1.0.0 ecore-file >= 1.0.0 eet >= 1.4.0 edje >= 1.0.0 efreet >= 1.0.0 efreet-mime >= 1.0.0 eina >= 1.0.0 dbus-1 edbus >= 1.0.0 ehal >= 1.0.0 eeze
+Version: 0.16.999.55225
 Libs: -L${libdir}
 Libs.private:  -lm
 Cflags: -I${includedir} -DUSE_E_CONFIG_H

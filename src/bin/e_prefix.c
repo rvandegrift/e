@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
@@ -176,7 +173,7 @@ e_prefix_determine(char *argv0)
    return 0;
 }
 
-EAPI void
+EINTERN void
 e_prefix_shutdown(void)
 {
    E_FREE(_exe_path);
@@ -231,7 +228,7 @@ _e_prefix_share_hunt(void)
    char buf[4096], buf2[4096], *p;
    FILE *f;
 
-   /* sometimes this isnt the case - so we need to do a more exhaustive search
+   /* sometimes this isn't the case - so we need to do a more exhaustive search
     * through more parent and subdirs. hre is an example i have seen:
     * 
     * /blah/whatever/exec/bin/exe

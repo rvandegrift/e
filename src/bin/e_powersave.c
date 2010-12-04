@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 struct _E_Powersave_Deferred_Action
@@ -26,7 +23,7 @@ static E_Powersave_Mode powersave_mode = E_POWERSAVE_MODE_LOW;
 static double defer_time = 5.0;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_powersave_init(void)
 {
    _e_powersave_mode_eval();
@@ -34,7 +31,7 @@ e_powersave_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_powersave_shutdown(void)
 {
    return 1;
@@ -132,7 +129,7 @@ e_powersave_mode_get(void)
 /* local subsystem functions */
 
 static Eina_Bool
-_e_powersave_cb_deferred_timer(void *data)
+_e_powersave_cb_deferred_timer(void *data __UNUSED__)
 {
    E_Powersave_Deferred_Action *pa;
 
@@ -154,7 +151,7 @@ _e_powersave_mode_eval(void)
    
    switch (powersave_mode)
      {
-	/* FIXME: these values are hardcoded - shoudl be configurable */
+	/* FIXME: these values are hardcoded - should be configurable */
       case E_POWERSAVE_MODE_NONE:
 	t = 0.25; /* time to defer "power expensive" activities */
 	break;

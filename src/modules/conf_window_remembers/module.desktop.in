@@ -1,12 +1,13 @@
 [Desktop Entry]
 Type=Link
-Name=Settings - Window Remembers
-Name[cs]=Nastavení - paměť
-Name[eo]=Agordo - Fesnestraj memoroj
-Name[it]=Configurazione - Ricordi finestre
-Name[hu]=Beállítások - Ablak emlékek
-Name[fr]=Configuration - Mémorisations des fenêtres
-Name[tr]=Ayarlar - Pencere Hatırlamaları
+Name=Window Remembers
+Name[cs]=Paměť
+Name[eo]=Fesnestraj memoroj
+Name[it]=Ricordi finestre
+Name[hu]=Ablak emlékek
+Name[fr]=Mémorisations des fenêtres
+Name[tr]=Pencere Hatırlamaları
+Name[pt]=Lembranças de janelas
 Icon=e-module-conf_window_remembers
 Comment=Delete existing window remembers.
 Comment[cs]=K vymazání existujících zapamatovaných vlastností oken.
@@ -15,4 +16,5 @@ Comment[it]=Rimuove le impostazioni da ricordare delle finestre.
 Comment[hu]=Meglévő ablak emlékek törlése.
 Comment[fr]=Permet d'effacer les mémorisations.
 Comment[tr]=Mevcut pencere hatırlamalarını sil.
-X-Enlightenment-ModuleType=config
+Comment[pt]=Apagar as lembranças das janelas
+X-Enlightenment-ModuleType=settings

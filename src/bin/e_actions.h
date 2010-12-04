@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef struct _E_Action E_Action;
@@ -48,8 +45,8 @@ struct _E_Action_Group
    Eina_List *acts;
 };
 
-EAPI int         e_actions_init(void);
-EAPI int         e_actions_shutdown(void);
+EINTERN int         e_actions_init(void);
+EINTERN int         e_actions_shutdown(void);
 
 EAPI Eina_List  *e_action_name_list(void);
 EAPI E_Action   *e_action_add(const char *name);

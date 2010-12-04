@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 typedef struct _E_Smart_Data E_Smart_Data;
@@ -279,7 +276,7 @@ _e_table_smart_disown(Evas_Object *obj)
 }
 
 static void
-_e_table_smart_item_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_table_smart_item_del_hook(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    e_table_unpack(obj);
 }

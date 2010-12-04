@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef enum _E_Zone_Edge
@@ -78,6 +75,7 @@ struct _E_Zone
    Ecore_Evas          *black_ecore_evas;
    Evas                *black_evas;
    Ecore_X_Window       black_win;
+   int                  black_need;
    int                  id;
 
    struct {
@@ -124,8 +122,8 @@ struct _E_Event_Zone_Edge
    int modifiers;
 };
 
-EAPI int        e_zone_init(void);
-EAPI int        e_zone_shutdown(void);
+EINTERN int        e_zone_init(void);
+EINTERN int        e_zone_shutdown(void);
 EAPI E_Zone    *e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h);
 EAPI void       e_zone_name_set(E_Zone *zone, const char *name);
 EAPI void       e_zone_move(E_Zone *zone, int x, int y);

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* yes - i know. glibc specific... but i like being able to do my own */
@@ -81,7 +78,7 @@ e_object_free(E_Object *obj)
     * although this is good - if during cleanup the cleanup func calls
     * other generic funcs to do cleanups on the same object... we get bitching.
     * disable for now (the final free of the struct should probably happen after
-    * the cleanup func and be done byt he object system - set the magic after
+    * the cleanup func and be done by the object system - set the magic after
     * cleanup :)  
     */
 #if 0

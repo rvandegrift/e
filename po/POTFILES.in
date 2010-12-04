@@ -32,8 +32,7 @@ src/bin/e_filereg.c
 src/bin/e_flowlayout.c
 src/bin/e_fm.c
 src/bin/e_fm_custom.c
-src/bin/e_fm_dbus.c
-src/bin/e_fm_main.c
+src/bin/e_fm_device.c
 src/bin/e_fm_mime.c
 src/bin/e_fm_prop.c
 src/bin/e_focus.c
@@ -142,6 +141,7 @@ src/modules/conf_colors/e_int_config_color_classes.c
 src/modules/conf_colors/e_mod_main.c
 src/modules/conf_desk/e_int_config_desk.c
 src/modules/conf_desk/e_mod_main.c
+src/modules/conf_desklock/e_int_config_desklock_fsel.c
 src/modules/conf_desklock/e_int_config_desklock.c
 src/modules/conf_desklock/e_mod_main.c
 src/modules/conf_desks/e_int_config_desks.c
@@ -201,7 +201,6 @@ src/modules/conf_theme/e_mod_main.c
 src/modules/conf_transitions/e_int_config_transitions.c
 src/modules/conf_transitions/e_mod_main.c
 src/modules/conf_wallpaper/e_int_config_wallpaper.c
-src/modules/conf_wallpaper/e_int_config_wallpaper_gradient.c
 src/modules/conf_wallpaper/e_int_config_wallpaper_import.c
 src/modules/conf_wallpaper/e_int_config_wallpaper_web.c
 src/modules/conf_wallpaper/e_mod_main.c

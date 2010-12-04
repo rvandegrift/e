@@ -60,7 +60,7 @@ EAPI int E_EVENT_ACPI_VIDEO = 0;
 EAPI int E_EVENT_ACPI_WIFI = 0;
 
 /* public functions */
-EAPI int 
+EINTERN int
 e_acpi_init(void) 
 {
    const ACPIDevice *dev;
@@ -120,7 +120,7 @@ e_acpi_init(void)
    return 1;
 }
 
-EAPI int 
+EINTERN int
 e_acpi_shutdown(void) 
 {
    Ecore_Event_Handler *hdl;
@@ -178,17 +178,23 @@ _e_acpi_cb_server_data(void *data __UNUSED__, int type __UNUSED__, void *event)
    Ecore_Con_Event_Server_Data *ev;
    ACPIDevice *dev;
    E_Event_Acpi *acpi_event;
-   int res, sig, status, event_type;
+   int sig, status, event_type;
    char device[1024], bus[1024];
+   char *sdata;
 
    ev = event;
 
    /* write out actual acpi received data to stdout for debugging
    res = fwrite(ev->data, ev->size, 1, stdout);
     */
-
+   /* data from a server isnt a string - its not 0 byte terminated. it's just
+    * a blob of data. copy to string and 0 byte terminate it so it can be
+    * string-swizzled/parsed etc. */
+   sdata = alloca(ev->size + 1);
+   memcpy(sdata, ev->data, ev->size);
+   sdata[ev->size] = 0;
    /* parse out this acpi string into separate pieces */
-   if (sscanf(ev->data, "%s %s %d %d", device, bus, &sig, &status) != 4)
+   if (sscanf(sdata, "%s %s %d %d", device, bus, &sig, &status) != 4)
      return ECORE_CALLBACK_PASS_ON;
 
    /* create new event structure to raise */

@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #include "e.h"
 #include "e_mod_main.h"
 #include "evry_api.h"
@@ -255,7 +251,8 @@ _fetch_exe(Evry_Plugin *plugin, const char *input)
 
 	     if (!strncmp(input, tmp, end))
 	       {
-		  if (query && (cnt++ < 50) && (len != tmp_len))
+		  if (query && (cnt++ < 50) &&
+		      (len != tmp_len))
 		    _item_exe_add(p, tmp, 15);
 
 		  if (!min || tmp_len < min)
@@ -278,7 +275,7 @@ _fetch_exe(Evry_Plugin *plugin, const char *input)
 	     EVRY_ITEM_LABEL_SET(it, file);
 	     IF_RELEASE(p->command->file);
 	     p->command->file = eina_stringshare_ref(it->label);
-	     it->fuzzy_match = 10;
+	     it->fuzzy_match = 11; // prefix match
 	     EVRY_PLUGIN_ITEM_APPEND(p, it);
 	     evry->item_changed(it, 0, 0);
 	  }
@@ -563,7 +560,7 @@ static Evry_Plugin *
 _begin_mime(Evry_Plugin *plugin, const Evry_Item *item)
 {
    Plugin *p = NULL;
-   Efreet_Desktop *d, *d2;
+   Efreet_Desktop *d;
    const char *mime;
    const char *path = NULL;
    Eina_List *l;
@@ -1435,7 +1432,7 @@ _scan_idler(void *data)
 	free(eina_list_data_get(exe_path));
 	exe_path = eina_list_remove_list(exe_path, exe_path);
      }
-   /* we have mroe scannign to do */
+   /* we have more scannign to do */
    return ECORE_CALLBACK_RENEW;
 }
 

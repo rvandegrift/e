@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* TODO List:
@@ -138,7 +135,7 @@ _e_menu_list_free_unref(Eina_List *l)
 }
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_menu_init(void)
 {
    _e_menu_key_down_handler = 
@@ -166,7 +163,7 @@ e_menu_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_menu_shutdown(void)
 {
    E_Menu *m;
@@ -454,11 +451,12 @@ e_menu_title_set(E_Menu *m, char *title)
 }
 
 EAPI void
-e_menu_icon_file_set(E_Menu *m, char *icon)
+e_menu_icon_file_set(E_Menu *m __UNUSED__, char *icon __UNUSED__)
 {
+   /* FIXME: support menu icons
    E_OBJECT_CHECK(m);
    E_OBJECT_TYPE_CHECK(m, E_MENU_TYPE);
-   /* FIXME: support menu icons */
+    */
 }
 
 EAPI void
@@ -486,7 +484,7 @@ e_menu_category_data_set(char *category, void *data)
    cat = eina_hash_find(_e_menu_categories, category);
    if (cat)
      cat->data = data;
-   else   /* if it isnt found create the new hash */
+   else   /* if it isn't found create the new hash */
      {
 	cat = calloc(1, sizeof(E_Menu_Category));
 	cat->data = data;
@@ -501,7 +499,7 @@ e_menu_category_callback_add(char *category, void (*create) (E_Menu *m, void *ca
    E_Menu_Category_Callback *cb = NULL;
 
    cat = eina_hash_find(_e_menu_categories, category);
-   if (!cat)   /* if it isnt found create the new hash */
+   if (!cat)   /* if it isn't found create the new hash */
      {
 	cat = calloc(1, sizeof(E_Menu_Category));
 	eina_hash_add(_e_menu_categories, category, cat);
@@ -1814,7 +1812,7 @@ _e_menu_activate_internal(E_Menu *m, E_Zone *zone)
    m->zone = zone;
    if (!m->active)
      {
-	/* this remove is in case the menu is marked as inactive but hasnt */
+	/* this remove is in case the menu is marked as inactive but hasn't */
 	/* been removed from the list yet */
 	if (m->in_active_list)
 	  {
@@ -2553,7 +2551,7 @@ _e_menu_cb_ecore_evas_resize(Ecore_Evas *ee)
 }
 
 static void
-_e_menu_cb_item_in(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *obj, __UNUSED__ void *event_info)
+_e_menu_cb_item_in(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Menu_Item *mi;
    
@@ -2562,7 +2560,7 @@ _e_menu_cb_item_in(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *ob
 }
 
 static void
-_e_menu_cb_item_out(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *obj, void *event_info)
+_e_menu_cb_item_out(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
 {
    E_Menu_Item *mi;
    Evas_Event_Mouse_In *ev;
@@ -2586,7 +2584,7 @@ _e_menu_cb_item_out(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *o
 }
 
 static Eina_Bool
-_e_menu_cb_key_down(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_menu_cb_key_down(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Key *ev;
    
@@ -2639,7 +2637,7 @@ _e_menu_cb_key_down(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_key_up(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_menu_cb_key_up(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Key *ev;
    
@@ -2649,12 +2647,12 @@ _e_menu_cb_key_up(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 /* we need all of these because menus are special and grab the mouse and
- * keyboard and thus the normal event mechanism doesnt work, so we feed
+ * keyboard and thus the normal event mechanism doesn't work, so we feed
  * events directly to the canvases from our grab window
  */
 
 static Eina_Bool
-_e_menu_cb_mouse_down(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_menu_cb_mouse_down(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    
@@ -2673,7 +2671,7 @@ _e_menu_cb_mouse_down(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_mouse_up(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_menu_cb_mouse_up(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    Ecore_X_Time t;
@@ -2714,7 +2712,7 @@ _e_menu_cb_mouse_up(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_mouse_move(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_menu_cb_mouse_move(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Move *ev;
    Eina_List *l, *tmp;
@@ -2772,7 +2770,7 @@ _e_menu_cb_mouse_move(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_mouse_wheel(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_menu_cb_mouse_wheel(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Wheel *ev;
    
@@ -2796,7 +2794,7 @@ _e_menu_cb_mouse_wheel(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_scroll_animator(__UNUSED__ void *data)
+_e_menu_cb_scroll_animator(void *data __UNUSED__)
 {
    double t, dt;
    double dx, dy;
@@ -2846,7 +2844,7 @@ _e_menu_cb_scroll_animator(__UNUSED__ void *data)
 }
 
 static Eina_Bool
-_e_menu_cb_window_shape(__UNUSED__ void *data, __UNUSED__ int ev_type, void *ev)
+_e_menu_cb_window_shape(void *data __UNUSED__, int ev_type __UNUSED__, void *ev)
 {
    Eina_List *l;
    Ecore_X_Event_Window_Shape *e;
@@ -2862,7 +2860,7 @@ _e_menu_cb_window_shape(__UNUSED__ void *data, __UNUSED__ int ev_type, void *ev)
 }
 
 static void
-_e_menu_cb_item_submenu_post_default(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_menu_cb_item_submenu_post_default(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 {
    E_Menu *subm;
 
@@ -2875,7 +2873,7 @@ _e_menu_cb_item_submenu_post_default(void *data, E_Menu *m, E_Menu_Item *mi)
 
 
 static Eina_Bool
-_e_menu_categories_free_cb(__UNUSED__ const Eina_Hash *hash, __UNUSED__ const void *key, void *data, __UNUSED__ void *fdata)
+_e_menu_categories_free_cb(const Eina_Hash __UNUSED__ *hash, const void __UNUSED__ *key, void *data, void *fdata __UNUSED__)
 {
    E_Menu_Category_Callback *cb;
    E_Menu_Category *cat;

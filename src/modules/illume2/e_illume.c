@@ -97,9 +97,9 @@ e_illume_border_is_indicator(E_Border *bd)
      {
         const char *title;
 
-        title = e_border_name_get(bd);
-        if (!strcmp(title, _e_illume_cfg->policy.indicator.title))
-          return EINA_TRUE;
+        if ((title = e_border_name_get(bd)))
+          if (!strcmp(title, _e_illume_cfg->policy.indicator.title))
+            return EINA_TRUE;
      }
 
    /* return a fallback */
@@ -156,9 +156,9 @@ e_illume_border_is_softkey(E_Border *bd)
      {
         const char *title;
 
-        title = e_border_name_get(bd);
-        if (!strcmp(title, _e_illume_cfg->policy.softkey.title))
-          return EINA_TRUE;
+        if ((title = e_border_name_get(bd)))
+          if (!strcmp(title, _e_illume_cfg->policy.softkey.title))
+            return EINA_TRUE;
      }
 
    /* return a fallback */
@@ -214,9 +214,9 @@ e_illume_border_is_keyboard(E_Border *bd)
      {
         const char *title;
 
-        title = e_border_name_get(bd);
-        if (!strcmp(title, _e_illume_cfg->policy.vkbd.title))
-          return EINA_TRUE;
+        if ((title = e_border_name_get(bd)))
+          if (!strcmp(title, _e_illume_cfg->policy.vkbd.title))
+            return EINA_TRUE;
      }
 
    /* return a fallback */
@@ -238,6 +238,12 @@ e_illume_border_is_home(E_Border *bd)
 {
    /* make sure we have a border */
    if (!bd) return EINA_FALSE;
+
+   /* skip windows which are not either 'normal' windows, or 'unknown' windows
+    * NB: Let 'unknown' windows pass through as a safety */
+   if ((bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NORMAL) && 
+       (bd->client.netwm.type != ECORE_X_WINDOW_TYPE_UNKNOWN))
+     return EINA_FALSE;
 
    /* check if we are matching on name */
    if (_e_illume_cfg->policy.home.match.name) 
@@ -262,9 +268,9 @@ e_illume_border_is_home(E_Border *bd)
      {
         const char *title;
 
-        title = e_border_name_get(bd);
-        if (!strcmp(title, _e_illume_cfg->policy.home.title))
-          return EINA_TRUE;
+        if ((title = e_border_name_get(bd)))
+          if (!strcmp(title, _e_illume_cfg->policy.home.title))
+            return EINA_TRUE;
      }
 
    /* return a fallback */
@@ -492,15 +498,15 @@ e_illume_border_at_xy_get(E_Zone *zone, int x, int y)
         /* skip invisibles */
         if (!bd->visible) continue;
 
+        /* check position against given coordinates */
+        if ((bd->x != x) || (bd->y != y)) continue;
+
         /* filter out borders we don't want */
         if (e_illume_border_is_indicator(bd)) continue;
         if (e_illume_border_is_softkey(bd)) continue;
         if (e_illume_border_is_keyboard(bd)) continue;
         if (e_illume_border_is_quickpanel(bd)) continue;
         if (e_illume_border_is_home(bd)) continue;
-
-        /* check position against given coordinates */
-        if ((bd->x != x) || (bd->y != y)) continue;
 
         /* found one, return it */
         return bd;
@@ -561,10 +567,16 @@ e_illume_border_parent_get(E_Border *bd)
 EAPI void 
 e_illume_border_show(E_Border *bd) 
 {
-   unsigned int visible = 1;
-
    /* make sure we have a border */
    if (!bd) return;
+
+   e_border_uniconify(bd);
+   e_border_raise(bd);
+   e_border_show(bd);
+   return;
+
+#if 0   
+   unsigned int visible = 1;
 
    /* NB: We handle shows this way so we don't get extra layout events from 
     * the e_border calls */
@@ -576,6 +588,7 @@ e_illume_border_show(E_Border *bd)
    bd->changes.visible = 1;
    ecore_x_window_prop_card32_set(bd->client.win, E_ATOM_MAPPED, &visible, 1);
    ecore_x_window_prop_card32_set(bd->client.win, E_ATOM_MANAGED, &visible, 1);
+#endif   
 }
 
 /**
@@ -590,10 +603,14 @@ e_illume_border_show(E_Border *bd)
 EAPI void 
 e_illume_border_hide(E_Border *bd) 
 {
-   unsigned int visible = 0;
-
    /* make sure we have a border */
    if (!bd) return;
+
+   e_border_iconify(bd);
+   return;
+
+#if 0   
+   unsigned int visible = 0;
 
    /* NB: We handle hides this way so we don't get extra layout events from 
     * the e_border calls */
@@ -602,6 +619,7 @@ e_illume_border_hide(E_Border *bd)
    bd->visible = 0;
    bd->changes.visible = 1;
    ecore_x_window_prop_card32_set(bd->client.win, E_ATOM_MAPPED, &visible, 1);
+#endif   
 }
 
 /**
@@ -658,13 +676,11 @@ e_illume_border_indicator_pos_get(E_Zone *zone, int *x, int *y)
 {
    E_Border *ind;
 
+   if (x) *x = 0;
+   if (y) *y = 0;
+
    /* make sure we have a zone */
-   if (!zone) 
-     {
-        if (x) *x = 0;
-        if (y) *y = 0;
-        return;
-     }
+   if (!zone) return;
 
    /* set default values */
    if (x) *x = zone->x;
@@ -732,15 +748,13 @@ e_illume_border_softkey_pos_get(E_Zone *zone, int *x, int *y)
 {
    E_Border *sft;
 
-   /* make sure we have a zone */
-   if (!zone) 
-     {
-        if (x) *x = 0;
-        if (y) *y = 0;
-        return;
-     }
+   if (x) *x = 0;
+   if (y) *y = 0;
 
-   /* set default values */
+   /* make sure we have a zone */
+   if (!zone) return;
+
+  /* set default values */
    if (x) *x = zone->x;
    if (y) *y = zone->y;
 
@@ -762,7 +776,7 @@ e_illume_border_softkey_pos_get(E_Zone *zone, int *x, int *y)
 EAPI E_Illume_Keyboard *
 e_illume_keyboard_get(void) 
 {
-   /* make sure we have a keyboard and a zone */
+   /* make sure we have a keyboard */
    if (!_e_illume_kbd) return NULL;
 
    /* return the keyboard */
@@ -788,15 +802,13 @@ e_illume_keyboard_get(void)
 EAPI void 
 e_illume_keyboard_safe_app_region_get(E_Zone *zone, int *x, int *y, int *w, int *h) 
 {
+   if (x) *x = 0;
+   if (y) *y = 0;
+   if (w) *w = 0;
+   if (h) *h = 0;
+
    /* make sure we have a zone */
-   if (!zone) 
-     {
-        if (x) *x = 0;
-        if (y) *y = 0;
-        if (w) *w = 0;
-        if (h) *h = 0;
-        return;
-     }
+   if (!zone) return;
 
    /* set default values */
    if (x) *x = zone->x;

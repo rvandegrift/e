@@ -1,9 +1,5 @@
 #include <alsa/asoundlib.h>
-#include <stdlib.h>
-#include <math.h>
 #include <poll.h>
-#include <alloca.h>
-#include <Ecore.h>
 #include "e_mod_system.h"
 #include "e.h"
 
@@ -117,10 +113,10 @@ _mixer_callback_del(E_Mixer_System *self, struct e_mixer_callback_desc *desc)
 {
    Ecore_Fd_Handler *handler;
 
-   snd_mixer_set_callback_private(self, NULL);
-
    EINA_LIST_FREE(desc->handlers, handler)
      ecore_main_fd_handler_del(handler);
+
+   snd_mixer_set_callback_private(self, NULL);
 
    free(desc);
 
@@ -307,7 +303,7 @@ e_mixer_system_get_channels(E_Mixer_System *self)
    channels = NULL;
 
    elem = snd_mixer_first_elem(self);
-   for (; elem != NULL; elem = snd_mixer_elem_next(elem))
+   for (; elem; elem = snd_mixer_elem_next(elem))
      {
 	if ((!snd_mixer_selem_is_active(elem)) ||
             (!snd_mixer_selem_has_playback_volume(elem)))
@@ -339,7 +335,7 @@ e_mixer_system_get_channels_names(E_Mixer_System *self)
    snd_mixer_selem_id_alloca(&sid);
 
    elem = snd_mixer_first_elem(self);
-   for (; elem != NULL; elem = snd_mixer_elem_next(elem))
+   for (; elem; elem = snd_mixer_elem_next(elem))
      {
 	const char *name;
 	if ((!snd_mixer_selem_is_active(elem)) ||
@@ -376,7 +372,7 @@ e_mixer_system_get_default_channel_name(E_Mixer_System *self)
    snd_mixer_selem_id_alloca(&sid);
 
    elem = snd_mixer_first_elem(self);
-   for (; elem != NULL; elem = snd_mixer_elem_next(elem))
+   for (; elem; elem = snd_mixer_elem_next(elem))
      {
 	const char *name;
 	if ((!snd_mixer_selem_is_active(elem)) ||
@@ -404,7 +400,7 @@ e_mixer_system_get_channel_by_name(E_Mixer_System *self, const char *name)
    snd_mixer_selem_id_alloca(&sid);
 
    elem = snd_mixer_first_elem(self);
-   for (; elem != NULL; elem = snd_mixer_elem_next(elem))
+   for (; elem; elem = snd_mixer_elem_next(elem))
      {
 	const char *n;
 	if ((!snd_mixer_selem_is_active(elem)) ||

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 static void _e_xinerama_clean(void);
@@ -11,14 +8,14 @@ static Eina_List *all_screens = NULL;
 static Eina_List *chosen_screens = NULL;
 static Eina_List *fake_screens = NULL;
 
-EAPI int
+EINTERN int
 e_xinerama_init(void)
 {
    _e_xinerama_update();
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_xinerama_shutdown(void)
 {
    _e_xinerama_clean();

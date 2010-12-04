@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define SMART_NAME "e_widget"
@@ -584,7 +581,10 @@ _e_smart_init(void)
 	       NULL,
 	       NULL,
 	       NULL,
-	       NULL
+	       NULL, 
+               NULL, 
+               NULL, 
+               NULL
 	  };
         _e_smart = evas_smart_class_new(&sc);
      }

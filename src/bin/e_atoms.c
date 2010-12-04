@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* Atoms */
@@ -17,7 +14,7 @@ EAPI Ecore_X_Atom E_ATOM_WINDOW_STATE_CENTERED = 0;
 EAPI Ecore_X_Atom E_ATOM_DESKTOP_FILE = 0;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_atoms_init(void)
 {
    const char *atom_names[] = {
@@ -50,7 +47,7 @@ e_atoms_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_atoms_shutdown(void)
 {
    /* Nothing really to do here yet, just present for consistency right now */

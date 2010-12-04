@@ -1,9 +1,7 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
+static Eina_Bool _e_bindings_mapping_change_event_cb(void *data, int type, void *event);
 
 static void _e_bindings_mouse_free(E_Binding_Mouse *bind);
 static void _e_bindings_key_free(E_Binding_Key *bind);
@@ -17,6 +15,8 @@ static int _e_ecore_modifiers(E_Binding_Modifier modifiers);
 static Eina_Bool _e_bindings_edge_cb_timer(void *data);
 
 /* local subsystem globals */
+
+static Ecore_Event_Handler *mapping_handler = NULL;
 
 static Eina_List *mouse_bindings = NULL;
 static Eina_List *key_bindings = NULL;
@@ -37,7 +37,7 @@ struct _E_Binding_Edge_Data
 
 /* externally accessible functions */
 
-EAPI int
+EINTERN int
 e_bindings_init(void)
 {
    E_Config_Binding_Signal *ebs;
@@ -48,6 +48,9 @@ e_bindings_init(void)
    E_Config_Binding_Acpi *eba;
    Eina_List *l;
 
+   mapping_handler = ecore_event_handler_add
+   (ECORE_X_EVENT_WINDOW_MAPPING, _e_bindings_mapping_change_event_cb, NULL);
+  
    EINA_LIST_FOREACH(e_config->mouse_bindings, l, ebm)
      e_bindings_mouse_add(ebm->context, ebm->button, ebm->modifiers,
 			  ebm->any_mod, ebm->action, ebm->params);
@@ -92,7 +95,7 @@ e_bindings_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_bindings_shutdown(void)
 {
    E_FREE_LIST(mouse_bindings, _e_bindings_mouse_free);
@@ -101,7 +104,13 @@ e_bindings_shutdown(void)
    E_FREE_LIST(signal_bindings, _e_bindings_signal_free);
    E_FREE_LIST(wheel_bindings, _e_bindings_wheel_free);
    E_FREE_LIST(acpi_bindings, _e_bindings_acpi_free);
-
+ 
+   if (mapping_handler)
+      {
+         ecore_event_handler_del(mapping_handler);
+         mapping_handler = NULL;
+      }
+  
    return 1;
 }
 
@@ -181,7 +190,7 @@ e_bindings_mouse_ungrab(E_Binding_Context ctxt, Ecore_X_Window win)
 }
 
 EAPI E_Action *
-e_bindings_mouse_down_find(E_Binding_Context ctxt, E_Object *obj, Ecore_Event_Mouse_Button *ev, E_Binding_Mouse **bind_ret)
+e_bindings_mouse_down_find(E_Binding_Context ctxt, E_Object *obj __UNUSED__, Ecore_Event_Mouse_Button *ev, E_Binding_Mouse **bind_ret)
 {
    E_Binding_Modifier mod = 0;
    E_Binding_Mouse *bind;
@@ -225,7 +234,7 @@ e_bindings_mouse_down_event_handle(E_Binding_Context ctxt, E_Object *obj, Ecore_
 }
 
 EAPI E_Action *
-e_bindings_mouse_up_find(E_Binding_Context ctxt, E_Object *obj, Ecore_Event_Mouse_Button *ev, E_Binding_Mouse **bind_ret)
+e_bindings_mouse_up_find(E_Binding_Context ctxt, E_Object *obj __UNUSED__, Ecore_Event_Mouse_Button *ev, E_Binding_Mouse **bind_ret)
 {
    E_Binding_Modifier mod = 0;
    E_Binding_Mouse *bind;
@@ -686,7 +695,7 @@ e_bindings_signal_del(E_Binding_Context ctxt, const char *sig, const char *src, 
 }
 
 EAPI E_Action  *
-e_bindings_signal_find(E_Binding_Context ctxt, E_Object *obj, const char *sig, const char *src, E_Binding_Signal **bind_ret)
+e_bindings_signal_find(E_Binding_Context ctxt, E_Object *obj __UNUSED__, const char *sig, const char *src, E_Binding_Signal **bind_ret)
 {
    E_Binding_Modifier mod = 0;
    E_Binding_Signal *bind;
@@ -836,7 +845,7 @@ e_bindings_wheel_ungrab(E_Binding_Context ctxt, Ecore_X_Window win)
 }
 
 EAPI E_Action *
-e_bindings_wheel_find(E_Binding_Context ctxt, E_Object *obj, Ecore_Event_Mouse_Wheel *ev, E_Binding_Wheel **bind_ret)
+e_bindings_wheel_find(E_Binding_Context ctxt, E_Object *obj __UNUSED__, Ecore_Event_Mouse_Wheel *ev, E_Binding_Wheel **bind_ret)
 {
    E_Binding_Modifier mod = 0;
    E_Binding_Wheel *bind;
@@ -917,7 +926,7 @@ e_bindings_acpi_del(E_Binding_Context ctxt, int type, int status, const char *ac
 }
 
 EAPI E_Action *
-e_bindings_acpi_find(E_Binding_Context ctxt, E_Object *obj, E_Event_Acpi *ev, E_Binding_Acpi **bind_ret) 
+e_bindings_acpi_find(E_Binding_Context ctxt, E_Object *obj __UNUSED__, E_Event_Acpi *ev, E_Binding_Acpi **bind_ret) 
 {
    E_Binding_Acpi *bind;
    Eina_List *l;
@@ -964,6 +973,17 @@ e_bindings_acpi_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Acpi
 }
 
 /* local subsystem functions */
+static Eina_Bool
+_e_bindings_mapping_change_event_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
+{
+//  Ecore_X_Event_Mapping_Change *ev = event;
+  
+  e_managers_keys_ungrab();
+  e_border_button_bindings_ungrab_all();
+  e_border_button_bindings_grab_all();
+  e_managers_keys_grab();
+  return ECORE_CALLBACK_PASS_ON;
+}
 
 static void
 _e_bindings_mouse_free(E_Binding_Mouse *bind)

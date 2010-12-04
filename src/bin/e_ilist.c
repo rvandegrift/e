@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define SMART_NAME "e_ilist"
@@ -718,7 +715,7 @@ e_ilist_nth_label_set(Evas_Object *obj, int n, const char *label)
 {
    E_Ilist_Item *si = NULL;
 
-   /* check for a NULL label first...simplier, faster check then doing
+   /* check for a NULL label first...simpler, faster check then doing
     * API_ENTRY check first */
    if (!label) return;
    API_ENTRY return;

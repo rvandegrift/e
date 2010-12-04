@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -17,7 +14,8 @@ EAPI void *
 e_modapi_init(E_Module *m)
 {
    e_configure_registry_category_add("advanced", 80, 
-				     _("Advanced"), NULL, "preferences-advanced");
+				     _("Advanced"), NULL, 
+                                     "preferences-advanced");
    e_configure_registry_item_add("advanced/acpi_bindings", 10, 
 				 _("ACPI Bindings"), NULL, 
 				 "preferences-system-power-management", 
@@ -28,11 +26,11 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int
-e_modapi_shutdown(E_Module *m)
+e_modapi_shutdown(E_Module *m __UNUSED__)
 {
    E_Config_Dialog *cfd;
 
-   if (cfd = e_config_dialog_get("E", "advanced/acpi_bindings"))
+   if ((cfd = e_config_dialog_get("E", "advanced/acpi_bindings")))
      e_object_del(E_OBJECT(cfd));
    e_configure_registry_item_del("advanced/acpi_bindings");
    e_configure_registry_category_del("advanced");
@@ -41,7 +39,7 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int
-e_modapi_save(E_Module *m)
+e_modapi_save(E_Module *m __UNUSED__)
 {
    return 1;
 }

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 EAPI int E_EVENT_INIT_DONE = 0;
@@ -19,7 +16,7 @@ static int undone = 0;
 static Eina_List *stats = NULL;
 
 /* public functions */
-EAPI int
+EINTERN int
 e_init_init(void)
 {
    E_EVENT_INIT_DONE = ecore_event_type_new();
@@ -31,7 +28,7 @@ e_init_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_init_shutdown(void)
 {
    /* if not killed, kill init */

@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #include "e.h"
 #include "e_mod_main.h"
 #include "evry_api.h"
@@ -152,7 +148,9 @@ _fetch(Evry_Plugin *plugin, const char *input)
    EVRY_PLUGIN_ITEMS_ADD(p, p->categories, input, 1, 1);
 
    if (input || p->parent)
-     return EVRY_PLUGIN_ITEMS_ADD(p, p->items, input, 1, 1);
+     EVRY_PLUGIN_ITEMS_ADD(p, p->items, input, 1, 1);
+
+   return !!(plugin->items);
 }
 
 static int
@@ -190,7 +188,7 @@ _plugins_init(const Evry_API *_api)
    E_SETTINGS = evry->type_register("E_SETTINGS");
    
    p = EVRY_PLUGIN_NEW(Evry_Plugin, N_("Settings"),
-		       "preferences-desktop", E_SETTINGS,
+		       "configure", E_SETTINGS,
 		       _begin, _finish, _fetch, NULL);
    p->browse = &_browse;
    evry->plugin_register(p, EVRY_PLUGIN_SUBJECT, 10);

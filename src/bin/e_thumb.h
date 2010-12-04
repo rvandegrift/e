@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 #else
@@ -8,8 +5,8 @@
 #define E_THUMB_H
 
 
-EAPI int                   e_thumb_init(void);
-EAPI int                   e_thumb_shutdown(void);
+EINTERN int                   e_thumb_init(void);
+EINTERN int                   e_thumb_shutdown(void);
 
 EAPI Evas_Object          *e_thumb_icon_add(Evas *evas);
 EAPI void                  e_thumb_icon_file_set(Evas_Object *obj, const char *file, const char *key);

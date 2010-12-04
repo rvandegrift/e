@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define REMEMBER_HIERARCHY 1
@@ -33,7 +30,7 @@ static Eina_List *handlers = NULL;
 
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_remember_init(E_Startup_Mode mode)
 {
    Eina_List *l = NULL;
@@ -69,7 +66,7 @@ e_remember_init(E_Startup_Mode mode)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_remember_shutdown(void)
 {
    E_Border_Hook *h;
@@ -127,7 +124,7 @@ e_remember_internal_save(void)
 }
 
 static Eina_Bool
-_e_remember_restore_cb(__UNUSED__ void *data, __UNUSED__ int type, __UNUSED__ void *event)
+_e_remember_restore_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
 {
    E_Remember *rem;
    Eina_List *l;
@@ -559,9 +556,11 @@ _e_remember_free(E_Remember *rem)
 }
 
 static void
-_e_remember_cb_hook_eval_post_new_border(void *data, void *border)
+_e_remember_cb_hook_eval_post_new_border(void *data __UNUSED__, void *border)
 {
-   E_Border *bd = border;
+   E_Border *bd;
+
+   bd = border;
 
    // remember only when window was modified
    // if (!bd->new_client) return;
@@ -588,7 +587,7 @@ _e_remember_cb_hook_eval_post_new_border(void *data, void *border)
 	if (!rem) return;
 
 	e_remember_default_match_set(rem, bd);
-	
+
 	rem->apply = E_REMEMBER_APPLY_POS | E_REMEMBER_APPLY_SIZE | E_REMEMBER_APPLY_BORDER;
 
 	e_remember_use(rem);
@@ -598,7 +597,7 @@ _e_remember_cb_hook_eval_post_new_border(void *data, void *border)
 }
 
 static void
-_e_remember_cb_hook_pre_post_fetch(__UNUSED__ void *data, void *border)
+_e_remember_cb_hook_pre_post_fetch(void *data __UNUSED__, void *border)
 {
    E_Border *bd = border;
    E_Remember *rem = NULL;

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 /* Language chooser */
 #include "e.h"
 #include "e_mod_main.h"
@@ -70,7 +67,7 @@ _basic_lang_list_sort(const void *data1, const void *data2)
 }
 
 EAPI int
-wizard_page_init(E_Wizard_Page *pg)
+wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 {
    FILE *output;
 
@@ -125,7 +122,7 @@ wizard_page_init(E_Wizard_Page *pg)
 }
 
 EAPI int
-wizard_page_shutdown(E_Wizard_Page *pg)
+wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 {
    // FIXME: free blang_list
    return 1;
@@ -188,7 +185,7 @@ wizard_page_hide(E_Wizard_Page *pg)
 }
 
 EAPI int
-wizard_page_apply(E_Wizard_Page *pg)
+wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
    // do this again as we want it to apply to the new profile
    eina_stringshare_del(e_config->language);

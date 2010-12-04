@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 /* Profile chooser */
 #include "e.h"
 #include "e_mod_main.h"
@@ -9,7 +6,7 @@ static const char *profile = NULL;
 static Evas_Object *textblock = NULL;
 
 static void
-_profile_change(void *data, Evas_Object *obj)
+_profile_change(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
 {
    char buf[PATH_MAX];
    const char *dir;
@@ -35,13 +32,13 @@ _profile_change(void *data, Evas_Object *obj)
 }
 
 EAPI int
-wizard_page_init(E_Wizard_Page *pg)
+wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
 
 EAPI int
-wizard_page_shutdown(E_Wizard_Page *pg)
+wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
@@ -154,7 +151,7 @@ wizard_page_hide(E_Wizard_Page *pg)
 }
 
 EAPI int
-wizard_page_apply(E_Wizard_Page *pg)
+wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
    // no need. done in page_070's wizard_page_show()
    return 1;

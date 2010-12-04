@@ -99,7 +99,7 @@ struct _E_Illume_Keyboard
  * @brief structure for policy API.
  * 
  * @details When Illume tries to load a policy, it will check for the 
- * existince of this structure. If it is not found, the policy will fail 
+ * existence of this structure. If it is not found, the policy will fail
  * to load.
  * 
  * @warning This structure is required for Illume to load a policy.
@@ -323,7 +323,10 @@ struct _E_Illume_Quickpanel
    Ecore_X_Window clickwin;
    Ecore_Event_Handler *mouse_hdl;
    double start, len;
-   int h, ih, adjust, adjust_start, adjust_end, dir;
+   struct 
+     {
+        int size, isize, adjust, adjust_start, adjust_end, dir;
+     } vert, horiz;
    unsigned char visible : 1;
    /**< flag to indicate if the quickpanel is currently visible */
 };

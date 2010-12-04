@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 #ifdef USE_IPC
@@ -98,8 +95,8 @@ struct _E_Ipc_Str_4Int
    int   val1, val2, val3, val4;
 };
 
-EAPI int      e_ipc_codec_init(void);
-EAPI void     e_ipc_codec_shutdown(void);
+EINTERN int      e_ipc_codec_init(void);
+EINTERN void     e_ipc_codec_shutdown(void);
 
 EAPI int      e_ipc_codec_int_dec(char *data, int bytes, int *dest);
 EAPI void    *e_ipc_codec_int_enc(int val, int *size_ret);

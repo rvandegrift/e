@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define E_TOK_STYLE ":style="
@@ -10,14 +7,14 @@ static Eina_Hash *_e_font_available_hash_add(Eina_Hash *font_hash, const char *f
 static E_Font_Properties *_e_font_fontconfig_name_parse(Eina_Hash **font_hash, E_Font_Properties *efp, const char *font);
 static char _fn_buf[1024];
 
-EAPI int
+EINTERN int
 e_font_init(void)
 {
    /* all init stuff is in e_config */
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_font_shutdown(void)
 {
    /* e_config will do this */
@@ -159,7 +156,7 @@ e_font_available_hash_free(Eina_Hash *hash)
 EAPI E_Font_Properties *
 e_font_fontconfig_name_parse(const char *font)
 {
-   if (font == NULL) return NULL;
+   if (!font) return NULL;
    return _e_font_fontconfig_name_parse(NULL, NULL, font);
 }
 
@@ -193,7 +190,7 @@ _e_font_fontconfig_name_parse(Eina_Hash **font_hash, E_Font_Properties *efp, con
              style = s1 + strlen(E_TOK_STYLE);
 
              if (font_hash) efp = eina_hash_find(*font_hash, name);
-             if (efp == NULL)
+             if (!efp)
                {
                   efp = calloc(1, sizeof(E_Font_Properties));
                   efp->name = eina_stringshare_add(name);
@@ -223,7 +220,7 @@ _e_font_fontconfig_name_parse(Eina_Hash **font_hash, E_Font_Properties *efp, con
    else 
      {
         if (font_hash) efp = eina_hash_find(*font_hash, font);
-        if (efp == NULL)
+        if (!efp)
           {
              efp = calloc(1, sizeof(E_Font_Properties));
              efp->name = eina_stringshare_add(font);
@@ -282,8 +279,8 @@ e_font_fontconfig_name_get(const char *name, const char *style)
 {
    char buf[256];
 
-   if (name == NULL) return NULL;
-   if (style == NULL || style[0] == 0) return eina_stringshare_add(name);
+   if (!name) return NULL;
+   if (!style || style[0] == 0) return eina_stringshare_add(name);
    snprintf(buf, 256, "%s"E_TOK_STYLE"%s", name, style);
    return eina_stringshare_add(buf);
 }
@@ -372,7 +369,7 @@ e_font_default_set(const char *text_class, const char *font, Evas_Font_Size size
 	  }
      }
 
-   /* the text class doesnt exist */
+   /* the text class doesn't exist */
    efd = E_NEW(E_Font_Default, 1);
    efd->text_class = eina_stringshare_add(text_class);
    efd->font = eina_stringshare_add(font);

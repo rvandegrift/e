@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -61,6 +58,7 @@ static void _cpufreq_menu_auto_powersave(void *data, E_Menu *m, E_Menu_Item *mi)
 static void _cpufreq_menu_governor(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _cpufreq_menu_powersave_governor(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _cpufreq_menu_frequency(void *data, E_Menu *m, E_Menu_Item *mi);
+static void _cpufreq_poll_interval_update(void);
 
 static E_Config_DD *conf_edd = NULL;
 
@@ -122,20 +120,20 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 }
 
 static void
-_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
+_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
 {
    e_gadcon_client_aspect_set(gcc, 16, 16);
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
 
 static char *
-_gc_label(E_Gadcon_Client_Class *client_class)
+_gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Cpufreq");
 }
 
 static Evas_Object *
-_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas)
+_gc_icon(E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
 {
    Evas_Object *o;
    char buf[PATH_MAX];
@@ -148,7 +146,7 @@ _gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas)
 }
 
 static const char *
-_gc_id_new(E_Gadcon_Client_Class *client_class)
+_gc_id_new(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    static char idbuff[32];
 
@@ -158,7 +156,7 @@ _gc_id_new(E_Gadcon_Client_Class *client_class)
 }
 
 static void
-_button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
 {
    Instance *inst;
    Evas_Event_Mouse_Down *ev;
@@ -167,44 +165,44 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
    ev = event_info;
    if ((ev->button == 3) && (!cpufreq_config->menu))
      {
-	E_Menu *mn;
+	E_Menu *ma, *mg, *mo;
 	E_Menu_Item *mi;
 	int cx, cy;
 	Eina_List *l;
 	char buf[256];
 
-	mn = e_menu_new();
-	cpufreq_config->menu_poll = mn;
+	mo = e_menu_new();
+	cpufreq_config->menu_poll = mo;
 
-	mi = e_menu_item_new(mn);
+	mi = e_menu_item_new(mo);
 	e_menu_item_label_set(mi, _("Fast (4 ticks)"));
 	e_menu_item_radio_set(mi, 1);
 	e_menu_item_radio_group_set(mi, 1);
 	if (cpufreq_config->poll_interval <= 4) e_menu_item_toggle_set(mi, 1);
 	e_menu_item_callback_set(mi, _cpufreq_menu_fast, NULL);
 
-	mi = e_menu_item_new(mn);
+	mi = e_menu_item_new(mo);
 	e_menu_item_label_set(mi, _("Medium (8 ticks)"));
 	e_menu_item_radio_set(mi, 1);
 	e_menu_item_radio_group_set(mi, 1);
 	if (cpufreq_config->poll_interval > 4) e_menu_item_toggle_set(mi, 1);
 	e_menu_item_callback_set(mi, _cpufreq_menu_medium, NULL);
 
-	mi = e_menu_item_new(mn);
+	mi = e_menu_item_new(mo);
 	e_menu_item_label_set(mi, _("Normal (32 ticks)"));
 	e_menu_item_radio_set(mi, 1);
 	e_menu_item_radio_group_set(mi, 1);
 	if (cpufreq_config->poll_interval >= 32) e_menu_item_toggle_set(mi, 1);
 	e_menu_item_callback_set(mi, _cpufreq_menu_normal, NULL);
 
-	mi = e_menu_item_new(mn);
+	mi = e_menu_item_new(mo);
 	e_menu_item_label_set(mi, _("Slow (64 ticks)"));
 	e_menu_item_radio_set(mi, 1);
 	e_menu_item_radio_group_set(mi, 1);
 	if (cpufreq_config->poll_interval >= 64) e_menu_item_toggle_set(mi, 1);
 	e_menu_item_callback_set(mi, _cpufreq_menu_slow, NULL);
 
-	mi = e_menu_item_new(mn);
+	mi = e_menu_item_new(mo);
 	e_menu_item_label_set(mi, _("Very Slow (256 ticks)"));
 	e_menu_item_radio_set(mi, 1);
 	e_menu_item_radio_group_set(mi, 1);
@@ -214,12 +212,12 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 
 	if (cpufreq_config->status->governors)
 	  {
-	     mn = e_menu_new();
-	     cpufreq_config->menu_governor = mn;
+	     mo = e_menu_new();
+	     cpufreq_config->menu_governor = mo;
 
 	     for (l = cpufreq_config->status->governors; l; l = l->next)
 	       {
-		  mi = e_menu_item_new(mn);
+		  mi = e_menu_item_new(mo);
 		  if (!strcmp(l->data, "userspace"))
 		    e_menu_item_label_set(mi, _("Manual"));
 		  else if (!strcmp(l->data, "ondemand"))
@@ -237,25 +235,23 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 		  e_menu_item_callback_set(mi, _cpufreq_menu_governor, l->data);
 	       }
 
-	     e_menu_item_separator_set(e_menu_item_new(mn), 1);
+	     e_menu_item_separator_set(e_menu_item_new(mo), 1);
 
-	     mi = e_menu_item_new(mn);
+	     mi = e_menu_item_new(mo);
 	     e_menu_item_label_set(mi, _("Restore CPU Power Policy"));
 	     e_menu_item_check_set(mi, 1);
 	     e_menu_item_toggle_set(mi, cpufreq_config->restore_governor);
 	     e_menu_item_callback_set(mi, _cpufreq_menu_restore_governor, NULL);
 
-	     mn = e_menu_new();
-	     cpufreq_config->menu_powersave = mn;
-
-	     e_menu_title_set(mn, _("Powersaving policy"));
+	     mo = e_menu_new();
+	     cpufreq_config->menu_powersave = mo;
 
 	     for (l = cpufreq_config->status->governors; l; l = l->next)
 	       {
 		  if (!strcmp(l->data, "userspace"))
 		    continue;
 
-		  mi = e_menu_item_new(mn);
+		  mi = e_menu_item_new(mo);
 		  if (!strcmp(l->data, "ondemand"))
 		    e_menu_item_label_set(mi, _("Automatic"));
 		  else if (!strcmp(l->data, "conservative"))
@@ -273,9 +269,9 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 		  e_menu_item_callback_set(mi, _cpufreq_menu_powersave_governor, l->data);
 	       }
 
-	     e_menu_item_separator_set(e_menu_item_new(mn), 1);
+	     e_menu_item_separator_set(e_menu_item_new(mo), 1);
 
-	     mi = e_menu_item_new(mn);
+	     mi = e_menu_item_new(mo);
 	     e_menu_item_label_set(mi, _("Automatic powersaving"));
 	     e_menu_item_check_set(mi, 1);
 	     e_menu_item_toggle_set(mi, cpufreq_config->auto_powersave);
@@ -285,15 +281,15 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 	if ((cpufreq_config->status->frequencies) &&
 	    (cpufreq_config->status->can_set_frequency))
 	  {
-	     mn = e_menu_new();
-	     cpufreq_config->menu_frequency = mn;
+	     mo = e_menu_new();
+	     cpufreq_config->menu_frequency = mo;
 
 	     for (l = cpufreq_config->status->frequencies; l; l = l->next)
 	       {
 		  int frequency;
 
 		  frequency = (long)l->data;
-		  mi = e_menu_item_new(mn);
+		  mi = e_menu_item_new(mo);
 		  if (frequency < 1000000)
 		    snprintf(buf, sizeof(buf), _("%i MHz"), frequency / 1000);
 		  else
@@ -309,39 +305,41 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 	       }
 	  }
 
-	mn = e_menu_new();
-	cpufreq_config->menu = mn;
-	e_menu_post_deactivate_callback_set(mn, _menu_cb_post, inst);
+	ma = e_menu_new();
+	cpufreq_config->menu = ma;
+	e_menu_post_deactivate_callback_set(ma, _menu_cb_post, inst);
 
-	mi = e_menu_item_new(mn);
+	mg = e_menu_new();
+
+	mi = e_menu_item_new(mg);
 	e_menu_item_label_set(mi, _("Time Between Updates"));
 	e_menu_item_submenu_set(mi, cpufreq_config->menu_poll);
 
 	if (cpufreq_config->menu_governor)
 	  {
-	     mi = e_menu_item_new(mn);
+	     mi = e_menu_item_new(mg);
 	     e_menu_item_label_set(mi, _("Set CPU Power Policy"));
 	     e_menu_item_submenu_set(mi, cpufreq_config->menu_governor);
 	  }
 
 	if (cpufreq_config->menu_frequency)
 	  {
-	     mi = e_menu_item_new(mn);
+	     mi = e_menu_item_new(mg);
 	     e_menu_item_label_set(mi, _("Set CPU Speed"));
 	     e_menu_item_submenu_set(mi, cpufreq_config->menu_frequency);
 	  }
 	if (cpufreq_config->menu_powersave)
 	  {
-	     mi = e_menu_item_new(mn);
+	     mi = e_menu_item_new(mg);
 	     e_menu_item_label_set(mi, _("Powersaving behavior"));
 	     e_menu_item_submenu_set(mi, cpufreq_config->menu_powersave);
 	  }
 
-        e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
+        e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
 
 	e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-	e_menu_activate_mouse(mn,
+	e_menu_activate_mouse(ma,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
@@ -349,7 +347,7 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 }
 
 static void
-_menu_cb_post(void *data, E_Menu *m)
+_menu_cb_post(void *data __UNUSED__, E_Menu *m __UNUSED__)
 {
    if (!cpufreq_config->menu) return;
    e_object_del(E_OBJECT(cpufreq_config->menu));
@@ -451,7 +449,7 @@ _cpufreq_set_frequency(int frequency)
 }
 
 static Eina_Bool
-_cpufreq_cb_check(void *data)
+_cpufreq_cb_check(void *data __UNUSED__)
 {
    Instance *inst;
    Eina_List *l;
@@ -526,6 +524,7 @@ _cpufreq_status_check_available(Status *s)
 {
    char buf[PATH_MAX];
    Eina_List *l;
+  // FIXME: this sssumes all cores accept the same freqs/ might be wrong
 #ifdef __FreeBSD__
    int freq, i;
    size_t len = 0;
@@ -595,7 +594,7 @@ _cpufreq_status_check_available(Status *s)
 	       }
 	     freq = strtok(NULL, " ");
 	  }
-	while (freq != NULL);
+	while (freq);
 
 	s->frequencies = eina_list_sort(s->frequencies,
 					eina_list_count(s->frequencies),
@@ -627,7 +626,7 @@ _cpufreq_status_check_available(Status *s)
 	       s->governors = eina_list_append(s->governors, strdup(gov));
 	     gov = strtok(NULL, " ");
 	  }
-	while (gov != NULL);
+	while (gov);
 
 	s->governors = 
           eina_list_sort(s->governors, eina_list_count(s->governors),
@@ -645,6 +644,9 @@ _cpufreq_status_check_current(Status *s)
    FILE *f;
    int ret = 0;
    int frequency = 0;
+   int frequency_min = 0x7fffffff;
+   int frequency_max = 0;
+   int freqtot = 0;
 #ifdef __FreeBSD__
    int len = 4;
 
@@ -665,20 +667,38 @@ _cpufreq_status_check_current(Status *s)
    s->active = 0;
 
    _cpufreq_status_check_available(s);
-   f = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
-   if (f)
-     {
-	fgets(buf, sizeof(buf), f);
-	buf[sizeof(buf) - 1] = 0;
-	fclose(f);
-
-	frequency = atoi(buf);
-	if (frequency != s->cur_frequency)
-	  ret = 1;
-	s->cur_frequency = frequency;
-	s->active = 1;
-     }
-
+   // average out frequencies of all cores
+   for (i = 0; i < 64; i++)
+    {
+      snprintf(buf, sizeof(buf), "/sys/devices/system/cpu/cpu%i/cpufreq/scaling_cur_freq", i);
+      f = fopen(buf, "r");
+      if (f)
+        {
+          fgets(buf, sizeof(buf), f);
+          buf[sizeof(buf) - 1] = 0;
+          fclose(f);
+          
+          frequency = atoi(buf);
+          if (frequency > frequency_max) frequency_max = frequency;
+          if (frequency < frequency_min) frequency_min = frequency;
+          freqtot += frequency;
+          s->active = 1;
+        }
+      else
+        break;
+    }
+  if (i < 1) i = 1;
+  frequency = freqtot / i;
+  if (frequency != s->cur_frequency) ret = 1;
+  if (frequency_min != s->cur_min_frequency) ret = 1;
+  if (frequency_max != s->cur_max_frequency) ret = 1;
+  s->cur_frequency = frequency;
+  s->cur_min_frequency = frequency_min;
+  s->cur_max_frequency = frequency_max;
+  
+//  printf("%i | %i %i\n", frequency, frequency_min, frequency_max);
+  
+  // FIXME: this sssumes all cores are on the same governor
    f = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", "r");
    if (f)
      {
@@ -697,7 +717,7 @@ _cpufreq_status_check_current(Status *s)
 	buf[sizeof(buf) - 1] = 0;
 	fclose(f);
 
-	if ((s->cur_governor == NULL) || (strcmp(buf, s->cur_governor)))
+	if ((!s->cur_governor) || (strcmp(buf, s->cur_governor)))
 	  {
 	     ret = 1;
 
@@ -750,17 +770,20 @@ _cpufreq_face_update_current(Instance *inst)
    Edje_Message_Int_Set *frequency_msg;
    Edje_Message_String governor_msg;
 
-   frequency_msg = malloc(sizeof(Edje_Message_Int_Set) + sizeof(int));
-   frequency_msg->count = 2;
+   frequency_msg = malloc(sizeof(Edje_Message_Int_Set) + (sizeof(int) * 4));
+   frequency_msg->count = 5;
    frequency_msg->val[0] = cpufreq_config->status->cur_frequency;
    frequency_msg->val[1] = cpufreq_config->status->can_set_frequency;
+   frequency_msg->val[2] = cpufreq_config->status->cur_min_frequency;
+   frequency_msg->val[3] = cpufreq_config->status->cur_max_frequency;
+   frequency_msg->val[4] = 0; // pad
    edje_object_message_send(inst->o_cpu, EDJE_MESSAGE_INT_SET, 3,
 			    frequency_msg);
    free(frequency_msg);
 
    /* BSD crashes here without the if-condition
     * since it has no governors (yet) */
-   if (cpufreq_config->status->cur_governor != NULL)
+   if (cpufreq_config->status->cur_governor)
      {
 	governor_msg.str = cpufreq_config->status->cur_governor;
 	edje_object_message_send(inst->o_cpu, EDJE_MESSAGE_STRING, 4,
@@ -769,7 +792,7 @@ _cpufreq_face_update_current(Instance *inst)
 }
 
 static void
-_cpufreq_face_cb_set_frequency(void *data, Evas_Object *obj, const char *emission, const char *src)
+_cpufreq_face_cb_set_frequency(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *emission, const char *src __UNUSED__)
 {
    Eina_List *l;
    int next_frequency = 0;
@@ -796,7 +819,7 @@ _cpufreq_face_cb_set_frequency(void *data, Evas_Object *obj, const char *emissio
 }
 
 static void
-_cpufreq_face_cb_set_governor(void *data, Evas_Object *obj, const char *emission, const char *src)
+_cpufreq_face_cb_set_governor(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *src __UNUSED__)
 {
    Eina_List *l;
    char *next_governor = NULL;
@@ -812,7 +835,7 @@ _cpufreq_face_cb_set_governor(void *data, Evas_Object *obj, const char *emission
 	     break;
 	  }
      }
-   if (next_governor != NULL) _cpufreq_set_governor(next_governor);
+   if (next_governor) _cpufreq_set_governor(next_governor);
 }
 
 static Eina_Bool
@@ -866,84 +889,62 @@ _cpufreq_event_cb_powersave(void *data __UNUSED__, int type, void *event)
 }
 
 static void
-_cpufreq_menu_fast(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_fast(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    cpufreq_config->poll_interval = 4;
-   ecore_poller_del(cpufreq_config->frequency_check_poller);
-   cpufreq_config->frequency_check_poller =
-     ecore_poller_add(ECORE_POLLER_CORE, cpufreq_config->poll_interval,
-		      _cpufreq_cb_check, NULL);
-   e_config_save_queue();
+   _cpufreq_poll_interval_update();
 }
 
 static void
-_cpufreq_menu_medium(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_medium(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    cpufreq_config->poll_interval = 8;
-   ecore_poller_del(cpufreq_config->frequency_check_poller);
-   cpufreq_config->frequency_check_poller =
-     ecore_poller_add(ECORE_POLLER_CORE, cpufreq_config->poll_interval,
-		      _cpufreq_cb_check, NULL);
-   e_config_save_queue();
+   _cpufreq_poll_interval_update();
 }
 
 static void
-_cpufreq_menu_normal(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_normal(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    cpufreq_config->poll_interval = 32;
-   ecore_poller_del(cpufreq_config->frequency_check_poller);
-   cpufreq_config->frequency_check_poller =
-     ecore_poller_add(ECORE_POLLER_CORE, cpufreq_config->poll_interval,
-		      _cpufreq_cb_check, NULL);
-   e_config_save_queue();
+   _cpufreq_poll_interval_update();
 }
 
 static void
-_cpufreq_menu_slow(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_slow(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    cpufreq_config->poll_interval = 64;
-   ecore_poller_del(cpufreq_config->frequency_check_poller);
-   cpufreq_config->frequency_check_poller =
-     ecore_poller_add(ECORE_POLLER_CORE, cpufreq_config->poll_interval,
-		      _cpufreq_cb_check, NULL);
-   e_config_save_queue();
+   _cpufreq_poll_interval_update();
 }
 
 static void
-_cpufreq_menu_very_slow(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_very_slow(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    cpufreq_config->poll_interval = 256;
-   ecore_poller_del(cpufreq_config->frequency_check_poller);
-   cpufreq_config->frequency_check_poller =
-     ecore_poller_add(ECORE_POLLER_CORE, cpufreq_config->poll_interval,
-		      _cpufreq_cb_check, NULL);
-   e_config_save_queue();
+   _cpufreq_poll_interval_update();
 }
 
 static void
-_cpufreq_menu_restore_governor(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_restore_governor(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 {
    cpufreq_config->restore_governor = e_menu_item_toggle_get(mi);
    if ((!cpufreq_config->governor) ||
        (strcmp(cpufreq_config->status->cur_governor, cpufreq_config->governor)))
      {
-	if (cpufreq_config->governor) 
-          eina_stringshare_del(cpufreq_config->governor);
-	cpufreq_config->governor = 
-          eina_stringshare_add(cpufreq_config->status->cur_governor);
+        eina_stringshare_replace(&cpufreq_config->governor, 
+                                 cpufreq_config->status->cur_governor);
      }
    e_config_save_queue();
 }
 
 static void
-_cpufreq_menu_auto_powersave(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_auto_powersave(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 {
    cpufreq_config->auto_powersave = e_menu_item_toggle_get(mi);
    e_config_save_queue();
 }
 
 static void
-_cpufreq_menu_governor(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_governor(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    const char *governor;
 
@@ -951,35 +952,40 @@ _cpufreq_menu_governor(void *data, E_Menu *m, E_Menu_Item *mi)
    if (governor)
      {
 	_cpufreq_set_governor(governor);
-	if (cpufreq_config->governor) 
-          eina_stringshare_del(cpufreq_config->governor);
-	cpufreq_config->governor = eina_stringshare_add(governor);
+        eina_stringshare_replace(&cpufreq_config->governor, governor);
      }
    e_config_save_queue();
 }
 
 static void
-_cpufreq_menu_powersave_governor(void *data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_powersave_governor(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    const char *governor;
 
    governor = data;
    if (governor)
-     {
-	if (cpufreq_config->powersave_governor)
-	  eina_stringshare_del(cpufreq_config->powersave_governor);
-	cpufreq_config->powersave_governor = eina_stringshare_add(governor);
-     }
+     eina_stringshare_replace(&cpufreq_config->powersave_governor, governor);
    e_config_save_queue();
 }
 
 static void
-_cpufreq_menu_frequency(void * data, E_Menu *m, E_Menu_Item *mi)
+_cpufreq_menu_frequency(void * data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    int frequency;
 
    frequency = (long)data;
    if (frequency > 0) _cpufreq_set_frequency(frequency);
+}
+
+static void 
+_cpufreq_poll_interval_update(void) 
+{
+   if (cpufreq_config->frequency_check_poller)
+     ecore_poller_del(cpufreq_config->frequency_check_poller);
+   cpufreq_config->frequency_check_poller =
+     ecore_poller_add(ECORE_POLLER_CORE, cpufreq_config->poll_interval,
+		      _cpufreq_cb_check, NULL);
+   e_config_save_queue();
 }
 
 /* module setup */
@@ -1052,7 +1058,7 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int
-e_modapi_shutdown(E_Module *m)
+e_modapi_shutdown(E_Module *m __UNUSED__)
 {
    e_gadcon_provider_unregister(&_gadcon_class);
 
@@ -1099,7 +1105,7 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int
-e_modapi_save(E_Module *m)
+e_modapi_save(E_Module *m __UNUSED__)
 {
    e_config_domain_save("module.cpufreq", conf_edd, cpufreq_config);
    return 1;

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -177,24 +174,26 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
    ev = event_info;
    if ((ev->button == 3) && (!battery_config->menu))
      {
-	E_Menu *mn;
+	E_Menu *ma, *mg;
 	E_Menu_Item *mi;
 	int cx, cy;
 
-	mn = e_menu_new();
-	e_menu_post_deactivate_callback_set(mn, _menu_cb_post, inst);
-	battery_config->menu = mn;
+	ma = e_menu_new();
+	e_menu_post_deactivate_callback_set(ma, _menu_cb_post, inst);
+	battery_config->menu = ma;
 
-	mi = e_menu_item_new(mn);
+	mg = e_menu_new();
+
+	mi = e_menu_item_new(mg);
 	e_menu_item_label_set(mi, _("Settings"));
 	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _battery_face_cb_menu_configure, NULL);
 
-	e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
+	e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
 
 	e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-	e_menu_activate_mouse(mn,
+	e_menu_activate_mouse(ma,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
@@ -347,6 +346,7 @@ _battery_config_updated(void)
    Eina_List *l;
    Instance *inst;
    char buf[4096];
+   int ok = 0;
 
    if (!battery_config) return;
 
@@ -355,24 +355,27 @@ _battery_config_updated(void)
         EINA_LIST_FOREACH(battery_config->instances, l, inst)
           _battery_warning_popup_destroy(inst);
      }
-   if (battery_config->have_subsystem == UNKNOWN)
+   if (battery_config->batget_exe)
      {
-#ifdef HAVE_EEZE
-          battery_config->have_subsystem = SUBSYSTEM;
-#else
-        if (!e_dbus_bus_get(DBUS_BUS_SYSTEM))
-          battery_config->have_subsystem = NOSUBSYSTEM;
-#endif
+        ecore_exe_terminate(battery_config->batget_exe);
+        ecore_exe_free(battery_config->batget_exe);
+        battery_config->batget_exe = NULL;
      }
 
-   if ((battery_config->have_subsystem == NOSUBSYSTEM) ||
+   if ((battery_config->force_mode == UNKNOWN) ||
+       (battery_config->force_mode == SUBSYSTEM))
+     {
+#ifdef HAVE_EEZE
+        ok = _battery_udev_start();
+#else
+        ok = _battery_dbus_start();
+#endif
+     }
+   if (ok) return;
+
+   if ((battery_config->force_mode == UNKNOWN) ||
        (battery_config->force_mode == NOSUBSYSTEM))
      {
-        if (battery_config->batget_exe)
-          {
-             ecore_exe_terminate(battery_config->batget_exe);
-             ecore_exe_free(battery_config->batget_exe);
-          }
         snprintf(buf, sizeof(buf), "%s/%s/batget %i",
                  e_module_dir_get(battery_config->module), MODULE_ARCH,
                  battery_config->poll_interval);
@@ -381,29 +384,6 @@ _battery_config_updated(void)
           ecore_exe_pipe_run(buf, ECORE_EXE_PIPE_READ |
                              ECORE_EXE_PIPE_READ_LINE_BUFFERED |
                              ECORE_EXE_NOT_LEADER, NULL);
-     }
-   else if ((battery_config->have_subsystem == UNKNOWN) ||
-            (battery_config->force_mode == SUBSYSTEM))
-     {
-        if (battery_config->batget_exe)
-          {
-             ecore_exe_terminate(battery_config->batget_exe);
-             ecore_exe_free(battery_config->batget_exe);
-             battery_config->batget_exe = NULL;
-          }
-#ifdef HAVE_EEZE
-        _battery_udev_start();
-#else
-        E_DBus_Connection *conn;
-        conn = e_dbus_bus_get(DBUS_BUS_SYSTEM);
-        if (conn)
-          {
-             battery_config->have_subsystem = SUBSYSTEM;
-             _battery_dbus_start();
-          }
-        else
-          battery_config->have_subsystem = NOSUBSYSTEM;
-#endif
      }
 }
 

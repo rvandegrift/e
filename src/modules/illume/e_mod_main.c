@@ -34,6 +34,10 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m) 
 {
+   /* check if illume2 is loaded and bail out if it is.
+    * Illume1 and illume2 both cannot be loaded @ the same time */
+   if (e_module_find("illume2")) return NULL;
+
    /* set up the virtual keyboard */
    e_cfg_init(m);
    e_kbd_init(m);
@@ -59,7 +63,7 @@ e_modapi_init(E_Module *m)
 
 /* called on module shutdown - should clean up EVERYTHING or we leak */
 EAPI int
-e_modapi_shutdown(E_Module *m) 
+e_modapi_shutdown(E_Module *m __UNUSED__) 
 {
    _e_mod_gad_bluetooth_shutdown();
    _e_mod_gad_usb_shutdown();
@@ -81,9 +85,9 @@ e_modapi_shutdown(E_Module *m)
    return 1; /* 1 for success, 0 for failure */
 }
 
-/* called by E when it thinks this module shoudl go save any config it has */
+/* called by E when it thinks this module should go save any config it has */
 EAPI int
-e_modapi_save(E_Module *m) 
+e_modapi_save(E_Module *m __UNUSED__) 
 {
    return e_cfg_save(); /* 1 for success, 0 for failure */
 }

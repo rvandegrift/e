@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 typedef struct _E_Intl_Pair E_Intl_Pair;
@@ -109,6 +106,7 @@ const E_Intl_Pair basic_language_predefined_pairs[ ] = {
      {"da_DK.UTF-8", "Dansk"},
      {"nl_NL.UTF-8", "Nederlands"},
      {"en_US.UTF-8", "English"},
+     {"en_GB.UTF-8", "British English"},
      {"fi_FI.UTF-8", "Suomi"},
      {"fr_FR.UTF-8", "Français"},
      {"de_DE.UTF-8", "Deutsch"},
@@ -561,8 +559,6 @@ const E_Intl_Pair charset_predefined_pairs[ ] = {
        { NULL, NULL }
 };
 
-
-
 E_Config_Dialog *
 e_int_config_intl(E_Container *con, const char *params __UNUSED__)
 {
@@ -649,7 +645,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 		       /* First check if the LANGUAGE exists in there already */
 
 		       lang_node  = eina_hash_find(cfdata->locale_hash, locale_parts->lang);
-		       if (lang_node == NULL)
+		       if (!lang_node)
 			 {
 			    Eina_List *next;
 			    int i;
@@ -699,7 +695,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 			 {
 			    region_node = eina_hash_find(lang_node->region_hash, locale_parts->region);
 
-			    if (region_node == NULL)
+			    if (!region_node)
 			      {
 				 int i;
 
@@ -732,7 +728,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 				 const char * cs_trans;
 			    
 				 cs_trans = _intl_charset_upper_get(locale_parts->codeset);
-				 if (cs_trans == NULL) 
+				 if (!cs_trans) 
 				   cs = eina_stringshare_add(locale_parts->codeset);
 				 else 
 				   cs = eina_stringshare_add(cs_trans);
@@ -794,7 +790,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    E_FREE(cfdata->cur_language);
 
@@ -860,7 +856,7 @@ _region_hash_free_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED_
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->cur_language)
      {
@@ -874,7 +870,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_advanced_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->cur_language)
      {
@@ -899,7 +895,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    o = e_widget_table_add(evas, 0);
    of = e_widget_framelist_add(evas, _("Language Selector"), 0);
    ob = e_widget_ilist_add(evas, 16, 16, &(cfdata->cur_blang));
-   e_widget_size_min_set(ob, 175, 175);
+   e_widget_size_min_set(ob, 100, 80);
    e_widget_on_change_hook_set(ob, _ilist_basic_language_cb_change, cfdata);
    cfdata->gui.blang_list = ob;
    e_widget_framelist_object_append(of, ob);
@@ -955,7 +951,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    e_widget_disabled_set(cfdata->gui.locale_entry, 1);
    e_widget_size_min_set(cfdata->gui.locale_entry, 100, 25);
    e_widget_frametable_object_append(of, cfdata->gui.locale_entry, 
-				     0, 1, 1, 1, 1, 1, 1, 0);
+				     1, 0, 1, 1, 1, 1, 1, 0);
    e_widget_table_object_append(o, of, 0, 1, 1, 1, 1, 0, 1, 0);
 
    e_dialog_resizable_set(cfd->dia, 1);
@@ -981,7 +977,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    cfdata->gui.lang_list = ob;
 
    /* If lang_list already loaded just use it */
-   if (cfdata->lang_list == NULL)
+   if (!cfdata->lang_list)
      eina_hash_foreach(cfdata->locale_hash, _lang_hash_cb, cfdata);
 
    if (cfdata->lang_list)
@@ -1061,31 +1057,29 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 }
 
 static void
-_ilist_basic_language_cb_change(void *data, Evas_Object *obj)
+_ilist_basic_language_cb_change(void *data, Evas_Object *obj __UNUSED__)
 {
-   E_Config_Dialog_Data * cfdata;
-    
-   cfdata = data;
+   E_Config_Dialog_Data *cfdata;
 
+   cfdata = data;
    e_widget_entry_text_set(cfdata->gui.locale_entry, cfdata->cur_blang);
 }
 
 static void
-_ilist_language_cb_change(void *data, Evas_Object *obj)
+_ilist_language_cb_change(void *data, Evas_Object *obj __UNUSED__)
 {
-   E_Config_Dialog_Data * cfdata;
-   
+   E_Config_Dialog_Data *cfdata;
+
    cfdata = data;
-   
    _cfdata_language_go(cfdata->cur_lang, NULL, NULL, NULL, cfdata);
-   
+
    e_widget_entry_text_set(cfdata->gui.locale_entry, cfdata->cur_lang);
    eina_stringshare_del(cfdata->cur_cs);
    eina_stringshare_del(cfdata->cur_mod);
 }
 
 static void
-_ilist_region_cb_change(void *data, Evas_Object *obj)
+_ilist_region_cb_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data * cfdata;
    char locale[32];
@@ -1101,7 +1095,7 @@ _ilist_region_cb_change(void *data, Evas_Object *obj)
 }
 
 static void 
-_ilist_codeset_cb_change(void *data, Evas_Object *obj)
+_ilist_codeset_cb_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data * cfdata;
    char locale[32];
@@ -1117,7 +1111,7 @@ _ilist_codeset_cb_change(void *data, Evas_Object *obj)
 }
 
 static void 
-_ilist_modifier_cb_change(void *data, Evas_Object *obj)
+_ilist_modifier_cb_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data * cfdata;
    char locale[32];
@@ -1290,7 +1284,7 @@ _intl_current_locale_setup(E_Config_Dialog_Data *cfdata)
 		  const char *cs_trans;
 	
 		  cs_trans = _intl_charset_upper_get(locale_parts->codeset);
-		  if (cs_trans == NULL)
+		  if (!cs_trans)
 		    cfdata->cur_cs = eina_stringshare_add(locale_parts->codeset);
 		  else
 		    cfdata->cur_cs = eina_stringshare_add(cs_trans);

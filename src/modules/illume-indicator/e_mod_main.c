@@ -3,6 +3,10 @@
 #include "e_mod_config.h"
 #include "e_mod_ind_win.h"
 
+#ifdef HAVE_ENOTIFY
+# include "e_mod_notify.h"
+#endif
+
 /* local variables */
 static Eina_List *iwins = NULL;
 
@@ -32,6 +36,19 @@ e_modapi_init(E_Module *m)
         return NULL;
      }
 
+#ifdef HAVE_ENOTIFY
+   if (!(e_mod_notify_init())) 
+     {
+        /* shutdown config */
+        il_ind_config_shutdown();
+
+        /* clear module directory variable */
+        if (_ind_mod_dir) eina_stringshare_del(_ind_mod_dir);
+        _ind_mod_dir = NULL;
+        return NULL;
+     }
+#endif
+
    /* loop through the managers (root windows) */
    EINA_LIST_FOREACH(e_manager_list(), ml, man) 
      {
@@ -43,6 +60,9 @@ e_modapi_init(E_Module *m)
           {
              E_Zone *zone;
              Eina_List *zl;
+
+             /* TODO: Make this configurable so illume2 can be run
+              * on just one zone/screen/etc */
 
              /* for each zone, create an indicator window */
              EINA_LIST_FOREACH(con->zones, zl, zone) 
@@ -60,7 +80,7 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int 
-e_modapi_shutdown(E_Module *m) 
+e_modapi_shutdown(E_Module *m __UNUSED__) 
 {
    Ind_Win *iwin;
 
@@ -71,6 +91,10 @@ e_modapi_shutdown(E_Module *m)
    /* reset indicator geometry for conformant apps */
    ecore_x_e_illume_indicator_geometry_set(ecore_x_window_root_first_get(), 
                                            0, 0, 0, 0);
+
+#ifdef HAVE_ENOTIFY
+   e_mod_notify_shutdown();
+#endif
 
    /* shutdown config */
    il_ind_config_shutdown();
@@ -83,7 +107,7 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int 
-e_modapi_save(E_Module *m) 
+e_modapi_save(E_Module *m __UNUSED__) 
 {
    return il_ind_config_save();
 }

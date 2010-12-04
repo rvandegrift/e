@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #include "e.h"
 
 static void _e_color_dialog_button1_click(void *data, E_Dialog *edia);
@@ -93,16 +89,17 @@ e_color_dialog_change_callback_set(E_Color_Dialog *dia, void (*func)(E_Color_Dia
 }
 
 static void
-_e_color_dialog_cb_csel_change(void *data, Evas_Object *obj)
+_e_color_dialog_cb_csel_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Color_Dialog *dia;
+
    dia = data;
    if (dia->change_func && dia->color)
      dia->change_func(dia, dia->color, dia->change_data);
 }
 
 static void
-_e_color_dialog_button1_click(void *data, E_Dialog *edia)
+_e_color_dialog_button1_click(void *data, E_Dialog *edia __UNUSED__)
 {
    E_Color_Dialog *dia;
    
@@ -113,7 +110,7 @@ _e_color_dialog_button1_click(void *data, E_Dialog *edia)
 }
 
 static void
-_e_color_dialog_button2_click(void *data, E_Dialog *edia)
+_e_color_dialog_button2_click(void *data, E_Dialog *edia __UNUSED__)
 {
    E_Color_Dialog *dia;
 

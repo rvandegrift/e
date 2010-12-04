@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /*
@@ -67,6 +64,8 @@ static void _e_int_menus_main_exit(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_int_menus_desktops_free_hook(void *obj);
 static void _e_int_menus_desk_item_cb(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_int_menus_item_label_set(Efreet_Menu *entry, E_Menu_Item *mi);
+
+//static void _e_int_menus_apps_drag_finished(E_Drag *drag, int dropped __UNUSED__);
 
 /* local subsystem globals */
 static Eina_Hash *_e_int_menus_augmentation = NULL;
@@ -357,7 +356,7 @@ e_int_menus_menu_augmentation_add_sorted(const char *menu,
 {
    E_Int_Menu_Augmentation *maug;
    Eina_List *l;
-   Eina_Bool old;
+   Eina_Bool old = EINA_FALSE;
 
    maug = E_NEW(E_Int_Menu_Augmentation, 1);
    if (!maug) return NULL;
@@ -372,14 +371,14 @@ e_int_menus_menu_augmentation_add_sorted(const char *menu,
 
    if (_e_int_menus_augmentation)
      {
-	l = eina_hash_find(_e_int_menus_augmentation, menu);
-	old = (l != NULL);
+	if ((l = eina_hash_find(_e_int_menus_augmentation, menu)))
+          old = EINA_TRUE;
      }
    else
      {
 	_e_int_menus_augmentation = eina_hash_string_superfast_new(NULL);
 	l = NULL;
-	old = 0;
+	old = EINA_FALSE;
      }
 
    if ((!l) || (!maug->sort_key))
@@ -498,7 +497,7 @@ _e_int_menus_main_del_hook(void *obj)
 }
 
 static void
-_e_int_menus_main_about(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_main_about(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_About *about;
 
@@ -507,7 +506,7 @@ _e_int_menus_main_about(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_int_menus_themes_about(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_themes_about(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Theme_About *about;
 
@@ -524,7 +523,7 @@ _e_int_menus_fwin_favorites_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 */
 
 static void
-_e_int_menus_main_showhide(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_main_showhide(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__)
 {
    E_Action *act;
 
@@ -533,7 +532,7 @@ _e_int_menus_main_showhide(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_int_menus_main_restart(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_main_restart(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Action *a;
 
@@ -542,7 +541,7 @@ _e_int_menus_main_restart(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_int_menus_main_exit(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_main_exit(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Action *a;
 
@@ -663,7 +662,7 @@ _e_int_menus_apps_free_hook2(void *obj)
 }
 
 static void
-_e_int_menus_apps_run(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_apps_run(void *data, E_Menu *m, E_Menu_Item *mi __UNUSED__)
 {
    Efreet_Desktop *desktop;
 
@@ -671,14 +670,16 @@ _e_int_menus_apps_run(void *data, E_Menu *m, E_Menu_Item *mi)
    e_exec(m->zone, desktop, NULL, NULL, "menu/apps");
 }
 
+/*
 static void
-apps_drag_finished(E_Drag *drag, int dropped)
+_e_int_menus_apps_drag_finished(E_Drag *drag, int dropped __UNUSED__)
 {
    Efreet_Desktop *desktop;
-   
+
    desktop = drag->data;
    efreet_desktop_free(desktop);
 }
+*/
 
 static void
 _e_int_menus_apps_drag(void *data, E_Menu *m, E_Menu_Item *mi)
@@ -710,7 +711,7 @@ _e_int_menus_apps_drag(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_int_menus_virtuals_pre_cb(void *data, E_Menu *m)
+_e_int_menus_virtuals_pre_cb(void *data __UNUSED__, E_Menu *m)
 {
    E_Menu_Item *mi;
    E_Menu *root;
@@ -724,7 +725,7 @@ _e_int_menus_virtuals_pre_cb(void *data, E_Menu *m)
 	int i;
 
 	zone = root->zone;
-	for (i = 0; i < zone->desk_x_count * zone->desk_y_count; i++)
+	for (i = 0; i < (zone->desk_x_count * zone->desk_y_count); i++)
 	  {
 	     E_Desk *desk;
 
@@ -770,13 +771,13 @@ _e_int_menus_desktops_free_hook(void *obj)
 }
 
 static void
-_e_int_menus_desk_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_desk_item_cb(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__)
 {
    e_configure_registry_call("screen/virtual_desktops", m->zone->container, NULL);
 }
 
 static void
-_e_int_menus_virtuals_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_virtuals_item_cb(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Desk *desk;
 
@@ -807,7 +808,7 @@ _e_int_menus_virtuals_icon_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_int_menus_config_pre_cb(void *data, E_Menu *m)
+_e_int_menus_config_pre_cb(void *data __UNUSED__, E_Menu *m)
 {
    E_Menu_Item *mi;
    Eina_List *l = NULL;
@@ -1092,7 +1093,7 @@ _e_int_menus_clients_add_by_none(Eina_List *borders, E_Menu *m)
 }
 
 static void
-_e_int_menus_clients_pre_cb(void *data, E_Menu *m)
+_e_int_menus_clients_pre_cb(void *data __UNUSED__, E_Menu *m)
 {
    E_Menu *subm;
    E_Menu_Item *mi;
@@ -1243,7 +1244,7 @@ _e_int_menus_clients_free_hook(void *obj)
 }
 
 static void 
-_e_int_menus_clients_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_clients_item_cb(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Border *bd;
 
@@ -1283,7 +1284,7 @@ _e_int_menus_clients_icon_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void 
-_e_int_menus_clients_cleanup_cb(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_clients_cleanup_cb(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__)
 {
    E_Action *act;
 
@@ -1292,7 +1293,7 @@ _e_int_menus_clients_cleanup_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_int_menus_lost_clients_pre_cb(void *data, E_Menu *m)
+_e_int_menus_lost_clients_pre_cb(void *data __UNUSED__, E_Menu *m)
 {
    E_Menu_Item *mi;
    Eina_List *l, *borders = NULL;
@@ -1348,7 +1349,7 @@ _e_int_menus_lost_clients_free_hook(void *obj)
 }
 
 static void 
-_e_int_menus_lost_clients_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
+_e_int_menus_lost_clients_item_cb(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    E_Border *bd = data;
 
@@ -1394,7 +1395,7 @@ _e_int_menus_augmentation_del(E_Menu *m, Eina_List *augmentation)
 }
 
 static void 
-_e_int_menus_shelves_pre_cb(void *data, E_Menu *m) 
+_e_int_menus_shelves_pre_cb(void *data __UNUSED__, E_Menu *m) 
 {
    E_Menu_Item *mi;
    Eina_List *l, *shelves = NULL;
@@ -1424,9 +1425,8 @@ _e_int_menus_shelves_pre_cb(void *data, E_Menu *m)
 	if (s->zone->num != zone->num) continue;
 	if (s->cfg->container != (int) con->num) continue;
 
-	name = s->name;
-	if (!name) name = _("Shelf #");	
-	snprintf(buf, sizeof(buf), "%s %i", name, s->id);
+    name = e_shelf_orient_string_get (s);
+	snprintf(buf, sizeof(buf), "Shelf %s", name);
 
 	mi = e_menu_item_new(m);
 	e_menu_item_label_set(mi, buf);
@@ -1492,7 +1492,7 @@ _e_int_menus_shelves_pre_cb(void *data, E_Menu *m)
 }
 
 static void 
-_e_int_menus_shelves_item_cb(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_int_menus_shelves_item_cb(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__) 
 {
    E_Shelf *s = data;
 
@@ -1501,7 +1501,7 @@ _e_int_menus_shelves_item_cb(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void 
-_e_int_menus_shelves_add_cb(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_int_menus_shelves_add_cb(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__) 
 {
    E_Container *con;
    E_Zone *zone;
@@ -1512,7 +1512,7 @@ _e_int_menus_shelves_add_cb(void *data, E_Menu *m, E_Menu_Item *mi)
    cs = E_NEW(E_Config_Shelf, 1);
    cs->name = eina_stringshare_add("shelf");
    cs->container = con->num;
-   cs->zone = zone->num;
+   cs->zone = zone->id;
    cs->popup = 1;
    cs->layer = 200;
    cs->orient = E_GADCON_ORIENT_CORNER_BR;
@@ -1524,11 +1524,11 @@ _e_int_menus_shelves_add_cb(void *data, E_Menu *m, E_Menu_Item *mi)
    e_config->shelves = eina_list_append(e_config->shelves, cs);
    e_config_save_queue();
 
-   e_shelf_config_init();
+   e_shelf_config_update();
 }
 
 static void 
-_e_int_menus_shelves_del_cb(void *data, E_Menu *m, E_Menu_Item *mi) 
+_e_int_menus_shelves_del_cb(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__) 
 {
    e_configure_registry_call("extensions/shelves", m->zone->container, NULL);
 }

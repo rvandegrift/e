@@ -11,6 +11,7 @@ typedef struct E_Mixer_Gadget_Config
 {
    int lock_sliders;
    int show_locked;
+   int keybindings_popup;
    const char *card;
    const char *channel_name;
    const char *id;
@@ -29,6 +30,7 @@ typedef struct E_Mixer_Instance
 {
    E_Gadcon_Client *gcc;
    E_Gadcon_Popup *popup;
+   Ecore_Timer *popup_timer;
    E_Menu *menu;
 
    struct

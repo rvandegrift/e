@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 EAPI E_Path *path_data = NULL;
@@ -29,7 +26,7 @@ struct _E_Util_Fake_Mouse_Up_Info
 struct _E_Util_Image_Import_Settings
 {
    E_Dialog *dia;
-   struct 
+   struct
      {
         void (*func)(void *data, const char *path, Eina_Bool ok, Eina_Bool external, int quality, E_Image_Import_Mode mode);
         void *data;
@@ -45,12 +42,12 @@ struct _E_Util_Image_Import_Handle
 {
    Ecore_Exe *exe;
    Ecore_Event_Handler *handler;
-   struct 
+   struct
      {
         void (*func)(void *data, Eina_Bool ok, const char *image_path, const char *edje_path);
         void *data;
      } cb;
-   struct 
+   struct
      {
         const char *image, *edje, *temp;
      } path;
@@ -389,13 +386,12 @@ EAPI int
 e_util_edje_icon_check(const char *name)
 {
    const char *file;
-   char buf[4096];
+   char buf[PATH_MAX];
 
    if ((!name) || (!name[0])) return 0;
    snprintf(buf, sizeof(buf), "e/icons/%s", name);
    file = e_theme_edje_file_get("base/theme/icons", buf);
-   if (file[0])
-      return 1;
+   if (file[0]) return 1;
    return 0;
 }
 
@@ -407,7 +403,7 @@ EAPI int
 e_util_edje_icon_set(Evas_Object *obj, const char *name)
 {
    const char *file;
-   char buf[4096];
+   char buf[PATH_MAX];
 
    if ((!name) || (!name[0])) return 0;
    snprintf(buf, sizeof(buf), "e/icons/%s", name);
@@ -440,7 +436,7 @@ _e_util_icon_theme_set(Evas_Object *obj, const char *icon)
 static int
 _e_util_icon_fdo_set(Evas_Object *obj, const char *icon)
 {
-   char *path = NULL;
+   const char *path = NULL;
    unsigned int size;
 
    if ((!icon) || (!icon[0])) return 0;
@@ -448,7 +444,6 @@ _e_util_icon_fdo_set(Evas_Object *obj, const char *icon)
    path = efreet_icon_path_find(e_config->icon_theme, icon, size);
    if (!path) return 0;
    e_icon_file_set(obj, path);
-   E_FREE(path);
    return 1;
 }
 
@@ -497,7 +492,7 @@ e_util_menu_item_edje_icon_set(E_Menu_Item *mi, const char *name)
 EAPI unsigned int
 e_util_icon_size_normalize(unsigned int desired)
 {
-   const unsigned int *itr, known_sizes[] = 
+   const unsigned int *itr, known_sizes[] =
      {
         16, 22, 24, 32, 36, 48, 64, 72, 96, 128, 192, 256, -1
      };
@@ -512,7 +507,7 @@ e_util_icon_size_normalize(unsigned int desired)
 static int
 _e_util_menu_item_fdo_icon_set(E_Menu_Item *mi, const char *icon)
 {
-   char *path = NULL;
+   const char *path = NULL;
    unsigned int size;
 
    if ((!icon) || (!icon[0])) return 0;
@@ -520,7 +515,6 @@ _e_util_menu_item_fdo_icon_set(E_Menu_Item *mi, const char *icon)
    path = efreet_icon_path_find(e_config->icon_theme, icon, size);
    if (!path) return 0;
    e_menu_item_icon_file_set(mi, path);
-   E_FREE(path);
    return 1;
 }
 
@@ -561,7 +555,7 @@ e_util_container_window_find(Ecore_X_Window win)
 }
 
 EAPI E_Zone *
-e_util_zone_window_find(Ecore_X_Window win) 
+e_util_zone_window_find(Ecore_X_Window win)
 {
    Eina_List *l, *ll, *lll;
    E_Manager *man;
@@ -570,7 +564,7 @@ e_util_zone_window_find(Ecore_X_Window win)
 
    EINA_LIST_FOREACH(e_manager_list(), l, man)
      EINA_LIST_FOREACH(man->containers, ll, con)
-       EINA_LIST_FOREACH(con->zones, lll, zone) 
+       EINA_LIST_FOREACH(con->zones, lll, zone)
          if (zone->black_win == win) return zone;
 
    return NULL;
@@ -997,13 +991,12 @@ e_util_icon_theme_icon_add(const char *icon_name, unsigned int size, Evas *evas)
    else
      {
 	Evas_Object *obj;
-	char *path;
+	const char *path;
 
 	path = efreet_icon_path_find(e_config->icon_theme, icon_name, size);
 	if (path)
 	  {
 	     obj = e_util_icon_add(path, evas);
-	     free(path);
 	     return obj;
 	  }
      }
@@ -1013,11 +1006,11 @@ e_util_icon_theme_icon_add(const char *icon_name, unsigned int size, Evas *evas)
 EAPI void
 e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, unsigned int size, E_Menu_Item *mi)
 {
-   char *path = NULL;
+   const char *path = NULL;
 
    if ((!desktop) || (!desktop->icon)) return;
 
-   if (desktop->icon[0] == '/') path = strdup(desktop->icon);
+   if (desktop->icon[0] == '/') path = desktop->icon;
    else path = efreet_icon_path_find(e_config->icon_theme, desktop->icon, size);
 
    if (path)
@@ -1034,7 +1027,6 @@ e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, unsigned int size, E_
 	  }
 	else
 	  e_menu_item_icon_file_set(mi, path);
-	free(path);
      }
 }
 
@@ -1243,7 +1235,8 @@ e_util_image_import(const char *image_path, const char *edje_path, const char *e
 {
    static const char *tmpdir = NULL;
    E_Util_Image_Import_Handle *handle;
-   Evas_Imaging_Image *img;
+   Ecore_Evas *ee;
+   Evas_Object *img;
    int fd, w, h;
    const char *escaped_file;
    char cmd[PATH_MAX * 2], tmpn[PATH_MAX];
@@ -1253,15 +1246,17 @@ e_util_image_import(const char *image_path, const char *edje_path, const char *e
    if (!edje_path) return NULL;
    if (!edje_group) return NULL;
    if (!cb) return NULL;
-
-   img = evas_imaging_image_load(image_path, NULL);
-   if (!img)
+   ee = ecore_evas_buffer_new(1, 1);
+   img = evas_object_image_add(ecore_evas_get(ee));
+   evas_object_image_file_set(img, image_path, NULL);
+   if (evas_object_image_load_error_get(img) != EVAS_LOAD_ERROR_NONE)
      {
+        ecore_evas_free(ee);
 	printf("Error loading image '%s'\n", image_path);
 	return NULL;
      }
-   evas_imaging_image_size_get(img, &w, &h);
-   evas_imaging_image_free(img);
+   evas_object_image_size_get(img, &w, &h);
+   ecore_evas_free(ee);
 
    if (!tmpdir)
      {
@@ -1408,6 +1403,30 @@ e_util_image_import_cancel(E_Util_Image_Import_Handle *handle)
    ecore_exe_kill(handle->exe);
 }
 
+EAPI int
+e_util_container_desk_count_get(E_Container *con)
+{
+   Eina_List *zl;
+   E_Zone *zone;
+   int count = 0;
+
+   E_OBJECT_CHECK_RETURN(con, 0);
+   E_OBJECT_TYPE_CHECK_RETURN(con, E_CONTAINER_TYPE, 0);
+   EINA_LIST_FOREACH(con->zones, zl, zone)
+     {
+        int x, y;
+        int cx = 0, cy = 0;
+
+        e_zone_desk_count_get(zone, &cx, &cy);
+        for (x = 0; x < cx; x++)
+          {
+             for (y = 0; y < cy; y++)
+               count += 1;
+          }
+     }
+   return count;
+}
+
 /* local subsystem functions */
 static Eina_Bool
 _e_util_cb_delayed_del(void *data)
@@ -1417,7 +1436,7 @@ _e_util_cb_delayed_del(void *data)
 }
 
 static Eina_Bool
-_e_util_wakeup_cb(__UNUSED__ void *data)
+_e_util_wakeup_cb(void *data __UNUSED__)
 {
    _e_util_dummy_timer = NULL;
    return ECORE_CALLBACK_CANCEL;
@@ -1479,7 +1498,7 @@ static Eina_Bool
 _e_util_conf_timer_old(void *data)
 {
    char *module_name = data;
-   char buf[4096];
+   char buf[PATH_MAX];
    char *msg =
      _("Configuration data needed "
        "upgrading. Your old configuration<br> has been"
@@ -1540,4 +1559,55 @@ e_util_module_config_check(const char *module_name, int conf, int epoch, int ver
      }
 
    return EINA_TRUE;
+}
+
+/**
+ * Checks whenever the current manager/container/zone have fullscreen windows.
+ */
+EAPI Eina_Bool
+e_util_fullscreen_curreny_any(void)
+{
+   E_Manager *man = e_manager_current_get();
+   E_Container *con = e_container_current_get(man);
+   E_Zone *zone = e_zone_current_get(con);
+   E_Desk *desk;
+
+   if ((zone) && (zone->fullscreen > 0)) return EINA_TRUE;
+   desk = e_desk_current_get(zone);
+   if ((desk) && (desk->fullscreen_borders > 0)) return EINA_TRUE;
+   return EINA_FALSE;
+}
+
+/**
+ * Checks whenever any manager/container/zone have fullscreen windows.
+ */
+EAPI Eina_Bool
+e_util_fullscreen_any(void)
+{
+   E_Zone *zone;
+   Eina_List *lm, *lc, *lz;
+   E_Container *con;
+   E_Manager *man;
+   E_Desk *desk;
+   int x, y;
+
+   EINA_LIST_FOREACH(e_manager_list(), lm, man)
+     {
+        EINA_LIST_FOREACH(man->containers, lc, con)
+          {
+             EINA_LIST_FOREACH(con->zones, lz, zone)
+               {
+                  if (zone->fullscreen > 0) return EINA_TRUE;
+
+                  for (x = 0; x < zone->desk_x_count; x++)
+                    for (y = 0; y < zone->desk_y_count; y++)
+                      {
+                         desk = e_desk_at_xy_get(zone, x, y);
+                         if ((desk) && (desk->fullscreen_borders > 0))
+                           return EINA_TRUE;
+                      }
+               }
+          }
+     }
+   return EINA_FALSE;
 }
