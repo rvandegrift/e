@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* TODO List:
@@ -33,7 +30,7 @@ static int container_count;
 static Eina_List *handlers = NULL;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_container_init(void)
 {
    E_EVENT_CONTAINER_RESIZE = ecore_event_type_new();
@@ -48,7 +45,7 @@ e_container_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_container_shutdown(void)
 {
    E_FREE_LIST(handlers, ecore_event_handler_del);
@@ -231,7 +228,7 @@ e_container_current_get(E_Manager *man)
 	if (con->visible) return con;
      }
 
-   /* If noone is available, return the first */
+   /* If no one is available, return the first */
    if (!man->containers) return NULL;
    l = man->containers;
    return (E_Container *)eina_list_data_get(l);
@@ -299,17 +296,17 @@ e_container_move_resize(E_Container *con, int x, int y, int w, int h)
 }
 
 EAPI void
-e_container_raise(E_Container *con)
+e_container_raise(E_Container *con __UNUSED__)
 {
-   E_OBJECT_CHECK(con);
-   E_OBJECT_TYPE_CHECK(con, E_CONTAINER_TYPE);
+//   E_OBJECT_CHECK(con);
+//   E_OBJECT_TYPE_CHECK(con, E_CONTAINER_TYPE);
 }
 
 EAPI void
-e_container_lower(E_Container *con)
+e_container_lower(E_Container *con __UNUSED__)
 {
-   E_OBJECT_CHECK(con);
-   E_OBJECT_TYPE_CHECK(con, E_CONTAINER_TYPE);
+//   E_OBJECT_CHECK(con);
+//   E_OBJECT_TYPE_CHECK(con, E_CONTAINER_TYPE);
 }
 
 EAPI E_Zone *
@@ -969,7 +966,7 @@ _e_container_find_by_event_window(Ecore_X_Window win)
 }
 
 static Eina_Bool
-_e_container_cb_mouse_in(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_container_cb_mouse_in(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Mouse_In *ev;
    E_Border *bd;
@@ -988,7 +985,7 @@ _e_container_cb_mouse_in(__UNUSED__ void *data, __UNUSED__ int type, void *event
 }
 
 static Eina_Bool
-_e_container_cb_mouse_out(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_container_cb_mouse_out(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Mouse_Out *ev;
    E_Container *con;
@@ -1006,7 +1003,7 @@ _e_container_cb_mouse_out(__UNUSED__ void *data, __UNUSED__ int type, void *even
 }
 
 static Eina_Bool
-_e_container_cb_mouse_down(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_container_cb_mouse_down(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    E_Container *con;
@@ -1028,7 +1025,7 @@ _e_container_cb_mouse_down(__UNUSED__ void *data, __UNUSED__ int type, void *eve
 }
 
 static Eina_Bool
-_e_container_cb_mouse_up(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_container_cb_mouse_up(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    E_Container *con;
@@ -1046,7 +1043,7 @@ _e_container_cb_mouse_up(__UNUSED__ void *data, __UNUSED__ int type, void *event
 }
 
 static Eina_Bool
-_e_container_cb_mouse_move(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_container_cb_mouse_move(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Move *ev;
    E_Container *con;
@@ -1062,7 +1059,7 @@ _e_container_cb_mouse_move(__UNUSED__ void *data, __UNUSED__ int type, void *eve
 }
 
 static Eina_Bool
-_e_container_cb_mouse_wheel(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_container_cb_mouse_wheel(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Wheel *ev;
    E_Container *con;
@@ -1228,7 +1225,7 @@ _e_container_resize_handle(E_Container *con)
 }
 
 static void
-_e_container_event_container_resize_free(__UNUSED__ void *data, void *ev)
+_e_container_event_container_resize_free(void *data __UNUSED__, void *ev)
 {
    E_Event_Container_Resize *e;
 

@@ -1,28 +1,26 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 #include "e_mod_config.h"
-#include "e_fm_dbus.h"
+#include "e_fm_device.h"
 
 struct _E_Config_Dialog_Data 
 {
    /* general view mode */
-   struct {
-      int   mode;
-      int   open_dirs_in_place;
-      int   selector;
-      int   single_click;
-      int   no_subdir_jump;
-      int   no_subdir_drop;
-      int   always_order;
-      int   link_drop;
-      int   fit_custom_pos;
-      int   show_full_path;
-      int   show_desktop_icons;
-      int   show_toolbar;
-   } view;
+   struct 
+     {
+        int   mode;
+        int   open_dirs_in_place;
+        int   selector;
+        int   single_click;
+        int   no_subdir_jump;
+        int   no_subdir_drop;
+        int   always_order;
+        int   link_drop;
+        int   fit_custom_pos;
+        int   show_full_path;
+        int   show_desktop_icons;
+        int   show_toolbar;
+     } view;
    /* display of icons */
    struct 
      {
@@ -42,9 +40,10 @@ struct _E_Config_Dialog_Data
 	struct 
 	  {
 	     int case_sen;
-	     struct {
-		int first, last;
-	     } dirs;
+	     struct 
+               {
+                  int first, last;
+               } dirs;
 	  } sort;
      } list;
    /* control how you can select files */
@@ -126,9 +125,9 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    cfdata->selection.windows_modifiers = fileman_config->selection.windows_modifiers;
    cfdata->list.sort.dirs.first = fileman_config->list.sort.dirs.first;
    cfdata->list.sort.case_sen = !(fileman_config->list.sort.no_case);
-   cfdata->dbus.desktop = e_config->dbus_desktop;
-   cfdata->dbus.auto_mount = e_config->dbus_auto_mount;
-   cfdata->dbus.auto_open = e_config->dbus_auto_open;
+   cfdata->dbus.desktop = e_config->device_desktop;
+   cfdata->dbus.auto_mount = e_config->device_auto_mount;
+   cfdata->dbus.auto_open = e_config->device_auto_open;
 }
 
 static void 
@@ -139,7 +138,7 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static int 
-_basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata) 
 {
    fileman_config->view.mode = cfdata->view.mode;
    fileman_config->view.open_dirs_in_place = cfdata->view.open_dirs_in_place;
@@ -159,14 +158,14 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    fileman_config->list.sort.dirs.last = !(cfdata->list.sort.dirs.first);
    fileman_config->list.sort.no_case = !(cfdata->list.sort.case_sen);
 
-   e_config->dbus_desktop = cfdata->dbus.desktop;
-   if(e_config->dbus_desktop) 
-     e_fm2_dbus_show_desktop_icons();
+   e_config->device_desktop = cfdata->dbus.desktop;
+   if(e_config->device_desktop) 
+     e_fm2_device_show_desktop_icons();
    else
-     e_fm2_dbus_hide_desktop_icons();
+     e_fm2_device_hide_desktop_icons();
 
-   e_config->dbus_auto_mount = cfdata->dbus.auto_mount;
-   e_config->dbus_auto_open = cfdata->dbus.auto_open;
+   e_config->device_auto_mount = cfdata->dbus.auto_mount;
+   e_config->device_auto_open = cfdata->dbus.auto_open;
    
    e_config_save_queue();
    
@@ -176,7 +175,7 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    return
      ((fileman_config->view.mode != cfdata->view.mode) ||
@@ -192,13 +191,13 @@ _basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
       (fileman_config->list.sort.dirs.first != cfdata->list.sort.dirs.first) ||
       (fileman_config->list.sort.dirs.last != !(cfdata->list.sort.dirs.first)) ||
       (fileman_config->list.sort.no_case != !(cfdata->list.sort.case_sen)) ||
-      (e_config->dbus_desktop != cfdata->dbus.desktop) ||
-      (e_config->dbus_auto_mount != cfdata->dbus.auto_mount) ||
-      (e_config->dbus_auto_open != cfdata->dbus.auto_open));
+      (e_config->device_desktop != cfdata->dbus.desktop) ||
+      (e_config->device_auto_mount != cfdata->dbus.auto_mount) ||
+      (e_config->device_auto_open != cfdata->dbus.auto_open));
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata) 
+_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata) 
 {
    Evas_Object *o, *ob, *of, *otb;
    E_Radio_Group *rg;

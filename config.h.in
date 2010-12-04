@@ -31,7 +31,8 @@
 /* Define if the ALSA output plugin should be built */
 #undef HAVE_ALSA
 
-/* Package BATTERY (ecore ecore-file ecore-con eina-0) found. */
+/* Package BATTERY (ecore >= 1.0.0 ecore-file >= 1.0.0 ecore-con >= 1.0.0 eina
+   >= 1.0.0) found. */
 #undef HAVE_BATTERY
 
 /* Define to 1 if you have the <CFBase.h> header file. */
@@ -44,19 +45,25 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Package EBLUEZ (edbus ebluez) found. */
+/* Package EBLUEZ (edbus >= 1.0.0 ebluez >= 1.0.0) found. */
 #undef HAVE_EBLUEZ
 
-/* Package ECONNMAN (edbus econnman) found. */
+/* Package ECONNMAN (edbus >= 1.0.0 econnman >= 1.0.0) found. */
 #undef HAVE_ECONNMAN
 
-/* Package ECORE_IMF (ecore-imf ecore-imf-evas) found. */
+/* Package ECORE_IMF (ecore-imf >= 1.0.0 ecore-imf-evas >= 1.0.0) found. */
 #undef HAVE_ECORE_IMF
 
 /* enable udev support */
 #undef HAVE_EEZE
 
-/* Package EOFONO (edbus eofono) found. */
+/* enable eeze mounting */
+#undef HAVE_EEZE_MOUNT
+
+/* Package ENOTIFY (edbus >= 1.0.0 enotify >= 1.0.0) found. */
+#undef HAVE_ENOTIFY
+
+/* Package EOFONO (edbus >= 1.0.0 eofono >= 1.0.0) found. */
 #undef HAVE_EOFONO
 
 /* Package EXCHANGE (exchange) found. */
@@ -110,7 +117,8 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
-/* Package TEMPERATURE (ecore ecore-file eina-0) found. */
+/* Package TEMPERATURE (ecore >= 1.0.0 ecore-file >= 1.0.0 eina >= 1.0.0)
+   found. */
 #undef HAVE_TEMPERATURE
 
 /* Define to 1 if you have the <unistd.h> header file. */

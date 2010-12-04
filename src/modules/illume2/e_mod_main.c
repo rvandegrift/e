@@ -26,6 +26,10 @@ e_modapi_init(E_Module *m)
    Ecore_X_Window *zones;
    int zcount = 0;
 
+   /* check if illume is loaded and bail out if it is.
+    * Illume1 and illume2 both cannot be loaded @ the same time */
+   if (e_module_find("illume")) return NULL;
+
    /* set module priority so we load first */
    e_module_priority_set(m, 100);
 
@@ -110,7 +114,7 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int 
-e_modapi_shutdown(E_Module *m) 
+e_modapi_shutdown(E_Module *m __UNUSED__) 
 {
    E_Illume_Quickpanel *qp;
 
@@ -142,7 +146,7 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int 
-e_modapi_save(E_Module *m) 
+e_modapi_save(E_Module *m __UNUSED__) 
 {
    return e_mod_illume_config_save();
 }

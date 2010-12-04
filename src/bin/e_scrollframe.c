@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define SMART_NAME "e_scrollframe"
@@ -885,7 +882,7 @@ _e_smart_scrollbar_size_adjust(E_Smart_Data *sd)
 {
    if ((sd->child_obj) || (sd->extern_pan))
      {
-	Evas_Coord x, y, w, h, mx = 0, my = 0, vw = 0, vh = 0;
+	Evas_Coord x = 0, y = 0, w = 0, h = 0, mx = 0, my = 0, vw = 0, vh = 0;
 	double vx, vy, size;
 
 	edje_object_calc_force(sd->edje_obj);

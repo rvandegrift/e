@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define SMART_NAME "e_slidecore"
@@ -132,7 +129,7 @@ _e_smart_cb_slide_animator(void *data)
 }
 
 static void
-_e_smart_event_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_smart_event_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
 {
    Evas_Event_Mouse_Down *ev;
    E_Smart_Data *sd;
@@ -148,7 +145,7 @@ _e_smart_event_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_inf
 }
 
 static void
-_e_smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_smart_event_mouse_up(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
 {
    Evas_Event_Mouse_Down *ev;
    E_Smart_Data *sd;
@@ -173,7 +170,7 @@ _e_smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
 }
 
 static void
-_e_smart_event_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_smart_event_mouse_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
 {
    Evas_Event_Mouse_Move *ev;
    E_Smart_Data *sd;

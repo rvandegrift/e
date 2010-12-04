@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef struct _E_Win E_Win;
@@ -40,8 +37,8 @@ struct _E_Win
    E_Pointer           *pointer;
 };
 
-EAPI int    e_win_init               (void);
-EAPI int    e_win_shutdown           (void);
+EINTERN int    e_win_init               (void);
+EINTERN int    e_win_shutdown           (void);
 EAPI E_Win *e_win_new                (E_Container *con);
 EAPI void   e_win_show               (E_Win *win);
 EAPI void   e_win_hide               (E_Win *win);

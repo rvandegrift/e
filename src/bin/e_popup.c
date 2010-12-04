@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
@@ -15,7 +12,7 @@ static Eina_Hash *_e_popup_hash = NULL;
 
 /* externally accessible functions */
 
-EAPI int
+EINTERN int
 e_popup_init(void)
 {
    _e_popup_window_shape_handler = 
@@ -25,7 +22,7 @@ e_popup_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_popup_shutdown(void)
 {
    if (_e_popup_hash)
@@ -53,6 +50,11 @@ e_popup_new(E_Zone *zone, int x, int y, int w, int h)
    pop->ecore_evas = e_canvas_new(e_config->evas_engine_popups, pop->zone->container->win,
 				  pop->zone->x + pop->x, pop->zone->y + pop->y, pop->w, pop->h, 1, 1,
 				  &(pop->evas_win));
+   if (!pop->ecore_evas)
+     {
+	free(pop);
+	return NULL;
+     }
    /* avoid excess exposes when shaped - set damage avoid to 1 */
 //   ecore_evas_avoid_damage_set(pop->ecore_evas, 1);
 
@@ -323,15 +325,15 @@ _e_popup_idle_enterer(void *data)
 
    if (!(pop = data)) return ECORE_CALLBACK_CANCEL;
    ecore_evas_move(pop->ecore_evas,
-		   pop->zone->x + pop->x, 
+		   pop->zone->x + pop->x,
 		   pop->zone->y + pop->y);
    e_container_shape_show(pop->shape);
    pop->idle_enterer = NULL;
-   return ECORE_CALLBACK_RENEW;
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static Eina_Bool
-_e_popup_cb_window_shape(__UNUSED__ void *data, __UNUSED__ int ev_type, void *ev)
+_e_popup_cb_window_shape(void *data __UNUSED__, int ev_type __UNUSED__, void *ev)
 {
    E_Popup *pop;
    Ecore_X_Event_Window_Shape *e;

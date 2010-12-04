@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifndef E_MOD_MAIN_H
 #define E_MOD_MAIN_H
 
@@ -108,8 +105,8 @@ struct E_Connman_Module_Context
    } poller;
 
    Eina_Bool has_manager:1;
-   bool offline_mode;
-   bool offline_mode_pending;
+   Eina_Bool offline_mode;
+   Eina_Bool offline_mode_pending;
    const char *technology;
    const E_Connman_Service *default_service;
    Eina_Inlist *services;

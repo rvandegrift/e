@@ -139,8 +139,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 	eb2->button = eb->button;
 	eb2->modifiers = eb->modifiers;
 	eb2->any_mod = eb->any_mod;
-	eb2->action = eb->action == NULL ? NULL : eina_stringshare_add(eb->action);
-	eb2->params = eb->params == NULL ? NULL : eina_stringshare_add(eb->params);
+	eb2->action = !eb->action ? NULL : eina_stringshare_add(eb->action);
+	eb2->params = !eb->params ? NULL : eina_stringshare_add(eb->params);
 
 	cfdata->binding.mouse = eina_list_append(cfdata->binding.mouse, eb2);
      }
@@ -153,8 +153,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 	bw2->z = bw->z;
 	bw2->modifiers = bw->modifiers;
 	bw2->any_mod = bw->any_mod;
-	bw2->action = bw->action == NULL ? NULL : eina_stringshare_add(bw->action);
-	bw2->params = bw->params == NULL ? NULL : eina_stringshare_add(bw->params);
+	bw2->action = !bw->action ? NULL : eina_stringshare_add(bw->action);
+	bw2->params = !bw->params ? NULL : eina_stringshare_add(bw->params);
 
 	cfdata->binding.wheel = eina_list_append(cfdata->binding.wheel, bw2);
      }
@@ -173,7 +173,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    E_Config_Binding_Mouse *eb;
    E_Config_Binding_Wheel *bw;
@@ -201,7 +201,7 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 { 
    Eina_List *l;
    E_Config_Binding_Mouse *eb, *eb2;
@@ -226,8 +226,8 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	eb2->button = eb->button;
 	eb2->modifiers = eb->modifiers;
 	eb2->any_mod = eb->any_mod;
-	eb2->action = eb->action == NULL ? NULL : eina_stringshare_add(eb->action);
-	eb2->params = eb->params == NULL ? NULL : eina_stringshare_add(eb->params);
+	eb2->action = !eb->action ? NULL : eina_stringshare_add(eb->action);
+	eb2->params = !eb->params ? NULL : eina_stringshare_add(eb->params);
 
 	e_config->mouse_bindings = eina_list_append(e_config->mouse_bindings, eb2);
 	e_bindings_mouse_add(eb2->context, eb2->button, eb2->modifiers, eb2->any_mod,
@@ -251,8 +251,8 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 	bw2->z = bw->z;
 	bw2->modifiers = bw->modifiers;
 	bw2->any_mod = bw->any_mod;
-	bw2->action = bw->action == NULL ? NULL : eina_stringshare_add(bw->action);
-	bw2->params = bw->params == NULL ? NULL : eina_stringshare_add(bw->params);
+	bw2->action = !bw->action ? NULL : eina_stringshare_add(bw->action);
+	bw2->params = !bw->params ? NULL : eina_stringshare_add(bw->params);
 
 	e_config->wheel_bindings = eina_list_append(e_config->wheel_bindings, bw2);
 	e_bindings_wheel_add(bw2->context, bw2->direction, bw2->z, bw2->modifiers,
@@ -399,7 +399,7 @@ _fill_actions_list(E_Config_Dialog_Data *cfdata)
 
 /******************* Callbacks *************/
 static void
-_add_mouse_binding_cb(void *data, void *data2)
+_add_mouse_binding_cb(void *data, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -411,7 +411,7 @@ _add_mouse_binding_cb(void *data, void *data2)
 }
 
 static void
-_modify_mouse_binding_cb(void *data, void *data2)
+_modify_mouse_binding_cb(void *data, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -452,7 +452,7 @@ _binding_change_cb(void *data)
 }
 
 static void
-_delete_all_mouse_binding_cb(void *data, void *data2)
+_delete_all_mouse_binding_cb(void *data, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    E_Config_Binding_Mouse *eb;
@@ -489,7 +489,7 @@ _delete_all_mouse_binding_cb(void *data, void *data2)
 }
 
 static void
-_delete_mouse_binding_cb(void *data, void *data2)
+_delete_mouse_binding_cb(void *data, void *data2 __UNUSED__)
 {
    Eina_List *l;
    int sel, n;
@@ -556,7 +556,7 @@ _delete_mouse_binding_cb(void *data, void *data2)
 }
 
 static void
-_restore_mouse_binding_defaults_cb(void *data, void *data2)
+_restore_mouse_binding_defaults_cb(void *data, void *data2 __UNUSED__)
 {
    E_Config_Binding_Mouse *eb;
    E_Config_Binding_Wheel *bw;

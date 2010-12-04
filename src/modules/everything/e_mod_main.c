@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #include "e_mod_main.h"
 
 
@@ -23,7 +19,6 @@ static Ecore_Timer *cleanup_timer;
 
 static E_Config_DD *conf_edd = NULL;
 static E_Config_DD *plugin_conf_edd = NULL;
-static E_Config_DD *collection_conf_edd = NULL;
 
 Evry_Config *evry_conf = NULL;
 int _evry_events[NUM_EVRY_EVENTS];
@@ -452,6 +447,11 @@ _config_init()
    pcc->plugins = eina_list_append(pcc->plugins, pc);
    IFMODCFGEND;
 
+   IFMODCFG(0x0002);
+   evry_conf->width = 365;
+   evry_conf->height = 360;
+   IFMODCFGEND;
+   
    evry_conf->version = MOD_CONFIG_FILE_VERSION;
 }
 

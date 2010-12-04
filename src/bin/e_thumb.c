@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 typedef struct _E_Thumb E_Thumb;
@@ -41,7 +38,7 @@ static Ecore_Event_Handler *_exe_del_handler = NULL;
 static Ecore_Timer *_kill_timer = NULL;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_thumb_init(void)
 {
    _exe_del_handler = ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
@@ -51,7 +48,7 @@ e_thumb_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_thumb_shutdown(void)
 {
    _e_thumb_thumbnailers_kill_cancel();
@@ -69,7 +66,7 @@ e_thumb_shutdown(void)
 }
 
 static void
-_thumb_preloaded(void *data, Evas_Object *obj, void *event)
+_thumb_preloaded(void *data, Evas_Object *obj __UNUSED__, void *event __UNUSED__)
 {
    evas_object_smart_callback_call(data, "e_thumb_gen", NULL);
 }
@@ -329,7 +326,7 @@ _e_thumb_gen_end(int objid)
 }
 
 static void
-_e_thumb_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_thumb_del_hook(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    E_Thumb *eth;
 
@@ -395,7 +392,7 @@ _e_thumb_thumbnailers_kill_cancel(void)
 }
 
 static Eina_Bool
-_e_thumb_cb_kill(__UNUSED__ void *data)
+_e_thumb_cb_kill(void *data __UNUSED__)
 {
    Eina_List *l;
    Ecore_Exe *exe;
@@ -407,7 +404,7 @@ _e_thumb_cb_kill(__UNUSED__ void *data)
 }
 
 static Eina_Bool
-_e_thumb_cb_exe_event_del(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_thumb_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Exe_Event_Del *ev;
    Ecore_Exe *exe;

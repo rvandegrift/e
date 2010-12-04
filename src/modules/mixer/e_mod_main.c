@@ -1,6 +1,9 @@
 #include "e_mod_main.h"
 #include "e_mod_system.h"
 
+static void _mixer_popup_timer_new(E_Mixer_Instance *inst);
+static Eina_Bool _mixer_popup_timer_cb(void *data);
+
 static E_Module *mixer_mod = NULL;
 static char tmpbuf[PATH_MAX]; /* general purpose buffer, just use immediately */
 
@@ -55,6 +58,7 @@ _mixer_gadget_configuration_defaults(E_Mixer_Gadget_Config *conf)
    conf->channel_name = channel;
    conf->lock_sliders = 1;
    conf->show_locked = 0;
+   conf->keybindings_popup = 0;
 
    return 1;
 }
@@ -486,6 +490,9 @@ _mixer_popup_del(E_Mixer_Instance *inst)
    inst->ui.table = NULL;
    inst->ui.button = NULL;
    inst->popup = NULL;
+   if (inst->popup_timer)
+      ecore_timer_del(inst->popup_timer);
+   inst->popup_timer = NULL;
 }
 
 static void
@@ -599,6 +606,37 @@ _mixer_popup_new(E_Mixer_Instance *inst)
 }
 
 static void
+_mixer_popup_timer_new(E_Mixer_Instance *inst)
+{
+   if (inst->popup)
+     {
+        if (inst->popup_timer)
+		  {
+             ecore_timer_del(inst->popup_timer); 
+             inst->popup_timer = ecore_timer_add(1.0, _mixer_popup_timer_cb, inst);
+          }
+     }
+   else
+     {
+        _mixer_popup_new(inst);
+        inst->popup_timer = ecore_timer_add(1.0, _mixer_popup_timer_cb, inst);
+     }
+}
+
+static Eina_Bool
+_mixer_popup_timer_cb(void *data)
+{
+   E_Mixer_Instance *inst;
+   inst = data;
+
+   if (inst->popup)
+      _mixer_popup_del(inst);
+   inst->popup_timer = NULL;
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static void
 _mixer_menu_cb_post(void *data, E_Menu *menu __UNUSED__)
 {
    E_Mixer_Instance *inst = data;
@@ -627,24 +665,26 @@ static void
 _mixer_menu_new(E_Mixer_Instance *inst, Evas_Event_Mouse_Down *ev)
 {
    E_Zone *zone;
-   E_Menu *mn;
+   E_Menu *ma, *mg;
    E_Menu_Item *mi;
    int x, y;
 
    zone = e_util_zone_current_get(e_manager_current_get());
 
-   mn = e_menu_new();
-   e_menu_post_deactivate_callback_set(mn, _mixer_menu_cb_post, inst);
-   inst->menu = mn;
+   ma = e_menu_new();
+   e_menu_post_deactivate_callback_set(ma, _mixer_menu_cb_post, inst);
+   inst->menu = ma;
 
-   mi = e_menu_item_new(mn);
+   mg = e_menu_new();
+
+   mi = e_menu_item_new(mg);
    e_menu_item_label_set(mi, _("Settings"));
    e_util_menu_item_theme_icon_set(mi, "configure");
    e_menu_item_callback_set(mi, _mixer_menu_cb_cfg, inst);
 
-   e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
+   e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
    e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon, &x, &y, NULL, NULL);
-   e_menu_activate_mouse(mn, zone, x + ev->output.x, y + ev->output.y,
+   e_menu_activate_mouse(ma, zone, x + ev->output.x, y + ev->output.y,
                          1, 1, E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
    evas_event_feed_mouse_up(inst->gcc->gadcon->evas, ev->button,
                             EVAS_BUTTON_NONE, ev->timestamp, NULL);
@@ -710,7 +750,7 @@ _mixer_sys_setup(E_Mixer_Instance *inst)
 
    inst->channel = e_mixer_system_get_channel_by_name(inst->sys,
                    conf->channel_name);
-   return inst->channel != NULL;
+   return !!inst->channel;
 }
 
 static int
@@ -921,7 +961,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
 static char *
 _gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
-   return _(_e_mixer_Name);
+   return (char*)_(_e_mixer_Name);
 }
 
 static Evas_Object *
@@ -976,8 +1016,13 @@ _mixer_cb_volume_increase(E_Object *obj __UNUSED__, const char *params __UNUSED_
    if (!ctxt->conf)
       return;
 
-   if (ctxt->default_instance)
-      _mixer_volume_increase(ctxt->default_instance);
+
+   if (!ctxt->default_instance)
+      return;
+
+   if (ctxt->default_instance->conf->keybindings_popup)
+     _mixer_popup_timer_new(ctxt->default_instance);
+   _mixer_volume_increase(ctxt->default_instance);
 }
 
 static void
@@ -992,8 +1037,12 @@ _mixer_cb_volume_decrease(E_Object *obj __UNUSED__, const char *params __UNUSED_
    if (!ctxt->conf)
       return;
 
-   if (ctxt->default_instance)
-      _mixer_volume_decrease(ctxt->default_instance);
+   if (!ctxt->default_instance)
+      return;
+
+   if (ctxt->default_instance->conf->keybindings_popup)
+     _mixer_popup_timer_new(ctxt->default_instance);
+   _mixer_volume_decrease(ctxt->default_instance);
 }
 
 static void
@@ -1008,8 +1057,12 @@ _mixer_cb_volume_mute(E_Object *obj __UNUSED__, const char *params __UNUSED__)
    if (!ctxt->conf)
       return;
 
-   if (ctxt->default_instance)
-      _mixer_toggle_mute(ctxt->default_instance);
+   if (!ctxt->default_instance)
+      return;
+
+   if (ctxt->default_instance->conf->keybindings_popup)
+     _mixer_popup_timer_new(ctxt->default_instance);
+   _mixer_toggle_mute(ctxt->default_instance);
 }
 
 static E_Config_Dialog *
@@ -1091,6 +1144,7 @@ _mixer_gadget_configuration_descriptor_new(void)
       return NULL;
    E_CONFIG_VAL(conf_edd, E_Mixer_Gadget_Config, lock_sliders, INT);
    E_CONFIG_VAL(conf_edd, E_Mixer_Gadget_Config, show_locked, INT);
+   E_CONFIG_VAL(conf_edd, E_Mixer_Gadget_Config, keybindings_popup, INT);
    E_CONFIG_VAL(conf_edd, E_Mixer_Gadget_Config, card, STR);
    E_CONFIG_VAL(conf_edd, E_Mixer_Gadget_Config, channel_name, STR);
 

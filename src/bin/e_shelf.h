@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef struct _E_Shelf E_Shelf;
@@ -48,9 +45,9 @@ struct _E_Shelf
    unsigned int         locked; 
 };
 
-EAPI int              e_shelf_init(void);
-EAPI int              e_shelf_shutdown(void);
-EAPI void             e_shelf_config_init(void);
+EINTERN int              e_shelf_init(void);
+EINTERN int              e_shelf_shutdown(void);
+EAPI void             e_shelf_config_update(void);
 EAPI Eina_List       *e_shelf_list(void);
 EAPI E_Shelf         *e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, int popup, int layer, int id);
 EAPI void             e_shelf_zone_move_resize_handle(E_Zone *zone);
@@ -67,6 +64,7 @@ EAPI void             e_shelf_layer_set(E_Shelf *es, int layer);
 EAPI void             e_shelf_save(E_Shelf *es);
 EAPI void             e_shelf_unsave(E_Shelf *es);
 EAPI void             e_shelf_orient(E_Shelf *es, E_Gadcon_Orient orient);
+EAPI const char      *e_shelf_orient_string_get(E_Shelf *es);
 EAPI void             e_shelf_position_calc(E_Shelf *es);
 EAPI void             e_shelf_style_set(E_Shelf *es, const char *style);
 EAPI void             e_shelf_popup_set(E_Shelf *es, int popup);

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 /* Menu chooser */
 #include "e.h"
 #include "e_mod_main.h"
@@ -28,7 +25,7 @@ check_menu_dir(const char *dir)
 }
 
 EAPI int
-wizard_page_init(E_Wizard_Page *pg)
+wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 {
    char buf[PATH_MAX];
    const char *dirs[] = 
@@ -64,7 +61,7 @@ wizard_page_init(E_Wizard_Page *pg)
 }
 
 EAPI int
-wizard_page_shutdown(E_Wizard_Page *pg)
+wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 {
    // FIXME: free menus
    return 1;
@@ -197,7 +194,7 @@ wizard_page_hide(E_Wizard_Page *pg)
 }
 
 EAPI int
-wizard_page_apply(E_Wizard_Page *pg)
+wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
    if ((xdg_sel) && (!strcmp("/etc/xdg/menus/applications.menu", xdg_sel)))
      {
@@ -206,6 +203,5 @@ wizard_page_apply(E_Wizard_Page *pg)
      }
    e_config->default_system_menu = eina_stringshare_ref(xdg_sel);
    efreet_menu_file_set(e_config->default_system_menu);
-   // FIXME: no normal config dialog to change this!
    return 1;
 }

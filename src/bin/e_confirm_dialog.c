@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /******** private function definitions **********/
@@ -63,7 +60,7 @@ _e_confirm_dialog_free(E_Confirm_Dialog *cd)
 }
 
 static void
-_e_confirm_dialog_yes(void *data, E_Dialog *dia)
+_e_confirm_dialog_yes(void *data, E_Dialog *dia __UNUSED__)
 {
    E_Confirm_Dialog *cd;
 
@@ -73,7 +70,7 @@ _e_confirm_dialog_yes(void *data, E_Dialog *dia)
 }
 
 static void
-_e_confirm_dialog_no(void *data, E_Dialog *dia)
+_e_confirm_dialog_no(void *data, E_Dialog *dia __UNUSED__)
 {
    E_Confirm_Dialog *cd;
 

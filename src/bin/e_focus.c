@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
@@ -9,13 +6,13 @@ static Eina_Bool _e_focus_raise_timer(void* data);
 /* local subsystem globals */
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_focus_init(void)
 {
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_focus_shutdown(void)
 {
    return 1;
@@ -118,7 +115,7 @@ e_focus_event_mouse_down(E_Border* bd)
 }
 
 EAPI void
-e_focus_event_mouse_up(E_Border* bd)
+e_focus_event_mouse_up(E_Border* bd __UNUSED__)
 {
 }
 

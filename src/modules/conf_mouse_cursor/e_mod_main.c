@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -17,7 +14,7 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
-   e_configure_registry_category_add("appearance", 10, _("Look"), NULL, "preferences-appearance");
+   e_configure_registry_category_add("appearance", 10, _("Look"), NULL, "preferences-look");
    e_configure_registry_item_add("appearance/mouse_cursor", 70, _("Mouse Cursor"), NULL, "preferences-desktop-pointer", e_int_config_cursor);
    conf_module = m;
    e_module_delayed_set(m, 1);

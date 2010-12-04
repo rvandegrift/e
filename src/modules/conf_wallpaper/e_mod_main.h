@@ -1,18 +1,13 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifndef E_MOD_MAIN_H
 #define E_MOD_MAIN_H
 
 #define E_TYPEDEFS 1
 #include "e_int_config_wallpaper.h"
 #include "e_int_config_wallpaper_import.h"
-#include "e_int_config_wallpaper_gradient.h"
 #include "e_int_config_wallpaper_web.h"
 #undef E_TYPEDEFS
 #include "e_int_config_wallpaper.h"
 #include "e_int_config_wallpaper_import.h"
-#include "e_int_config_wallpaper_gradient.h"
 #include "e_int_config_wallpaper_web.h"
 
 EAPI extern E_Module_Api e_modapi;

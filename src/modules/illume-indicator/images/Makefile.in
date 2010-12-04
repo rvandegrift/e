@@ -42,9 +42,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 $(top_srcdir)/m4/gettext.m4 \
 	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/nls.m4 \
-	$(top_srcdir)/m4/po.m4 $(top_srcdir)/m4/progtest.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
+	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -103,6 +105,9 @@ EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
 EGREP = @EGREP@
+ENOTIFY_CFLAGS = @ENOTIFY_CFLAGS@
+ENOTIFY_LIBS = @ENOTIFY_LIBS@
+ENOTIFY_VERSION = @ENOTIFY_VERSION@
 EOFONO_CFLAGS = @EOFONO_CFLAGS@
 EOFONO_LIBS = @EOFONO_LIBS@
 EOFONO_VERSION = @EOFONO_VERSION@
@@ -136,6 +141,7 @@ HAVE_BATTERY = @HAVE_BATTERY@
 HAVE_EBLUEZ = @HAVE_EBLUEZ@
 HAVE_ECONNMAN = @HAVE_ECONNMAN@
 HAVE_ECORE_IMF = @HAVE_ECORE_IMF@
+HAVE_ENOTIFY = @HAVE_ENOTIFY@
 HAVE_EOFONO = @HAVE_EOFONO@
 HAVE_EXCHANGE = @HAVE_EXCHANGE@
 HAVE_TEMPERATURE = @HAVE_TEMPERATURE@

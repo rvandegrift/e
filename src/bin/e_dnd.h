@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #ifdef E_TYPEDEFS
 
 typedef enum _E_Drag_Type
@@ -108,8 +104,8 @@ struct _E_Event_Dnd_Drop
    int x, y;
 };
 
-EAPI int  e_dnd_init(void);
-EAPI int  e_dnd_shutdown(void);
+EINTERN int  e_dnd_init(void);
+EINTERN int  e_dnd_shutdown(void);
 
 EAPI int  e_dnd_active(void);
 

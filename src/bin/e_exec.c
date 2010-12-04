@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define MAX_OUTPUT_CHARACTERS 5000
@@ -66,7 +63,7 @@ static Ecore_Event_Handler *_e_exec_exit_handler = NULL;
 static Ecore_Event_Handler *_e_exec_border_add_handler = NULL;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_exec_init(void)
 {
    e_exec_instances = eina_hash_string_superfast_new(NULL);
@@ -80,7 +77,7 @@ e_exec_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_exec_shutdown(void)
 {
    char buf[256];
@@ -147,7 +144,7 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    E_Exec_Launch *launch;
    Ecore_Exe *exe;
    char *penv_display;
-   char buf[4096];
+   char buf[PATH_MAX];
 
    launch = data;
    if (desktop)
@@ -242,8 +239,8 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 
    if (desktop)
      {
-	Eina_List *l;
-        
+	Eina_List *l, *lnew;
+
 	efreet_desktop_ref(desktop);
 	inst->desktop = desktop;
         inst->key = eina_stringshare_add(desktop->orig_path);
@@ -252,24 +249,23 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 	inst->launch_time = ecore_time_get();
 	inst->expire_timer = ecore_timer_add(e_config->exec.expire_timeout, 
                                              _e_exec_cb_expire_timer, inst);
-        
 	l = eina_hash_find(e_exec_instances, desktop->orig_path);
-        l = eina_list_append(l, inst);
+        lnew = eina_list_append(l, inst);
 	if (l)
-          eina_hash_modify(e_exec_instances, desktop->orig_path, l);
+          eina_hash_modify(e_exec_instances, desktop->orig_path, lnew);
 	else
-          eina_hash_add(e_exec_instances, desktop->orig_path, l);
+          eina_hash_add(e_exec_instances, desktop->orig_path, lnew);
 	e_exec_start_pending = eina_list_append(e_exec_start_pending, desktop);
-        
+
 	e_exehist_add(launch->launch_method, desktop->exec);
      }
-   else if (exe)
+   else
      {
 	E_FREE(inst);
 	inst = NULL;
 	ecore_exe_free(exe);
      }
-   
+
    if (!remaining)
      {
 	if (launch->launch_method) eina_stringshare_del(launch->launch_method);
@@ -325,7 +321,7 @@ _e_exec_cb_instance_finish(void *data)
 
 
 static Eina_Bool
-_e_exec_cb_exit(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_exec_cb_exit(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Exe_Event_Del *ev;
    E_Exec_Instance *inst;
@@ -351,8 +347,8 @@ _e_exec_cb_exit(__UNUSED__ void *data, __UNUSED__ int type, void *event)
                                 "E", "_e_exec_run_error_dialog");
              if (dia)
                {
-                  char buf[4096];
-                  
+                  char buf[PATH_MAX];
+
                   e_dialog_title_set(dia, _("Application run error"));
                   snprintf(buf, sizeof(buf),
                            _("Enlightenment was unable to run the application:<br>"
@@ -413,6 +409,10 @@ _e_exec_startup_id_pid_find(const Eina_Hash *hash __UNUSED__, const void *key __
    search = data;
    EINA_LIST_FOREACH(value, l, inst)
      {
+        int pid = -1;
+        
+        if (inst->exe)
+           pid = ecore_exe_pid_get(inst->exe);
         if (((search->startup_id > 0) && 
              (search->startup_id == inst->startup_id)) ||
             ((inst->exe) && (search->pid > 1) && 
@@ -463,7 +463,7 @@ _e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_
 static void
 _fill_data(E_Config_Dialog_Data *cfdata)
 {
-   char buf[4096];
+   char buf[PATH_MAX];
 
    if (!cfdata->label)
      {
@@ -550,7 +550,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->error) ecore_exe_event_data_free(cfdata->error);
    if (cfdata->read) ecore_exe_event_data_free(cfdata->read);
@@ -577,7 +577,7 @@ _dialog_scrolltext_create(Evas *evas, char *title, Ecore_Exe_Event_Data_Line *li
    obj = e_widget_textblock_add(evas);
 
    tlen = 0;
-   for (i = 0; lines[i].line != NULL; i++)
+   for (i = 0; lines[i].line; i++)
      {
 	tlen += lines[i].size + 1;
 	/* When the program output is extraordinarily long, it can cause
@@ -603,7 +603,7 @@ _dialog_scrolltext_create(Evas *evas, char *title, Ecore_Exe_Event_Data_Line *li
 	  }
 
 	/* Append the warning about truncated output. */
-	if (lines[max_lines].line != NULL) strcat(text, trunc_note);
+	if (lines[max_lines].line) strcat(text, trunc_note);
 
 	e_widget_textblock_plain_set(obj, text);
      }
@@ -615,9 +615,9 @@ _dialog_scrolltext_create(Evas *evas, char *title, Ecore_Exe_Event_Data_Line *li
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
-   char buf[4096];
+   char buf[PATH_MAX];
    int error_length = 0;
    Evas_Object *o, *ob, *os;
 
@@ -654,9 +654,9 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 }
 
 static Evas_Object *
-_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
+_advanced_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
-   char buf[4096];
+   char buf[PATH_MAX];
    int read_length = 0;
    int error_length = 0;
    Evas_Object *o, *of, *ob, *ot;
@@ -733,7 +733,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 }
 
 static void
-_dialog_save_cb(void *data, void *data2)
+_dialog_save_cb(void *data __UNUSED__, void *data2)
 {
    E_Config_Dialog_Data *cfdata;
    FILE *f;
@@ -768,13 +768,13 @@ _dialog_save_cb(void *data, void *data2)
    if (read_length)
      {
 	tlen = 0;
-	for (i = 0; cfdata->read->lines[i].line != NULL; i++)
+	for (i = 0; cfdata->read->lines[i].line; i++)
 	  tlen += cfdata->read->lines[i].size + 2;
 	text = alloca(tlen + 1);
 	if (text)
 	  {
 	     text[0] = 0;
-	     for (i = 0; cfdata->read->lines[i].line != NULL; i++)
+	     for (i = 0; cfdata->read->lines[i].line; i++)
 	       {
 		  strcat(text, "\t");
 		  strcat(text, cfdata->read->lines[i].line);
@@ -797,13 +797,13 @@ _dialog_save_cb(void *data, void *data2)
    if (read_length)
      {
 	tlen = 0;
-	for (i = 0; cfdata->error->lines[i].line != NULL; i++)
+	for (i = 0; cfdata->error->lines[i].line; i++)
 	  tlen += cfdata->error->lines[i].size + 1;
 	text = alloca(tlen + 1);
 	if (text)
 	  {
 	     text[0] = 0;
-	     for (i = 0; cfdata->error->lines[i].line != NULL; i++)
+	     for (i = 0; cfdata->error->lines[i].line; i++)
 	       {
 		  strcat(text, "\t");
 		  strcat(text, cfdata->error->lines[i].line);

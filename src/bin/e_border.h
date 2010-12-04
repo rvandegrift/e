@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef enum _E_Icon_Preference
@@ -117,7 +114,7 @@ typedef struct _E_Event_Border_Desk_Set      E_Event_Border_Desk_Set;
 typedef struct _E_Event_Border_Stack         E_Event_Border_Stack;
 typedef struct _E_Event_Border_Simple        E_Event_Border_Icon_Change;
 typedef struct _E_Event_Border_Simple        E_Event_Border_Urgent_Change;
-typedef struct _E_Event_Border_Simple	     E_Event_Border_Focus_In;
+typedef struct _E_Event_Border_Simple	       E_Event_Border_Focus_In;
 typedef struct _E_Event_Border_Simple        E_Event_Border_Focus_Out;
 typedef struct _E_Event_Border_Simple        E_Event_Border_Property;
 typedef struct _E_Event_Border_Simple        E_Event_Border_Fullscreen;
@@ -135,16 +132,16 @@ struct _E_Border
 
    struct {
       struct {
-	 int x, y, w, h;
-	 int mx, my;
+         int x, y, w, h;
+         int mx, my;
       } current, last_down[3], last_up[3];
    } mouse;
    
    struct {
       struct {
-	 int x, y, w, h;
-	 int mx, my;
-	 int button;
+         int x, y, w, h;
+         int mx, my;
+         int button;
       } down;
    } moveinfo;
 
@@ -158,8 +155,8 @@ struct _E_Border
    struct {
       int          x, y;
       struct {
-	 int       x, y;
-	 double    t;
+         int       x, y;
+         double    t;
       } start;
    } fx;
    
@@ -183,9 +180,9 @@ struct _E_Border
       int x, y, w, h;
       
       struct {
-	 unsigned char changed : 1;
-	 unsigned char user_selected : 1;
-	 const char *name;
+         unsigned char changed : 1;
+         unsigned char user_selected : 1;
+         const char *name;
       } border;
       
       unsigned char shaped : 1;
@@ -193,112 +190,112 @@ struct _E_Border
       
       /* ICCCM */
       struct {
-	 char *title;
-	 char *name;
-	 char *class;
-	 char *icon_name;
-	 char *machine;
-	 int min_w, min_h;
-	 int max_w, max_h;
-	 int base_w, base_h;
-	 int step_w, step_h;
-	 int start_x, start_y;
-	 double min_aspect, max_aspect;
-	 Ecore_X_Window_State_Hint initial_state;
-	 Ecore_X_Window_State_Hint state;
-	 Ecore_X_Pixmap icon_pixmap;
-	 Ecore_X_Pixmap icon_mask;
-	 Ecore_X_Window icon_window;
-	 Ecore_X_Window window_group;
-	 Ecore_X_Window transient_for;
-	 Ecore_X_Window client_leader;
-	 Ecore_X_Gravity gravity;
-	 char *window_role;
-	 unsigned char take_focus : 1;
-	 unsigned char accepts_focus : 1;
-	 unsigned char urgent : 1;
-	 unsigned char delete_request : 1;
-	 unsigned char request_pos : 1;
-	 struct {
-	    int argc;
-	    char **argv;
-	 } command;
-	 struct {
-	    unsigned char title : 1;
-	    unsigned char name_class : 1;
-	    unsigned char icon_name : 1;
-	    unsigned char machine : 1;
-	    unsigned char hints : 1;
-	    unsigned char size_pos_hints : 1;
-	    unsigned char protocol : 1;
-	    unsigned char transient_for : 1;
-	    unsigned char client_leader : 1;
-	    unsigned char window_role : 1;
-	    unsigned char state : 1;
-	    unsigned char command : 1;
-	 } fetch;
+         char *title;
+         char *name;
+         char *class;
+         char *icon_name;
+         char *machine;
+         int min_w, min_h;
+         int max_w, max_h;
+         int base_w, base_h;
+         int step_w, step_h;
+         int start_x, start_y;
+         double min_aspect, max_aspect;
+         Ecore_X_Window_State_Hint initial_state;
+         Ecore_X_Window_State_Hint state;
+         Ecore_X_Pixmap icon_pixmap;
+         Ecore_X_Pixmap icon_mask;
+         Ecore_X_Window icon_window;
+         Ecore_X_Window window_group;
+         Ecore_X_Window transient_for;
+         Ecore_X_Window client_leader;
+         Ecore_X_Gravity gravity;
+         char *window_role;
+         unsigned char take_focus : 1;
+         unsigned char accepts_focus : 1;
+         unsigned char urgent : 1;
+         unsigned char delete_request : 1;
+         unsigned char request_pos : 1;
+         struct {
+            int argc;
+            char **argv;
+         } command;
+         struct {
+            unsigned char title : 1;
+            unsigned char name_class : 1;
+            unsigned char icon_name : 1;
+            unsigned char machine : 1;
+            unsigned char hints : 1;
+            unsigned char size_pos_hints : 1;
+            unsigned char protocol : 1;
+            unsigned char transient_for : 1;
+            unsigned char client_leader : 1;
+            unsigned char window_role : 1;
+            unsigned char state : 1;
+            unsigned char command : 1;
+         } fetch;
       } icccm;
 
       /* MWM */
       struct {
-	 Ecore_X_MWM_Hint_Func func;
-	 Ecore_X_MWM_Hint_Decor decor;
-	 Ecore_X_MWM_Hint_Input input;
-	 unsigned char exists : 1;
-	 unsigned char borderless : 1;
-	 struct {
-	    unsigned char hints : 1;
-	 } fetch;
+         Ecore_X_MWM_Hint_Func func;
+         Ecore_X_MWM_Hint_Decor decor;
+         Ecore_X_MWM_Hint_Input input;
+         unsigned char exists : 1;
+         unsigned char borderless : 1;
+         struct {
+            unsigned char hints : 1;
+         } fetch;
       } mwm;
 
      /* NetWM */
       struct {
-	 pid_t         pid;
-	 unsigned int  desktop;
-	 char         *name;
-	 char         *icon_name;
-	 Ecore_X_Icon *icons;
-	 int           num_icons;
-	 unsigned int  user_time;
-	 struct {
-	    int left;
-	    int right;
-	    int top;
-	    int bottom;
-	    int left_start_y;
-	    int left_end_y;
-	    int right_start_y;
-	    int right_end_y;
-	    int top_start_x;
-	    int top_end_x;
-	    int bottom_start_x;
-	    int bottom_end_x;
-	 } strut;
-	 unsigned char ping : 1;
-	 struct {
-	    unsigned char        request : 1;
-	    unsigned int         wait;
-	    Ecore_X_Sync_Alarm   alarm;
-	    Ecore_X_Sync_Counter counter;
-	    unsigned int         serial;
-	    double               send_time;
-	 } sync;
+         pid_t         pid;
+         unsigned int  desktop;
+         char         *name;
+         char         *icon_name;
+         Ecore_X_Icon *icons;
+         int           num_icons;
+         unsigned int  user_time;
+         struct {
+            int left;
+            int right;
+            int top;
+            int bottom;
+            int left_start_y;
+            int left_end_y;
+            int right_start_y;
+            int right_end_y;
+            int top_start_x;
+            int top_end_x;
+            int bottom_start_x;
+            int bottom_end_x;
+         } strut;
+         unsigned char ping : 1;
+         struct {
+            unsigned char        request : 1;
+            unsigned int         wait;
+            Ecore_X_Sync_Alarm   alarm;
+            Ecore_X_Sync_Counter counter;
+            unsigned int         serial;
+            double               send_time;
+         } sync;
 
-	 /* NetWM Window state */
-	 struct {
-	    unsigned char modal : 1;
-	    unsigned char sticky : 1;
-	    unsigned char maximized_v : 1;
-	    unsigned char maximized_h : 1;
-	    unsigned char shaded : 1;
-	    unsigned char skip_taskbar : 1;
-	    unsigned char skip_pager : 1;
-	    unsigned char hidden : 1;
-	    unsigned char fullscreen : 1;
-	    E_Stacking    stacking;
-	 } state;
+         /* NetWM Window state */
+         struct {
+            unsigned char modal : 1;
+            unsigned char sticky : 1;
+            unsigned char maximized_v : 1;
+            unsigned char maximized_h : 1;
+            unsigned char shaded : 1;
+            unsigned char skip_taskbar : 1;
+            unsigned char skip_pager : 1;
+            unsigned char hidden : 1;
+            unsigned char fullscreen : 1;
+            E_Stacking    stacking;
+         } state;
 
-	 /* NetWM Window allowed actions */
+         /* NetWM Window allowed actions */
          struct {
             unsigned char move : 1;
             unsigned char resize : 1;
@@ -311,60 +308,61 @@ struct _E_Border
             unsigned char change_desktop : 1;
             unsigned char close : 1;
          } action;
+         
+         Ecore_X_Window_Type type;
+         Ecore_X_Window_Type *extra_types;
+         int extra_types_num;
+         int startup_id;
 
-	 Ecore_X_Window_Type type;
-	 Ecore_X_Window_Type *extra_types;
-	 int extra_types_num;
-	 int startup_id;
+         struct {
+            unsigned char name : 1;
+            unsigned char icon_name : 1;
+            unsigned char icon : 1;
+            unsigned char user_time : 1;
+            unsigned char strut : 1;
+            unsigned char type : 1;
+            unsigned char state : 1;
+            /* No, fetch on new_client, shouldn't be changed after map.
+            unsigned char pid : 1;
+            */
+            /* No, ignore this
+            unsigned char desktop : 1;
+            */
+         } fetch;
 
-	 struct {
-	    unsigned char name : 1;
-	    unsigned char icon_name : 1;
-	    unsigned char icon : 1;
-	    unsigned char user_time : 1;
-	    unsigned char strut : 1;
-	    unsigned char type : 1;
-	    unsigned char state : 1;
-	    /* No, fetch on new_client, shouldn't be changed after map.
-	    unsigned char pid : 1;
-	    */
-	    /* No, ignore this
-	    unsigned char desktop : 1;
-	    */
-	 } fetch;
-
-	 struct {
-	    unsigned char state : 1;
-	 } update;
+         struct {
+            unsigned char state : 1;
+         } update;
       } netwm;
 
       /* Extra e stuff */
       struct {
-	 struct {
-	    unsigned char centered : 1;
-	 } state;
+         struct {
+            unsigned char centered : 1;
+         } state;
 
-	 struct {
-	    unsigned char state : 1;
-	 } fetch;
+         struct {
+            unsigned char state : 1;
+         } fetch;
       } e;
       
       struct {
-	 struct {
-	    unsigned char soft_menu : 1;
-	    unsigned char soft_menus : 1;
-	 } fetch;
-	 
-	 unsigned char soft_menu : 1;
-	 unsigned char soft_menus : 1;
+         struct {
+            unsigned char soft_menu : 1;
+            unsigned char soft_menus : 1;
+         } fetch;
+         
+         unsigned char soft_menu : 1;
+         unsigned char soft_menus : 1;
       } qtopia;
+      
       struct {
-	 struct {
-	    unsigned char state : 1;
-	    unsigned char vkbd : 1;
-	 } fetch;
-	 Ecore_X_Virtual_Keyboard_State state;
-	 unsigned char vkbd : 1;
+         struct {
+            unsigned char state : 1;
+            unsigned char vkbd : 1;
+         } fetch;
+         Ecore_X_Virtual_Keyboard_State state;
+         unsigned char vkbd : 1;
       } vkbd;
 
       struct 
@@ -495,7 +493,7 @@ struct _E_Border
       unsigned char valid : 1;
       int x, y, w, h;
       struct {
-	 int x, y, w, h;
+	        int x, y, w, h;
       } saved;
    } pre_res_change;
    
@@ -558,6 +556,8 @@ struct _E_Border
 
    Efreet_Desktop *desktop;
    E_Pointer *pointer;
+
+   unsigned char comp_hidden   : 1;
    
    unsigned char post_move   : 1;
    unsigned char post_resize : 1;
@@ -605,8 +605,8 @@ struct _E_Event_Border_Stack
    E_Stacking type;
 };
 
-EAPI int       e_border_init(void);
-EAPI int       e_border_shutdown(void);
+EINTERN int       e_border_init(void);
+EINTERN int       e_border_shutdown(void);
 
 EAPI E_Border *e_border_new(E_Container *con, Ecore_X_Window win, int first_map, int internal);
 EAPI void      e_border_free(E_Border *bd);
@@ -701,6 +701,8 @@ EAPI void e_border_focus_track_thaw(void);
 
 EAPI E_Border *e_border_under_pointer_get(E_Desk *desk, E_Border *exclude);
 EAPI int e_border_pointer_warp_to_center(E_Border *bd);
+
+EAPI void e_border_comp_hidden_set(E_Border *bd, Eina_Bool hidden);
 
 extern EAPI int E_EVENT_BORDER_RESIZE;
 extern EAPI int E_EVENT_BORDER_MOVE;

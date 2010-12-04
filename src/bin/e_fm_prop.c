@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* FIXME:
@@ -148,7 +145,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->gui.fsel)
      e_object_del(E_OBJECT(cfdata->gui.fsel));
@@ -165,9 +162,9 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
 /**--APPLY--**/
 static int
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
-   char buf[4096];
+   char buf[PATH_MAX];
    int fperm = 0;
    
    snprintf(buf, sizeof(buf), "%s/%s", 
@@ -518,7 +515,7 @@ _cb_icon_sel(void *data, void *data2)
 }
 
 static void
-_cb_type(void *data, Evas_Object *obj, void *event_info)
+_cb_type(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    
@@ -530,7 +527,7 @@ _cb_type(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_cb_preview_update(void *data, Evas_Object *obj, void *event_info)
+_cb_preview_update(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    
@@ -541,10 +538,10 @@ _cb_preview_update(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_cb_fsel_sel(void *data, Evas_Object *obj)
+_cb_fsel_sel(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
-   
+
    cfdata = data;
    if (!cfdata) return;
 }

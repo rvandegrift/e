@@ -137,7 +137,7 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int 
-e_modapi_shutdown(E_Module *m) 
+e_modapi_shutdown(E_Module *m __UNUSED__) 
 {
    Ecore_Event_Handler *hdl;
    Il_Home_Win *hwin;
@@ -169,7 +169,7 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int 
-e_modapi_save(E_Module *m) 
+e_modapi_save(E_Module *m __UNUSED__) 
 {
    return il_home_config_save();
 }
@@ -299,7 +299,7 @@ _il_home_desktop_run(Il_Home_Win *hwin, Efreet_Desktop *desktop)
              return;
           }
      }
-   if (bd = _il_home_desktop_find_border(hwin->zone, desktop)) 
+   if ((bd = _il_home_desktop_find_border(hwin->zone, desktop))) 
      {
         e_border_uniconify(bd);
         e_border_raise(bd);
@@ -340,9 +340,9 @@ _il_home_desktop_find_border(E_Zone *zone, Efreet_Desktop *desktop)
      exe = strdup(desktop->exec);
    else 
      {
-        exe = malloc(p - desktop->exec + 1);
-        memset(exe, 0, sizeof(exe));
-        if (exe) eina_strlcpy(exe, desktop->exec, p - desktop->exec + 1);
+        size_t s = p - desktop->exec + 1;
+        exe = calloc(1, s);
+        if (exe) eina_strlcpy(exe, desktop->exec, s);
      }
    if (exe) 
      {
@@ -731,7 +731,7 @@ _il_home_cb_prop_change(void *data __UNUSED__, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_il_home_cb_bg_change(void *data __UNUSED__, int type __UNUSED__, void *event) 
+_il_home_cb_bg_change(void *data __UNUSED__, int type, void *event __UNUSED__) 
 {
    Il_Home_Win *hwin;
    Eina_List *l;

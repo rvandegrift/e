@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -381,17 +378,17 @@ e_int_config_wallpaper_import_del(E_Win *win)
 {
    Import *import;
 
-   import = win->data;
+   if (!(import = win->data)) return;
    if (import->exe_handler) ecore_event_handler_del(import->exe_handler);
    import->exe_handler = NULL;
    if (import->tmpf) unlink(import->tmpf);
    E_FREE(import->tmpf);
    E_FREE(import->fdest);
    import->exe = NULL;
-   e_object_del(E_OBJECT(import->win));
+   if (import->win) e_object_del(E_OBJECT(import->win));
    E_FREE(import->cfdata->file);
    E_FREE(import->cfdata);
-   if (import) free(import);
+   E_FREE(import);
 }
 
 void
@@ -399,12 +396,12 @@ e_int_config_wallpaper_fsel_del(E_Win *win)
 {
    FSel *fsel;
 
-   fsel = win->data;
+   if (!(fsel = win->data)) return;
    _fsel_path_save(fsel);
-   e_object_del(E_OBJECT(fsel->win));
+   if (fsel->win) e_object_del(E_OBJECT(fsel->win));
    if (fsel->parent)
      e_int_config_wallpaper_import_done(fsel->parent);
-   if (fsel) free(fsel);
+   E_FREE(fsel);
 }
 
 static void
@@ -437,7 +434,7 @@ _import_edj_gen(Import *import)
    int fd, num = 1;
    int w = 0, h = 0;
    const char *file, *locale;
-   char buf[4096], cmd[4096], tmpn[4096], ipart[4096], enc[128];
+   char buf[PATH_MAX], cmd[PATH_MAX], tmpn[PATH_MAX], ipart[PATH_MAX], enc[128];
    char *imgdir = NULL, *fstrip;
    int cr = 255, cg = 255, cb = 255, ca = 255;
    FILE *f;
@@ -451,9 +448,7 @@ _import_edj_gen(Import *import)
    if (len >= sizeof(buf)) return;
    off = len - (sizeof(".edj") - 1);
    for (num = 1; ecore_file_exists(buf) && num < 100; num++)
-     {
-	snprintf(buf + off, sizeof(buf) - off, "-%d.edj", num);
-     }
+     snprintf(buf + off, sizeof(buf) - off, "-%d.edj", num);
    free(fstrip);
 
    if (num == 100)
@@ -674,7 +669,7 @@ _import_cb_resize(E_Win *win)
 }
 
 static void 
-_import_cb_close(void *data, void *data2) 
+_import_cb_close(void *data, void *data2 __UNUSED__) 
 {
    E_Win *win;
 
@@ -683,15 +678,14 @@ _import_cb_close(void *data, void *data2)
 }
 
 static void 
-_import_cb_ok(void *data, void *data2) 
+_import_cb_ok(void *data, void *data2 __UNUSED__) 
 {
    Import *import;
    FSel *fsel;
    E_Win *win;
    const char *file;
-   char buf[4096];
-   int is_bg, is_theme;
-   int r;
+   char buf[PATH_MAX];
+   int is_bg, is_theme, r;
 
    r = 0;
    win = data;
@@ -772,7 +766,7 @@ _fsel_cb_resize(E_Win *win)
 }
 
 static void
-_fsel_cb_close(void *data, void *data2)
+_fsel_cb_close(void *data, void *data2 __UNUSED__)
 {
    E_Win *win;
 
@@ -781,12 +775,11 @@ _fsel_cb_close(void *data, void *data2)
 }
 
 static void
-_fsel_cb_ok(void *data, void *data2)
+_fsel_cb_ok(void *data, void *data2 __UNUSED__)
 {
    FSel *fsel;
    E_Win *win;
-   const char *path;
-   const char *p;
+   const char *path, *p;
 
    win = data;
    if (!(fsel = win->data)) return;
@@ -796,10 +789,9 @@ _fsel_cb_ok(void *data, void *data2)
    p = strrchr(path, '.');
    if ((!p) || (!strcasecmp(p, ".edj")))
      {
-	int r;
-	int is_bg, is_theme;
+	int is_bg, is_theme, r;
 	const char *file;
-	char buf[4096];
+	char buf[PATH_MAX];
 
 	r = 0;
 	file = ecore_file_file_get(path);
@@ -851,7 +843,7 @@ _import_cb_wid_on_focus(void *data, Evas_Object *obj)
 }
 
 static void 
-_import_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event) 
+_import_cb_key_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event) 
 {
    Evas_Event_Key_Down *ev;
    Import *import;
@@ -910,7 +902,7 @@ _import_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event)
 }
 
 static void
-_fsel_cb_key_down(void *data, Evas *e, Evas_Object *obj, void *event)
+_fsel_cb_key_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event)
 {
    Evas_Event_Key_Down *ev;
    FSel *fsel;

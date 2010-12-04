@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef enum _E_Binding_Context
@@ -18,7 +15,7 @@ typedef enum _E_Binding_Context
 } E_Binding_Context;
 
 /* why do we do this? config stored bindings must be fixed. x's modifier masks
- * may change from time to time, xserver to xserver - so we cant do a 
+ * may change from time to time, xserver to xserver - so we can't do a
  * simple match without translating to fixed values
  */
 typedef enum _E_Binding_Modifier
@@ -103,8 +100,8 @@ struct _E_Binding_Acpi
    const char *action, *params;
 };
 
-EAPI int         e_bindings_init(void);
-EAPI int         e_bindings_shutdown(void);
+EINTERN int         e_bindings_init(void);
+EINTERN int         e_bindings_shutdown(void);
 
 EAPI void        e_bindings_mouse_add(E_Binding_Context ctxt, int button, E_Binding_Modifier mod, int any_mod, const char *action, const char *params);
 EAPI void        e_bindings_mouse_del(E_Binding_Context ctxt, int button, E_Binding_Modifier mod, int any_mod, const char *action, const char *params);

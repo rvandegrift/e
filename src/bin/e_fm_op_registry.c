@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 EAPI int E_EVENT_FM_OP_REGISTRY_ADD = 0;
@@ -30,7 +27,7 @@ struct _E_Fm2_Op_Registry_Entry_Internal
 };
 
 static void
-_e_fm2_op_registry_entry_e_fm_deleted(void *data, Evas *evas, Evas_Object *e_fm, void *event)
+_e_fm2_op_registry_entry_e_fm_deleted(void *data, Evas *evas __UNUSED__, Evas_Object *e_fm __UNUSED__, void *event __UNUSED__)
 {
    E_Fm2_Op_Registry_Entry *entry = data;
 
@@ -468,7 +465,7 @@ e_fm2_op_registry_count(void)
 }
 
 
-EAPI unsigned int
+EINTERN unsigned int
 e_fm2_op_registry_init(void)
 {
    _e_fm2_init_count++;
@@ -491,7 +488,7 @@ e_fm2_op_registry_init(void)
    return 1;
 }
 
-EAPI unsigned int
+EINTERN unsigned int
 e_fm2_op_registry_shutdown(void)
 {
    if (_e_fm2_init_count == 0) return 0;

@@ -1,10 +1,7 @@
 #include "e.h"
 #include "e_kbd_dict.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/mman.h>
 
 #define MAXLATIN 0x100
@@ -171,7 +168,7 @@ _e_kbd_dict_line_next(E_Kbd_Dict *kd, const char *p)
 }
 
 static char *
-_e_kbd_dict_line_parse(E_Kbd_Dict *kd, const char *p, int *usage)
+_e_kbd_dict_line_parse(E_Kbd_Dict *kd __UNUSED__, const char *p, int *usage)
 {
    const char *ps;
    char *wd = NULL;
@@ -191,7 +188,7 @@ _e_kbd_dict_line_parse(E_Kbd_Dict *kd, const char *p, int *usage)
 }
 
 static void
-_e_kbd_dict_lookup_build_line(E_Kbd_Dict *kd, const char *p, const char *eol, int *glyphs)
+_e_kbd_dict_lookup_build_line(E_Kbd_Dict *kd __UNUSED__, const char *p, const char *eol, int *glyphs)
 {
    char *s;
    int p2;
@@ -265,7 +262,7 @@ _e_kbd_dict_open(E_Kbd_Dict *kd)
    kd->file.size = st.st_size;
    kd->file.dict = mmap(NULL, kd->file.size, PROT_READ, MAP_SHARED,
 			kd->file.fd, 0);
-   if ((kd->file.dict== MAP_FAILED) || (kd->file.dict == NULL))
+   if ((kd->file.dict== MAP_FAILED) || (!kd->file.dict))
      {
 	close(kd->file.fd);
 	return 0;
@@ -771,12 +768,12 @@ _e_kbd_dict_matches_lookup_iter(E_Kbd_Dict *kd, Eina_List *word,
 			 }
 		       kw->word = eina_stringshare_add(wd);
 		       // FIXME: magic combination of distance metric and
-		       // frequency of useage. this is simple now, but could
+		       // frequency of usage. this is simple now, but could
 		       // be tweaked
 		       wc = eina_list_count(word);
 		       if (md < 1) md = 1;
 
-		       // basically a metric to see how far away teh keys that
+		       // basically a metric to see how far away the keys that
 		       // were actually pressed are away from the letters of
 		       // this word in a physical on-screen sense
 		       accuracy = md - (d / (wc + 1));

@@ -8,7 +8,7 @@ m4_if(v_rev, [0], [m4_define([v_rev], m4_esyscmd([git log 2> /dev/null | (grep -
 ##--   When released, remove the dnl on the below line
 dnl m4_undefine([v_rev])
 ##--   When doing snapshots - change soname. remove dnl on below line
-m4_define([relname], [ver-svn-06])
+m4_define([relname], [ver-pre-svn-08])
 m4_define([v_rel], [-release relname])
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_ifdef([v_rev], [m4_define([v_ver], [v_maj.v_min.v_mic.v_rev])],
@@ -63,6 +63,8 @@ AC_SUBST(release_info)
 release=relname
 AC_SUBST(release)
 
+PKG_PROG_PKG_CONFIG
+
 EFL_CHECK_PATH_MAX
 
 AC_CHECK_FUNCS(setenv)
@@ -74,30 +76,30 @@ AC_CHECK_HEADERS(fnmatch.h,, AC_MSG_ERROR([Cannot find fnmatch.h. Make sure your
 
 AC_CHECK_FUNCS(fnmatch, res=yes, res=no)
 if test "x$res" = "xno"; then
-        AC_CHECK_LIB(fnmatch, fnmatch, res=yes, res=no)
-	if test "x$res" = "xno"; then
-		AC_MSG_ERROR([Cannot find fnmatch() in neither libc nor libfnmatch])
-        else
-	        fnmatch_libs="-lfnmatch"
-	fi
+  AC_CHECK_LIB(fnmatch, fnmatch, res=yes, res=no)
+  if test "x$res" = "xno"; then
+    AC_MSG_ERROR([Cannot find fnmatch() in neither libc nor libfnmatch])
+  else
+    fnmatch_libs="-lfnmatch"
+  fi
 fi
 
 AC_SUBST(fnmatch_libs)
 
 have_pam=no
 AC_ARG_ENABLE(pam,
-	AC_HELP_STRING([--enable-pam], [enable PAM support @<:@default=detect@:>@]),
-	[want_pam=$enableval],
-	[want_pam=auto]
+  AC_HELP_STRING([--enable-pam], [enable PAM support @<:@default=detect@:>@]),
+  [want_pam=$enableval],
+  [want_pam=auto]
 )
 if test "x$want_pam" != "xno" ; then
-	AC_CHECK_HEADERS(security/pam_appl.h, [
-		LIBS="$LIBS -lpam"
-		have_pam=yes
-		AC_DEFINE(HAVE_PAM, 1, [PAM Authentication Support])])
-	if test "x$want_pam$have_pam" = "xyesno" ; then
-		AC_MSG_ERROR([PAM support was requested but not found])
-	fi
+  AC_CHECK_HEADERS(security/pam_appl.h, [
+    LIBS="$LIBS -lpam"
+    have_pam=yes
+    AC_DEFINE(HAVE_PAM, 1, [PAM Authentication Support])])
+    if test "x$want_pam$have_pam" = "xyesno" ; then
+      AC_MSG_ERROR([PAM support was requested but not found])
+    fi
 fi
 
 dnl AC_E_CHECK_PKG(VALGRIND, [valgrind >= 2.4.0], [], [:])
@@ -190,45 +192,45 @@ AC_SUBST(cf_libs)
 execinfo_libs=""
 AC_CHECK_HEADERS([execinfo.h], [have_execinfo="yes"], [have_execinfo="no"])
 if test "x${have_execinfo}" = "xyes" ; then
-   AC_MSG_CHECKING([whether backtrace_symbols_fd() is in libc])
+  AC_MSG_CHECKING([whether backtrace_symbols_fd() is in libc])
 
-   AC_LINK_IFELSE(
-      [AC_LANG_PROGRAM(
-         [[
+  AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM(
+      [[
 #include <stdlib.h>
 #include <execinfo.h>
-         ]],
-         [[
+      ]],
+      [[
 backtrace_symbols_fd(NULL, 0, 0);
-         ]])],
-      [link_execinfo="yes"],
-      [link_execinfo="no"])
+      ]])],
+    [link_execinfo="yes"],
+    [link_execinfo="no"])
 
-   AC_MSG_RESULT([${link_execinfo}])
+  AC_MSG_RESULT([${link_execinfo}])
 fi
 
 if test "x${link_execinfo}" = "xno" ; then
-   AC_MSG_CHECKING([whether backtrace_symbols_fd() is in libexecinfo])
+  AC_MSG_CHECKING([whether backtrace_symbols_fd() is in libexecinfo])
 
-   LDFLAGS_save="${LDFLAGS}"
-   LDFLAGS="${LDFLAGS} -lexecinfo"
-   AC_LINK_IFELSE(
-      [AC_LANG_PROGRAM(
-         [[
+  LDFLAGS_save="${LDFLAGS}"
+  LDFLAGS="${LDFLAGS} -lexecinfo"
+  AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM(
+      [[
 #include <stdlib.h>
 #include <execinfo.h>
-         ]],
-         [[
+      ]],
+      [[
 backtrace_symbols_fd(NULL, 0, 0);
-         ]])],
-      [
-       link_execinfo="yes"
-       execinfo_libs="-lexecinfo"
-      ],
-      [link_execinfo="no"])
-   LDFLAGS="${LDFLAGS_save}"
+      ]])],
+    [
+      link_execinfo="yes"
+      execinfo_libs="-lexecinfo"
+    ],
+    [link_execinfo="no"])
+  LDFLAGS="${LDFLAGS_save}"
 
-   AC_MSG_RESULT([${link_execinfo}])
+  AC_MSG_RESULT([${link_execinfo}])
 fi
 
 dnl if test "x${link_execinfo}" = "xno" ; then
@@ -263,42 +265,58 @@ AC_SUBST(dlopen_libs)
 
 AC_MSG_CHECKING([whether to install sysactions.conf])
 AC_ARG_ENABLE([install-sysactions],
-   AS_HELP_STRING([--disable-install-sysactions],[disable installing /etc/enlightenment/sysactions.conf @<:@default=enabled@:>@]),
-   [e_cv_enable_install_sysactions=$enableval],
-   AC_CACHE_VAL([e_cv_enable_install_sysactions], [e_cv_enable_install_sysactions=yes]))
+  AS_HELP_STRING([--disable-install-sysactions],[disable installing /etc/enlightenment/sysactions.conf @<:@default=enabled@:>@]),
+    [e_cv_enable_install_sysactions=$enableval],
+    AC_CACHE_VAL([e_cv_enable_install_sysactions], [e_cv_enable_install_sysactions=yes]))
 AC_MSG_RESULT([$e_cv_enable_install_sysactions])
 AM_CONDITIONAL(INSTALL_SYSACTIONS, test x${e_cv_enable_install_sysactions} = xyes)
 
 AC_MSG_CHECKING([whether to enable Files menu item])
 AC_ARG_ENABLE([files],
-   AS_HELP_STRING([--disable-files],[disable Files menu item @<:@default=enabled@:>@]),
-   [e_cv_enable_files=$enableval],
-   AC_CACHE_VAL([e_cv_enable_files], [e_cv_enable_files=yes]))
+  AS_HELP_STRING([--disable-files],[disable Files menu item @<:@default=enabled@:>@]),
+    [e_cv_enable_files=$enableval],
+    AC_CACHE_VAL([e_cv_enable_files], [e_cv_enable_files=yes]))
 if test "[${e_cv_enable_files}]" = yes; then
-   AC_DEFINE_UNQUOTED([ENABLE_FILES],[1],[enable Files menu item])
+  AC_DEFINE_UNQUOTED([ENABLE_FILES],[1],[enable Files menu item])
 fi
 AC_MSG_RESULT([$e_cv_enable_files])
 
 AC_MSG_CHECKING([which device backend to use])
 AC_ARG_ENABLE([device-hal],
-   AS_HELP_STRING([--enable-device-hal],[enable hal device backend @<:@default=enabled@:>@]),
-   [e_cv_want_device_hal=$enableval]
-   AC_CACHE_VAL([e_cv_want_device_hal], [e_cv_want_device_hal=yes]))
+  AS_HELP_STRING([--enable-device-hal],[enable hal device backend @<:@default=disabled@:>@]),
+  [e_cv_want_device_hal=$enableval]
+  AC_CACHE_VAL([e_cv_want_device_hal], [e_cv_want_device_hal=no]))
 
 AC_ARG_ENABLE([device-udev],
-   AS_HELP_STRING([--enable-device-udev],[enable udev support @<:@default=disabled@:>@]),
-   [e_cv_want_device_udev=$enableval],
-   AC_CACHE_VAL([e_cv_want_device_udev], [e_cv_want_device_udev=no]))
+  AS_HELP_STRING([--enable-device-udev],[enable udev support @<:@default=enabled@:>@]),
+  [e_cv_want_device_udev=$enableval],
+  AC_CACHE_VAL([e_cv_want_device_udev], [e_cv_want_device_udev=yes]))
 
+eeze_mount=
 if test "x$e_cv_want_device_udev" = "xyes";then
-  device_backend=eeze
-  AC_DEFINE_UNQUOTED([HAVE_EEZE],[1],[enable udev support])
+  PKG_CHECK_EXISTS([eeze >= 1.0.0],
+    [
+      device_backend=eeze
+      AC_DEFINE_UNQUOTED([HAVE_EEZE],[1],[enable udev support])
+      AC_CHECK_LIB([eeze], [eeze_disk_function],
+        [
+           eeze_mount=yes
+           AC_DEFINE_UNQUOTED([HAVE_EEZE_MOUNT], [1], [enable eeze mounting])
+           AC_MSG_NOTICE([eeze mounting enabled])
+        ],
+        [
+           AC_MSG_NOTICE([eeze mounting disabled])
+        ]
+      )
+           
+    ],[device_backend=ehal])
 else
   device_backend=ehal
 fi
 AC_MSG_RESULT($device_backend)
 
 AM_CONDITIONAL([HAVE_EEZE], [test "x${device_backend}" = "xeeze"])
+AM_CONDITIONAL([HAVE_EEZE_MOUNT], [test "x${eeze_mount}" = "xyes"])
 
 # doxygen program for documentation building
 
@@ -306,93 +324,110 @@ EFL_CHECK_DOXYGEN([build_doc="yes"], [build_doc="no"])
 
 # explicit libs for each binary to reduce linkage requirements
 PKG_CHECK_MODULES(E_REMOTE, [
-  ecore
-  ecore-ipc
-  eet >= 1.2.3
-  eina-0
+  ecore >= 1.0.0
+  ecore-ipc >= 1.0.0
+  eet >= 1.4.0
+  eina >= 1.0.0
 ])
 
 PKG_CHECK_MODULES(E_IMC, [
-  ecore-file
-  eet >= 1.2.3
-  eina-0
+  ecore-file >= 1.0.0
+  eet >= 1.4.0
+  eina >= 1.0.0
 ])
 
 PKG_CHECK_MODULES(E_THUMB, [
-  eina-0
-  evas
-  ecore
-  ecore-evas
-  edje
-  ecore-file
-  ecore-ipc
-  eet >= 1.2.3
-  efreet
+  eina >= 1.0.0
+  evas >= 1.0.0
+  ecore >= 1.0.0
+  ecore-evas >= 1.0.0
+  edje >= 1.0.0
+  ecore-file >= 1.0.0
+  ecore-ipc >= 1.0.0
+  eet >= 1.4.0
+  efreet >= 1.0.0
 ])
 
-PKG_CHECK_MODULES(E_FM, [
-  ecore
-  ecore-file
-  ecore-ipc
-  eet >= 1.2.3
-  efreet
-  dbus-1
-  edbus
-  ehal
-  eina-0
-])
+if test -z $eeze_mount ; then
+  PKG_CHECK_MODULES(E_FM, [
+    ecore >= 1.0.0
+    ecore-file >= 1.0.0
+    ecore-ipc >= 1.0.0
+    eet >= 1.4.0
+    efreet >= 1.0.0
+    dbus-1
+    edbus >= 1.0.0
+    ehal >= 1.0.0
+    eina >= 1.0.0
+  ])
+else
+  PKG_CHECK_MODULES(E_FM, [
+    ecore >= 1.0.0
+    ecore-file >= 1.0.0
+    ecore-ipc >= 1.0.0
+    eet >= 1.4.0
+    efreet >= 1.0.0
+    eeze >= 1.1.0
+    eina >= 1.0.0
+  ])
+fi
 
 PKG_CHECK_MODULES(E_FM_OP, [
-  ecore
-  ecore-file
-  eina-0
+  ecore >= 1.0.0
+  ecore-file >= 1.0.0
+  eina >= 1.0.0
 ])
 
 PKG_CHECK_MODULES(E_FM_OPEN, [
-  ecore
-  ecore-ipc
-  eet >= 1.2.3
-  eina-0
+  ecore >= 1.0.0
+  ecore-ipc >= 1.0.0
+  eet >= 1.4.0
+  eina >= 1.0.0
 ])
 
 PKG_CHECK_MODULES(E_SYS, [
-  eina-0
+  eina >= 1.0.0
 ])
 
 PKG_CHECK_MODULES(E_INIT, [
-  evas
-  ecore
-  ecore-evas
-  ecore-x
-  edje
-  ecore-ipc
-  eina-0
+  evas >= 1.0.0
+  ecore >= 1.0.0
+  ecore-evas >= 1.0.0
+  ecore-x >= 1.0.0
+  edje >= 1.0.0
+  ecore-ipc >= 1.0.0
+  eina >= 1.0.0
 ])
 
+if test -z $eeze_mount ; then
+  hal_check="ehal >= 1.0.0"
+else
+  hal_check=""
+fi
 PKG_CHECK_MODULES(E, [
-  evas
-  ecore
-  ecore-x
-  ecore-evas
-  ecore-input
-  ecore-input-evas
-  ecore-con
-  ecore-ipc
-  ecore-file
-  eet >= 1.2.3
-  edje
-  efreet
-  efreet-mime
-  efreet-trash
-  eina-0
+  evas >= 1.0.0
+  ecore >= 1.0.0
+  ecore-x >= 1.0.0
+  ecore-evas >= 1.0.0
+  ecore-input >= 1.0.0
+  ecore-input-evas >= 1.0.0
+  ecore-con >= 1.0.0
+  ecore-ipc >= 1.0.0
+  ecore-file >= 1.0.0
+  eet >= 1.4.0
+  edje >= 1.0.0
+  efreet >= 1.0.0
+  efreet-mime >= 1.0.0
+  efreet-trash >= 1.0.0
+  eina >= 1.0.0
   dbus-1
-  edbus
-  ehal
+  edbus >= 1.0.0
+  $hal_check
   $device_backend
 ])
-requirements_e="evas ecore ecore-x ecore-evas ecore-con ecore-ipc ecore-file eet edje efreet efreet-mime eina-0 dbus-1 edbus ehal $device_backend"
+requirements_e="evas >= 1.0.0 ecore >= 1.0.0 ecore-x >= 1.0.0 ecore-evas >= 1.0.0 ecore-con >= 1.0.0 ecore-ipc >= 1.0.0 ecore-file >= 1.0.0 eet >= 1.4.0 edje >= 1.0.0 efreet >= 1.0.0 efreet-mime >= 1.0.0 eina >= 1.0.0 dbus-1 edbus >= 1.0.0 $hal_check $device_backend"
 
-AC_E_CHECK_PKG(ECORE_IMF, [ecore-imf ecore-imf-evas], [], [:])
+AC_E_CHECK_PKG(ECORE_IMF, [ecore-imf >= 1.0.0 ecore-imf-evas >= 1.0.0], [], [:])
 
 e_libs=$E_LIBS" "$LIBINTL" "$fnmatch_libs" "$ECORE_IMF_LIBS" "$execinfo_libs
 e_cflags="-DUSE_E_CONFIG_H "$E_CFLAGS" "$ECORE_IMF_CFLAGS
@@ -405,7 +440,8 @@ AC_SUBST(requirements_e)
 
 profile="SLOW_PC"
 AC_ARG_WITH(profile,
-  AS_HELP_STRING([--with-profile=TARGET_PROFILE], [specify a target format profile of:
+  AS_HELP_STRING([--with-profile=TARGET_PROFILE], 
+  [specify a target format profile of:
                                     LOWRES_PDA, MEDIUMRES_PDA, HIRES_PDA, SLOW_PC, MEDIUM_PC, FAST_PC]),
   [profile=$withval])
 AC_MSG_NOTICE([Enlightenment build profile set to $profile])
@@ -424,7 +460,7 @@ AC_ARG_WITH(edje-cc,
 ])
 AC_SUBST(edje_cc)
 
-PKG_CHECK_MODULES(EET, [eet >= 1.2.3])
+PKG_CHECK_MODULES(EET, [eet >= 1.4.0])
 AC_ARG_WITH(eet-eet,
 [  --with-eet-eet=PATH              specify a specific path to eet utility],
 [
@@ -441,15 +477,14 @@ AC_DEFINE(E_INTERNAL, 1, "This define can be used to wrap internal E stuff, as c
 AM_CONDITIONAL(HAVE_BATTERY, false)
 define([CHECK_MODULE_BATTERY],
 [
-        AC_E_CHECK_PKG(BATTERY, [ecore ecore-file ecore-con eina-0],
-                       [], [BATTERY=false])
+  AC_E_CHECK_PKG(BATTERY, [ecore >= 1.0.0 ecore-file >= 1.0.0 ecore-con >= 1.0.0 eina >= 1.0.0], [], [BATTERY=false])
 ])
 
 BATTERY_LDFLAGS=
 case "$host_os" in
-   darwin*)
-      BATTERY_LDFLAGS="-framework Foundation -framework IOKit"
-   ;;
+  darwin*)
+    BATTERY_LDFLAGS="-framework Foundation -framework IOKit"
+  ;;
 esac
 
 AC_SUBST(BATTERY_LDFLAGS)
@@ -457,50 +492,49 @@ AC_SUBST(BATTERY_LDFLAGS)
 AM_CONDITIONAL(HAVE_TEMPERATURE, false)
 define([CHECK_MODULE_TEMPERATURE],
 [
-        AC_E_CHECK_PKG(TEMPERATURE, [ecore ecore-file eina-0],
-                       [], [TEMPERATURE=false])
+  AC_E_CHECK_PKG(TEMPERATURE, [ecore >= 1.0.0 ecore-file >= 1.0.0 eina >= 1.0.0], [], [TEMPERATURE=false])
 ])
 
 have_exchange=no
 AC_ARG_ENABLE(exchange,
-	AC_HELP_STRING([--disable-exchange], [disable Exchange support @<:@default=detect@:>@]),
-	[want_exchange=$enableval],
-	[want_exchange=auto]
+  AC_HELP_STRING([--disable-exchange], [disable Exchange support @<:@default=detect@:>@]),
+  [want_exchange=$enableval],
+  [want_exchange=auto]
 )
 
 AM_CONDITIONAL(HAVE_EXCHANGE, false)
 define([CHECK_MODULE_CONF_THEME],
 [
-        if test "x$want_exchange" != "xno" ; then
-                AC_E_CHECK_PKG(EXCHANGE, [exchange], [], [:])
-        else
-                AC_MSG_NOTICE([requested to not use exchange library])
-        fi
+  if test "x$want_exchange" != "xno" ; then
+    AC_E_CHECK_PKG(EXCHANGE, [exchange], [], [:])
+  else
+    AC_MSG_NOTICE([requested to not use exchange library])
+  fi
 ])
 
 AM_CONDITIONAL(HAVE_ALSA, false)
 define([CHECK_MODULE_MIXER],
 [
-if test "x$enable_alsa" = "x" || test "x$enable_alsa" = "xdefault" || test "x$enable_alsa" = "xyes"; then
-   AC_E_CHECK_PKG(ALSA, [alsa >= 1.0.8],
-   [ SOUND_CFLAGS="$ALSA_CFLAGS -DHAVE_ALSA $SOUND_CFLAGS"
-     SOUND_LIBS="$ALSA_LIBS $SOUND_LDFLAGS"
-   ],
-   [ if test "x$enable_alsa" = "xyes"; then
+  if test "x$enable_alsa" = "x" || test "x$enable_alsa" = "xdefault" || test "x$enable_alsa" = "xyes"; then
+    AC_E_CHECK_PKG(ALSA, [alsa >= 1.0.8],
+    [ SOUND_CFLAGS="$ALSA_CFLAGS -DHAVE_ALSA $SOUND_CFLAGS"
+      SOUND_LIBS="$ALSA_LIBS $SOUND_LDFLAGS"
+    ],
+    [ if test "x$enable_alsa" = "xyes"; then
         AC_MSG_ERROR([alsa library >= 1.0.8 not found])
-     else
+      else
         AC_MSG_WARN([alsa library development files not present. no alsa support.])
-     fi
-   ])
-else
-  have_alsa=no
-fi
-
-if test "$have_alsa" = "yes"; then
-    AC_DEFINE(HAVE_ALSA, 1, [Define if the ALSA output plugin should be built])
-else
+      fi
+    ])
+  else
     have_alsa=no
-fi
+  fi
+
+  if test "$have_alsa" = "yes"; then
+    AC_DEFINE(HAVE_ALSA, 1, [Define if the ALSA output plugin should be built])
+  else
+    have_alsa=no
+  fi
 ])
 
 AC_SUBST(SOUND_CFLAGS)
@@ -509,8 +543,7 @@ AC_SUBST(SOUND_LIBS)
 AM_CONDITIONAL(HAVE_ECONNMAN, false)
 define([CHECK_MODULE_CONNMAN],
 [
-        AC_E_CHECK_PKG(ECONNMAN, [edbus econnman],
-                       [], [ECONNMAN=false])
+  AC_E_CHECK_PKG(ECONNMAN, [edbus >= 1.0.0 econnman >= 1.0.0], [], [CONNMAN=false])
 ])
 AC_SUBST(ECONNMAN_CFLAGS)
 AC_SUBST(ECONNMAN_LIBS)
@@ -518,8 +551,7 @@ AC_SUBST(ECONNMAN_LIBS)
 AM_CONDITIONAL(HAVE_EBLUEZ, false)
 define([CHECK_MODULE_BLUEZ],
 [
-        AC_E_CHECK_PKG(EBLUEZ, [edbus ebluez],
-                       [], [EBLUEZ=false])
+  AC_E_CHECK_PKG(EBLUEZ, [edbus >= 1.0.0 ebluez >= 1.0.0], [], [BLUEZ=false])
 ])
 AC_SUBST(EBLUEZ_CFLAGS)
 AC_SUBST(EBLUEZ_LIBS)
@@ -527,8 +559,7 @@ AC_SUBST(EBLUEZ_LIBS)
 AM_CONDITIONAL(HAVE_EOFONO, false)
 define([CHECK_MODULE_OFONO],
 [
-        AC_E_CHECK_PKG(EOFONO, [edbus eofono],
-                       [], [EOFONO=false])
+  AC_E_CHECK_PKG(EOFONO, [edbus >= 1.0.0 eofono >= 1.0.0], [], [OFONO=false])
 ])
 AC_SUBST(EOFONO_CFLAGS)
 AC_SUBST(EOFONO_LIBS)
@@ -606,12 +637,15 @@ AC_E_OPTIONAL_MODULE([everything-windows], true)
 AC_E_OPTIONAL_MODULE([systray], true)
 AC_E_OPTIONAL_MODULE([comp], true)
 
+AC_E_CHECK_PKG(ENOTIFY, [edbus >= 1.0.0 enotify >= 1.0.0], [], [])
+
 AC_OUTPUT([
 Makefile
 enlightenment.spec
 enlightenment.pc
 src/Makefile
 src/bin/Makefile
+src/bin/e_fm/Makefile
 src/modules/Makefile
 src/modules/ibar/Makefile
 src/modules/ibar/module.desktop
@@ -811,13 +845,9 @@ config/illume-home/Makefile
 $po_makefile_in
 ])
 
-if test "$device_backend" = "eeze";then
-  device_backend+=" (EXPERIMENTAL!)"
-fi
-
 # report
 txt_strip() {
-        echo "[$]@" | sed -e 's/^[[ \t]]*\([[^ \t]]*\)[[ \t]]*$/\1/g'
+  echo "[$]@" | sed -e 's/^[[ \t]]*\([[^ \t]]*\)[[ \t]]*$/\1/g'
 }
 
 echo
@@ -837,7 +867,7 @@ echo
 
 UNUSED_MODS=""
 for mod in $UNUSED_OPTIONAL_MODULES; do
-        UNUSED_MODS="$UNUSED_MODS${COLOR_HRED}$mod${COLOR_END} "
+  UNUSED_MODS="$UNUSED_MODS${COLOR_HRED}$mod${COLOR_END} "
 done
 
 cat << MODULES_EOF
@@ -851,7 +881,7 @@ Documentation:
  * enabled.........: ${build_doc}
 DOCS_EOF
 if test "x${build_doc}" = "xyes" ; then
-   echo " Building..........: make doc"
+  echo " Building..........: make doc"
 fi
 echo
 

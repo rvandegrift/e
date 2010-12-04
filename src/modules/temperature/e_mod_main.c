@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -160,20 +157,20 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 }
 
 static void
-_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
+_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
 {
    e_gadcon_client_aspect_set(gcc, 16, 16);
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
 
 static char *
-_gc_label(E_Gadcon_Client_Class *client_class)
+_gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Temperature");
 }
 
 static Evas_Object *
-_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas)
+_gc_icon(E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
 {
    Evas_Object *o;
    char buf[PATH_MAX];
@@ -186,7 +183,7 @@ _gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas)
 }
 
 static const char *
-_gc_id_new(E_Gadcon_Client_Class *client_class)
+_gc_id_new(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    Config_Face *inst;
    char id[128];
@@ -211,7 +208,7 @@ _gc_id_new(E_Gadcon_Client_Class *client_class)
 }
 
 static void
-_temperature_face_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_temperature_face_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
 {
    Config_Face *inst;
    Evas_Event_Mouse_Down *ev;
@@ -220,24 +217,26 @@ _temperature_face_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *eve
    ev = event_info;
    if ((ev->button == 3) && (!inst->menu))
      {
-        E_Menu *mn;
+        E_Menu *ma, *mg;
         E_Menu_Item *mi;
         int cx, cy;
 
-        mn = e_menu_new();
-        e_menu_post_deactivate_callback_set(mn, _temperature_face_cb_post_menu, inst);
-        inst->menu = mn;
+        ma = e_menu_new();
+        e_menu_post_deactivate_callback_set(ma, _temperature_face_cb_post_menu, inst);
+        inst->menu = ma;
 
-        mi = e_menu_item_new(mn);
+        mg = e_menu_new();
+
+        mi = e_menu_item_new(mg);
         e_menu_item_label_set(mi, _("Settings"));
         e_util_menu_item_theme_icon_set(mi, "configure");
         e_menu_item_callback_set(mi, _temperature_face_cb_menu_configure, inst);
 
-        e_gadcon_client_util_menu_items_append(inst->gcc, mn, 0);
+        e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
 
         e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-        e_menu_activate_mouse(mn,
+        e_menu_activate_mouse(ma,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
@@ -245,7 +244,7 @@ _temperature_face_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *eve
 }
 
 static void
-_temperature_face_cb_post_menu(void *data, E_Menu *m)
+_temperature_face_cb_post_menu(void *data, E_Menu *m __UNUSED__)
 {
    Config_Face *inst;
 
@@ -267,7 +266,7 @@ _temperature_face_level_set(Config_Face *inst, double level)
 }
 
 static void
-_temperature_face_cb_menu_configure(void *data, E_Menu *m, E_Menu_Item *mi)
+_temperature_face_cb_menu_configure(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
    Config_Face *inst;
 
@@ -337,7 +336,7 @@ temperature_face_update_config(Config_Face *inst)
 		      "%s/%s/tempget %i \"%s\" %i", 
 		      e_module_dir_get(temperature_config->module), MODULE_ARCH, 
 		      inst->sensor_type,
-		      (inst->sensor_name != NULL ? inst->sensor_name : "(null)"),
+		      (inst->sensor_name ? inst->sensor_name : "(null)"),
 		      inst->poll_interval);
 	     inst->tempget_exe = 
 	       ecore_exe_pipe_run(buf, ECORE_EXE_PIPE_READ | 
@@ -365,7 +364,7 @@ temperature_face_update_config(Config_Face *inst)
 		 "%s/%s/tempget %i \"%s\" %i", 
 		 e_module_dir_get(temperature_config->module), MODULE_ARCH, 
 		 inst->sensor_type,
-		 (inst->sensor_name != NULL ? inst->sensor_name : "(null)"),
+		 (inst->sensor_name ? inst->sensor_name : "(null)"),
 		 inst->poll_interval);
 	inst->tempget_exe = 
 	  ecore_exe_pipe_run(buf, ECORE_EXE_PIPE_READ | 
@@ -467,7 +466,7 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int
-e_modapi_shutdown(E_Module *m)
+e_modapi_shutdown(E_Module *m __UNUSED__)
 {
    e_gadcon_provider_unregister(&_gadcon_class);
    eina_hash_foreach(temperature_config->faces, _temperature_face_shutdown, NULL);
@@ -480,7 +479,7 @@ e_modapi_shutdown(E_Module *m)
 }
 
 EAPI int
-e_modapi_save(E_Module *m)
+e_modapi_save(E_Module *m __UNUSED__)
 {
    e_config_domain_save("module.temperature", conf_edd, temperature_config);
    return 1;

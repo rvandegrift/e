@@ -1,6 +1,4 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
+#include "e.h"
 #include "e_alert.h"
 
 #include <stdio.h>
@@ -28,7 +26,7 @@ static int          ww = 320, hh = 240, wx = 20, wy = 20;
 EAPI unsigned long       e_alert_composite_win = 0;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_alert_init(const char *disp)
 {
    XGCValues            gcv;
@@ -75,7 +73,7 @@ e_alert_init(const char *disp)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_alert_shutdown(void)
 {
    XDestroyWindow(dd, win);

@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #include "e.h"
 #include "e_int_config_theme_import.h"
 #include "e_int_config_theme_web.h"
@@ -137,7 +133,7 @@ e_int_config_theme_update(E_Config_Dialog *dia, char *file)
 }
 
 static void
-_cb_button_up(void *data1, void *data2)
+_cb_button_up(void *data1, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -146,7 +142,7 @@ _cb_button_up(void *data1, void *data2)
 }
 
 static void
-_cb_files_changed(void *data, Evas_Object *obj, void *event_info)
+_cb_files_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -158,7 +154,7 @@ _cb_files_changed(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_cb_files_selection_change(void *data, Evas_Object *obj, void *event_info)
+_cb_files_selection_change(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    Eina_List *selected;
@@ -201,7 +197,7 @@ _cb_files_selected(void *data, Evas_Object *obj, void *event_info)
 #endif
 
 static void
-_cb_files_files_changed(void *data, Evas_Object *obj, void *event_info)
+_cb_files_files_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    const char *p;
@@ -234,7 +230,7 @@ _cb_files_files_changed(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_cb_dir(void *data, Evas_Object *obj, void *event_info)
+_cb_dir(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    char path[4096];
@@ -248,7 +244,7 @@ _cb_dir(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_cb_files_files_deleted(void *data, Evas_Object *obj, void *event_info)
+_cb_files_files_deleted(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    Eina_List *sel, *all, *n;
@@ -281,7 +277,7 @@ _cb_files_files_deleted(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_cb_import(void *data1, void *data2)
+_cb_import(void *data1, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -361,7 +357,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    E_Config_Theme *t;
 
@@ -466,7 +462,7 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    E_Action *a;
    E_Config_Theme *ct;
@@ -626,7 +622,7 @@ _preview_set(void *data)
 	int ret = 0;
 	int i;
 
-	for (i = 0; parts_list[i] != NULL; i++)
+	for (i = 0; parts_list[i]; i++)
 	  if (strstr(parts_list[i], c_label)) break;
 
 	if (parts_list[i])
@@ -640,7 +636,7 @@ _preview_set(void *data)
 }
 
 static void
-_cb_adv_categories_change(void *data, Evas_Object *obj)
+_cb_adv_categories_change(void *data, Evas_Object *obj __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    const char *label = NULL;
@@ -681,7 +677,7 @@ _cb_adv_categories_change(void *data, Evas_Object *obj)
 
 	tmp = _files_ilist_nth_label_to_file(cfdata, n);
 	eina_stringshare_del(tmp);
-	if (file == tmp) /* We don't need the value, just the adress. */
+	if (file == tmp) /* We don't need the value, just the address. */
 	  {
 	     e_widget_ilist_selected_set(cfdata->o_files_ilist, n);
 	     break;
@@ -690,7 +686,7 @@ _cb_adv_categories_change(void *data, Evas_Object *obj)
 }
 
 static void
-_cb_adv_theme_change(void *data, Evas_Object *obj)
+_cb_adv_theme_change(void *data, Evas_Object *obj __UNUSED__)
 {
    _preview_set(data);
 }
@@ -709,14 +705,15 @@ _theme_file_used(Eina_List *tlist, const char *filename)
    return 0;
 }
 
-static int
-_ilist_files_add(E_Config_Dialog_Data *cfdata, const char *header, const char *dir)
+static void
+_ilist_files_add(E_Config_Dialog_Data *cfdata,
+		 const char *header, const char *dir,
+		 int *count_cb)
 {
-   DIR *d = NULL;
-   struct dirent *dentry = NULL;
+   Eina_Iterator *it;
+   const char *file;
    Eina_List *themefiles = NULL;
    int count = 0;
-   char themename[1024];
    char *tmp;
    Evas_Object *o;
    const char *theme;
@@ -726,23 +723,27 @@ _ilist_files_add(E_Config_Dialog_Data *cfdata, const char *header, const char *d
    e_widget_ilist_header_append(o, NULL, header);
    evas = evas_object_evas_get(o);
 
-   d = opendir(dir);
-   if (d)
+   it = eina_file_ls(dir);
+
+   if (it)
      {
-	while ((dentry = readdir(d)) != NULL)
-	  {
-	     if (strstr(dentry->d_name,".edj") != NULL)
-	       {
-		  snprintf(themename, sizeof(themename), "%s/%s",
-			   dir, dentry->d_name);
-		  themefiles = eina_list_append(themefiles, eina_stringshare_add(themename));
-	       }
-	  }
-	closedir(d);
+	EINA_ITERATOR_FOREACH(it, file)
+	  if (strstr(file, ".edj"))
+	    {
+	       themefiles = eina_list_append(themefiles, file);
+	    }
+	  else
+	    {
+	       eina_stringshare_del(file);
+	    }
+
+	eina_iterator_free(it);
      }
 
    if (themefiles)
      {
+	char themename[PATH_MAX];
+
 	themefiles = eina_list_sort(themefiles, -1, _cb_sort);
 	count = eina_list_count(themefiles);
 
@@ -765,7 +766,8 @@ _ilist_files_add(E_Config_Dialog_Data *cfdata, const char *header, const char *d
 	  }
      }
 
-   return count;
+   if (count_cb)
+     *count_cb = count;
 }
 
 static void
@@ -785,12 +787,11 @@ _fill_files_ilist(E_Config_Dialog_Data *cfdata)
 
    /* Grab the "Personal" themes. */
    e_user_dir_concat_static(theme_dir, "themes");
-   cfdata->personal_file_count = 
-     _ilist_files_add(cfdata, _("Personal"), theme_dir);
+   _ilist_files_add(cfdata, _("Personal"), theme_dir, &cfdata->personal_file_count);
 
    /* Grab the "System" themes. */
    e_prefix_data_concat_static(theme_dir, "data/themes");
-   _ilist_files_add(cfdata, _("System"), theme_dir);
+   _ilist_files_add(cfdata, _("System"), theme_dir, NULL);
 
    e_widget_ilist_go(o);
    e_widget_ilist_thaw(o);
@@ -833,7 +834,7 @@ _fill_categories_ilist(E_Config_Dialog_Data *cfdata)
 }
 
 static void
-_cb_adv_btn_assign(void *data1, void *data2)
+_cb_adv_btn_assign(void *data1, void *data2 __UNUSED__)
 {
    Evas *evas;
    E_Config_Dialog_Data *cfdata;
@@ -910,7 +911,7 @@ _cb_adv_btn_assign(void *data1, void *data2)
 }
 
 static void
-_cb_adv_btn_clear(void *data1, void *data2)
+_cb_adv_btn_clear(void *data1, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    E_Config_Theme *t;
@@ -963,7 +964,7 @@ _cb_adv_btn_clear(void *data1, void *data2)
 }
 
 static void
-_cb_adv_btn_clearall(void *data1, void *data2)
+_cb_adv_btn_clearall(void *data1, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    E_Config_Theme *t;
@@ -1052,7 +1053,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 }
 
 static int
-_advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
+_advanced_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
    E_Config_Theme *theme;
    Eina_List *themes;

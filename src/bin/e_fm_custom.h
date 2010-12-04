@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef struct _E_Fm2_Custom_File E_Fm2_Custom_File;
@@ -42,8 +39,8 @@ struct _E_Fm2_Custom_File
    /* FIXME: this will have more added */
 };
 
-EAPI int                   e_fm2_custom_file_init(void);
-EAPI void                  e_fm2_custom_file_shutdown(void);
+EINTERN int                   e_fm2_custom_file_init(void);
+EINTERN void                  e_fm2_custom_file_shutdown(void);
 EAPI E_Fm2_Custom_File    *e_fm2_custom_file_get(const char *path);
 EAPI void                  e_fm2_custom_file_set(const char *path, const E_Fm2_Custom_File *cf);
 EAPI void                  e_fm2_custom_file_del(const char *path);

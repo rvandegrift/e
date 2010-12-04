@@ -22,7 +22,7 @@ static DBusMessage* _e_msgbus_profile_delete_cb(E_DBus_Object *obj, DBusMessage 
 static E_Msgbus_Data *_e_msgbus_data = NULL;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_msgbus_init(void)
 {
    E_DBus_Interface *iface;
@@ -52,6 +52,7 @@ e_msgbus_init(void)
 	return 0;
      }
    e_dbus_object_interface_attach(_e_msgbus_data->obj, iface);
+   e_dbus_interface_unref(iface);
  
    /* Hardcore methods */
    e_dbus_interface_method_add(iface, "Restart", "", "", _e_msgbus_core_restart_cb);
@@ -64,6 +65,7 @@ e_msgbus_init(void)
 	return 0;
      }
    e_dbus_object_interface_attach(_e_msgbus_data->obj, iface);
+   e_dbus_interface_unref(iface);
 
    /* Module methods */
    e_dbus_interface_method_add(iface, "Load", "s", "", _e_msgbus_module_load_cb);
@@ -79,6 +81,7 @@ e_msgbus_init(void)
 	return 0;
      }
    e_dbus_object_interface_attach(_e_msgbus_data->obj, iface);
+   e_dbus_interface_unref(iface);
 
    /* Profile methods */
    e_dbus_interface_method_add(iface, "Set", "s", "", _e_msgbus_profile_set_cb);
@@ -90,7 +93,7 @@ e_msgbus_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_msgbus_shutdown(void)
 {
    if (_e_msgbus_data->obj)
@@ -128,21 +131,21 @@ e_msgbus_interface_detach(E_DBus_Interface *iface)
 }
 
 static void
-_e_msgbus_request_name_cb(void *data, DBusMessage *msg, DBusError *err)
+_e_msgbus_request_name_cb(void *data __UNUSED__, DBusMessage *msg __UNUSED__, DBusError *err __UNUSED__)
 {
 //TODO Handle Errors
 }
 
 /* Core Handlers */
 static DBusMessage* 
-_e_msgbus_core_restart_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_core_restart_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    e_sys_action_do(E_SYS_RESTART, NULL);
    return dbus_message_new_method_return(msg);
 }
 
 static DBusMessage* 
-_e_msgbus_core_shutdown_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_core_shutdown_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    e_sys_action_do(E_SYS_EXIT, NULL);
    return dbus_message_new_method_return(msg);
@@ -150,7 +153,7 @@ _e_msgbus_core_shutdown_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 
 /* Modules Handlers */
 static DBusMessage* 
-_e_msgbus_module_load_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_module_load_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    char *module;
@@ -168,7 +171,7 @@ _e_msgbus_module_load_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_module_unload_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_module_unload_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    char *module; 
@@ -188,7 +191,7 @@ _e_msgbus_module_unload_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_module_enable_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_module_enable_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    char *module; 
@@ -206,7 +209,7 @@ _e_msgbus_module_enable_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_module_disable_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_module_disable_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    char *module; 
@@ -224,7 +227,7 @@ _e_msgbus_module_disable_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_module_list_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_module_list_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    Eina_List *l;
    E_Module *mod;
@@ -256,7 +259,7 @@ _e_msgbus_module_list_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 
 /* Profile Handlers */
 static DBusMessage*
-_e_msgbus_profile_set_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_profile_set_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    char *profile; 
@@ -274,7 +277,7 @@ _e_msgbus_profile_set_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_profile_get_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_profile_get_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    DBusMessage *reply;
@@ -290,7 +293,7 @@ _e_msgbus_profile_get_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_profile_list_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_profile_list_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    Eina_List *l;
    const char *name;
@@ -312,7 +315,7 @@ _e_msgbus_profile_list_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_profile_add_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_profile_add_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    char *profile; 
@@ -327,7 +330,7 @@ _e_msgbus_profile_add_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
 }
 
 static DBusMessage*
-_e_msgbus_profile_delete_cb(__UNUSED__ E_DBus_Object *obj, DBusMessage *msg)
+_e_msgbus_profile_delete_cb(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBusMessageIter iter;
    char *profile; 

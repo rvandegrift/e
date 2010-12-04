@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #ifndef MAX
@@ -13,71 +10,80 @@
       act = e_action_add(#name); \
       if (act) act->func.go = _e_actions_act_##name##_go; \
    }
-#define ACT_FN_GO(act, use)							\
-   static void _e_actions_act_##act##_go(E_Object *obj, use const char *params)
+#define ACT_FN_GO(act, use) \
+   static void _e_actions_act_##act##_go(E_Object *obj, const char *params use)
+
 #define ACT_GO_MOUSE(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.go_mouse = _e_actions_act_##name##_go_mouse; \
    }
-#define ACT_FN_GO_MOUSE(act, use)						\
-   static void _e_actions_act_##act##_go_mouse(E_Object *obj, use const char *params, Ecore_Event_Mouse_Button *ev)
+#define ACT_FN_GO_MOUSE(act, use) \
+   static void _e_actions_act_##act##_go_mouse(E_Object *obj, const char *params use, Ecore_Event_Mouse_Button *ev)
+
 #define ACT_GO_WHEEL(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.go_wheel = _e_actions_act_##name##_go_wheel; \
    }
-#define ACT_FN_GO_WHEEL(act, use)						\
-   static void _e_actions_act_##act##_go_wheel(E_Object *obj, use const char *params, Ecore_Event_Mouse_Wheel *ev)
+#define ACT_FN_GO_WHEEL(act, use) \
+   static void _e_actions_act_##act##_go_wheel(E_Object *obj, const char *params use, Ecore_Event_Mouse_Wheel *ev)
+
 #define ACT_GO_EDGE(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.go_edge = _e_actions_act_##name##_go_edge; \
    }
-#define ACT_FN_GO_EDGE(act, use)						\
-   static void _e_actions_act_##act##_go_edge(E_Object *obj, use const char *params, E_Event_Zone_Edge *ev)
+#define ACT_FN_GO_EDGE(act, use) \
+   static void _e_actions_act_##act##_go_edge(E_Object *obj, const char *params use, E_Event_Zone_Edge *ev)
+
 #define ACT_GO_SIGNAL(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.go_signal = _e_actions_act_##name##_go_signal; \
    }
-#define ACT_FN_GO_SIGNAL(act, use)						\
-   static void _e_actions_act_##act##_go_signal(E_Object *obj, use const char *params, const char *sig, const char *src)
+#define ACT_FN_GO_SIGNAL(act, use) \
+   static void _e_actions_act_##act##_go_signal(E_Object *obj, const char *params use, const char *sig, const char *src)
+
 #define ACT_GO_KEY(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.go_key = _e_actions_act_##name##_go_key; \
    }
-#define ACT_FN_GO_KEY(act, use)						\
-   static void _e_actions_act_##act##_go_key(E_Object *obj, use const char *params, Ecore_Event_Key *ev)
+#define ACT_FN_GO_KEY(act, use) \
+   static void _e_actions_act_##act##_go_key(E_Object *obj, const char *params use, Ecore_Event_Key *ev)
+
 #define ACT_END(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.end = _e_actions_act_##name##_end; \
    }
-#define ACT_FN_END(act, use)						\
-   static void _e_actions_act_##act##_end(E_Object *obj, use const char *params)
+#define ACT_FN_END(act, use) \
+   static void _e_actions_act_##act##_end(E_Object *obj, const char *params use)
+
 #define ACT_END_MOUSE(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.end_mouse = _e_actions_act_##name##_end_mouse; \
    }
-#define ACT_FN_END_MOUSE(act, use)						\
-   static void _e_actions_act_##act##_end_mouse(E_Object *obj, use const char *params, Ecore_Event_Mouse_Button *ev)
+#define ACT_FN_END_MOUSE(act, use) \
+   static void _e_actions_act_##act##_end_mouse(E_Object *obj, const char *params use, Ecore_Event_Mouse_Button *ev)
+
 #define ACT_END_KEY(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.end_key = _e_actions_act_##name##_end_key; \
    }
-#define ACT_FN_END_KEY(act, use)						\
-   static void _e_actions_act_##act##_end_key(E_Object *obj, use const char *params, Ecore_Event_Key *ev)
+#define ACT_FN_END_KEY(act, use) \
+   static void _e_actions_act_##act##_end_key(E_Object *obj, const char *params use, Ecore_Event_Key *ev)
+
 #define ACT_GO_ACPI(name) \
    { \
       act = e_action_add(#name); \
       if (act) act->func.go_acpi = _e_actions_act_##name##_go_acpi; \
    }
-#define ACT_FN_GO_ACPI(act, use)						\
-   static void _e_actions_act_##act##_go_acpi(E_Object *obj, use const char *params, E_Event_Acpi *ev)
+#define ACT_FN_GO_ACPI(act, use) \
+   static void _e_actions_act_##act##_go_acpi(E_Object *obj, const char *params use, E_Event_Acpi *ev)
 
 /* local subsystem functions */
 static void _e_action_free(E_Action *act);
@@ -358,8 +364,8 @@ ACT_FN_GO(window_kill, __UNUSED__)
 
    snprintf(dialog_text, sizeof(dialog_text),
 	    _("You are about to kill %s.<br><br>"
-	    "Please keep in mind that all data of this window,<br>"
-	    "which has not been saved yet will be lost!<br><br>"
+	    "Please keep in mind that all data from this window<br>"
+	    "which has not yet been saved will be lost!<br><br>"
 	    "Are you sure you want to kill this window?"), 
 	    bd->client.icccm.name);
 
@@ -488,7 +494,7 @@ ACT_FN_GO(window_fullscreen_toggle, )
 	bd = (E_Border *)obj;
 	if (bd->fullscreen)
 	  e_border_unfullscreen(bd);
-	else if (params == 0 || *params == '\0')
+	else if (!params || *params == '\0')
 	  e_border_fullscreen(bd, e_config->fullscreen_policy);
 	else if (! strcmp(params, "resize"))
 	  e_border_fullscreen(bd, E_FULLSCREEN_RESIZE);
@@ -1003,7 +1009,7 @@ ACT_FN_GO(window_push, )
         bd_list = e_container_border_list_first(bd->zone->container);
         cur = e_container_border_list_next(bd_list);
 
-        while (cur != NULL)
+        while (cur)
           {
             if ((bd->desk == cur->desk) && (bd != cur) && (!cur->iconic))
                {
@@ -1086,7 +1092,7 @@ ACT_FN_GO(window_desk_move_by, )
 
 	to_x = dx + x;
 	to_y = dy + y;
-	while ((desk = e_desk_at_xy_get(bd->zone, to_x, to_y )) == NULL)
+	while (!(desk = e_desk_at_xy_get(bd->zone, to_x, to_y)))
 	  {
 	     /* here we are out of our desktop range */
 	     while (to_x >= bd->zone->desk_x_count)
@@ -1108,7 +1114,7 @@ ACT_FN_GO(window_desk_move_by, )
 	
 	if (desk)
 	  {
-	     /* switch desktop. Quite usefull from the interface point of view. */
+	     /* switch desktop. Quite useful from the interface point of view. */
 	     e_zone_desk_flip_by(bd->zone, to_x - dx, to_y - dy);
 	     /* send the border to the required desktop. */
 	     e_border_desk_set(bd, desk);
@@ -2562,7 +2568,7 @@ static Eina_List *action_groups = NULL;
 
 /* externally accessible functions */
 
-EAPI int
+EINTERN int
 e_actions_init(void)
 {
    E_Action *act;
@@ -2857,7 +2863,7 @@ e_actions_init(void)
    ACT_GO(window_push);
    e_action_predef_name_set(_("Window : Actions"), "Push in Direction...", 
 			    "window_push", NULL,
-			    "syntax: direction, example: up, down, left, right, up-left, up-right, bottom-left, bottom-right", 1);
+			    "syntax: direction, example: up, down, left, right, up-left, up-right, down-left, down-right", 1);
 
    /* window_drag_icon */
    ACT_GO(window_drag_icon);
@@ -2983,7 +2989,7 @@ e_actions_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_actions_shutdown(void)
 {
    e_action_predef_name_all_del();
@@ -3105,9 +3111,9 @@ e_action_predef_name_set(const char *act_grp, const char *act_name, const char *
    if (!actd) return;
 
    actd->act_name = eina_stringshare_add(act_name);
-   actd->act_cmd = act_cmd == NULL ? NULL : eina_stringshare_add(act_cmd);
-   actd->act_params = act_params == NULL ? NULL : eina_stringshare_add(act_params);
-   actd->param_example = param_example == NULL ? NULL : eina_stringshare_add(param_example);
+   actd->act_cmd = !act_cmd ? NULL : eina_stringshare_add(act_cmd);
+   actd->act_params = !act_params ? NULL : eina_stringshare_add(act_params);
+   actd->param_example = !param_example ? NULL : eina_stringshare_add(param_example);
    actd->editable = editable;
 
    actg->acts = eina_list_append(actg->acts, actd);

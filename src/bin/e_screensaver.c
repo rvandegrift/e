@@ -1,20 +1,65 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 static Ecore_Event_Handler *_e_screensaver_handler_config_mode = NULL;
 static Ecore_Event_Handler *_e_screensaver_handler_screensaver_notify = NULL;
 static Ecore_Event_Handler *_e_screensaver_handler_border_fullscreen = NULL;
 static Ecore_Event_Handler *_e_screensaver_handler_border_unfullscreen = NULL;
+static Ecore_Event_Handler *_e_screensaver_handler_border_remove = NULL;
+static Ecore_Event_Handler *_e_screensaver_handler_border_iconify = NULL;
+static Ecore_Event_Handler *_e_screensaver_handler_border_uniconify = NULL;
+static Ecore_Event_Handler *_e_screensaver_handler_border_desk_set = NULL;
+static Ecore_Event_Handler *_e_screensaver_handler_desk_show = NULL;
 static E_Dialog *_e_screensaver_ask_presentation_dia = NULL;
 static int _e_screensaver_ask_presentation_count = 0;
-static int _e_screensaver_fullscreen_count = 0;
+
+static int _e_screensaver_timeout = 0;
+static int _e_screensaver_interval = 0;
+static int _e_screensaver_blanking = 0;
+static int _e_screensaver_expose = 0;
+
+EAPI void
+e_screensaver_update(void)
+{
+   int timeout = 0, interval = 0, blanking = 0, expose = 0;
+   int count = (1 + _e_screensaver_ask_presentation_count);
+   Eina_Bool changed = EINA_FALSE;
+
+   if ((e_config->screensaver_enable) && (!e_config->mode.presentation) &&
+       (!e_util_fullscreen_curreny_any()))
+     timeout = e_config->screensaver_timeout * count;
+
+   interval = e_config->screensaver_interval;
+   blanking = e_config->screensaver_blanking;
+   expose = e_config->screensaver_expose;
+
+   if (_e_screensaver_timeout != timeout)
+     {
+        _e_screensaver_timeout = timeout;
+        changed = EINA_TRUE;
+     }
+   if (_e_screensaver_interval != interval)
+     {
+        _e_screensaver_interval = interval;
+        changed = EINA_TRUE;
+     }
+   if (_e_screensaver_blanking != blanking)
+     {
+        _e_screensaver_blanking = blanking;
+        changed = EINA_TRUE;
+     }
+   if (_e_screensaver_expose != expose)
+     {
+        _e_screensaver_expose = expose;
+        changed = EINA_TRUE;
+     }
+
+   if (changed) ecore_x_screensaver_set(timeout, interval, blanking, expose);
+}
 
 static Eina_Bool
 _e_screensaver_handler_config_mode_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
 {
-   e_screensaver_init();
+   e_screensaver_update();
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -45,15 +90,8 @@ _e_screensaver_ask_presentation_no(void *data __UNUSED__, E_Dialog *dia)
 static void
 _e_screensaver_ask_presentation_no_increase(void *data __UNUSED__, E_Dialog *dia)
 {
-   int timeout, interval, blanking, expose;
-
    _e_screensaver_ask_presentation_count++;
-   timeout = e_config->screensaver_timeout * (1 + _e_screensaver_ask_presentation_count);
-   interval = e_config->screensaver_interval;
-   blanking = e_config->screensaver_blanking;
-   expose = e_config->screensaver_expose;
-
-   ecore_x_screensaver_set(timeout, interval, blanking, expose);
+   e_screensaver_update();
    e_object_del(E_OBJECT(dia));
 }
 
@@ -85,45 +123,37 @@ _e_screensaver_ask_presentation_mode(void)
    E_Container *con;
    E_Dialog *dia;
 
-   if (_e_screensaver_ask_presentation_dia)
-     return;
+   if (_e_screensaver_ask_presentation_dia) return;
 
-   man = e_manager_current_get();
-   if (!man) return;
-   con = e_container_current_get(man);
-   if (!con) return;
-   dia = e_dialog_new(con, "E", "_screensaver_ask_presentation");
-   if (!dia) return;
+   if (!(man = e_manager_current_get())) return;
+   if (!(con = e_container_current_get(man))) return;
+   if (!(dia = e_dialog_new(con, "E", "_screensaver_ask_presentation"))) return;
 
    e_dialog_title_set(dia, _("Activate Presentation Mode?"));
    e_dialog_icon_set(dia, "dialog-ask", 64);
-   e_dialog_text_set
-     (dia,
-      _("You disabled screensaver too fast.<br><br>"
-	"Would you like to enable <b>presentation</b> mode and "
-	"temporarily disable screen saver, lock and power saving?"));
+   e_dialog_text_set(dia,
+		     _("You disabled screensaver too fast.<br><br>"
+		       "Would you like to enable <b>presentation</b> mode and "
+		       "temporarily disable screen saver, lock and power saving?"));
 
-   e_object_del_attach_func_set
-     (E_OBJECT(dia), _e_screensaver_ask_presentation_del);
-   e_dialog_button_add
-     (dia, _("Yes"), NULL, _e_screensaver_ask_presentation_yes, NULL);
-   e_dialog_button_add
-     (dia, _("No"), NULL, _e_screensaver_ask_presentation_no, NULL);
-   e_dialog_button_add
-     (dia, _("No, but increase timeout"), NULL,
-      _e_screensaver_ask_presentation_no_increase, NULL);
-   e_dialog_button_add
-     (dia, _("No, and stop asking"), NULL,
-      _e_screensaver_ask_presentation_no_forever, NULL);
+   e_object_del_attach_func_set(E_OBJECT(dia), 
+				_e_screensaver_ask_presentation_del);
+   e_dialog_button_add(dia, _("Yes"), NULL, 
+		       _e_screensaver_ask_presentation_yes, NULL);
+   e_dialog_button_add(dia, _("No"), NULL, 
+		       _e_screensaver_ask_presentation_no, NULL);
+   e_dialog_button_add(dia, _("No, but increase timeout"), NULL,
+		       _e_screensaver_ask_presentation_no_increase, NULL);
+   e_dialog_button_add(dia, _("No, and stop asking"), NULL,
+		       _e_screensaver_ask_presentation_no_forever, NULL);
 
    e_dialog_button_focus_num(dia, 0);
    e_widget_list_homogeneous_set(dia->box_object, 0);
    e_win_centered_set(dia->win, 1);
    e_dialog_show(dia);
 
-   evas_object_event_callback_add
-     (dia->bg_object, EVAS_CALLBACK_KEY_DOWN,
-      _e_screensaver_ask_presentation_key_down, dia);
+   evas_object_event_callback_add(dia->bg_object, EVAS_CALLBACK_KEY_DOWN,
+				  _e_screensaver_ask_presentation_key_down, dia);
 
    _e_screensaver_ask_presentation_dia = dia;
 }
@@ -142,6 +172,7 @@ _e_screensaver_handler_screensaver_notify_cb(void *data __UNUSED__, int type __U
    else if ((last_start > 0.0) && (e_config->screensaver_ask_presentation))
      {
 	double current = ecore_loop_time_get();
+
 	if (last_start + e_config->screensaver_ask_presentation_timeout >= current)
 	  _e_screensaver_ask_presentation_mode();
 	last_start = 0.0;
@@ -153,51 +184,122 @@ _e_screensaver_handler_screensaver_notify_cb(void *data __UNUSED__, int type __U
 }
 
 static Eina_Bool
-_e_screensaver_handler_border_fullscreen_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
+_e_screensaver_handler_border_fullscreen_check_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
 {
-   _e_screensaver_fullscreen_count++;
-   if (_e_screensaver_fullscreen_count == 1) e_screensaver_init();
+   e_screensaver_update();
    return ECORE_CALLBACK_PASS_ON;
 }
 
 static Eina_Bool
-_e_screensaver_handler_border_unfullscreen_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
+_e_screensaver_handler_border_desk_set_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
 {
-   _e_screensaver_fullscreen_count--;
-   if (_e_screensaver_fullscreen_count == 0) e_screensaver_init();
-   else if (_e_screensaver_fullscreen_count < 0) _e_screensaver_fullscreen_count = 0;
+   e_screensaver_update();
    return ECORE_CALLBACK_PASS_ON;
 }
 
-EAPI int
+static Eina_Bool
+_e_screensaver_handler_desk_show_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
+{
+   e_screensaver_update();
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+EINTERN int
 e_screensaver_init(void)
 {
-   int timeout=0, interval=0, blanking=0, expose=0;
+   _e_screensaver_handler_config_mode = ecore_event_handler_add
+     (E_EVENT_CONFIG_MODE_CHANGED, _e_screensaver_handler_config_mode_cb, NULL);
 
-   if (!_e_screensaver_handler_config_mode)
-     _e_screensaver_handler_config_mode = ecore_event_handler_add
-       (E_EVENT_CONFIG_MODE_CHANGED, _e_screensaver_handler_config_mode_cb, NULL);
+   _e_screensaver_handler_screensaver_notify = ecore_event_handler_add
+     (ECORE_X_EVENT_SCREENSAVER_NOTIFY, _e_screensaver_handler_screensaver_notify_cb, NULL);
 
-   if (!_e_screensaver_handler_screensaver_notify)
-     _e_screensaver_handler_screensaver_notify = ecore_event_handler_add
-       (ECORE_X_EVENT_SCREENSAVER_NOTIFY, _e_screensaver_handler_screensaver_notify_cb, NULL);
+   _e_screensaver_handler_border_fullscreen = ecore_event_handler_add
+     (E_EVENT_BORDER_FULLSCREEN, _e_screensaver_handler_border_fullscreen_check_cb, NULL);
 
-   if (!_e_screensaver_handler_border_fullscreen)
-     _e_screensaver_handler_border_fullscreen = ecore_event_handler_add
-       (E_EVENT_BORDER_FULLSCREEN, _e_screensaver_handler_border_fullscreen_cb, NULL);
+   _e_screensaver_handler_border_unfullscreen = ecore_event_handler_add
+     (E_EVENT_BORDER_UNFULLSCREEN, _e_screensaver_handler_border_fullscreen_check_cb, NULL);
 
-   if (!_e_screensaver_handler_border_unfullscreen)
-     _e_screensaver_handler_border_unfullscreen = ecore_event_handler_add
-       (E_EVENT_BORDER_UNFULLSCREEN, _e_screensaver_handler_border_unfullscreen_cb, NULL);
+   _e_screensaver_handler_border_remove = ecore_event_handler_add
+     (E_EVENT_BORDER_REMOVE, _e_screensaver_handler_border_fullscreen_check_cb, NULL);
 
-   if ((e_config->screensaver_enable) && (!e_config->mode.presentation) &&
-       (_e_screensaver_fullscreen_count <= 0))
-     timeout = e_config->screensaver_timeout;
-   
-   interval = e_config->screensaver_interval;
-   blanking = e_config->screensaver_blanking;
-   expose = e_config->screensaver_expose;
-  
-   ecore_x_screensaver_set(timeout, interval, blanking, expose);
+   _e_screensaver_handler_border_iconify = ecore_event_handler_add
+     (E_EVENT_BORDER_ICONIFY, _e_screensaver_handler_border_fullscreen_check_cb, NULL);
+
+   _e_screensaver_handler_border_uniconify = ecore_event_handler_add
+     (E_EVENT_BORDER_UNICONIFY, _e_screensaver_handler_border_fullscreen_check_cb, NULL);
+
+   _e_screensaver_handler_border_desk_set = ecore_event_handler_add
+     (E_EVENT_BORDER_DESK_SET, _e_screensaver_handler_border_desk_set_cb, NULL);
+
+   _e_screensaver_handler_desk_show = ecore_event_handler_add
+     (E_EVENT_DESK_SHOW, _e_screensaver_handler_desk_show_cb, NULL);
+
+   _e_screensaver_timeout = ecore_x_screensaver_timeout_get();
+   _e_screensaver_interval = ecore_x_screensaver_interval_get();
+   _e_screensaver_blanking = ecore_x_screensaver_blank_get();
+   _e_screensaver_expose = ecore_x_screensaver_expose_get();
+
+   e_screensaver_update();
+
+   return 1;
+}
+
+EINTERN int
+e_screensaver_shutdown(void)
+{
+   if (_e_screensaver_handler_config_mode)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_config_mode);
+        _e_screensaver_handler_config_mode = NULL;
+     }
+
+   if (_e_screensaver_handler_screensaver_notify)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_screensaver_notify);
+        _e_screensaver_handler_screensaver_notify = NULL;
+     }
+
+   if (_e_screensaver_handler_border_fullscreen)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_border_fullscreen);
+        _e_screensaver_handler_border_fullscreen = NULL;
+     }
+
+   if (_e_screensaver_handler_border_unfullscreen)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_border_fullscreen);
+        _e_screensaver_handler_border_fullscreen = NULL;
+     }
+
+   if (_e_screensaver_handler_border_remove)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_border_fullscreen);
+        _e_screensaver_handler_border_fullscreen = NULL;
+     }
+
+   if (_e_screensaver_handler_border_iconify)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_border_fullscreen);
+        _e_screensaver_handler_border_fullscreen = NULL;
+     }
+
+   if (_e_screensaver_handler_border_uniconify)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_border_fullscreen);
+        _e_screensaver_handler_border_fullscreen = NULL;
+     }
+
+   if (_e_screensaver_handler_border_desk_set)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_border_fullscreen);
+        _e_screensaver_handler_border_fullscreen = NULL;
+     }
+
+   if (_e_screensaver_handler_desk_show)
+     {
+        ecore_event_handler_del(_e_screensaver_handler_border_fullscreen);
+        _e_screensaver_handler_border_fullscreen = NULL;
+     }
+
    return 1;
 }

@@ -1,7 +1,7 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-#define _GNU_SOURCE
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "e.h"
 
 #ifdef HAVE_ECORE_IMF
@@ -86,7 +86,6 @@ static Eina_Bool _e_main_cb_eet_cacheburst_end(void *data __UNUSED__);
 static Eina_Bool _e_main_cb_startup_fake_end(void *data __UNUSED__);
 static void _e_main_desk_save(void);
 static void _e_main_desk_restore(E_Manager *man, E_Container *con);
-static void _e_main_test_svg_loader(void);
 
 /* local subsystem globals */
 #define MAX_LEVEL 64
@@ -106,7 +105,7 @@ static Ecore_Idle_Enterer *_e_main_idle_enterer_flusher = NULL;
 #ifdef TS_DO   
 #define TS(x) \
    { \
-      t1 = ecore_time_get(); \
+      t1 = ecore_time_unix_get(); \
       printf("ESTART: %1.5f [%1.5f] - %s\n", t1 - t0, t1 - t2, x); \
       t2 = t1; \
    }
@@ -141,7 +140,7 @@ main(int argc, char **argv)
    double t, tstart;
 
 #ifdef TS_DO
-   t0 = t1 = t2 = ecore_time_get();   
+   t0 = t1 = t2 = ecore_time_unix_get();
 #endif
    TS("begin");
    
@@ -187,7 +186,7 @@ main(int argc, char **argv)
 
    TS("signals done");
 
-   t = ecore_time_get();
+   t = ecore_time_unix_get();
    s = getenv("E_START_TIME");
    if ((s) && (!getenv("E_RESTART_OK")))
      {
@@ -503,6 +502,17 @@ main(int argc, char **argv)
      }
    _e_main_shutdown_push(e_xinerama_shutdown);
 
+   TS("randr");
+   if (!e_randr_init())
+     {
+	e_error_message_show(_("Enlightenment cannot setup randr wrapping.\n"
+			       "This should not happen."));
+     }
+   else
+     {
+       _e_main_shutdown_push(e_randr_shutdown);
+     }
+
 /* ecore_x_grab(); */
 
    ecore_x_io_error_handler_set(_e_main_cb_x_fatal, NULL);
@@ -520,7 +530,7 @@ main(int argc, char **argv)
 			       "Perhaps you are out of memory?"));
 	_e_main_shutdown(-1);
     }
-   ecore_evas_app_comp_sync_set(0); /* e doesnt sync to compositor - it should be one */
+   ecore_evas_app_comp_sync_set(0); /* e doesn't sync to compositor - it should be one */
    if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_XLIB))
      {
 	e_error_message_show(_("Enlightenment found ecore_evas doesn't support the Software X11\n"
@@ -542,17 +552,6 @@ main(int argc, char **argv)
    TS("test done");
 
    /*** Finished loading subsystems, Loading WM Specifics ***/
-   TS("efreet");
-   /* init FDO desktop */
-   if (!efreet_init())
-     {
-        e_error_message_show(_("Enlightenment cannot initialize the FDO desktop system.\n"
-                               "Perhaps you are out of memory?"));
-        _e_main_shutdown(-1);
-     }
-   _e_main_shutdown_push(efreet_shutdown);
-   TS("efreet done");
-
    TS("configure");
    e_configure_init();
 
@@ -583,6 +582,8 @@ main(int argc, char **argv)
 	_e_main_shutdown(-1);
      }
    _e_main_shutdown_push(e_config_shutdown);
+
+   e_util_env_set("E_ICON_THEME", e_config->icon_theme);
 
    locked |= e_config->desklock_start_locked;
 
@@ -676,6 +677,17 @@ main(int argc, char **argv)
      }
    _e_main_shutdown_push(e_intl_post_shutdown);
 
+   TS("efreet");
+   /* init FDO desktop */
+   if (!efreet_init())
+     {
+        e_error_message_show(_("Enlightenment cannot initialize the FDO desktop system.\n"
+                               "Perhaps you are out of memory?"));
+        _e_main_shutdown(-1);
+     }
+   _e_main_shutdown_push(efreet_shutdown);
+   TS("efreet done");
+
    if (!really_know)
      {
         e_init_status_set(_("Testing Format Support"));
@@ -713,7 +725,7 @@ main(int argc, char **argv)
                                          "loader support.\n"));
                   _e_main_shutdown(-1);
                }
-
+             
              e_prefix_data_concat_static(buf, "data/images/test.edj");
              evas_object_image_file_set(im, buf, "images/0");
              if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
@@ -739,6 +751,36 @@ main(int argc, char **argv)
           }
      }
 
+   e_init_status_set(_("Check SVG Support"));
+   TS("svg");
+     {
+        Ecore_Evas *ee;
+        Evas_Object *im;
+        char buf[PATH_MAX];
+
+        ee = ecore_evas_buffer_new(1, 1);
+        if (!ee)
+          {
+             e_error_message_show(_("Enlightenment found Evas can't create a buffer canvas. Please check\n"
+                                    "Evas has Software Buffer engine support.\n"));
+             _e_main_shutdown(-1);
+          }
+        e_canvas_add(ee);
+        im = evas_object_image_add(ecore_evas_get(ee));
+
+        e_prefix_data_concat_static(buf, "data/images/test.svg");
+        evas_object_image_file_set(im, buf, NULL);
+        if (evas_object_image_load_error_get(im) == EVAS_LOAD_ERROR_NONE)
+          {
+             efreet_icon_extension_add(".svg");
+             /* prefer png over svg */
+             efreet_icon_extension_add(".png");
+          }
+        evas_object_del(im);
+        e_canvas_del(ee);
+        ecore_evas_free(ee);
+     }
+
    e_init_status_set(_("Setup Screens"));
    TS("screens");
    /* manage the root window */
@@ -758,6 +800,7 @@ main(int argc, char **argv)
 	e_error_message_show(_("Enlightenment cannot configure the X screensaver."));
 	_e_main_shutdown(-1);
      }
+   _e_main_shutdown_push(e_screensaver_shutdown);
 
    e_init_status_set(_("Setup Desklock"));
    TS("desklock");
@@ -801,7 +844,6 @@ main(int argc, char **argv)
 	     *list = eina_list_prepend(*list, (void *)eina_stringshare_add(buf));
 	  }
      }
-   _e_main_test_svg_loader();
    efreet_icon_extension_add(".edj");
    TS("efreet paths done");
 
@@ -942,6 +984,7 @@ main(int argc, char **argv)
 	e_error_message_show(_("Enlightenment cannot configure the DPMS settings."));
 	_e_main_shutdown(-1);
      }
+   _e_main_shutdown_push(e_dpms_shutdown);
 
    e_init_status_set(_("Setup Powersave modes"));
    TS("powersave");
@@ -965,7 +1008,7 @@ main(int argc, char **argv)
    e_init_status_set(_("Setup Mouse"));
    TS("mouse");     
    /* setup mouse accel */
-   if (!e_mouse_init())
+   if (!e_mouse_update())
      {
 	e_error_message_show(_("Enlightenment cannot configure the mouse settings."));
 	_e_main_shutdown(-1);
@@ -1091,8 +1134,8 @@ main(int argc, char **argv)
    e_test();
 
    e_init_status_set(_("Configure Shelves"));
-   TS("shelf config init");
-   e_shelf_config_init();
+   TS("shelf config update");
+   e_shelf_config_update();
 
    TS("manage all windows");
    _e_main_manage_all();
@@ -1435,7 +1478,7 @@ _e_main_path_init(void)
    e_path_default_path_append(path_modules, "~/.e/e/modules");
    snprintf(buf, sizeof(buf), "%s/enlightenment/modules", e_prefix_lib_get());
    e_path_default_path_append(path_modules, buf);
-   /* FIXME: eventually this has to go - moduels shoudl have installers that
+   /* FIXME: eventually this has to go - moduels should have installers that
     * add appropriate install paths (if not installed to user homedir) to
     * e's module search dirs
     */
@@ -1677,36 +1720,5 @@ _e_main_desk_restore(E_Manager *man, E_Container *con)
 	desk = e_desk_at_xy_get(zone, desk_x, desk_y);
 	if (!desk) continue;
 	e_desk_show(desk);
-     }
-}
-
-static void
-_e_main_test_svg_loader(void)
-{
-   Evas_Imaging_Image *tmp;
-   char file[] = "/tmp/e17-1341234234.svg";
-   FILE *fp = fopen(file, "w");
-   if (!fp) return;
-
-   fputs("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
-	 "<svg xmlns:svg=\"http://www.w3.org/2000/svg\""
-	 " xmlns=\"http://www.w3.org/2000/svg\""
-	 " xmlns:xlink=\"http://www.w3.org/1999/xlink\""
-	 " version=\"1.0\""
-	 " width=\"128\""
-	 " height=\"128\""
-	 " id=\"svg3486\">"
-	 "</svg>", fp);
-   fclose(fp);
-
-   tmp = evas_imaging_image_load (file, NULL);
-   ecore_file_remove(file);
-
-   if (tmp)
-     {
-	evas_imaging_image_free(tmp);
-	efreet_icon_extension_add(".svg");
-	/* prefer png over svg */
-	efreet_icon_extension_add(".png");
      }
 }

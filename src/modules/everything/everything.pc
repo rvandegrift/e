@@ -1,4 +1,4 @@
-prefix=/usr/local
+prefix=/usr/devel
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include/enlightenment
@@ -7,7 +7,7 @@ plugindir=${exec_prefix}/lib/enlightenment/modules/everything/plugins
 Name: e17-everything
 Description: Everything Module for E17
 Requires: enlightenment
-Version: 0.16.999.49898
+Version: 0.16.999.55225
 Libs: -L${libdir}
 Libs.private: 
 Cflags: -I${includedir}

@@ -115,7 +115,6 @@ icon_active.png \
 icon_add_fav.png \
 icon_add.png \
 icon_advanced.png \
-icon_appearance.png \
 icon_applications.png \
 icon_applications_ibar.png \
 icon_applications_new.png \
@@ -298,6 +297,7 @@ icon_windows.png \
 icon_winlist.png \
 icon_win_move.png \
 icon_win_resize.png \
+icon_illume.png \
 ilist_1.png \
 ilist_2.png \
 ilist_header_1.png \
@@ -306,6 +306,11 @@ ilist_item_shadow.png \
 illume-apps.png \
 illume-close.png \
 illume-home.png \
+illume-kbd.png \
+illume-kbd-on.png \
+illume-mode-dual-left.png \
+illume-mode-dual-top.png \
+illume-mode-single.png \
 init_check1.png \
 init_check2.png \
 inset_raised.png \
@@ -369,23 +374,12 @@ shelf_alt_shine.png \
 silk.png \
 slider_clicked.png \
 slider.png \
+t0.png \
+t0-sh.png \
+t1.png \
+t1-sh.png \
+t2.png \
 tacho_bg.png \
-tacho_dial_00.png \
-tacho_dial_01.png \
-tacho_dial_02.png \
-tacho_dial_03.png \
-tacho_dial_04.png \
-tacho_dial_05.png \
-tacho_dial_06.png \
-tacho_dial_07.png \
-tacho_dial_08.png \
-tacho_dial_09.png \
-tacho_dial_10.png \
-tacho_dial_11.png \
-tacho_dial_12.png \
-tacho_dial_13.png \
-tacho_dial_14.png \
-tacho_dial_15.png \
 tacho_fg.png \
 temp_base.png \
 temp_mid.png \
@@ -426,4 +420,6 @@ connman-connecting-2.png \
 connman-connecting-3.png \
 connman-connecting-4.png \
 comp-sh1.png \
-shelf_alt_vert_bg.png
+shelf_alt_vert_bg.png \
+icon_look.png \
+icon_gadget.png

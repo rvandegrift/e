@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef struct _E_Remember E_Remember;
@@ -100,8 +97,8 @@ struct _E_Remember
      } prop;
 };
 
-EAPI int          e_remember_init(E_Startup_Mode mode);
-EAPI int          e_remember_shutdown(void);
+EINTERN int          e_remember_init(E_Startup_Mode mode);
+EINTERN int          e_remember_shutdown(void);
 EAPI E_Remember  *e_remember_new(void);
 EAPI int          e_remember_usable_get(E_Remember *rem);
 EAPI void         e_remember_use(E_Remember *rem);

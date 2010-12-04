@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifdef E_TYPEDEFS
 
 typedef struct _E_Font_Default E_Font_Default;
@@ -35,8 +32,8 @@ struct _E_Font_Properties
    Eina_List *styles;
 };
 
-EAPI int		e_font_init(void);
-EAPI int		e_font_shutdown(void);
+EINTERN int		e_font_init(void);
+EINTERN int		e_font_shutdown(void);
 EAPI void		e_font_apply(void);
 EAPI Eina_List         *e_font_available_list(void);
 EAPI void		e_font_available_list_free(Eina_List *available);

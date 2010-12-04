@@ -1,10 +1,12 @@
 [Desktop Entry]
 Type=Link
-Name=Settings - ACPI Bindings
-Name[fr]=Configuration - Raccourcis ACPI
-Name[it]=Configurazione - Associazioni ACPI
+Name=ACPI Bindings
+Name[fr]=Raccourcis ACPI
+Name[it]=Associazioni ACPI
+Name[pt]=Associações ACPI
 Icon=preferences-system-power-management
 Comment=Configure your ACPI bindings here.
 Comment[fr]=Permet de configurer vos raccourcis ACPI.
 Comment[it]=Configurate qui le vostre associazioni con ACPI.
-X-Enlightenment-ModuleType=config
+Comment[pt]=Permite-lhe configurar as associações ACPI
+X-Enlightenment-ModuleType=settings

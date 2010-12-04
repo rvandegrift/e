@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #ifndef E_MOD_MAIN_H
 #define E_MOD_MAIN_H
 
@@ -40,7 +37,6 @@ struct _Config
    int                  time_full;
    int                  have_battery;
    int                  have_power;
-   int                  have_subsystem;
 #ifdef HAVE_EEZE
    Eeze_Udev_Watch     *acwatch;
    Eeze_Udev_Watch     *batwatch;
@@ -113,12 +109,12 @@ Ac_Adapter *_battery_ac_adapter_find(const char *udi);
 void _battery_device_update(void);
 #ifdef HAVE_EEZE
 /* in e_mod_udev.c */
-void _battery_udev_start(void);
+int  _battery_udev_start(void);
 void _battery_udev_stop(void);
 /* end e_mod_udev.c */
 #else
 /* in e_mod_dbus.c */
-void _battery_dbus_start(void);
+int  _battery_dbus_start(void);
 void _battery_dbus_stop(void);
 /* end e_mod_dbus.c */
 #endif

@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* local subsystem functions */
@@ -322,7 +319,7 @@ _e_config_dialog_cb_dialog_del(void *obj)
 }
 
 static void
-_e_config_dialog_cb_ok(void *data, E_Dialog *dia)
+_e_config_dialog_cb_ok(void *data __UNUSED__, E_Dialog *dia)
 {
    E_Config_Dialog *cfd;
    int ok = 0;
@@ -343,7 +340,7 @@ _e_config_dialog_cb_ok(void *data, E_Dialog *dia)
 }
 
 static void
-_e_config_dialog_cb_apply(void *data, E_Dialog *dia)
+_e_config_dialog_cb_apply(void *data __UNUSED__, E_Dialog *dia)
 {
    E_Config_Dialog *cfd;
    int ok = 0;
@@ -368,7 +365,7 @@ _e_config_dialog_cb_apply(void *data, E_Dialog *dia)
 }
 
 static void
-_e_config_dialog_cb_advanced(void *data, void *data2)
+_e_config_dialog_cb_advanced(void *data, void *data2 __UNUSED__)
 {
    E_Config_Dialog *cfd;
 
@@ -378,7 +375,7 @@ _e_config_dialog_cb_advanced(void *data, void *data2)
 }
 
 static void
-_e_config_dialog_cb_basic(void *data, void *data2)
+_e_config_dialog_cb_basic(void *data, void *data2 __UNUSED__)
 {
    E_Config_Dialog *cfd;
 
@@ -447,11 +444,12 @@ _e_config_dialog_check_changed(E_Config_Dialog *cfd, unsigned char def)
 }
 
 static void
-_e_config_dialog_cb_changed(void *data, Evas_Object *obj)
+_e_config_dialog_cb_changed(void *data, Evas_Object *obj __UNUSED__)
 {
-   E_Config_Dialog *cfd = data;
+   E_Config_Dialog *cfd;
    int changed;
 
+   cfd = data;
    if (!cfd->cfg_changed_auto) return;
    changed = _e_config_dialog_check_changed(cfd, 1);
 
@@ -459,7 +457,7 @@ _e_config_dialog_cb_changed(void *data, Evas_Object *obj)
 }
 
 static void
-_e_config_dialog_cb_close(void *data, E_Dialog *dia)
+_e_config_dialog_cb_close(void *data __UNUSED__, E_Dialog *dia)
 {
    E_Config_Dialog *cfd;
    int ok = 1;

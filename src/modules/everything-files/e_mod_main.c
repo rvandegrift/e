@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 /***************************************************
   TODO option for maximum items to cache
   TODO keep common list for recent file instances
@@ -30,7 +26,7 @@ FIXME
 #define ACT_SORT_NAME	6
 
 #define ONE_DAY  86400.0
-#define SIX_DAYS_AGO (ecore_time_get() - ONE_DAY * 6)
+#define SIX_DAYS_AGO (ecore_time_unix_get() - ONE_DAY * 6)
 #define MIN_USAGE 0.0
 
 /* #undef DBG
@@ -68,7 +64,6 @@ struct _Data
   int level;
   int cnt;
   Eina_List *files;
-  Eina_List *list;
   DIR *dirp;
   int run_cnt;
 };
@@ -172,83 +167,41 @@ _item_free(Evry_Item *it)
 }
 
 static void
-_scan_func(void *data)
+_scan_func(void *data, Ecore_Thread *thread)
 {
    Data *d = data;
    Plugin *p = d->plugin;
-   struct dirent *dp;
+   Eina_Iterator *ls;
+   Eina_File_Direct_Info *info;
    Evry_Item_File *file;
-   char buf[4096];
-   Eina_Bool is_dir;
 
-   d->dirp = opendir(d->directory);
-   if (!d->dirp) return;
+   if (!(ls = eina_file_stat_ls(d->directory)))
+     return;
 
-   while ((dp = readdir(d->dirp)))
+   EINA_ITERATOR_FOREACH(ls, info)
      {
-	is_dir = EINA_FALSE;
-
-	if ((dp->d_name[0] == '.') &&
-	    ((dp->d_name[1] == '\0') ||
-	     ((dp->d_name[1] == '.') &&
-	      (dp->d_name[2] == '\0'))))
-	  continue;
-
-#ifdef _DIRENT_HAVE_D_TYPE
-	if (dp->d_type == DT_FIFO ||
-	    dp->d_type == DT_BLK  ||
-	    dp->d_type == DT_CHR  ||
-	    dp->d_type == DT_SOCK)
-	  continue;
-#endif
-	if (!p->show_hidden)
-	  {
-	     if (dp->d_name[0] == '.')
-	       continue;
-	  }
-	else
-	  {
-	     if (dp->d_name[0] != '.')
-	       continue;
-	  }
-
-	if (d->directory[1])
-	  snprintf(buf, sizeof(buf), "%s/%s",
-		   d->directory,
-		   dp->d_name);
-	else
-	  snprintf(buf, sizeof(buf), "/%s",
-		   dp->d_name);
-
-#ifdef _DIRENT_HAVE_D_TYPE
-	if (dp->d_type & DT_UNKNOWN)
-	  {
-#endif
-	     if (ecore_file_is_dir(buf))
-	       is_dir = EINA_TRUE;
-
-#ifdef _DIRENT_HAVE_D_TYPE
-	  }
-	else if (dp->d_type & DT_DIR)
-	  {
-	     is_dir = EINA_TRUE;
-	  }
-#endif
-	if (p->dirs_only && !is_dir)
+	if ((p->show_hidden) != (*(info->path + info->name_start) == '.'))
 	  continue;
 
 	file = EVRY_ITEM_NEW(Evry_Item_File, p,
 			     NULL, NULL, _item_free);
-	file->path = strdup(buf);
-	EVRY_ITEM(file)->label = strdup(dp->d_name);
-	EVRY_ITEM(file)->browseable = is_dir;
+	file->path = strdup(info->path);
+	EVRY_ITEM(file)->label = strdup(info->path + info->name_start);
+	EVRY_ITEM(file)->browseable = (info->type == EINA_FILE_DIR);
+
 	d->files = eina_list_append(d->files, file);
+	/* TODO dont append files in thread, run mime scan
+	 * simultaneously. ecore_thread_feedback(thread, file); */
+
+	if (ecore_thread_check(thread))
+	  break;
      }
-   closedir(d->dirp);
+
+   eina_iterator_free(ls);
 }
 
 static void
-_scan_mime_func(void *data)
+_scan_mime_func(void *data, Ecore_Thread *thread)
 {
    Data *d = data;
    Evry_Item_File *file;
@@ -257,6 +210,9 @@ _scan_mime_func(void *data)
 
    EINA_LIST_FOREACH(d->files, l, file)
      {
+	if (ecore_thread_check(thread))
+	  break;
+
 	if ((file->mime = efreet_mime_type_get(file->path)))
 	  {
 	     if (!strncmp(file->mime, "inode/", 6) &&
@@ -271,7 +227,7 @@ _scan_mime_func(void *data)
 }
 
 static int
-_append_files(Plugin *p)
+_files_filter(Plugin *p)
 {
    int match;
    int cnt = 0;
@@ -316,191 +272,175 @@ _append_files(Plugin *p)
 }
 
 static void
-_scan_cancel_func(void *data)
+_scan_cancel_func(void *data, Ecore_Thread *thread __UNUSED__)
 {
    Data *d = data;
    Plugin *p = d->plugin;
    Evry_Item_File *file;
 
-   if (!d->run_cnt)
-     {
-	EINA_LIST_FREE(d->files, file)
-	  {
-	     if (file->base.label) free((char *)(file->base.label));
-	     if (file->path) free((char *)file->path);
-	     free(file);
-	  }
-     }
-   else
-     {
-	EINA_LIST_FREE(d->files, file)
-	  {
-	     if (file->path)
-	       eina_stringshare_del(file->path);
-	     if (EVRY_ITEM(file)->label)
-	       eina_stringshare_del(EVRY_ITEM(file)->label);
-	     if (EVRY_ITEM(file)->detail)
-	       eina_stringshare_del(EVRY_ITEM(file)->detail);
-	     free(file);
-	  }
-     }
+   EINA_LIST_FREE(p->files, file)
+     EVRY_ITEM_FREE(file);
 
-   free(d->directory);
-   E_FREE(d);
+   EINA_LIST_FREE(d->files, file)
+     {
+	if (file->base.label) free((char *)(file->base.label));
+	if (file->path) free((char *)file->path);
+	E_FREE(file);
+     }
 
    p->thread = NULL;
 
    if (p->wait_finish)
      E_FREE(p);
+
+   free(d->directory);
+   E_FREE(d);
 }
 
 static void
-_scan_end_func(void *data)
+_cache_mime_get(History_Types *ht, Evry_Item_File *file)
+{
+   History_Entry *he;
+   History_Item *hi;
+   Eina_List *l;
+
+   if ((he = eina_hash_find(ht->types, file->path)))
+     {
+	EINA_LIST_FOREACH(he->items, l, hi)
+	  {
+	     if (!hi->data)
+	       continue;
+
+	     if (!file->mime)
+	       file->mime = hi->data;
+
+	     hi->transient = 0;
+	     EVRY_ITEM(file)->hi = hi;
+	     break;
+	  }
+     }
+}
+
+static void
+_cache_dir_add(Eina_List *files)
+{
+   Eina_List *l;
+   Evry_Item *item;
+   History_Item *hi;
+   int cnt = 0;
+
+   EINA_LIST_REVERSE_FOREACH(files, l, item)
+     {
+	GET_FILE(file, item);
+
+	if (!(item->hi) &&
+	    (hi = evry->history_item_add(item, NULL, NULL)))
+	  {
+	     hi->last_used = SIX_DAYS_AGO;
+	     hi->usage = MIN_USAGE * (double) cnt++;
+	     hi->data = eina_stringshare_ref(file->mime);
+	     item->hi = hi;
+	  }
+	else if (item->hi && (item->hi->count == 1) &&
+		 (item->hi->last_used < SIX_DAYS_AGO))
+	  {
+	     item->hi->last_used = SIX_DAYS_AGO;
+	     item->hi->usage = MIN_USAGE * (double) cnt++;
+	  }
+     }
+}
+
+static void
+_file_add(Plugin *p, Evry_Item *item)
+{
+   GET_FILE(file, item);
+
+   char *filename = (char *)item->label;
+   char *path = (char *) file->path;
+
+   file->path = eina_stringshare_add(path);
+   file->mime = eina_stringshare_ref(file->mime);
+
+   item->label = eina_stringshare_add(filename);
+   item->id = eina_stringshare_ref(file->path);
+   item->context = eina_stringshare_ref(file->mime);
+
+   evry->util_file_detail_set(file);
+
+   p->files = eina_list_append(p->files, file);
+
+   E_FREE(filename);
+   E_FREE(path);
+}
+
+static void
+_scan_end_func(void *data, Ecore_Thread *thread)
 {
    Data *d = data;
    Plugin *p = d->plugin;
    Evry_Item *item;
-   char *filename, *path, *mime;
-   Eina_List *l, *ll, *lll;
-   History_Item *hi;
-   History_Entry *he;
+   Evry_Item_File *file;
+   char *filename, *path;
+   Eina_List *l, *ll;
    History_Types *ht = NULL;
-   int cnt = 0;
 
    if (_conf->cache_dirs)
      ht = evry->history_types_get(EVRY_TYPE_FILE);
 
-   if (!d->run_cnt)
+   if (!d->run_cnt) /* _scan_func finished */
      {
 	EINA_LIST_FOREACH_SAFE(d->files, l, ll, item)
 	  {
 	     GET_FILE(file, item);
 
-	     filename = (char *)item->label;
-	     path = (char *) file->path;
-
-	     if (!filename || !path)
-	       goto next;
-
-	     file->path = eina_stringshare_add(path);
-
 	     if (item->browseable)
-	       file->mime = eina_stringshare_ref(_mime_dir);
-
-	     /* check if we can grab the mimetype from history */
-	     if ((_conf->cache_dirs && ht) &&
-		 (he = eina_hash_find(ht->types, file->path)))
-	       {
-		  EINA_LIST_FOREACH(he->items, lll, hi)
-		    {
-		       if (!hi->data)
-			 continue;
-
-		       if (!file->mime)
-			 file->mime = eina_stringshare_ref(hi->data);
-
-		       hi->transient = 0;
-		       item->hi = hi;
-		       break;
-		    }
-	       }
+	       file->mime = _mime_dir;
+	     else if (ht)
+	       _cache_mime_get(ht, file);
 
 	     if (file->mime)
 	       {
-		  item->context = eina_stringshare_ref(file->mime);
-
 		  d->files = eina_list_remove_list(d->files, l);
-		  p->files = eina_list_append(p->files, file);
+		  _file_add(p, item);
 	       }
-
-	     item->id = eina_stringshare_ref(file->path);
-	     item->label = eina_stringshare_add(filename);
-	     evry->util_file_detail_set(file);
-
-	     E_FREE(filename);
-	     E_FREE(path);
-	     continue;
-
-	  next:
-	     d->files = eina_list_remove(d->files, file);
-	     E_FREE(file);
-	     E_FREE(filename);
-	     E_FREE(path);
 	  }
 
+	/* sort files by name for mimetypes scan */
 	if (d->files)
-	  {
-	     d->run_cnt++;
-	     d->files = eina_list_sort(d->files, -1, _cb_sort);
-	     p->thread = ecore_thread_run(_scan_mime_func,
-					  _scan_end_func,
-					  _scan_cancel_func, d);
-	     return;
-	  }
-	else
-	  {
-	     p->files = eina_list_sort(p->files, -1, _cb_sort);
-	  }
+	  d->files = eina_list_sort(d->files, -1, _cb_sort);
      }
-   else
+   else	/* _scan_mime_func finished */
      {
-	EINA_LIST_FREE(d->files, item)
+	EINA_LIST_FREE(d->files, file)
 	  {
-	     GET_FILE(file, item);
-
 	     if (!file->mime) break;
-
-	     file->mime = eina_stringshare_ref(file->mime);
-	     item->context = eina_stringshare_ref(file->mime);
-
-	     p->files = eina_list_append(p->files, file);
-	  }
-
-	if (d->files && d->run_cnt < 100)
-	  {
-	     d->run_cnt++;
-	     p->thread = ecore_thread_run(_scan_mime_func,
-					  _scan_end_func,
-					  _scan_cancel_func, d);
-	  }
-	else
-	  {
-	     EINA_LIST_FREE(d->files, item)
-	       EVRY_ITEM_FREE(item);
+	     _file_add(p, (Evry_Item*) file);
 	  }
      }
 
-   if (!d->files)
+   if (d->files) /* scan mimetypes */
      {
-	if (!(p->command == CMD_SHOW_HIDDEN) &&  _conf->cache_dirs)
-	  {
-	     EINA_LIST_REVERSE_FOREACH(p->files, l, item)
-	       {
-		  GET_FILE(file, item);
+	d->run_cnt++;
+	p->thread = ecore_thread_run(_scan_mime_func,
+				     _scan_end_func,
+				     _scan_cancel_func, d);
 
-		  if (!(item->hi) &&
-		      (hi = evry->history_item_add(item, NULL, NULL)))
-		    {
-		       hi->last_used = SIX_DAYS_AGO;
-		       hi->usage = MIN_USAGE * (double) cnt++;
-		       hi->data = eina_stringshare_ref(file->mime);
-		       item->hi = hi;
-		    }
-		  else if (item->hi && (item->hi->count == 1) &&
-			   (item->hi->last_used < SIX_DAYS_AGO))
-		    {
-		       item->hi->last_used = SIX_DAYS_AGO;
-		       item->hi->usage = MIN_USAGE * (double) cnt++;
-		    }
-	       }
-	  }
-
+	/* wait for first mime scan to finish */
+	if (d->run_cnt == 1) return;
+     }
+   else /* finished all file/mime scan */
+     {
 	free(d->directory);
 	E_FREE(d);
 	p->thread = NULL;
+
+	if (_conf->cache_dirs && !(p->command == CMD_SHOW_HIDDEN))
+	  _cache_dir_add(p->files);
      }
 
-   _append_files(p);
+   p->files = eina_list_sort(p->files, -1, _cb_sort);
+
+   _files_filter(p);
 
    EVRY_PLUGIN_UPDATE(p, EVRY_UPDATE_ADD);
 }
@@ -555,7 +495,7 @@ _dir_watcher(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const c
 	 return;
      }
 
-   _append_files(p);
+   _files_filter(p);
 
    EVRY_PLUGIN_UPDATE(p, EVRY_UPDATE_ADD);
 }
@@ -566,6 +506,7 @@ _read_directory(Plugin *p)
    Data *d = E_NEW(Data, 1);
    d->plugin = p;
    d->directory = strdup(p->directory);
+   d->run_cnt = 0;
 
    p->thread = ecore_thread_run(_scan_func, _scan_end_func, _scan_cancel_func, d);
 
@@ -640,23 +581,24 @@ _begin(Evry_Plugin *plugin, const Evry_Item *it)
 	EVRY_PLUGIN_INSTANCE(p, plugin);
 	p->directory = dir;
 	p->parent = EINA_FALSE;
+	p->min_query = 0;
 	_read_directory(p);
+
+	return EVRY_PLUGIN(p);
      }
    else
      {
 	/* provide subject */
 	EVRY_PLUGIN_INSTANCE(p, plugin);
 	p->parent = EINA_FALSE;
-
-	if (_conf->show_homedir)
-	  p->directory = eina_stringshare_add(e_user_homedir_get());
-
+	p->directory = eina_stringshare_add(e_user_homedir_get());
+	p->min_query = plugin->config->min_query;
 	_read_directory(p);
 
 	return EVRY_PLUGIN(p);
      }
 
-   return EVRY_PLUGIN(p);
+   return NULL;
 }
 
 static void
@@ -820,11 +762,8 @@ _fetch(Evry_Plugin *plugin, const char *input)
    if (input && !p->command)
      p->input = eina_stringshare_add(input);
 
-   if (!p->parent)
-     p->min_query = plugin->config->min_query;
-
    if ((p->command) || (!p->min_query) || (len >= p->min_query))
-     _append_files(p);
+     _files_filter(p);
 
    return !!(EVRY_PLUGIN(p)->items);
 }
@@ -855,7 +794,7 @@ _cb_sort_recent(const void *data1, const void *data2)
 }
 
 static int
-_recentf_append_files(Plugin *p)
+_recentf_files_filter(Plugin *p)
 {
    int match;
    int cnt = 0;
@@ -964,7 +903,7 @@ _recentf_end_func(void *data)
 	p->files = eina_list_append(p->files, it);
      }
 
-   _recentf_append_files(p);
+   _recentf_files_filter(p);
 
    EVRY_PLUGIN_UPDATE(p, EVRY_UPDATE_ADD);
 
@@ -1168,7 +1107,7 @@ _recentf_fetch(Evry_Plugin *plugin, const char *input)
 	       p->files = eina_list_append(p->files, file);
 	     E_FREE(d);
 
-	     _recentf_append_files(p);
+	     _recentf_files_filter(p);
 
 	     /* _recentf_end_func(d);
 	      * p->thread = NULL; */
@@ -1305,7 +1244,7 @@ _sort_by_date(Plugin *p)
      }
 
    p->files = eina_list_sort(p->files, -1, _cb_sort_date);
-   _append_files(p);
+   _files_filter(p);
 
    EVRY_PLUGIN_UPDATE(p, EVRY_UPDATE_ADD);
 
@@ -1320,7 +1259,7 @@ _sort_by_name(Plugin *p)
      it->usage = 0;
 
    p->files = eina_list_sort(p->files, -1, _cb_sort);
-   _append_files(p);
+   _files_filter(p);
 
    EVRY_PLUGIN_UPDATE(p, EVRY_UPDATE_ADD);
 
@@ -1552,9 +1491,9 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    of = e_widget_framelist_add(evas, _("General"), 0);
    e_widget_framelist_content_align_set(of, 0.0, 0.0);
 
-   ow = e_widget_check_add(evas, _("Show home directory"),
-			   &(cfdata->show_homedir));
-   e_widget_framelist_object_append(of, ow);
+   /* ow = e_widget_check_add(evas, _("Show home directory"),
+    * 			   &(cfdata->show_homedir));
+    * e_widget_framelist_object_append(of, ow); */
 
    ow = e_widget_check_add(evas, _("Show recent files"),
 			   &(cfdata->show_recent));

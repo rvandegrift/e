@@ -34,12 +34,12 @@ static Eet_Data_Descriptor *_e_ipc_str_4int_list_edd = NULL;
   Edd = eet_data_descriptor_stream_new(&Eddc);
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_ipc_codec_init(void)
 {
    Eet_Data_Descriptor_Class eddc;
 
-   if (!eet_eina_stream_data_descriptor_class_set(&eddc, "int", sizeof (E_Ipc_Int)))
+   if (!eet_eina_stream_data_descriptor_class_set(&eddc, sizeof (eddc), "int", sizeof (E_Ipc_Int)))
      return 0;
    _e_ipc_int_edd = eet_data_descriptor_stream_new(&eddc);
    E_CONFIG_VAL(_e_ipc_int_edd, E_Ipc_Int, val, INT);
@@ -138,7 +138,7 @@ e_ipc_codec_init(void)
    return 1;
 }
 
-EAPI void
+EINTERN void
 e_ipc_codec_shutdown(void)
 {
    E_CONFIG_DD_FREE(_e_ipc_int_edd);

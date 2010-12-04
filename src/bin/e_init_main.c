@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,13 +10,51 @@
 #include <Evas.h>
 #include <Edje.h>
 
+#ifdef EAPI
+#undef EAPI
+#endif
+#ifdef WIN32
+# ifdef BUILDING_DLL
+#  define EAPI __declspec(dllexport)
+# else
+#  define EAPI __declspec(dllimport)
+# endif
+#else
+# ifdef __GNUC__
+#  if __GNUC__ >= 4
+/* BROKEN in gcc 4 on amd64 */
+#if 0
+#   pragma GCC visibility push(hidden)
+#endif
+#   define EAPI __attribute__ ((visibility("default")))
+#  else
+#   define EAPI
+#  endif
+# else
+#  define EAPI
+# endif
+#endif
+
+#ifdef EINTERN
+#undef EINTERN
+#endif
+#ifdef __GNUC__
+# if __GNUC__ >= 4
+#  define EINTERN __attribute__ ((visibility("hidden")))
+# else
+#  define EINTERN
+# endif
+#else
+# define EINTERN
+#endif
+
 #define E_TYPEDEFS 1
 #include "e_xinerama.h"
 #undef E_TYPEDEFS
 #include "e_xinerama.h"
 
-EAPI int e_init_init(void);
-EAPI int e_init_shutdown(void);
+EINTERN int e_init_init(void);
+EINTERN int e_init_shutdown(void);
 EAPI void e_init_show(void);
 EAPI void e_init_hide(void);
 EAPI void e_init_title_set(const char *str);
@@ -46,7 +81,7 @@ static int initwins_num = 0;
 static Ecore_Ipc_Server *server = NULL;
 
 static Eina_Bool
-delayed_ok(void *data)
+delayed_ok(void *data __UNUSED__)
 {
    kill(getppid(), SIGUSR2);
    return ECORE_CALLBACK_CANCEL;
@@ -146,7 +181,7 @@ _e_ipc_init(void)
 }
 
 static Eina_Bool
-_e_ipc_cb_server_add(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_ipc_cb_server_add(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Ipc_Event_Server_Add *e;
 
@@ -162,7 +197,7 @@ _e_ipc_cb_server_add(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_ipc_cb_server_del(__UNUSED__ void *data, __UNUSED__ int type, __UNUSED__ void *event)
+_e_ipc_cb_server_del(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
 {
    /* quit now */
    ecore_main_loop_quit();
@@ -170,7 +205,7 @@ _e_ipc_cb_server_del(__UNUSED__ void *data, __UNUSED__ int type, __UNUSED__ void
 }
 
 static Eina_Bool
-_e_ipc_cb_server_data(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_ipc_cb_server_data(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Ipc_Event_Server_Data *e;
 
@@ -208,7 +243,7 @@ static Ecore_Event_Handler *_e_init_configure_handler = NULL;
 static Ecore_Timer *_e_init_timeout_timer = NULL;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_init_init(void)
 {
    Ecore_X_Window root, *roots;
@@ -301,7 +336,7 @@ e_init_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_init_shutdown(void)
 {
    if (_e_init_configure_handler) 
@@ -364,7 +399,7 @@ e_init_done(void)
 
 
 static void
-_e_init_cb_signal_disable(void *data, Evas_Object *obj, const char *emission, const char *source)
+_e_init_cb_signal_disable(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    if (!server) return;
    ecore_ipc_server_send(server,
@@ -376,7 +411,7 @@ _e_init_cb_signal_disable(void *data, Evas_Object *obj, const char *emission, co
 }
 
 static void
-_e_init_cb_signal_enable(void *data, Evas_Object *obj, const char *emission, const char *source)
+_e_init_cb_signal_enable(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    if (!server) return;
    ecore_ipc_server_send(server,
@@ -388,7 +423,7 @@ _e_init_cb_signal_enable(void *data, Evas_Object *obj, const char *emission, con
 }
 
 static void
-_e_init_cb_signal_done_ok(void *data, Evas_Object *obj, const char *emission, const char *source)
+_e_init_cb_signal_done_ok(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    e_init_hide();
    if (_e_init_timeout_timer)
@@ -400,7 +435,7 @@ _e_init_cb_signal_done_ok(void *data, Evas_Object *obj, const char *emission, co
 }
 
 static Eina_Bool
-_e_init_cb_window_configure(__UNUSED__ void *data, __UNUSED__ int ev_type, void *ev)
+_e_init_cb_window_configure(void *data __UNUSED__, int ev_type __UNUSED__, void *ev)
 {
    Ecore_X_Event_Window_Configure *e;
 
@@ -414,7 +449,7 @@ _e_init_cb_window_configure(__UNUSED__ void *data, __UNUSED__ int ev_type, void 
 }
 
 static Eina_Bool
-_e_init_cb_timeout(void *data)
+_e_init_cb_timeout(void *data __UNUSED__)
 {
    e_init_hide();
    _e_init_timeout_timer = NULL;

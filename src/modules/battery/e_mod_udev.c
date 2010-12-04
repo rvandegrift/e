@@ -1,8 +1,8 @@
 #include "e.h"
 #include "e_mod_main.h"
 
-static void _battery_udev_event_battery(const char *syspath, int event, void *data, Eeze_Udev_Watch *watch);
-static void _battery_udev_event_ac(const char *syspath, int event, void *data, Eeze_Udev_Watch *watch);
+static void _battery_udev_event_battery(const char *syspath, Eeze_Udev_Event event, void *data, Eeze_Udev_Watch *watch);
+static void _battery_udev_event_ac(const char *syspath, Eeze_Udev_Event event, void *data, Eeze_Udev_Watch *watch);
 static void _battery_udev_battery_add(const char *syspath);
 static void _battery_udev_ac_add(const char *syspath);
 static void _battery_udev_battery_del(const char *syspath);
@@ -15,28 +15,27 @@ extern Eina_List *device_batteries;
 extern Eina_List *device_ac_adapters;
 extern double init_time;
 
-void 
+int 
 _battery_udev_start(void)
 {
-   Eina_List *l, *devices;
+   Eina_List *devices;
    const char *dev;
    
    devices = eeze_udev_find_by_type(EEZE_UDEV_TYPE_POWER_BAT, NULL);
-   EINA_LIST_FOREACH(devices, l, dev)
+   EINA_LIST_FREE(devices, dev)
      _battery_udev_battery_add(dev);
-   eina_list_free(devices);
 
    devices = eeze_udev_find_by_type(EEZE_UDEV_TYPE_POWER_AC, NULL);
-   EINA_LIST_FOREACH(devices, l, dev)
+   EINA_LIST_FREE(devices, dev)
      _battery_udev_ac_add(dev);
-   eina_list_free(devices);
 
    if (!battery_config->batwatch)
      battery_config->batwatch = eeze_udev_watch_add(EEZE_UDEV_TYPE_POWER_BAT, EEZE_UDEV_EVENT_NONE, _battery_udev_event_battery, NULL);
-   if (!battery_config->batwatch)
+   if (!battery_config->acwatch)
      battery_config->acwatch = eeze_udev_watch_add(EEZE_UDEV_TYPE_POWER_AC, EEZE_UDEV_EVENT_NONE, _battery_udev_event_ac, NULL);
 
    init_time = ecore_time_get();
+   return 1;
 }
 
 void 
@@ -67,26 +66,26 @@ _battery_udev_stop(void)
 
 
 static void 
-_battery_udev_event_battery(const char *syspath, int event, void *data, Eeze_Udev_Watch *watch)
+_battery_udev_event_battery(const char *syspath, Eeze_Udev_Event event, void *data, Eeze_Udev_Watch *watch __UNUSED__)
 {
-   if (((event & EEZE_UDEV_EVENT_ADD) == EEZE_UDEV_EVENT_ADD) ||
-     ((event & EEZE_UDEV_EVENT_ONLINE) == EEZE_UDEV_EVENT_ONLINE))
+   if ((event & EEZE_UDEV_EVENT_ADD) ||
+       (event & EEZE_UDEV_EVENT_ONLINE))
      _battery_udev_battery_add(syspath);
-   else if (((event & EEZE_UDEV_EVENT_REMOVE) == EEZE_UDEV_EVENT_REMOVE) ||
-     ((event & EEZE_UDEV_EVENT_OFFLINE) == EEZE_UDEV_EVENT_OFFLINE))
+   else if ((event & EEZE_UDEV_EVENT_REMOVE) ||
+            (event & EEZE_UDEV_EVENT_OFFLINE))
      _battery_udev_battery_del(syspath);
    else /* must be change */
      _battery_udev_battery_update(syspath, data);
 }
 
 static void 
-_battery_udev_event_ac(const char *syspath, int event, void *data, Eeze_Udev_Watch *watch)
+_battery_udev_event_ac(const char *syspath, Eeze_Udev_Event event, void *data, Eeze_Udev_Watch *watch __UNUSED__)
 {
-   if (((event & EEZE_UDEV_EVENT_ADD) == EEZE_UDEV_EVENT_ADD) ||
-     ((event & EEZE_UDEV_EVENT_ONLINE) == EEZE_UDEV_EVENT_ONLINE))
+   if ((event & EEZE_UDEV_EVENT_ADD) ||
+       (event & EEZE_UDEV_EVENT_ONLINE))
      _battery_udev_ac_add(syspath);
-   else if (((event & EEZE_UDEV_EVENT_REMOVE) == EEZE_UDEV_EVENT_REMOVE) ||
-     ((event & EEZE_UDEV_EVENT_OFFLINE) == EEZE_UDEV_EVENT_OFFLINE))
+   else if ((event & EEZE_UDEV_EVENT_REMOVE) ||
+            (event & EEZE_UDEV_EVENT_OFFLINE))
      _battery_udev_ac_del(syspath);
    else /* must be change */
      _battery_udev_ac_update(syspath, data);
@@ -225,8 +224,8 @@ _battery_udev_battery_update(const char *syspath, Battery *bat)
           GET_NUM(bat, design_charge, POWER_SUPPLY_CHARGE_FULL_DESIGN);
      }
    GET_NUM(bat, last_full_charge, POWER_SUPPLY_ENERGY_FULL);
-     if (!bat->last_full_charge)
-       GET_NUM(bat, last_full_charge, POWER_SUPPLY_CHARGE_FULL);
+   if (!bat->last_full_charge)
+     GET_NUM(bat, last_full_charge, POWER_SUPPLY_CHARGE_FULL);
    test = eeze_udev_syspath_get_property(bat->udi, "POWER_SUPPLY_ENERGY_NOW");
    if (!test)
      {

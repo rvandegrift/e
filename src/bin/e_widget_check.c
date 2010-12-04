@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 typedef struct _E_Widget_Data E_Widget_Data;
@@ -222,13 +219,13 @@ _e_wid_disable_hook(Evas_Object *obj)
 }
      
 static void
-_e_wid_signal_cb1(void *data, Evas_Object *obj, const char *emission, const char *source)
+_e_wid_signal_cb1(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    _e_wid_do(data);
 }
 
 static void
-_e_wid_focus_steal(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_wid_focus_steal(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    e_widget_focus_steal(data);
 }

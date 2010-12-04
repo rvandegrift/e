@@ -1,7 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
-
 #include "config.h"
 
 #ifdef HAVE_ALLOCA_H
@@ -145,10 +141,10 @@ _e_ipc_init(void)
 }
 
 static Eina_Bool
-_e_ipc_cb_server_add(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_ipc_cb_server_add(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Ipc_Event_Server_Add *e;
-   
+
    e = event;
    ecore_ipc_server_send(e->server, 
 			 5/*E_IPC_DOMAIN_THUMB*/, 
@@ -158,7 +154,7 @@ _e_ipc_cb_server_add(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_ipc_cb_server_del(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_ipc_cb_server_del(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
 {
    /* quit now */
    ecore_main_loop_quit();
@@ -166,7 +162,7 @@ _e_ipc_cb_server_del(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_ipc_cb_server_data(__UNUSED__ void *data, __UNUSED__ int type, void *event)
+_e_ipc_cb_server_data(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Ipc_Event_Server_Data *e;
    E_Thumb *eth;
@@ -227,7 +223,7 @@ _e_ipc_cb_server_data(__UNUSED__ void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_cb_timer(void *data)
+_e_cb_timer(void *data __UNUSED__)
 {
    E_Thumb *eth;
    /*
@@ -310,8 +306,7 @@ _e_thumb_generate(E_Thumb *eth)
 
 	if ((ext) && (eth->key) &&
 	    ((!strcasecmp(ext, ".edj")) ||
-	     (!strcasecmp(ext, ".eap")))
-	    )
+	     (!strcasecmp(ext, ".eap"))))
 	  {
 	     ww = eth->w;
 	     hh = eth->h;

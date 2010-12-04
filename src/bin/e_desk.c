@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* E_Desk is a child object of E_Zone. A desk is essentially a background
@@ -27,7 +24,7 @@ EAPI int E_EVENT_DESK_AFTER_SHOW = 0;
 EAPI int E_EVENT_DESK_DESKSHOW = 0;
 EAPI int E_EVENT_DESK_NAME_CHANGE = 0;
 
-EAPI int
+EINTERN int
 e_desk_init(void)
 {
    E_EVENT_DESK_SHOW = ecore_event_type_new();
@@ -38,7 +35,7 @@ e_desk_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_desk_shutdown(void)
 {
    return 1;
@@ -521,7 +518,7 @@ _e_desk_free(E_Desk *desk)
 }
 
 static void
-_e_desk_event_desk_show_free(__UNUSED__ void *data, void *event)
+_e_desk_event_desk_show_free(void *data __UNUSED__, void *event)
 {
    E_Event_Desk_Show *ev;
 
@@ -531,7 +528,7 @@ _e_desk_event_desk_show_free(__UNUSED__ void *data, void *event)
 }
 
 static void
-_e_desk_event_desk_before_show_free(__UNUSED__ void *data, void *event)
+_e_desk_event_desk_before_show_free(void *data __UNUSED__, void *event)
 {
    E_Event_Desk_Before_Show *ev;
 
@@ -541,7 +538,7 @@ _e_desk_event_desk_before_show_free(__UNUSED__ void *data, void *event)
 }
 
 static void
-_e_desk_event_desk_after_show_free(__UNUSED__ void *data, void *event)
+_e_desk_event_desk_after_show_free(void *data __UNUSED__, void *event)
 {
    E_Event_Desk_After_Show *ev;
 
@@ -551,7 +548,7 @@ _e_desk_event_desk_after_show_free(__UNUSED__ void *data, void *event)
 }
 
 static void
-_e_desk_event_desk_deskshow_free(__UNUSED__ void *data, void *event)
+_e_desk_event_desk_deskshow_free(void *data __UNUSED__, void *event)
 {
    E_Event_Desk_Show *ev;
 
@@ -561,7 +558,7 @@ _e_desk_event_desk_deskshow_free(__UNUSED__ void *data, void *event)
 }
 
 static void
-_e_desk_event_desk_name_change_free(__UNUSED__ void *data, void *event)
+_e_desk_event_desk_name_change_free(void *data __UNUSED__, void *event)
 {
    E_Event_Desk_Name_Change *ev;
 

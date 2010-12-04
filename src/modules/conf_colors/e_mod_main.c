@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_mod_main.h"
 
@@ -18,7 +15,7 @@ EAPI void *
 e_modapi_init(E_Module *m __UNUSED__)
 {
    e_configure_registry_category_add("appearance", 10, _("Look"), NULL,
-                                     "preferences-appearance");
+                                     "preferences-look");
    e_configure_registry_item_add("appearance/colors", 30, _("Colors"), NULL,
                                  "preferences-desktop-color",
                                  e_int_config_color_classes);

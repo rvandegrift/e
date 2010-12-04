@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 EAPI Ecore_X_Atom ATM__QTOPIA_SOFT_MENU = 0;
@@ -10,7 +7,7 @@ EAPI Ecore_X_Atom ATM_ENLIGHTENMENT_COMMS = 0;
 EAPI Ecore_X_Atom ATM_ENLIGHTENMENT_VERSION = 0;
 EAPI Ecore_X_Atom ATM_ENLIGHTENMENT_SCALE = 0;
 
-EAPI void
+EINTERN void
 e_hints_init(void)
 {
    Ecore_X_Window *roots = NULL;
@@ -177,7 +174,7 @@ e_hints_init(void)
  */
 /*	     ecore_x_netwm_wm_identify(roots[i], win, "KWin");*/
 	     ecore_x_netwm_wm_identify(roots[i], win, "Enlightenment");
-/* this makes openoffice.org read gtk settings so it doesnt look like shit */
+/* this makes openoffice.org read gtk settings so it doesn't look like shit */
 	     e_hints_openoffice_gnome_fake(roots[i]);
 
 	     ecore_x_netwm_supported_set(roots[i], supported, supported_num);
@@ -215,7 +212,7 @@ e_hints_e16_comms_pretend(E_Manager *man)
    ecore_x_window_prop_property_set(man->root, ATM_ENLIGHTENMENT_COMMS, ECORE_X_ATOM_STRING, 8, buf, 14);
 }
 
-EAPI void
+EINTERN void
 e_hints_manager_init(E_Manager *man)
 {
    /* Set desktop count, desktop names and workarea */
@@ -410,7 +407,7 @@ e_hints_active_window_set(E_Manager *man, E_Border *bd)
      ecore_x_netwm_client_active_set(man->root, 0);
 }
 
-EAPI void
+EINTERN void
 e_hints_window_init(E_Border *bd)
 {
    E_Remember *rem = NULL;
@@ -904,16 +901,24 @@ e_hints_window_state_update(E_Border *bd, Ecore_X_Window_State state,
 	 switch (action)
 	   {
 	    case ECORE_X_WINDOW_STATE_ACTION_REMOVE:
-	       e_border_layer_set(bd, 100);
-	       break;
+              e_border_layer_set(bd, 100);
+              e_hints_window_stacking_set(bd, E_STACKING_NONE);
+              break;
 	    case ECORE_X_WINDOW_STATE_ACTION_ADD:
-	       e_border_layer_set(bd, 150);
+              e_hints_window_stacking_set(bd, E_STACKING_ABOVE);
+              e_border_layer_set(bd, 150);
 	       break;
 	    case ECORE_X_WINDOW_STATE_ACTION_TOGGLE:
-	       if (bd->layer == 150)
-		 e_border_layer_set(bd, 100);
-	       else
-		 e_border_layer_set(bd, 150);
+              if (bd->layer == 150)
+                {
+                   e_hints_window_stacking_set(bd, E_STACKING_NONE);
+                   e_border_layer_set(bd, 100);
+                }
+              else
+                {
+                   e_hints_window_stacking_set(bd, E_STACKING_ABOVE);
+                   e_border_layer_set(bd, 150);
+                }
 	       break;
 	   }
 	 break;
@@ -924,17 +929,25 @@ e_hints_window_state_update(E_Border *bd, Ecore_X_Window_State state,
 	 switch (action)
 	   {
 	    case ECORE_X_WINDOW_STATE_ACTION_REMOVE:
-	       e_border_layer_set(bd, 100);
-	       break;
+              e_hints_window_stacking_set(bd, E_STACKING_NONE);
+              e_border_layer_set(bd, 100);
+              break;
 	    case ECORE_X_WINDOW_STATE_ACTION_ADD:
-	       e_border_layer_set(bd, 50);
-	       break;
+              e_hints_window_stacking_set(bd, E_STACKING_BELOW);
+              e_border_layer_set(bd, 50);
+              break;
 	    case ECORE_X_WINDOW_STATE_ACTION_TOGGLE:
-	       if (bd->layer == 50)
-		 e_border_layer_set(bd, 100);
-	       else
-		 e_border_layer_set(bd, 50);
-	       break;
+              if (bd->layer == 50)
+                {
+                   e_hints_window_stacking_set(bd, E_STACKING_NONE);
+                   e_border_layer_set(bd, 100);
+                }
+              else
+                {
+                   e_hints_window_stacking_set(bd, E_STACKING_BELOW);
+                   e_border_layer_set(bd, 50);
+                }
+              break;
 	   }
 	 break;
       case ECORE_X_WINDOW_STATE_DEMANDS_ATTENTION:
@@ -1019,7 +1032,7 @@ e_hints_window_state_get(E_Border *bd)
 }
 
 EAPI void
-e_hints_allowed_action_update(E_Border *bd, Ecore_X_Action action)
+e_hints_allowed_action_update(E_Border *bd __UNUSED__, Ecore_X_Action action)
 {
    switch (action)
      {
@@ -1355,7 +1368,7 @@ e_hints_window_e_state_get(E_Border *bd)
 }
 
 EAPI void
-e_hints_window_e_state_set(E_Border *bd)
+e_hints_window_e_state_set(E_Border *bd __UNUSED__)
 {
    /* TODO */
 }

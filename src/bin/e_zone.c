@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* E_Zone is a child object of E_Container. There is one zone per screen
@@ -41,7 +38,7 @@ EAPI int E_EVENT_ZONE_EDGE_MOVE = 0;
 
 #define E_ZONE_CORNER_RATIO 0.025;
 
-EAPI int
+EINTERN int
 e_zone_init(void)
 {
    E_EVENT_ZONE_DESK_COUNT_SET = ecore_event_type_new();
@@ -55,19 +52,78 @@ e_zone_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_zone_shutdown(void)
 {
    return 1;
+}
+
+static void
+_e_zone_black_new(E_Zone *zone)
+{
+   Evas_Object *o;
+   char name[256];
+  
+   if (zone->black_ecore_evas) return;
+   zone->black_ecore_evas = 
+     e_canvas_new(e_config->evas_engine_zone, zone->container->win,
+                  zone->x, zone->y, 1, 1, 1, 1, &(zone->black_win));
+   e_canvas_add(zone->black_ecore_evas);
+   ecore_evas_layer_set(zone->black_ecore_evas, 6);
+   zone->black_evas = ecore_evas_get(zone->black_ecore_evas);
+
+   o = evas_object_rectangle_add(zone->black_evas);
+   evas_object_move(o, 0, 0);
+   evas_object_resize(o, zone->w, zone->h);
+   evas_object_color_set(o, 0, 0, 0, 255);
+   evas_object_show(o);
+
+   ecore_evas_name_class_set(zone->black_ecore_evas, "E", "Black_Window");
+   snprintf(name, sizeof(name), "Enlightenment Black Zone (%d)", zone->num);
+   ecore_evas_title_set(zone->black_ecore_evas, name);
+}
+
+static void
+_e_zone_black_free(E_Zone *zone)
+{
+   if (!zone->black_ecore_evas) return;
+   e_canvas_del(zone->black_ecore_evas);
+   ecore_evas_free(zone->black_ecore_evas);
+   zone->black_ecore_evas = NULL;
+   zone->black_win = 0;
+}
+
+static void
+_e_zone_black_get(E_Zone *zone)
+{
+   zone->black_need++;
+   if (!zone->black_ecore_evas) return;
+   if (zone->black_need == 1)
+     {
+       ecore_evas_move(zone->black_ecore_evas, zone->x, zone->y);
+       ecore_evas_resize(zone->black_ecore_evas, zone->w, zone->h);
+     }
+}
+
+static void
+_e_zone_black_unget(E_Zone *zone)
+{
+   zone->black_need--;
+   if (!zone->black_ecore_evas) return;
+   if (zone->black_need == 0)
+     {
+       ecore_evas_move(zone->black_ecore_evas, zone->x, zone->y);
+       ecore_evas_resize(zone->black_ecore_evas, 1, 1);
+     }
 }
 
 EAPI E_Zone *
 e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h)
 {
    E_Zone *zone;
-   char name[40];
    Evas_Object *o;
    E_Event_Zone_Add *ev;
+   char name[40];
 
    zone = E_OBJECT_ALLOC(E_Zone, E_ZONE_TYPE, _e_zone_free);
    if (!zone) return NULL;
@@ -131,23 +187,7 @@ e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h)
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_UP, _e_zone_cb_bg_mouse_up, zone);
 
    /* TODO: config the ecore_evas type. */
-   zone->black_ecore_evas = 
-     e_canvas_new(e_config->evas_engine_zone, zone->container->win,
-                  zone->x, zone->y, zone->w, zone->h, 1, 1, &(zone->black_win));
-   e_canvas_add(zone->black_ecore_evas);
-   ecore_evas_layer_set(zone->black_ecore_evas, 6);
-   zone->black_evas = ecore_evas_get(zone->black_ecore_evas);
-
-   o = evas_object_rectangle_add(zone->black_evas);
-   evas_object_move(o, 0, 0);
-   evas_object_resize(o, zone->w, zone->h);
-   evas_object_color_set(o, 0, 0, 0, 255);
-   evas_object_show(o);
-
-   ecore_evas_name_class_set(zone->black_ecore_evas, "E", "Black_Window");
-   snprintf(name, sizeof(name), "Enlightenment Black Zone (%d)", zone->num);
-   ecore_evas_title_set(zone->black_ecore_evas, name);
-
+  
    zone->desk_x_count = 0;
    zone->desk_y_count = 0;
    zone->desk_x_current = 0;
@@ -156,6 +196,8 @@ e_zone_new(E_Container *con, int num, int id, int x, int y, int w, int h)
 			 e_config->zone_desks_y_count);
 
    e_object_del_attach_func_set(E_OBJECT(zone), _e_zone_object_del_attach);
+  
+   _e_zone_black_new(zone);
 
    ev = E_NEW(E_Event_Zone_Add, 1);
    ev->zone = zone;
@@ -199,6 +241,11 @@ e_zone_move(E_Zone *zone, int x, int y)
 
    _e_zone_edge_move_resize(zone);
    e_zone_bg_reconfigure(zone);
+   if (zone->black_need > 0)
+     {
+       ecore_evas_move(zone->black_ecore_evas, zone->x, zone->y);
+       ecore_evas_resize(zone->black_ecore_evas, zone->w, zone->h);
+     }
 }
 
 EAPI void
@@ -226,6 +273,11 @@ e_zone_resize(E_Zone *zone, int w, int h)
 
    _e_zone_edge_move_resize(zone);
    e_zone_bg_reconfigure(zone);
+   if (zone->black_need > 0)
+     {
+       ecore_evas_move(zone->black_ecore_evas, zone->x, zone->y);
+       ecore_evas_resize(zone->black_ecore_evas, zone->w, zone->h);
+     }
 }
 
 EAPI void
@@ -264,6 +316,11 @@ e_zone_move_resize(E_Zone *zone, int x, int y, int w, int h)
    _e_zone_edge_move_resize(zone);
 
    e_zone_bg_reconfigure(zone);
+   if (zone->black_need > 0)
+     {
+       ecore_evas_move(zone->black_ecore_evas, zone->x, zone->y);
+       ecore_evas_resize(zone->black_ecore_evas, zone->w, zone->h);
+     }
 } 
 
 EAPI void
@@ -274,6 +331,7 @@ e_zone_fullscreen_set(E_Zone *zone, int on)
 
    if ((!zone->fullscreen) && (on))
      {
+        _e_zone_black_get(zone);
 	ecore_evas_show(zone->black_ecore_evas);
 	e_container_window_raise(zone->container, zone->black_win, 150);
 	zone->fullscreen = 1;
@@ -282,6 +340,7 @@ e_zone_fullscreen_set(E_Zone *zone, int on)
      {
 	ecore_evas_hide(zone->black_ecore_evas);
 	zone->fullscreen = 0;
+        _e_zone_black_unget(zone);
      }
 }
 
@@ -922,19 +981,41 @@ _e_zone_useful_geometry_calc(E_Zone *zone)
    y1 = zone->h;
    EINA_LIST_FOREACH(e_shelf_list(), l, shelf)
      {
+        E_Config_Shelf_Desk *sd;
 	E_Gadcon_Orient orient;
+        Eina_List *ll;
+        int skip_shelf = 0;
 
 	if (shelf->zone != zone)
 	  continue;
 
 	if (shelf->cfg)
 	  {
+	     if (shelf->cfg->overlap)
+	       continue;
+	    
 	     if (shelf->cfg->autohide)
 	       continue;
 	     orient = shelf->cfg->orient;
 	  }
 	else
 	  orient = shelf->gadcon->orient;
+
+        if (shelf->cfg->desk_show_mode)
+          {
+             skip_shelf = 1;
+             EINA_LIST_FOREACH(shelf->cfg->desk_list, ll, sd)
+               {
+                  if (!sd) continue;
+                  if ((sd->x == zone->desk_x_current) && (sd->y == zone->desk_y_current))
+                    {
+                       skip_shelf = 0;
+                       break;
+                    }
+               }
+             if (skip_shelf)
+               continue;
+          }
 
 	switch (orient)
 	  {
@@ -965,8 +1046,8 @@ _e_zone_useful_geometry_calc(E_Zone *zone)
 	   case E_GADCON_ORIENT_RIGHT:
 	   case E_GADCON_ORIENT_CORNER_RT:
 	   case E_GADCON_ORIENT_CORNER_RB:
-	      if (y1 > zone->w - shelf->w)
-		y1 = zone->w - shelf->w;
+	      if (x1 > zone->w - shelf->w)
+		x1 = zone->w - shelf->w;
 	      break;
 	  }
      }
@@ -987,8 +1068,22 @@ e_zone_useful_geometry_get(E_Zone *zone, int *x, int *y, int *w, int *h)
 {
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
+   Eina_List *l;
+   E_Shelf *shelf;
 
-   if (zone->useful_geometry.dirty)
+   if (!zone->useful_geometry.dirty)
+     {
+        EINA_LIST_FOREACH(e_shelf_list(), l, shelf)
+          {
+             if (!shelf->cfg) continue;
+             if (shelf->cfg->desk_show_mode)
+               {
+                  _e_zone_useful_geometry_calc(zone);
+                  break;
+               }
+          }
+     }
+   else
      _e_zone_useful_geometry_calc(zone);
 
    if (x) *x = zone->useful_geometry.x;
@@ -1088,11 +1183,14 @@ _e_zone_free(E_Zone *zone)
 	  e_object_del(E_OBJECT(zone->desks[x + (y * zone->desk_x_count)]));
      }
    free(zone->desks);
+  
+   _e_zone_black_free(zone);
+  
    free(zone);
 }
 
 static void
-_e_zone_cb_bg_mouse_down(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *obj, __UNUSED__ void *event_info)
+_e_zone_cb_bg_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Zone *zone;
 
@@ -1122,7 +1220,7 @@ _e_zone_cb_bg_mouse_down(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Obje
 }
 
 static void
-_e_zone_cb_bg_mouse_up(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object *obj, __UNUSED__ void *event_info)
+_e_zone_cb_bg_mouse_up(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Zone *zone;
 
@@ -1156,7 +1254,7 @@ _e_zone_cb_bg_mouse_up(void *data, __UNUSED__ Evas *evas, __UNUSED__ Evas_Object
 }
 
 static void
-_e_zone_event_zone_desk_count_set_free(__UNUSED__ void *data, void *ev)
+_e_zone_event_zone_desk_count_set_free(void *data __UNUSED__, void *ev)
 {
    E_Event_Zone_Desk_Count_Set *e;
 
@@ -1166,7 +1264,7 @@ _e_zone_event_zone_desk_count_set_free(__UNUSED__ void *data, void *ev)
 }
 
 static Eina_Bool
-_e_zone_cb_mouse_in(void *data, __UNUSED__ int type, void *event)
+_e_zone_cb_mouse_in(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Mouse_In *ev;
    E_Event_Zone_Edge *zev;
@@ -1192,7 +1290,7 @@ _e_zone_cb_mouse_in(void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_zone_cb_mouse_out(void *data, __UNUSED__ int type, void *event)
+_e_zone_cb_mouse_out(void *data, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Mouse_Out *ev;
    E_Event_Zone_Edge *zev;
@@ -1217,7 +1315,7 @@ _e_zone_cb_mouse_out(void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_zone_cb_mouse_down(void *data, __UNUSED__ int type, void *event)
+_e_zone_cb_mouse_down(void *data, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    E_Event_Zone_Edge *zev;
@@ -1242,7 +1340,7 @@ _e_zone_cb_mouse_down(void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_zone_cb_mouse_up(void *data, __UNUSED__ int type, void *event)
+_e_zone_cb_mouse_up(void *data, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    E_Event_Zone_Edge *zev;
@@ -1267,7 +1365,7 @@ _e_zone_cb_mouse_up(void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_zone_cb_mouse_move(void *data, __UNUSED__ int type, void *event)
+_e_zone_cb_mouse_move(void *data, int type __UNUSED__, void *event)
 {
    Ecore_Event_Mouse_Move *ev;
    E_Event_Zone_Edge *zev;
@@ -1291,7 +1389,7 @@ _e_zone_cb_mouse_move(void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_e_zone_cb_desk_after_show(void *data, __UNUSED__ int type, void *event)
+_e_zone_cb_desk_after_show(void *data, int type __UNUSED__, void *event)
 {
    E_Event_Desk_Show *ev;
    E_Zone *zone;
@@ -1330,7 +1428,7 @@ _e_zone_cb_edge_timer(void *data)
 }
 
 static void
-_e_zone_event_move_resize_free(__UNUSED__ void *data, void *ev)
+_e_zone_event_move_resize_free(void *data __UNUSED__, void *ev)
 {
    E_Event_Zone_Move_Resize *e;
 
@@ -1340,7 +1438,7 @@ _e_zone_event_move_resize_free(__UNUSED__ void *data, void *ev)
 }
 
 static void
-_e_zone_event_add_free(__UNUSED__ void *data, void *ev)
+_e_zone_event_add_free(void *data __UNUSED__, void *ev)
 {
    E_Event_Zone_Add *e;
 
@@ -1350,7 +1448,7 @@ _e_zone_event_add_free(__UNUSED__ void *data, void *ev)
 }
 
 static void
-_e_zone_event_del_free(__UNUSED__ void *data, void *ev)
+_e_zone_event_del_free(void *data __UNUSED__, void *ev)
 {
    E_Event_Zone_Del *e;
 

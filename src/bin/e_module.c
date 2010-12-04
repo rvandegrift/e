@@ -1,12 +1,9 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 /* TODO List:
  * 
  * * add module types/classes
- * * add list of exclusions that a module cant work withApi
+ * * add list of exclusions that a module can't work withApi
  * 
  */
 
@@ -27,7 +24,7 @@ EAPI int E_EVENT_MODULE_UPDATE = 0;
 EAPI int E_EVENT_MODULE_INIT_END = 0;
 
 /* externally accessible functions */
-EAPI int
+EINTERN int
 e_module_init(void)
 {
    E_EVENT_MODULE_UPDATE = ecore_event_type_new();
@@ -35,7 +32,7 @@ e_module_init(void)
    return 1;
 }
 
-EAPI int
+EINTERN int
 e_module_shutdown(void)
 {
    E_Module *m;
@@ -375,7 +372,7 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
    E_Dialog *dia;
    E_Border *bd;
    char buf[PATH_MAX];
-   char *icon = NULL;
+   const char *icon = NULL;
 
    dia = e_dialog_new(e_container_current_get(e_manager_current_get()), 
 		      "E", "_module_dialog");
@@ -396,9 +393,10 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
 	       {
 		  snprintf(buf, sizeof(buf), "%s/%s.edj",
 			   e_module_dir_get(m), desktop->icon);
-		  icon = strdup(buf);
+                  dia->icon_object = e_util_icon_add(buf, e_win_evas_get(dia->win));
 	       }
-	     dia->icon_object = e_util_icon_add(icon, e_win_evas_get(dia->win));
+             else
+               dia->icon_object = e_util_icon_add(icon, e_win_evas_get(dia->win));
 	     edje_extern_object_min_size_set(dia->icon_object, 64, 64);
 	     edje_object_part_swallow(dia->bg_object, "e.swallow.icon", dia->icon_object);
 	     evas_object_show(dia->icon_object);
@@ -417,7 +415,6 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
    bd = dia->win->border;
    if (!bd) return;
    bd->internal_icon = eina_stringshare_add(icon);
-   free(icon);
 }
 
 EAPI void
@@ -532,7 +529,7 @@ _e_module_cb_dialog_disable(void *data, E_Dialog *dia)
 }
 
 static Eina_Bool
-_e_module_cb_idler(__UNUSED__ void *data)
+_e_module_cb_idler(void *data __UNUSED__)
 {
    if (_e_modules_delayed)
      {
@@ -571,7 +568,7 @@ _e_module_sort_priority(const void *d1, const void *d2)
 
 
 static void 
-_e_module_event_update_free(__UNUSED__ void *data, void *event) 
+_e_module_event_update_free(void *data __UNUSED__, void *event) 
 {
    E_Event_Module_Update *ev;
 

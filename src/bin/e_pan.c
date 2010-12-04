@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 
 #define SMART_NAME "e_pan"
@@ -134,7 +131,7 @@ e_pan_child_size_get(Evas_Object *obj, Evas_Coord *w, Evas_Coord *h)
 
 /* local subsystem functions */
 static void
-_e_smart_child_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_smart_child_del_hook(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Smart_Data *sd;
 
@@ -144,7 +141,7 @@ _e_smart_child_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
 }
 
 static void
-_e_smart_child_resize_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_e_smart_child_resize_hook(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Smart_Data *sd;
    Evas_Coord w, h;

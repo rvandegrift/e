@@ -1,6 +1,3 @@
-/*
- * vim:ts=8:sw=3:sts=8:noexpandtab:cino=>5n-3f0^-2{2
- */
 #include "e.h"
 #include "e_int_config_mime_edit.h"
 
@@ -128,7 +125,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
+_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata) 
 {
    Config_Type *t;
    Config_Mime *m;
@@ -546,7 +543,7 @@ _find_glob(Config_Mime *mime, char *glob)
 }
 
 static void 
-_cb_config(void *data, void *data2) 
+_cb_config(void *data, void *data2 __UNUSED__) 
 {
    Eina_List *l;
    E_Config_Dialog_Data *cfdata;

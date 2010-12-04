@@ -1,7 +1,6 @@
 #include "e.h"
 #include "e_mod_main.h"
 #include "e_mod_config.h"
-#include "config.h"
 
 struct _E_Config_Dialog_Data
 {
@@ -97,7 +96,7 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata) 
+_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata) 
 {
    Evas_Object *o, *ob, *of, *ot;
    E_Radio_Group *rg;
