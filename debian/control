@@ -45,7 +45,11 @@ Description: Enlightenment Window Manager Run Time Data Files
 Package: e17-dev
 Architecture: any
 Section: devel
-Depends: ${misc:Depends}, e17 (= ${binary:Version}), efl-dev
+Depends: ${misc:Depends},
+ e17 (= ${binary:Version}), libeet-dev (>= 1.4.0~),
+ libedje-dev (>= 1.0.0~), libefreet-dev (>= 1.0.0~),
+ libecore-dev (>= 1.0.0~), libedbus-dev (>= 1.0.0~),
+ libevas-dev (>= 1.0.0~), libeina-dev (>= 1.0.0~)
 Description: Enlightenment headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
@@ -54,22 +58,6 @@ Description: Enlightenment headers, static libraries and documentation
  .
  This package contains headers, static libraries and documentation for
  enlightenment.
-
-Package: efl-dev
-Architecture: any
-Section: devel
-Depends: ${misc:Depends}, libeet-dev (>= 1.4.0~),
- libedje-dev (>= 1.0.0~), libefreet-dev (>= 1.0.0~),
- libecore-dev (>= 1.0.0~), libedbus-dev (>= 1.0.0~),
- libevas-dev (>= 1.0.0~), libeina-dev (>= 1.0.0~)
-Description: EFL headers, static libraries and documentation
- Enlightenment is an advanced window manager for X11. Unique
- features include: a fully animated background, nice drop shadows
- around windows, backed by an extremely clean and optimized
- foundation of APIs.
- .
- This package contains headers, static libraries and documentation for
- the enlightenment foundation librairies.
 
 Package: e17-dbg
 Architecture: any
