@@ -1,0 +1,89 @@
+From cc6e256265cf3ab2410a2c7e12c2bee39ee6d2f4 Mon Sep 17 00:00:00 2001
+From: Albin Tonnerre <lutin@debian.org>
+Date: Sat, 9 Oct 2010 16:16:37 +0200
+Subject: [PATCH] upgrade notice
+
+---
+ src/bin/e_config.c |    8 ++++++++
+ src/bin/e_config.h |    3 +++
+ src/bin/e_main.c   |   21 +++++++++++++++++++++
+ 3 files changed, 32 insertions(+), 0 deletions(-)
+
+diff --git a/src/bin/e_config.c b/src/bin/e_config.c
+index 98180d4..6023bf4 100644
+--- a/src/bin/e_config.c
++++ b/src/bin/e_config.c
+@@ -876,6 +876,7 @@ e_config_init(void)
+    E_CONFIG_VAL(D, T, exec.expire_timeout, DOUBLE);
+    E_CONFIG_VAL(D, T, exec.show_run_dialog, UCHAR);
+    E_CONFIG_VAL(D, T, exec.show_exit_dialog, UCHAR);
++   E_CONFIG_VAL(D, T, did_upgrade_notice, INT);
+ 
+    e_config_load();
+ 
+@@ -2189,3 +2190,10 @@ _eet_union_type_set(const char *type, void *data, Eina_Bool unknow)
+ 
+    return EINA_FALSE;
+ }
++
++void disable_upgrade_notice(void *data, E_Dialog *dia)
++{
++	e_config->did_upgrade_notice = 1;
++	e_object_del(E_OBJECT(dia));
++	e_config_save_queue();
++}
+diff --git a/src/bin/e_config.h b/src/bin/e_config.h
+index d985c93..4fcd02c 100644
+--- a/src/bin/e_config.h
++++ b/src/bin/e_config.h
+@@ -337,6 +337,7 @@ struct _E_Config
+       Eina_Bool show_run_dialog;
+       Eina_Bool show_exit_dialog;
+    } exec;
++   int did_upgrade_notice;
+ };
+ 
+ struct _E_Config_Syscon_Action
+@@ -540,5 +541,7 @@ extern EAPI E_Config *e_config;
+ extern EAPI int E_EVENT_CONFIG_ICON_THEME;
+ extern EAPI int E_EVENT_CONFIG_MODE_CHANGED;
+ 
++void disable_upgrade_notice(void *data, E_Dialog *dia);
++
+ #endif
+ #endif
+diff --git a/src/bin/e_main.c b/src/bin/e_main.c
+index 96cedd8..3c6e334 100644
+--- a/src/bin/e_main.c
++++ b/src/bin/e_main.c
+@@ -1063,6 +1063,27 @@ main(int argc, char **argv)
+ 
+    /* ecore_x_ungrab(); */
+ 
++
++   /* upgrade warning */
++	e_init_status_set(_("Upgrade notice"));
++	TS("upgrade notice");
++	if (!e_config->did_upgrade_notice) {
++		E_Dialog *dia;
++		char msg[PATH_MAX] = "This version of e17 uses a new format to store themes and backgrounds.<br>If your usual themes or background no longer work correctly, you need to update them.<br>To do this, please run the 'edje_convert' command (from the 'libedje-bin' package) on all themes and backgrounds that need converting.<br>The text of this warning and further explanations may be found in /usr/share/doc/e17/README.Debian";
++
++		dia = e_dialog_new(e_container_current_get(e_manager_current_get()), 
++		                   "E", "_upgrade_dialog");
++		if (dia) {
++			e_dialog_title_set(dia, "Upgrade notice");
++			e_dialog_icon_set(dia, "enlightenment", 64);
++			e_dialog_text_set(dia, msg);
++			e_dialog_button_add(dia, _("Don't show this notice again"), NULL, disable_upgrade_notice, NULL);
++			e_dialog_button_add(dia, _("Display this notice on next startup"), NULL, NULL, NULL);
++			e_win_centered_set(dia->win, 1);
++			e_dialog_show(dia);
++		}
++	}
++
+    /* load modules */
+    e_init_status_set(_("Load Modules"));
+    TS("load modules");
+-- 
+1.7.4.1
+
