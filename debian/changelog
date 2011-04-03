@@ -1,8 +1,16 @@
-e17 (0.16.999.55225-1) UNRELEASED; urgency=low
+e17 (0.16.999.55225-1) unstable; urgency=low
 
   * New upstream snapshot
+    - Closes: #600323
+  * debian/control: use architecture wildcards instead of listing architectures
+  * debian/rules: fix the configure.ac version matching regexp
+  * debian/control: remove useless virtual package efl-dev
+  * Add patches/02_upgrade_notice.diff:
+    - The binary format used by e17 for themes and background has changed.
+      Display a notice when e17 starts to warn users that they may need to
+      convert their theme and background files
 
- -- Albin Tonnerre <lutin@debian.org>  Mon, 04 Oct 2010 20:03:09 +0200
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 03 Apr 2011 18:34:21 +0200
 
 e17 (0.16.999.49898-1) unstable; urgency=low
 
