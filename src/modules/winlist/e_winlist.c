@@ -67,6 +67,21 @@ static Ecore_Animator *_animator = NULL;
 static const Ecore_X_Window *_win = NULL;
 static E_Border *_bd_next = NULL;
 
+static Eina_Bool
+_wmclass_picked(const Eina_List *lst, const char *wmclass)
+{
+   const Eina_List *l;
+   const char *s;
+
+   if (!wmclass) return EINA_FALSE;
+
+   EINA_LIST_FOREACH(lst, l, s)
+     if ((s) && (!strcmp(s, wmclass)))
+       return EINA_TRUE;
+
+   return EINA_FALSE;
+}
+
 /* externally accessible functions */
 int
 e_winlist_init(void)
@@ -82,12 +97,14 @@ e_winlist_shutdown(void)
 }
 
 int
-e_winlist_show(E_Zone *zone, Eina_Bool same_class)
+e_winlist_show(E_Zone *zone, E_Winlist_Filter filter)
 {
    int x, y, w, h;
    Evas_Object *o;
    Eina_List *l;
    E_Desk *desk;
+   E_Border *bd;
+   Eina_List *wmclasses = NULL;
 
    E_OBJECT_CHECK_RETURN(zone, 0);
    E_OBJECT_TYPE_CHECK_RETURN(zone, E_ZONE_TYPE, 0);
@@ -155,17 +172,27 @@ e_winlist_show(E_Zone *zone, Eina_Bool same_class)
 
    desk = e_desk_current_get(_winlist->zone);
    e_box_freeze(_list_object);
-   for (l = e_border_focus_stack_get(); l; l = l->next)
+   EINA_LIST_FOREACH(e_border_focus_stack_get(), l, bd)
      {
-	E_Border *bd;
-
-	bd = l->data;
-	if ((!same_class) ||
-	    (!strcmp((const char*) _last_border->client.icccm.class,
-		     (const char*) bd->client.icccm.class)))
-	    _e_winlist_border_add(bd, _winlist->zone, desk);
+        Eina_Bool pick;
+        switch (filter)
+          {
+           case E_WINLIST_FILTER_CLASS_WINDOWS:
+              pick = !strcmp(_last_border->client.icccm.class,
+                             bd->client.icccm.class);
+              break;
+           case E_WINLIST_FILTER_CLASSES:
+              pick = (!_wmclass_picked(wmclasses, bd->client.icccm.class));
+              if (pick)
+                wmclasses = eina_list_append(wmclasses, bd->client.icccm.class);
+              break;
+           default:
+              pick = EINA_TRUE;
+          }
+        if (pick) _e_winlist_border_add(bd, _winlist->zone, desk);
      }
    e_box_thaw(_list_object);
+   eina_list_free(wmclasses);
 
    if (!_wins)
      {
@@ -433,7 +460,7 @@ e_winlist_left(E_Zone *zone)
 	center_next = bd->x + bd->w / 2;
 	if (center_next >= center) continue;
 	delta_next = bd_orig->x - (bd->x + bd->w);
-	if (delta_next < 0) delta = center - center_next;
+	if (delta_next < 0) delta_next = center - center_next;
 	if (delta_next >= 0 && delta_next < delta)
 	  {
 	     _bd_next = bd;
@@ -470,7 +497,6 @@ e_winlist_left(E_Zone *zone)
 
 	ecore_x_pointer_xy_get(zone->container->win, &_warp_x, &_warp_y);
 	_win = &zone->container->win;
-	e_border_focus_latest_set(_bd_next);
 	_warp_to = 1;
 	if (!_warp_timer)
 	  _warp_timer = ecore_timer_add(0.01, _e_winlist_warp_timer, NULL);
@@ -553,7 +579,7 @@ e_winlist_down(E_Zone *zone)
 	center_next = bd->y + bd->h/2;
 	if (center_next <= center) continue;
 	delta_next = bd->y - (bd_orig->y + bd_orig->h);
-	if (delta_next < 0) delta = center - center_next;
+	if (delta_next < 0) delta_next = center - center_next;
 	if (delta_next >= 0 && delta_next < delta)
 	  {
 	     _bd_next = bd;
@@ -590,7 +616,6 @@ e_winlist_down(E_Zone *zone)
 
 	ecore_x_pointer_xy_get(zone->container->win, &_warp_x, &_warp_y);
 	_win = &zone->container->win;
-	e_border_focus_latest_set(_bd_next);
 	_warp_to = 1;
 	if (!_warp_timer)
 	  _warp_timer = ecore_timer_add(0.01, _e_winlist_warp_timer, NULL);
@@ -673,7 +698,7 @@ e_winlist_up(E_Zone *zone)
 	center_next = bd->y + bd->h/2;
 	if (center_next >= center) continue;
 	delta_next = bd_orig->y - (bd->y + bd->h);
-	if (delta_next < 0) delta = center - center_next;
+	if (delta_next < 0) delta_next = center - center_next;
 	if (delta_next >= 0 && delta_next < delta)
 	  {
 	     _bd_next = bd;
@@ -710,7 +735,6 @@ e_winlist_up(E_Zone *zone)
 
 	ecore_x_pointer_xy_get(zone->container->win, &_warp_x, &_warp_y);
 	_win = &zone->container->win;
-	e_border_focus_latest_set(_bd_next);
 	_warp_to = 1;
 	if (!_warp_timer)
 	  _warp_timer = ecore_timer_add(0.01, _e_winlist_warp_timer, NULL);
@@ -830,7 +854,6 @@ e_winlist_right(E_Zone *zone)
 
 	ecore_x_pointer_xy_get(zone->container->win, &_warp_x, &_warp_y);
 	_win = &zone->container->win;
-	e_border_focus_latest_set(_bd_next);
 	_warp_to = 1;
 	if (!_warp_timer)
 	  _warp_timer = ecore_timer_add(0.01, _e_winlist_warp_timer, NULL);
@@ -976,14 +999,12 @@ _e_winlist_border_add(E_Border *bd, E_Zone *zone, E_Desk *desk)
 static void
 _e_winlist_border_del(E_Border *bd)
 {
+   E_Winlist_Win *ww;
    Eina_List *l;
 
    if (bd == _last_border) _last_border = NULL;
-   for (l = _wins; l; l = l->next)
+   EINA_LIST_FOREACH(_wins, l, ww)
      {
-	E_Winlist_Win *ww;
-
-	ww = l->data;
 	if (ww->border == bd)
 	  {
              e_object_unref(E_OBJECT(ww->border));

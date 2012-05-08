@@ -13,47 +13,49 @@ struct _E_Intl_Pair
    const char *locale_translation;
 };
 
-const E_Intl_Pair basic_language_predefined_pairs[ ] = {
-     {"bg_BG.UTF-8", "lang-bg_BG.png", "Български"},
-     {"ca_ES.UTF-8", "lang-ca_ES.png", "Català"},
-     {"zh_CN.UTF-8", "lang-zh_CN.png", "Chinese (Simplified)"},
-     {"zh_TW.UTF-8", "lang-zh_TW.png", "Chinese (Traditional)"},
-     {"cs_CZ.UTF-8", "lang-cs_CZ.png", "Čeština"},
-     {"da_DK.UTF-8", "lang-da_DK.png", "Dansk"},
-     {"nl_NL.UTF-8", "lang-nl_NL.png", "Nederlands"},
-     {"en_US.UTF-8", "lang-en_US.png", "English"},
-     {"fi_FI.UTF-8", "lang-fi_FI.png", "Suomi"},
-     {"fr_FR.UTF-8", "lang-fr_FR.png", "Français"},
-     {"de_DE.UTF-8", "lang-de_DE.png", "Deutsch"},
-     {"hu_HU.UTF-8", "lang-hu_HU.png", "Magyar"},
-     {"it_IT.UTF-8", "lang-it_IT.png", "Italiano"},
-     {"ja_JP.UTF-8", "lang-ja_JP.png", "日本語"},
-     {"ko_KR.UTF-8", "lang-ko_KR.png", "한국어"},
-     {"nb_NO.UTF-8", "lang-nb_NO.png", "Norsk Bokmål"},
-     {"pl_PL.UTF-8", "lang-pl_PL.png", "Polski"},
-     {"pt_BR.UTF-8", "lang-pt_BR.png", "Português"},
-     {"ru_RU.UTF-8", "lang-ru_RU.png", "Русский"},
-     {"sk_SK.UTF-8", "lang-sk_SK.png", "Slovenčina"},
-     {"sl_SI.UTF-8", "lang-sl_SI.png", "Slovenščina"},
-     {"es_AR.UTF-8", "lang-es_AR.png", "Español"},
-     {"sv_SE.UTF-8", "lang-sv_SE.png", "Svenska"},
-     {"el_GR.UTF-8", "lang-el_GR.png", "Ελληνικά"},
-     { NULL, NULL, NULL }
+const E_Intl_Pair basic_language_predefined_pairs[ ] =
+{
+   {"bg_BG.UTF-8", "lang-bg_BG.png", "Български"},
+   {"ca_ES.UTF-8", "lang-ca_ES.png", "Català"},
+   {"zh_CN.UTF-8", "lang-zh_CN.png", "Chinese (Simplified)"},
+   {"zh_TW.UTF-8", "lang-zh_TW.png", "Chinese (Traditional)"},
+   {"cs_CZ.UTF-8", "lang-cs_CZ.png", "Čeština"},
+   {"da_DK.UTF-8", "lang-da_DK.png", "Dansk"},
+   {"nl_NL.UTF-8", "lang-nl_NL.png", "Nederlands"},
+   {"en_US.UTF-8", "lang-en_US.png", "English"},
+   {"en_GB.UTF-8", NULL,             "British English"},
+   {"fi_FI.UTF-8", "lang-fi_FI.png", "Suomi"},
+   {"fr_FR.UTF-8", "lang-fr_FR.png", "Français"},
+   {"de_DE.UTF-8", "lang-de_DE.png", "Deutsch"},
+   {"hu_HU.UTF-8", "lang-hu_HU.png", "Magyar"},
+   {"it_IT.UTF-8", "lang-it_IT.png", "Italiano"},
+   {"ja_JP.UTF-8", "lang-ja_JP.png", "日本語"},
+   {"ko_KR.UTF-8", "lang-ko_KR.png", "한국어"},
+   {"nb_NO.UTF-8", "lang-nb_NO.png", "Norsk Bokmål"},
+   {"pl_PL.UTF-8", "lang-pl_PL.png", "Polski"},
+   {"pt_BR.UTF-8", "lang-pt_BR.png", "Português"},
+   {"ru_RU.UTF-8", "lang-ru_RU.png", "Русский"},
+   {"sk_SK.UTF-8", "lang-sk_SK.png", "Slovenčina"},
+   {"sl_SI.UTF-8", "lang-sl_SI.png", "Slovenščina"},
+   {"es_AR.UTF-8", "lang-es_AR.png", "Español"},
+   {"sv_SE.UTF-8", "lang-sv_SE.png", "Svenska"},
+   {"el_GR.UTF-8", "lang-el_GR.png", "Ελληνικά"},
+   { NULL, NULL, NULL }
 };
 
 static const char *lang = NULL;
 static Eina_List *blang_list = NULL;
 
-static int 
-_basic_lang_list_sort(const void *data1, const void *data2) 
+static int
+_basic_lang_list_sort(const void *data1, const void *data2)
 {
    E_Intl_Pair *ln1, *ln2;
    const char *trans1;
    const char *trans2;
-   
+
    if (!data1) return 1;
    if (!data2) return -1;
-   
+
    ln1 = (E_Intl_Pair *)data1;
    ln2 = (E_Intl_Pair *)data2;
 
@@ -62,7 +64,7 @@ _basic_lang_list_sort(const void *data1, const void *data2)
 
    if (!ln2->locale_translation) return -1;
    trans2 = ln2->locale_translation;
-   
+
    return (strcmp(trans1, trans2));
 }
 
@@ -71,8 +73,12 @@ wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 {
    FILE *output;
 
+#ifdef __OpenBSD__
+   output = popen("ls /usr/share/locale", "r");
+#else
    output = popen("locale -a", "r");
-   if (output) 
+#endif
+   if (output)
      {
 	char line[32];
 
@@ -85,7 +91,7 @@ wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 	       {
 		  char *basic_language;
 
-		  basic_language = 
+		  basic_language =
 		    e_intl_locale_parts_combine
 		    (locale_parts, E_INTL_LOC_LANG | E_INTL_LOC_REGION);
 		  if (basic_language)
@@ -100,10 +106,10 @@ wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 				 basic_language, strlen(basic_language)))
 			      {
 				 if (!eina_list_data_find
-				     (blang_list, 
+				     (blang_list,
 				      &basic_language_predefined_pairs[i]))
 				   blang_list = eina_list_append
-				   (blang_list, 
+				   (blang_list,
 				    &basic_language_predefined_pairs[i]);
 				 break;
 			      }
@@ -114,7 +120,7 @@ wizard_page_init(E_Wizard_Page *pg __UNUSED__)
 		  e_intl_locale_parts_free(locale_parts);
 	       }
 	  }
-	/* Sort basic languages */	
+	/* Sort basic languages */
 	blang_list = eina_list_sort(blang_list, eina_list_count(blang_list), _basic_lang_list_sort);
 	pclose(output);
      }
@@ -131,9 +137,10 @@ wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 EAPI int
 wizard_page_show(E_Wizard_Page *pg)
 {
-   Evas_Object *o, *of, *ob;
+   Evas_Object *o, *of, *ob, *ic;
    Eina_List *l;
    int i, sel = -1;
+   char buf[PATH_MAX];
 
    o = e_widget_list_add(pg->evas, 1, 0);
    e_wizard_title_set(_("Language"));
@@ -143,16 +150,23 @@ wizard_page_show(E_Wizard_Page *pg)
 
    e_widget_ilist_freeze(ob);
 
-   for (i = 0, l = blang_list; l; l = l->next, i++)
+   e_prefix_data_snprintf(buf, sizeof(buf), "data/images/%s", "lang-system.png");
+   ic = e_util_icon_add(buf, pg->evas);
+   e_widget_ilist_append(ob, ic, _("System Default"),
+                         NULL, NULL, NULL);
+   for (i = 1, l = blang_list; l; l = l->next, i++)
      {
 	E_Intl_Pair *pair;
-        Evas_Object *ic;
-	char buf[PATH_MAX];
 
 	pair = l->data;
-	e_prefix_data_snprintf(buf, sizeof(buf), "data/images/%s", pair->locale_icon);
-	ic = e_util_icon_add(buf, pg->evas);
-	e_widget_ilist_append(ob, ic, _(pair->locale_translation), 
+	if (pair->locale_icon)
+	  {
+	     e_prefix_data_snprintf(buf, sizeof(buf), "data/images/%s", pair->locale_icon);
+	     ic = e_util_icon_add(buf, pg->evas);
+	  }
+        else
+	  ic = NULL;
+	e_widget_ilist_append(ob, ic, _(pair->locale_translation),
 			      NULL, NULL, pair->locale_key);
 	if (e_intl_language_get())
 	  {
@@ -168,14 +182,14 @@ wizard_page_show(E_Wizard_Page *pg)
    evas_object_show(ob);
    evas_object_show(of);
    e_wizard_page_show(o);
-   pg->data = of;
+//   pg->data = o;
    return 1; /* 1 == show ui, and wait for user, 0 == just continue */
 }
 
 EAPI int
-wizard_page_hide(E_Wizard_Page *pg)
+wizard_page_hide(E_Wizard_Page *pg __UNUSED__)
 {
-   evas_object_del(pg->data);
+//   evas_object_del(pg->data);
    /* special - language inits its stuff the moment it goes away */
    eina_stringshare_del(e_config->language);
    e_config->language = eina_stringshare_ref(lang);

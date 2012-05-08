@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,6 +11,15 @@
 # include <sys/sysctl.h>
 #endif
 
+#ifdef __OpenBSD__
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <sys/sensors.h>
+#include <errno.h>
+#include <err.h>
+#endif
+
+#include <Eina.h>
 #include <Ecore.h>
 #include <Ecore_File.h>
 
@@ -19,9 +31,18 @@ static int poll_interval = 32;
 static int cur_poll_interval = 32;
 
 static char *sensor_path = NULL;
-#ifdef __FreeBSD__
+#if defined (__FreeBSD__) || defined (__OpenBSD__)
 static int mib[5];
 #endif
+
+#ifdef __OpenBSD__
+static int dev, numt;
+static struct sensordev snsrdev;  
+static size_t sdlen = sizeof(snsrdev);
+static struct sensor snsr;
+static size_t slen = sizeof(snsr);
+#endif
+
 static Ecore_Poller *poller = NULL;
 static int ptemp = 0;
 
@@ -90,6 +111,24 @@ init(void)
 	/* TODO: FreeBSD can also have more temperature sensors! */
 	sensor_type = SENSOR_TYPE_FREEBSD;
 	sensor_name = strdup("tz0");
+#elif __OpenBSD__ 
+	mib[0] = CTL_HW;
+	mib[1] = HW_SENSORS;
+
+	for (dev = 0; ; dev++) {
+		mib[2] = dev;
+		if (sysctl(mib, 3, &snsrdev, &sdlen, NULL, 0) == -1) {
+			if (errno == ENOENT)    /* no further sensors */
+				break;
+			else
+				continue;                                       
+		}
+		if (strcmp(snsrdev.xname, "cpu0") == 0) {
+			sensor_type = SENSOR_TYPE_OPENBSD;
+			sensor_name = strdup("cpu0");
+			break;
+		}
+	}
 #else
 	therms = ecore_file_ls("/proc/acpi/thermal_zone");
 	if (therms)
@@ -105,84 +144,111 @@ init(void)
 	else
 	  {
 	     eina_list_free(therms);
-	     if (ecore_file_exists("/proc/omnibook/temperature"))
-	       {
-		  sensor_type = SENSOR_TYPE_OMNIBOOK;
-		  sensor_name = strdup("dummy");
-	       }
-	     else if (ecore_file_exists("/sys/devices/temperatures/sensor1_temperature"))
-	       {
-		  sensor_type = SENSOR_TYPE_LINUX_PBOOK;
-		  sensor_name = strdup("dummy");
-	       }
-	     else if (ecore_file_exists("/sys/devices/temperatures/cpu_temperature"))
-	       {
-		  sensor_type = SENSOR_TYPE_LINUX_MACMINI;
-		  sensor_name = strdup("dummy");
-	       }
-	     else if (ecore_file_exists("/sys/devices/platform/coretemp.0/temp1_input"))
-	       {
-		  sensor_type = SENSOR_TYPE_LINUX_INTELCORETEMP;
-		  sensor_name = strdup("dummy");
-	       }
-	     else
-	       {
-		  // try the i2c bus
-		  therms = temperature_get_bus_files("i2c");
-		  if (therms)
-		    {
-		       char *name;
-
-		       if ((name = eina_list_data_get(therms)))
-			 {
-			    if (ecore_file_exists(name))
-			      {
-				 int len;
-
-				 snprintf(path, sizeof(path),
-					  "%s", ecore_file_file_get(name));
-				 len = strlen(path);
-				 if (len > 6) path[len - 6] = '\0';
-				 sensor_type = SENSOR_TYPE_LINUX_I2C;
-				 sensor_path = strdup(name);
-				 sensor_name = strdup(path);
-				 printf("sensor type = i2c\n"
-                                        "sensor path = %s\n"
-                                        "sensor name = %s\n",
-                                        sensor_path, sensor_name);
-			      }
-			 }
-		       eina_list_free(therms);
-		    }
-		  if (!sensor_path)
-		    {
-		       // try the pci bus
-		       therms = temperature_get_bus_files("pci");
-		       if (therms)
-			 {
-			    char *name;
-
-			    if ((name = eina_list_data_get(therms)))
-			      {
-				 if (ecore_file_exists(name))
-				   {
-				      int len;
-
-				      snprintf(path, sizeof(path),
+             therms = ecore_file_ls("/sys/class/thermal");
+             if (therms)
+               {
+                  char *name;
+                  Eina_List *l;
+                  
+                  EINA_LIST_FOREACH(therms, l, name)
+                    {
+                       if (!strncmp(name, "thermal", 7))
+                         {
+                            sensor_type = SENSOR_TYPE_LINUX_SYS;
+                            sensor_name = strdup(name);
+                            eina_list_free(therms);
+                            therms = NULL;
+                            break;
+                         }
+                    }
+                  if (therms) eina_list_free(therms);
+               }
+             if (therms)
+               {
+                  if (ecore_file_exists("/proc/omnibook/temperature"))
+                    {
+                       sensor_type = SENSOR_TYPE_OMNIBOOK;
+                       sensor_name = strdup("dummy");
+                    }
+                  else if (ecore_file_exists("/sys/devices/temperatures/sensor1_temperature"))
+                    {
+                       sensor_type = SENSOR_TYPE_LINUX_PBOOK;
+                       sensor_name = strdup("dummy");
+                    }
+                  else if (ecore_file_exists("/sys/devices/temperatures/cpu_temperature"))
+                    {
+                       sensor_type = SENSOR_TYPE_LINUX_MACMINI;
+                       sensor_name = strdup("dummy");
+                    }
+                  else if (ecore_file_exists("/sys/devices/platform/coretemp.0/temp1_input"))
+                    {
+                       sensor_type = SENSOR_TYPE_LINUX_INTELCORETEMP;
+                       sensor_name = strdup("dummy");
+                    }
+                  else if (ecore_file_exists("/sys/devices/platform/thinkpad_hwmon/temp1_input"))
+                    {
+                       sensor_type = SENSOR_TYPE_LINUX_THINKPAD;
+                       sensor_name = strdup("dummy");
+                    }
+                  else
+                    {
+                       // try the i2c bus
+                       therms = temperature_get_bus_files("i2c");
+                       if (therms)
+                         {
+                            char *name;
+                            
+                            if ((name = eina_list_data_get(therms)))
+                              {
+                                 if (ecore_file_exists(name))
+                                   {
+                                      int len;
+                                      
+                                      snprintf(path, sizeof(path),
                                                "%s", ecore_file_file_get(name));
-				      len = strlen(path);
-				      if (len > 6) path[len - 6] = '\0';
-				      sensor_type = SENSOR_TYPE_LINUX_PCI;
-				      sensor_path = strdup(name);
-				      sensor_name = strdup(path);
-				      printf("sensor type = pci\n"
+                                      len = strlen(path);
+                                      if (len > 6) path[len - 6] = '\0';
+                                      sensor_type = SENSOR_TYPE_LINUX_I2C;
+                                      sensor_path = strdup(name);
+                                      sensor_name = strdup(path);
+                                      printf("sensor type = i2c\n"
                                              "sensor path = %s\n"
                                              "sensor name = %s\n",
                                              sensor_path, sensor_name);
-				   }
-			      }
-			    eina_list_free(therms);
-			 }
+                                   }
+                              }
+                            eina_list_free(therms);
+                         }
+                       if (!sensor_path)
+                         {
+                            // try the pci bus
+                            therms = temperature_get_bus_files("pci");
+                            if (therms)
+                              {
+                                 char *name;
+                                 
+                                 if ((name = eina_list_data_get(therms)))
+                                   {
+                                      if (ecore_file_exists(name))
+                                        {
+                                           int len;
+                                           
+                                           snprintf(path, sizeof(path),
+                                                    "%s", ecore_file_file_get(name));
+                                           len = strlen(path);
+                                           if (len > 6) path[len - 6] = '\0';
+                                           sensor_type = SENSOR_TYPE_LINUX_PCI;
+                                           sensor_path = strdup(name);
+                                           sensor_name = strdup(path);
+                                           printf("sensor type = pci\n"
+                                                  "sensor path = %s\n"
+                                                  "sensor name = %s\n",
+                                                  sensor_path, sensor_name);
+                                        }
+                                   }
+                                 eina_list_free(therms);
+                              }
+                         }
 		    }
 	       }
 	  }
@@ -205,6 +271,20 @@ init(void)
 	     sysctlnametomib(sensor_path, mib, &len);
 #endif
 	     break;
+	   case SENSOR_TYPE_OPENBSD:
+#ifdef __OpenBSD__
+		for (numt = 0; numt < snsrdev.maxnumt[SENSOR_TEMP]; numt++) {
+			mib[4] = numt;
+			slen = sizeof(snsr);
+			if (sysctl(mib, 5, &snsr, &slen, NULL, 0) == -1)        
+				continue;
+			if (slen > 0 && (snsr.flags & SENSOR_FINVALID) == 0) {
+				break;
+			}
+               }
+#endif
+
+		break;
 	   case SENSOR_TYPE_OMNIBOOK:
 	     sensor_path = strdup("/proc/omnibook/temperature");
 	     break;
@@ -216,6 +296,9 @@ init(void)
 	     break;
 	   case SENSOR_TYPE_LINUX_INTELCORETEMP:
 	     sensor_path = strdup("/sys/devices/platform/coretemp.0/temp1_input");
+	     break;
+	   case SENSOR_TYPE_LINUX_THINKPAD:
+	     sensor_path = strdup("/sys/devices/platform/thinkpad_hwmon/temp1_input");
 	     break;
 	   case SENSOR_TYPE_LINUX_I2C:
 	     therms = ecore_file_ls("/sys/bus/i2c/devices");
@@ -246,10 +329,10 @@ init(void)
                   if (ecore_file_exists(path))
                     {
                        sensor_path = strdup(path);
-			    /* We really only care about the first
-			     * one for the default. */
+                       /* We really only care about the first
+                        * one for the default. */
                        break;
-			 }
+                    }
 		  free(name);
 	       }
 	     break;
@@ -258,6 +341,13 @@ init(void)
 		      "/proc/acpi/thermal_zone/%s/temperature", sensor_name);
 	     sensor_path = strdup(path);
 	     break;
+	   case SENSOR_TYPE_LINUX_SYS:
+	     snprintf(path, sizeof(path),
+		      "/sys/class/thermal/thermal/%s/temp", sensor_name);
+	     sensor_path = strdup(path);
+	     break;
+           default:
+             break;
 	  }
      }
 }
@@ -295,6 +385,16 @@ check(void)
 	  goto error;
 #endif
 	break;
+      case SENSOR_TYPE_OPENBSD:
+#ifdef __OpenBSD__
+	if (sysctl(mib, 5, &snsr, &slen, NULL, 0) != -1) {
+	 temp = (snsr.value - 273150000) / 1000000.0;
+	 ret = 1;
+	}
+	else
+	 goto error;
+#endif
+	break;
       case SENSOR_TYPE_OMNIBOOK:
 	f = fopen(sensor_path, "r");
 	if (f)
@@ -318,18 +418,19 @@ check(void)
 	if (f)
 	  {
 	     fgets(buf, sizeof(buf), f);
+	     fclose(f);
              buf[sizeof(buf) - 1] = 0;
 	     if (sscanf(buf, "%i", &temp) == 1)
 	       ret = 1;
 	     else
 	       goto error;
-	     fclose(f);
 	  }
 	else
 	  goto error;
 	break;
       case SENSOR_TYPE_LINUX_INTELCORETEMP:
       case SENSOR_TYPE_LINUX_I2C:
+      case SENSOR_TYPE_LINUX_THINKPAD:
 	f = fopen(sensor_path, "r");
 	if (f)
 	  {
@@ -392,6 +493,21 @@ check(void)
 	else
 	  goto error;
 	break;
+      case SENSOR_TYPE_LINUX_SYS:
+	f = fopen(sensor_path, "r");
+	if (f)
+	  {
+             fgets(buf, sizeof(buf), f);
+             buf[sizeof(buf) - 1] = 0;
+	     fclose(f);
+             temp = atoi(buf);
+             temp /= 1000;
+	  }
+	else
+	  goto error;
+	break;
+      default:
+        break;
      }
 
    if (ret) return temp;
@@ -407,7 +523,7 @@ error:
 }
 
 static Eina_Bool
-poll_cb(void *data)
+poll_cb(void *data __UNUSED__)
 {
    int t, pp;
 

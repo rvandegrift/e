@@ -169,17 +169,11 @@ e_drag_new(E_Container *container, int x, int y,
    drag->layer = 250;
    drag->container = container;
    e_object_ref(E_OBJECT(drag->container));
-   drag->ecore_evas = e_canvas_new(e_config->evas_engine_drag, drag->container->win,
+   drag->ecore_evas = e_canvas_new(drag->container->win,
 				   drag->x, drag->y, drag->w, drag->h, 1, 1,
 				   &(drag->evas_win));
    if (e_config->use_composite)
-     {
-	ecore_evas_alpha_set(drag->ecore_evas, 1);
-	if (e_config->evas_engine_drag == ECORE_EVAS_ENGINE_SOFTWARE_16_X11)
-	  drag->evas_win = ecore_evas_software_x11_window_get(drag->ecore_evas);
-	else if (e_config->evas_engine_drag == ECORE_EVAS_ENGINE_XRENDER_X11)
-	  drag->evas_win = ecore_evas_xrender_x11_window_get(drag->ecore_evas);
-     }
+     ecore_evas_alpha_set(drag->ecore_evas, 1);
    else
      {
 	/* avoid excess exposes when shaped - set damage avoid to 1 */
@@ -658,7 +652,7 @@ _e_drag_win_get(const E_Drop_Handler *h, int xdnd)
 	     /* Not quite sure about this, probably need to set up 
 	      * E_Container to pass DND events from event_win to bg_win. */
 	     // hwin = ((E_Zone *)(h->obj))->container->event_win;
-	     hwin = ((E_Zone *)(h->obj))->container->bg_win;
+	     hwin = ((E_Zone *)(h->obj))->container->event_win;
 	     break;
 	   case E_BORDER_TYPE:
 	     hwin = ((E_Border *)(h->obj))->event_win;
@@ -1393,15 +1387,15 @@ _e_dnd_cb_event_dnd_selection(void *data __UNUSED__, int type __UNUSED__, void *
    else if (_type_text_x_moz_url == _xdnd->type)
      {
 	/* FIXME: Create a ecore x parser for this type */
-	Ecore_X_Selection_Data *data;
+	Ecore_X_Selection_Data *sdata;
 	Eina_List *l = NULL;
 	char file[PATH_MAX];
 	char *text;
 	int size;
 
-	data = ev->data;
-	text = (char *)data->data;
-	size = MIN(data->length, PATH_MAX - 1);
+	sdata = ev->data;
+	text = (char *)sdata->data;
+	size = MIN(sdata->length, PATH_MAX - 1);
 	/* A moz url _shall_ contain a space */
 	/* FIXME: The data is two-byte unicode. Somewhere it
 	 * is written that the url and the text is separated by

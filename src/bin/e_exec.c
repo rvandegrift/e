@@ -20,7 +20,7 @@ struct _E_Exec_Launch
 
 struct _E_Exec_Search
 {
-   Efreet_Desktop *desktop;
+   E_Exec_Instance *inst;
    int startup_id;
    pid_t pid;
 };
@@ -121,19 +121,35 @@ e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
      }
    else
      inst = _e_exec_cb_exec(launch, NULL, strdup(exec), 0);
+   if ((zone) && (inst))
+     {
+        inst->screen = zone->num;
+        inst->desk_x = zone->desk_x_current;
+        inst->desk_y = zone->desk_y_current;
+     }
    return inst;
 }
 
-EAPI Efreet_Desktop *
-e_exec_startup_id_pid_find(int startup_id, pid_t pid)
+EAPI E_Exec_Instance *
+e_exec_startup_id_pid_instance_find(int id, pid_t pid)
 {
    E_Exec_Search search;
 
-   search.desktop = NULL;
-   search.startup_id = startup_id;
+   search.inst = NULL;
+   search.startup_id = id;
    search.pid = pid;
    eina_hash_foreach(e_exec_instances, _e_exec_startup_id_pid_find, &search);
-   return search.desktop;
+   return search.inst;
+}
+
+EAPI Efreet_Desktop *
+e_exec_startup_id_pid_find(int id, pid_t pid)
+{
+   E_Exec_Instance *inst;
+   
+   inst = e_exec_startup_id_pid_instance_find(id, pid);
+   if (!inst) return NULL;
+   return inst->desktop;
 }
 
 /* local subsystem functions */
@@ -203,15 +219,52 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    // need a way to still inherit from parent env of wm.
    e_util_env_set("__GL_SYNC_TO_VBLANK", NULL);
    
-   e_util_library_path_strip();
 //// FIXME: seem to be some issues with the pipe and filling up ram - need to
 //// check. for now disable.   
 //   exe = ecore_exe_pipe_run(exec,
 //			    ECORE_EXE_PIPE_AUTO | ECORE_EXE_PIPE_READ | ECORE_EXE_PIPE_ERROR |
 //			    ECORE_EXE_PIPE_READ_LINE_BUFFERED | ECORE_EXE_PIPE_ERROR_LINE_BUFFERED,
 //			    inst);
-   exe = ecore_exe_run(exec, inst);
-   e_util_library_path_restore();
+   if ((desktop) && (desktop->path) && (desktop->path[0]))
+     {
+        if (!getcwd(buf, sizeof(buf)))
+          {
+             E_FREE(inst);
+             e_util_dialog_show(_("Run Error"),
+                                _("Enlightenment was unable to get current directory"));
+             return NULL;
+          }
+        if (chdir(desktop->path))
+          {
+             E_FREE(inst);
+             e_util_dialog_show(_("Run Error"),
+                                _("Enlightenment was unable to change to directory:<br>"
+                                  "<br>"
+                                  "%s"),
+			   desktop->path);
+             return NULL;
+          }
+        e_util_library_path_strip();
+        exe = ecore_exe_run(exec, inst);
+        e_util_library_path_restore();
+        if (chdir(buf))
+          {
+             e_util_dialog_show(_("Run Error"),
+                                _("Enlightenment was unable to restore to directory:<br>"
+                                  "<br>"
+                                  "%s"),
+			   buf);
+             E_FREE(inst);
+             return NULL;
+          }
+     }
+   else
+     {
+        e_util_library_path_strip();
+        exe = ecore_exe_run(exec, inst);
+        e_util_library_path_restore();
+     }
+
    if (penv_display)
      {
        	e_util_env_set("DISPLAY", penv_display);
@@ -223,7 +276,7 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
 	e_util_dialog_show(_("Run Error"),
 			   _("Enlightenment was unable to fork a child process:<br>"
 			     "<br>"
-			     "%s<br>"),
+			     "%s"),
 			   exec);
 	return NULL;
      }
@@ -409,16 +462,12 @@ _e_exec_startup_id_pid_find(const Eina_Hash *hash __UNUSED__, const void *key __
    search = data;
    EINA_LIST_FOREACH(value, l, inst)
      {
-        int pid = -1;
-        
-        if (inst->exe)
-           pid = ecore_exe_pid_get(inst->exe);
         if (((search->startup_id > 0) && 
              (search->startup_id == inst->startup_id)) ||
             ((inst->exe) && (search->pid > 1) && 
              (search->pid == ecore_exe_pid_get(inst->exe))))
           {
-             search->desktop = inst->desktop;
+             search->inst = inst;
              return EINA_FALSE;
           }
      }
@@ -426,8 +475,8 @@ _e_exec_startup_id_pid_find(const Eina_Hash *hash __UNUSED__, const void *key __
 }
 
 static void    
-_e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_Del *event,
-		     Ecore_Exe_Event_Data *error, Ecore_Exe_Event_Data *read)
+_e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_Del *exe_event,
+		     Ecore_Exe_Event_Data *exe_error, Ecore_Exe_Event_Data *exe_read)
 {
    E_Config_Dialog_View *v;
    E_Config_Dialog_Data *cfdata;
@@ -444,9 +493,9 @@ _e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_
    cfdata->desktop = desktop;
    if (cfdata->desktop) efreet_desktop_ref(cfdata->desktop);
    if (exec) cfdata->exec = strdup(exec);
-   cfdata->error = error;
-   cfdata->read = read;
-   cfdata->event = *event;
+   cfdata->error = exe_error;
+   cfdata->read = exe_read;
+   cfdata->event = *exe_event;
 
    v->create_cfdata = _create_data;
    v->free_cfdata = _free_data;

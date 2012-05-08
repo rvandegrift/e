@@ -40,7 +40,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/ac_attribute.m4 \
 	$(top_srcdir)/m4/efl_doxygen.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 $(top_srcdir)/m4/gettext.m4 \
-	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/intlmacosx.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -49,7 +49,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -85,6 +85,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DBUS_MOUNT_CONFIG = @DBUS_MOUNT_CONFIG@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DSYMUTIL = @DSYMUTIL@
@@ -104,6 +105,9 @@ ECORE_IMF_VERSION = @ECORE_IMF_VERSION@
 EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
+EEZE_CFLAGS = @EEZE_CFLAGS@
+EEZE_LIBS = @EEZE_LIBS@
+EEZE_MOUNT_CONFIG = @EEZE_MOUNT_CONFIG@
 EGREP = @EGREP@
 ENOTIFY_CFLAGS = @ENOTIFY_CFLAGS@
 ENOTIFY_LIBS = @ENOTIFY_LIBS@
@@ -115,6 +119,8 @@ EXCHANGE_CFLAGS = @EXCHANGE_CFLAGS@
 EXCHANGE_LIBS = @EXCHANGE_LIBS@
 EXCHANGE_VERSION = @EXCHANGE_VERSION@
 EXEEXT = @EXEEXT@
+E_ALERT_CFLAGS = @E_ALERT_CFLAGS@
+E_ALERT_LIBS = @E_ALERT_LIBS@
 E_CFLAGS = @E_CFLAGS@
 E_FM_CFLAGS = @E_FM_CFLAGS@
 E_FM_LIBS = @E_FM_LIBS@
@@ -129,12 +135,16 @@ E_INIT_LIBS = @E_INIT_LIBS@
 E_LIBS = @E_LIBS@
 E_REMOTE_CFLAGS = @E_REMOTE_CFLAGS@
 E_REMOTE_LIBS = @E_REMOTE_LIBS@
+E_START_CFLAGS = @E_START_CFLAGS@
+E_START_LIBS = @E_START_LIBS@
 E_SYS_CFLAGS = @E_SYS_CFLAGS@
 E_SYS_LIBS = @E_SYS_LIBS@
 E_THUMB_CFLAGS = @E_THUMB_CFLAGS@
 E_THUMB_LIBS = @E_THUMB_LIBS@
 FGREP = @FGREP@
+GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GMSGFMT = @GMSGFMT@
+GMSGFMT_015 = @GMSGFMT_015@
 GREP = @GREP@
 HAVE_ALSA = @HAVE_ALSA@
 HAVE_BATTERY = @HAVE_BATTERY@
@@ -145,12 +155,14 @@ HAVE_ENOTIFY = @HAVE_ENOTIFY@
 HAVE_EOFONO = @HAVE_EOFONO@
 HAVE_EXCHANGE = @HAVE_EXCHANGE@
 HAVE_TEMPERATURE = @HAVE_TEMPERATURE@
+HIBERNATE = @HIBERNATE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
+INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
@@ -166,9 +178,9 @@ LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MKINSTALLDIRS = @MKINSTALLDIRS@
 MODULE_ARCH = @MODULE_ARCH@
 MSGFMT = @MSGFMT@
+MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -189,6 +201,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSUB = @POSUB@
 RANLIB = @RANLIB@
 SED = @SED@
@@ -197,78 +211,52 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+SUSPEND = @SUSPEND@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
 TEMPERATURE_VERSION = @TEMPERATURE_VERSION@
+USE_MODULE_BACKLIGHT = @USE_MODULE_BACKLIGHT@
 USE_MODULE_BATTERY = @USE_MODULE_BATTERY@
 USE_MODULE_BLUEZ = @USE_MODULE_BLUEZ@
 USE_MODULE_CLOCK = @USE_MODULE_CLOCK@
 USE_MODULE_COMP = @USE_MODULE_COMP@
 USE_MODULE_CONF = @USE_MODULE_CONF@
-USE_MODULE_CONF_ACPIBINDINGS = @USE_MODULE_CONF_ACPIBINDINGS@
 USE_MODULE_CONF_APPLICATIONS = @USE_MODULE_CONF_APPLICATIONS@
-USE_MODULE_CONF_BORDERS = @USE_MODULE_CONF_BORDERS@
-USE_MODULE_CONF_CLIENTLIST = @USE_MODULE_CONF_CLIENTLIST@
-USE_MODULE_CONF_COLORS = @USE_MODULE_CONF_COLORS@
-USE_MODULE_CONF_DESK = @USE_MODULE_CONF_DESK@
-USE_MODULE_CONF_DESKLOCK = @USE_MODULE_CONF_DESKLOCK@
-USE_MODULE_CONF_DESKS = @USE_MODULE_CONF_DESKS@
 USE_MODULE_CONF_DIALOGS = @USE_MODULE_CONF_DIALOGS@
 USE_MODULE_CONF_DISPLAY = @USE_MODULE_CONF_DISPLAY@
-USE_MODULE_CONF_DPMS = @USE_MODULE_CONF_DPMS@
 USE_MODULE_CONF_EDGEBINDINGS = @USE_MODULE_CONF_EDGEBINDINGS@
-USE_MODULE_CONF_ENGINE = @USE_MODULE_CONF_ENGINE@
-USE_MODULE_CONF_FONTS = @USE_MODULE_CONF_FONTS@
-USE_MODULE_CONF_ICON_THEME = @USE_MODULE_CONF_ICON_THEME@
-USE_MODULE_CONF_IMC = @USE_MODULE_CONF_IMC@
 USE_MODULE_CONF_INTERACTION = @USE_MODULE_CONF_INTERACTION@
 USE_MODULE_CONF_INTL = @USE_MODULE_CONF_INTL@
 USE_MODULE_CONF_KEYBINDINGS = @USE_MODULE_CONF_KEYBINDINGS@
 USE_MODULE_CONF_MENUS = @USE_MODULE_CONF_MENUS@
-USE_MODULE_CONF_MIME = @USE_MODULE_CONF_MIME@
-USE_MODULE_CONF_MOUSE = @USE_MODULE_CONF_MOUSE@
-USE_MODULE_CONF_MOUSEBINDINGS = @USE_MODULE_CONF_MOUSEBINDINGS@
-USE_MODULE_CONF_MOUSE_CURSOR = @USE_MODULE_CONF_MOUSE_CURSOR@
 USE_MODULE_CONF_PATHS = @USE_MODULE_CONF_PATHS@
 USE_MODULE_CONF_PERFORMANCE = @USE_MODULE_CONF_PERFORMANCE@
-USE_MODULE_CONF_PROFILES = @USE_MODULE_CONF_PROFILES@
-USE_MODULE_CONF_SCALE = @USE_MODULE_CONF_SCALE@
-USE_MODULE_CONF_SCREENSAVER = @USE_MODULE_CONF_SCREENSAVER@
+USE_MODULE_CONF_RANDR = @USE_MODULE_CONF_RANDR@
 USE_MODULE_CONF_SHELVES = @USE_MODULE_CONF_SHELVES@
-USE_MODULE_CONF_STARTUP = @USE_MODULE_CONF_STARTUP@
 USE_MODULE_CONF_THEME = @USE_MODULE_CONF_THEME@
-USE_MODULE_CONF_TRANSITIONS = @USE_MODULE_CONF_TRANSITIONS@
-USE_MODULE_CONF_WALLPAPER = @USE_MODULE_CONF_WALLPAPER@
 USE_MODULE_CONF_WALLPAPER2 = @USE_MODULE_CONF_WALLPAPER2@
-USE_MODULE_CONF_WINDOW_DISPLAY = @USE_MODULE_CONF_WINDOW_DISPLAY@
-USE_MODULE_CONF_WINDOW_FOCUS = @USE_MODULE_CONF_WINDOW_FOCUS@
 USE_MODULE_CONF_WINDOW_MANIPULATION = @USE_MODULE_CONF_WINDOW_MANIPULATION@
 USE_MODULE_CONF_WINDOW_REMEMBERS = @USE_MODULE_CONF_WINDOW_REMEMBERS@
-USE_MODULE_CONF_WINLIST = @USE_MODULE_CONF_WINLIST@
 USE_MODULE_CONNMAN = @USE_MODULE_CONNMAN@
 USE_MODULE_CPUFREQ = @USE_MODULE_CPUFREQ@
 USE_MODULE_DROPSHADOW = @USE_MODULE_DROPSHADOW@
 USE_MODULE_EVERYTHING = @USE_MODULE_EVERYTHING@
-USE_MODULE_EVERYTHING_APPS = @USE_MODULE_EVERYTHING_APPS@
-USE_MODULE_EVERYTHING_ASPELL = @USE_MODULE_EVERYTHING_ASPELL@
-USE_MODULE_EVERYTHING_CALC = @USE_MODULE_EVERYTHING_CALC@
-USE_MODULE_EVERYTHING_FILES = @USE_MODULE_EVERYTHING_FILES@
-USE_MODULE_EVERYTHING_SETTINGS = @USE_MODULE_EVERYTHING_SETTINGS@
-USE_MODULE_EVERYTHING_WINDOWS = @USE_MODULE_EVERYTHING_WINDOWS@
 USE_MODULE_FILEMAN = @USE_MODULE_FILEMAN@
 USE_MODULE_FILEMAN_OPINFO = @USE_MODULE_FILEMAN_OPINFO@
 USE_MODULE_GADMAN = @USE_MODULE_GADMAN@
 USE_MODULE_IBAR = @USE_MODULE_IBAR@
 USE_MODULE_IBOX = @USE_MODULE_IBOX@
-USE_MODULE_ILLUME = @USE_MODULE_ILLUME@
 USE_MODULE_ILLUME2 = @USE_MODULE_ILLUME2@
 USE_MODULE_MIXER = @USE_MODULE_MIXER@
 USE_MODULE_MSGBUS = @USE_MODULE_MSGBUS@
+USE_MODULE_NOTIFICATION = @USE_MODULE_NOTIFICATION@
 USE_MODULE_OFONO = @USE_MODULE_OFONO@
 USE_MODULE_PAGER = @USE_MODULE_PAGER@
+USE_MODULE_SHOT = @USE_MODULE_SHOT@
 USE_MODULE_START = @USE_MODULE_START@
 USE_MODULE_SYSCON = @USE_MODULE_SYSCON@
 USE_MODULE_SYSTRAY = @USE_MODULE_SYSTRAY@
+USE_MODULE_TASKS = @USE_MODULE_TASKS@
 USE_MODULE_TEMPERATURE = @USE_MODULE_TEMPERATURE@
 USE_MODULE_WINLIST = @USE_MODULE_WINLIST@
 USE_MODULE_WIZARD = @USE_MODULE_WIZARD@
@@ -276,12 +264,11 @@ USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
 VERSION = @VERSION@
+WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
+WAYLAND_LIBS = @WAYLAND_LIBS@
 XGETTEXT = @XGETTEXT@
-XMKMF = @XMKMF@
-X_CFLAGS = @X_CFLAGS@
-X_EXTRA_LIBS = @X_EXTRA_LIBS@
-X_LIBS = @X_LIBS@
-X_PRE_LIBS = @X_PRE_LIBS@
+XGETTEXT_015 = @XGETTEXT_015@
+XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -349,8 +336,6 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 version_info = @version_info@
-x_cflags = @x_cflags@
-x_libs = @x_libs@
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = \
 about_bot.png \
@@ -360,16 +345,7 @@ arrow_down.png \
 arrow_left.png \
 arrow_right.png \
 arrow_up.png \
-ball.png \
 base_bg.png \
-bat_content1b.png \
-bat_content1.png \
-bat_content2b.png \
-bat_content2.png \
-bat_content3b.png \
-bat_content3.png \
-bat_over.png \
-bat_shadow.png \
 bd_bottom.png \
 bd_button_close_focused.png \
 bd_button_close_shadow.png \
@@ -387,7 +363,6 @@ bd_top_hilight.png \
 bd_top.png \
 big_arrow_down.png \
 big_arrow_up.png \
-bluetooth.png \
 bluetooth-powered.png \
 bluetooth-inactive.png \
 bluetooth-hidden.png \
@@ -415,7 +390,6 @@ busy-6.png \
 busy-7.png \
 busy-8.png \
 busy-9.png \
-cfg.png \
 check_base.png \
 check_on.png \
 check_sel.png \
@@ -449,6 +423,7 @@ everything_box.png \
 outline.png \
 everything_item_bg.png \
 exclam.png \
+favorites.png \
 frame_1.png \
 frame_2.png \
 gadman_border.png \
@@ -609,6 +584,7 @@ icon_screen_right.png \
 icon_screensaver.png \
 icon_screen_setup.png \
 icon_screen_vflip.png \
+icon_screenshot.png \
 icon_shelf_bottom_desk.png \
 icon_shelf_bottom_left.png \
 icon_shelf_bottom.png \
@@ -664,8 +640,6 @@ illume-kbd-on.png \
 illume-mode-dual-left.png \
 illume-mode-dual-top.png \
 illume-mode-single.png \
-init_check1.png \
-init_check2.png \
 inset_raised.png \
 inset_sunk_dark.png \
 inset_sunk.png \
@@ -714,11 +688,10 @@ pointer_glint_12.png \
 pointer_glow.png \
 pointer_mono.png \
 pointer.png \
-power_glow.png \
-power.png \
 radio_base.png \
 radio_on.png \
 radio_sel.png \
+refresh.png \
 sb_runnerh.png \
 sb_runnerv.png \
 shelf_alt_bg.png \
@@ -742,11 +715,6 @@ topsh.png \
 transition_vswipe.png \
 vgrad_dark.png \
 vgrad_light.png \
-wifi_0.png \
-wifi_1.png \
-wifi_2.png \
-wifi_3.png \
-wifi_4.png \
 wp-tb1.png \
 wp-bot1.png \
 wp-tb2.png \
@@ -761,6 +729,7 @@ exq-bglight.png \
 exq-logo.png \
 exq-dot.png \
 exq-dot-glow.png \
+exq-vgrad.png \
 connman-disconnect.png \
 connman-disconnect-offline.png \
 connman-ethernet.png \
@@ -775,7 +744,47 @@ connman-connecting-4.png \
 comp-sh1.png \
 shelf_alt_vert_bg.png \
 icon_look.png \
-icon_gadget.png
+icon_gadget.png \
+flip_0b.png \
+flip_0t.png \
+flip_1b.png \
+flip_1t.png \
+flip_2b.png \
+flip_2t.png \
+flip_3b.png \
+flip_3t.png \
+flip_4b.png \
+flip_4t.png \
+flip_5b.png \
+flip_5t.png \
+flip_6b.png \
+flip_6t.png \
+flip_7b.png \
+flip_7t.png \
+flip_8b.png \
+flip_8t.png \
+flip_9b.png \
+flip_9t.png \
+flip_amb.png \
+flip_amt.png \
+flip_base.png \
+flip_base_shad.png \
+flip_b.png \
+flip_pmb.png \
+flip_pmt.png \
+flip_shad.png \
+flip_t.png \
+flip_colon.png \
+bulb-0.png \
+bulb-1.png \
+bulb-2.png \
+batt_base.png \
+batt_level.png \
+batt_over.png \
+batt_power.png \
+bg_shadow.png \
+bg_over.png \
+bg_base.png
 
 all: all-am
 

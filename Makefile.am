@@ -10,7 +10,6 @@ MAINTAINERCLEANFILES = \
 ABOUT-NLS* \
 Makefile.in \
 aclocal.m4 \
-autom4te.cache \
 compile \
 config.guess \
 config.h.in \
@@ -22,7 +21,6 @@ depcomp \
 install-sh \
 ltmain.sh \
 missing \
-mkinstalldirs \
 $(PACKAGE_TARNAME)-$(PACKAGE_VERSION).tar.gz \
 $(PACKAGE_TARNAME)-$(PACKAGE_VERSION).tar.bz2 \
 $(PACKAGE_TARNAME)-$(PACKAGE_VERSION)-doc.tar.bz2 \
@@ -81,4 +79,4 @@ pkgconfig_DATA = enlightenment.pc
 
 doc:
 	@echo "entering doc/"
-	make -C doc doc
+	$(MAKE) -C doc doc

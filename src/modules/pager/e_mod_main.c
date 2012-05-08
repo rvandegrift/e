@@ -5,7 +5,7 @@
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__);
-static char *_gc_label(E_Gadcon_Client_Class *client_class __UNUSED__);
+static const char *_gc_label(E_Gadcon_Client_Class *client_class __UNUSED__);
 static Evas_Object *_gc_icon(E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas);
 static const char *_gc_id_new(E_Gadcon_Client_Class *client_class __UNUSED__);
 
@@ -251,7 +251,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
 
-static char *
+static const char *
 _gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Pager");
@@ -391,7 +391,8 @@ _pager_desk_new(Pager *p, E_Desk *desk, int xpos, int ypos)
      {
 	Pager_Win *pw;
 
-	if ((bd->new_client) || ((bd->desk != desk) && (!bd->sticky))) 
+	if ((bd->new_client) || (bd->zone != desk->zone) ||
+	    ((bd->desk != desk) && (!bd->sticky))) 
 	  continue;
 	pw = _pager_window_new(pd, bd);
 	if (pw) pd->wins = eina_list_append(pd->wins, pw);
@@ -609,7 +610,7 @@ _pager_window_new(Pager_Desk *pd, E_Border *border)
 	edje_object_part_swallow(pw->o_window, "e.swallow.icon", o);
      }
 
-   if (border->client.icccm.urgent)
+   if (border->client.icccm.urgent && !border->focused)
      {
 	if (!(border->iconic))
 	  edje_object_signal_emit(pd->o_desk, "e,state,urgent", "e");
@@ -781,34 +782,31 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
    ev = event_info;
    if ((ev->button == 3) && (!pager_config->menu))
      {
-	E_Menu *ma, *mg;
+	E_Menu *m;
 	E_Menu_Item *mi;
 	int cx, cy;
 
-	ma = e_menu_new();
-	e_menu_post_deactivate_callback_set(ma, _menu_cb_post, inst);
-	pager_config->menu = ma;
+	m = e_menu_new();	
+	mi = e_menu_item_new(m);
+	e_menu_item_label_set(mi, _("Settings"));
+	e_util_menu_item_theme_icon_set(mi, "configure");
+	e_menu_item_callback_set(mi, _pager_inst_cb_menu_configure, NULL);
 
-	if (e_configure_registry_exists("screen/virtual_desktops"))
+	m = e_gadcon_client_util_menu_items_append(inst->gcc, m, 0);
+	e_menu_post_deactivate_callback_set(m, _menu_cb_post, inst);
+	pager_config->menu = m;
+
+    	if (e_configure_registry_exists("screen/virtual_desktops"))
 	  {
-	     mi = e_menu_item_new(ma);
+	     mi = e_menu_item_new_relative(m, NULL);
 	     e_menu_item_label_set(mi, _("Virtual Desktops Settings"));
 	     e_util_menu_item_theme_icon_set(mi, "preferences-desktop");
 	     e_menu_item_callback_set(mi, _pager_inst_cb_menu_virtual_desktops_dialog, inst);
 	  }
 
-	mg = e_menu_new();
-
-	mi = e_menu_item_new(mg);
-	e_menu_item_label_set(mi, _("Settings"));
-	e_util_menu_item_theme_icon_set(mi, "configure");
-	e_menu_item_callback_set(mi, _pager_inst_cb_menu_configure, NULL);
-
-	e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
-
 	e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon, &cx, &cy, 
                                           NULL, NULL);
-	e_menu_activate_mouse(ma,
+	e_menu_activate_mouse(m,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
@@ -1360,7 +1358,7 @@ _pager_cb_event_border_urgent_change(void *data __UNUSED__, int type __UNUSED__,
 	     pw = _pager_desk_window_find(pd, ev->border);
 	     if (pw)
 	       {
-		  if (urgent)
+		  if (urgent && !ev->border->focused)
 		    {
 		       if (!(ev->border->iconic))
 			 {
@@ -2181,11 +2179,11 @@ _pager_desk_cb_mouse_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNU
 	if (((unsigned int) (dx * dx) + (unsigned int) (dy * dy)) <= 
 	    (resist * resist)) return;
 
-	pd->pager->dragging = 1;
+	if (pd->pager) pd->pager->dragging = 1;
 	pd->drag.start = 0;
      }
 
-   if (pd->drag.in_pager)
+   if (pd->drag.in_pager && pd->pager)
      {
 	evas_object_geometry_get(pd->o_desk, &x, &y, &w, &h);
 	drag = e_drag_new(pd->pager->zone->container,
@@ -2463,7 +2461,7 @@ _pager_popup_cb_action_show(E_Object *obj __UNUSED__, const char *params __UNUSE
 static void
 _pager_popup_cb_action_switch(E_Object *obj __UNUSED__, const char *params, Ecore_Event_Key *ev)
 {
-   int max_x,max_y, desk_x, desk_y;
+   int max_x,max_y, desk_x;
    int x = 0, y = 0;
 
    if (!act_popup)
@@ -2475,8 +2473,7 @@ _pager_popup_cb_action_switch(E_Object *obj __UNUSED__, const char *params, Ecor
      }
 
    e_zone_desk_count_get(act_popup->pager->zone, &max_x, &max_y);
-   desk_x = current_desk->x + x;
-   desk_y = current_desk->y + y;
+   desk_x = current_desk->x /* + x <=this is always 0 */;
 
    if (!strcmp(params, "left"))
      x = -1;

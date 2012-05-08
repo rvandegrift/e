@@ -134,7 +134,7 @@ struct _E_Gadcon_Client_Class
 	E_Gadcon_Client *(*init)     (E_Gadcon *gc, const char *name, const char *id, const char *style);
 	void             (*shutdown) (E_Gadcon_Client *gcc);
 	void             (*orient)   (E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-	char            *(*label)    (E_Gadcon_Client_Class *client_class);
+	const char      *(*label)    (E_Gadcon_Client_Class *client_class);
 	Evas_Object     *(*icon)     (E_Gadcon_Client_Class *client_class, Evas *evas);
 	/* All members below are part of version 2 */
 	/* Create new id, so that the gadcon client can refer to a config set inside the module */
@@ -195,9 +195,9 @@ struct _E_Gadcon_Client
    const char *style;
    unsigned char autoscroll : 1;
    unsigned char resizable : 1;
-   
    unsigned char moving : 1;
    unsigned char resizing : 1;
+   unsigned char autoscroll_set : 1;
    Evas_Coord dx, dy;
 
    struct 
@@ -287,7 +287,7 @@ EAPI void             e_gadcon_client_resizable_set(E_Gadcon_Client *gcc, int re
 EAPI int	      e_gadcon_client_geometry_get(E_Gadcon_Client *gcc, int *x, int *y, int *w, int *h);
 EAPI int              e_gadcon_client_viewport_geometry_get(E_Gadcon_Client *gcc, int *x, int *y, int *w, int *h);
 EAPI E_Zone          *e_gadcon_client_zone_get(E_Gadcon_Client *gcc);
-EAPI void             e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu_main, E_Menu *menu_gadget, int flags);
+EAPI E_Menu          *e_gadcon_client_util_menu_items_append(E_Gadcon_Client *gcc, E_Menu *menu_gadget, int flags);
 EAPI void             e_gadcon_client_util_menu_attach(E_Gadcon_Client *gcc);
 EAPI void             e_gadcon_locked_set(E_Gadcon *gc, int lock);
 EAPI void             e_gadcon_urgent_show(E_Gadcon *gc);
@@ -314,6 +314,30 @@ EAPI void e_gadcon_location_register (E_Gadcon_Location *loc);
 EAPI void e_gadcon_location_unregister (E_Gadcon_Location *loc);
 EAPI void e_gadcon_location_set_icon_name(E_Gadcon_Location *loc, const char *name);
 EAPI void e_gadcon_client_add_location_menu(E_Gadcon_Client *gcc, E_Menu *menu);
+
+#define GADCON_CLIENT_CONFIG_GET(_type, _items, _gc_class, _id)		\
+  if (!_id)								\
+    {									\
+       char buf[128];							\
+       int num = 0;							\
+       _type *ci;							\
+       if (_items)							\
+	 {								\
+	    const char *p;						\
+	    ci = eina_list_last(_items)->data;				\
+	    p = strrchr (ci->id, '.');					\
+	    if (p) num = atoi (p + 1) + 1;				\
+	 }								\
+       snprintf (buf, sizeof (buf), "%s.%d", _gc_class.name, num);	\
+       _id = buf;							\
+    }									\
+  else									\
+    {									\
+       Eina_List *l;							\
+       _type *ci;							\
+       EINA_LIST_FOREACH(_items, l, ci)					\
+	 if ((ci->id) && (!strcmp(ci->id, id))) return ci;		\
+    }
 
 #endif
 #endif

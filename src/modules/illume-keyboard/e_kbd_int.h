@@ -46,7 +46,7 @@ struct _E_Kbd_Int
    struct {
       char             *directory;
       const char       *file;
-      int               w, h;
+      int               w, h, orig_h;
       int               fuzz;
       int		direction;
       E_Kbd_Int_Type    type;
@@ -87,7 +87,7 @@ struct _E_Kbd_Int
 
 struct _E_Kbd_Int_Key
 {
-   int x, y, w, h;
+   int x, y, w, h, orig_y, orig_h;
    
    Eina_List *states;
    Evas_Object *obj, *zoom_obj, *icon_obj, *zoom_icon_obj;
@@ -96,8 +96,10 @@ struct _E_Kbd_Int_Key
    unsigned char selected : 1;
    
    unsigned char is_shift : 1;
+   unsigned char is_multi_shift : 1;
    unsigned char is_ctrl : 1;
    unsigned char is_alt : 1;
+   unsigned char is_altgr : 1;
    unsigned char is_capslock : 1;
 };
 

@@ -45,16 +45,21 @@ e_module_shutdown(void)
 #endif
 
    /* do not use EINA_LIST_FREE! e_object_del modifies list */
-   while (_e_modules)
+   if (x_fatal)
+       e_module_save_all();
+   else
      {
-	m = _e_modules->data;
-	if ((m) && (m->enabled) && !(m->error))
-	  {
-	     m->func.save(m);
-	     m->func.shutdown(m);
-	     m->enabled = 0;
-	  }
-	e_object_del(E_OBJECT(m));
+        while (_e_modules)
+          {
+             m = _e_modules->data;
+             if ((m) && (m->enabled) && !(m->error))
+               {
+                  m->func.save(m);
+                  m->func.shutdown(m);
+                  m->enabled = 0;
+               }
+             e_object_del(E_OBJECT(m));
+          }
      }
 
    return 1;
@@ -87,9 +92,9 @@ e_module_all_load(void)
 
 	     if (!em->name) continue;
 
-	     setenv("E_MODULE_LOAD", em->name, 1);
+	     e_util_env_set("E_MODULE_LOAD", em->name);
 	     snprintf (buf, sizeof(buf), _("Loading Module: %s"), em->name);
-	     e_init_status_set(em->name);
+	     e_init_status_set(buf);
 
 	     m = e_module_new(em->name);
 	     if (m) e_module_enable(m);
@@ -133,7 +138,7 @@ e_module_new(const char *name)
 	m->error = 1;
 	goto init_done;
      }
-   m->handle = dlopen(modpath, RTLD_NOW | RTLD_GLOBAL);
+   m->handle = dlopen(modpath, (RTLD_NOW | RTLD_GLOBAL));
    if (!m->handle)
      {
 	snprintf(body, sizeof(body), 
@@ -224,12 +229,12 @@ init_done:
      }
    if (!in_list)
      {
-	E_Config_Module *em;
+	E_Config_Module *module;
 
-	em = E_NEW(E_Config_Module, 1);
-	em->name = eina_stringshare_add(m->name);
-	em->enabled = 0;
-	e_config->modules = eina_list_append(e_config->modules, em);
+	module = E_NEW(E_Config_Module, 1);
+	module->name = eina_stringshare_add(m->name);
+	module->enabled = 0;
+	e_config->modules = eina_list_append(e_config->modules, module);
 	e_config_save_queue();
      }
    if (modpath) eina_stringshare_del(modpath);
@@ -565,7 +570,6 @@ _e_module_sort_priority(const void *d1, const void *d2)
    m2 = d2;
    return (m2->priority - m1->priority);
 }
-
 
 static void 
 _e_module_event_update_free(void *data __UNUSED__, void *event) 

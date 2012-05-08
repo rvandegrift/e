@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Link
 Name=Temperature
+Name[ru]=Температура
 Name[cs]=Teplota
+Name[de]=Temperatur
 Name[eo]=Temperaturo
 Name[hu]=Hőmérséklet
 Name[fr]=Température
@@ -9,7 +11,9 @@ Name[tr]=Sıcaklık
 Name[pt]=Temperatura
 Icon=e-module-temperature
 Comment=Temperature monitor.
+Comment[ru]=Измеряет и показывает температуру системы.
 Comment[cs]=Měřič teploty.
+Comment[de]=Temperaturmonitor.
 Comment[eo]=Elrigardi temperaturon.
 Comment[hu]=Egy hőmérséklet monitorozó modul.
 Comment[it]=Monitor per le temperature.

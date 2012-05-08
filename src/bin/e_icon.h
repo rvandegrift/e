@@ -3,6 +3,9 @@
 #ifndef E_ICON_H
 #define E_ICON_H
 
+EINTERN int e_icon_init(void);
+EINTERN int e_icon_shutdown(void);
+
 EAPI Evas_Object *e_icon_add              (Evas *evas);
 EAPI Eina_Bool    e_icon_file_set         (Evas_Object *obj, const char *file);
 EAPI Eina_Bool    e_icon_file_key_set     (Evas_Object *obj, const char *file, const char *key);

@@ -10,8 +10,6 @@
  */
 
 #include "e.h"
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
 #include "e_mod_main.h"
 
 #define RETRY_TIMEOUT 2.0
@@ -112,6 +110,20 @@ static E_Module *systray_mod = NULL;
 static Instance *instance = NULL; /* only one systray ever possible */
 static char tmpbuf[PATH_MAX]; /* general purpose buffer, just use immediately */
 
+static Eina_Bool 
+_systray_site_is_safe(E_Gadcon_Site site) 
+{
+   /* NB: filter out sites we know are not safe for a systray to sit.
+    * This was done so that systray could be put into illume indicator 
+    * (or anywhere else really) that is 'safe' for systray to be. 
+    * Pretty much, this is anywhere but Desktop and toolbars at the moment */
+   if (e_gadcon_site_is_desktop(site)) 
+     return EINA_FALSE;
+   else if (e_gadcon_site_is_any_toolbar(site)) 
+     return EINA_FALSE;
+   return EINA_TRUE;
+}
+
 static const char *
 _systray_theme_path(void)
 {
@@ -143,20 +155,17 @@ static void
 _systray_menu_new(Instance *inst, Evas_Event_Mouse_Down *ev)
 {
    E_Zone *zone;
-   E_Menu *ma, *mg;
+   E_Menu *m;
    int x, y;
 
    zone = e_util_zone_current_get(e_manager_current_get());
 
-   ma = e_menu_new();
-   e_menu_post_deactivate_callback_set(ma, _systray_menu_cb_post, inst);
-   inst->menu = ma;
-
-   mg = e_menu_new();
-
-   e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
+   m = e_menu_new();
+   m = e_gadcon_client_util_menu_items_append(inst->gcc, m, 0);
+   e_menu_post_deactivate_callback_set(m, _systray_menu_cb_post, inst);
+   inst->menu = m;
    e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon, &x, &y, NULL, NULL);
-   e_menu_activate_mouse(ma, zone, x + ev->output.x, y + ev->output.y,
+   e_menu_activate_mouse(m, zone, x + ev->output.x, y + ev->output.y,
 			 1, 1, E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
 }
 
@@ -381,7 +390,7 @@ _systray_icon_del_list(Instance *inst, Eina_List *l, Icon *icon)
    inst->icons = eina_list_remove_list(inst->icons, l);
 
    ecore_x_window_save_set_del(icon->win);
-   ecore_x_window_reparent(icon->win, None, 0, 0);
+   ecore_x_window_reparent(icon->win, 0, 0, 0);
    evas_object_del(icon->o);
    free(icon);
 
@@ -402,19 +411,17 @@ _systray_atom_st_get(int screen_num)
    return _atom_st_num;
 }
 
-/* XXX TODO: should be in ecore_x */
 static Eina_Bool
 _systray_selection_owner_set(int screen_num, Ecore_X_Window win)
 {
    Ecore_X_Atom atom;
-   Ecore_X_Display *disp = ecore_x_display_get();
    Ecore_X_Window cur_selection;
    Eina_Bool ret;
 
    atom = _systray_atom_st_get(screen_num);
-   XSetSelectionOwner(disp, atom, win, ecore_x_current_time_get());
+   ecore_x_selection_owner_set(win, atom, ecore_x_current_time_get());
    ecore_x_sync();
-   cur_selection = XGetSelectionOwner(disp, atom);
+   cur_selection = ecore_x_selection_owner_get(atom);
 
    ret = (cur_selection == win);
    if (!ret)
@@ -436,7 +443,7 @@ _systray_deactivate(Instance *inst)
 {
    Ecore_X_Window old;
 
-   if (inst->win.selection == None) return;
+   if (inst->win.selection == 0) return;
 
    edje_object_signal_emit(inst->ui.gadget, _sig_disable, _sig_source);
 
@@ -444,12 +451,12 @@ _systray_deactivate(Instance *inst)
      _systray_icon_del_list(inst, inst->icons, inst->icons->data);
 
    old = inst->win.selection;
-   inst->win.selection = None;
+   inst->win.selection = 0;
    _systray_selection_owner_set_current(inst);
    ecore_x_sync();
    ecore_x_window_free(old);
    ecore_x_window_free(inst->win.base);
-   inst->win.base = None;
+   inst->win.base = 0;
 }
 
 static Eina_Bool
@@ -494,43 +501,41 @@ _systray_activate(Instance *inst)
    Ecore_X_Atom atom;
    Ecore_X_Window old_win;
    Ecore_X_Window_Attributes attr;
-   Ecore_X_Display *dpy;
 
-   if (inst->win.selection != None) return 1;
+   if (inst->win.selection != 0) return 1;
 
    atom = _systray_atom_st_get(inst->con->manager->num);
-   dpy = ecore_x_display_get();
-   old_win = XGetSelectionOwner(dpy, atom);
-   if (old_win != None) return 0;
+   old_win = ecore_x_selection_owner_get(atom);
+   if (old_win != 0) return 0;
 
-   if (inst->win.base == None)
+   if (inst->win.base == 0)
      {
 	if (!_systray_base_create(inst))
 	  return 0;
      }
 
    inst->win.selection = ecore_x_window_input_new(inst->win.base, 0, 0, 1, 1);
-   if (inst->win.selection == None)
+   if (inst->win.selection == 0)
      {
 	ecore_x_window_free(inst->win.base);
-	inst->win.base = None;
+	inst->win.base = 0;
 	return 0;
      }
 
    if (!_systray_selection_owner_set_current(inst))
      {
 	ecore_x_window_free(inst->win.selection);
-	inst->win.selection = None;
+	inst->win.selection = 0;
 	ecore_x_window_free(inst->win.base);
-	inst->win.base = None;
+	inst->win.base = 0;
 	return 0;
      }
 
    ecore_x_window_attributes_get(inst->win.base, &attr);
 
-   visual = XVisualIDFromVisual(attr.visual);
-   XChangeProperty(dpy, inst->win.selection, _atom_st_visual, XA_VISUALID,
-		   32, PropModeReplace, (void *)&visual, 1);
+   visual = ecore_x_visual_id_get(attr.visual);
+   ecore_x_window_prop_card32_set(inst->win.selection, _atom_st_visual,
+                                  (void *)&visual, 1);
 
    ecore_x_client_message32_send(inst->con->manager->root, _atom_manager,
 				 ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
@@ -787,7 +792,7 @@ _systray_cb_selection_clear(void *data, int type __UNUSED__, void *event)
    Ecore_X_Event_Selection_Clear *ev = event;
    Instance *inst = data;
 
-   if ((ev->win == inst->win.selection) && (inst->win.selection != None) &&
+   if ((ev->win == inst->win.selection) && (inst->win.selection != 0) &&
        (ev->atom == _systray_atom_st_get(inst->con->manager->num)))
      {
 	edje_object_signal_emit(inst->ui.gadget, _sig_disable, _sig_source);
@@ -796,9 +801,9 @@ _systray_cb_selection_clear(void *data, int type __UNUSED__, void *event)
 	  _systray_icon_del_list(inst, inst->icons, inst->icons->data);
 
 	ecore_x_window_free(inst->win.selection);
-	inst->win.selection = None;
+	inst->win.selection = 0;
 	ecore_x_window_free(inst->win.base);
-	inst->win.base = None;
+	inst->win.base = 0;
 	_systray_retry(inst);
      }
    return ECORE_CALLBACK_PASS_ON;
@@ -894,6 +899,14 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 	return NULL;
      }
 
+   if ((gc->shelf) && (!gc->shelf->popup))
+     {
+	e_util_dialog_internal
+	  (_("Systray Error"),
+	   _("Systray cannot work in a shelf that is set to below everything."));
+	return NULL;
+     }
+
    inst = E_NEW(Instance, 1);
    if (!inst)
      return NULL;
@@ -910,8 +923,8 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    else
      inst->win.parent = (Ecore_X_Window) ecore_evas_window_get(gc->ecore_evas);
 
-   inst->win.base = None;
-   inst->win.selection = None;
+   inst->win.base = 0;
+   inst->win.selection = 0;
 
    inst->ui.gadget = edje_object_add(inst->evas);
 
@@ -1089,7 +1102,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
    _systray_size_apply(inst);
 }
 
-static char *
+static const char *
 _gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Systray");
@@ -1119,7 +1132,7 @@ static const E_Gadcon_Client_Class _gc_class =
   GADCON_CLIENT_CLASS_VERSION, _name,
   {
      _gc_init, _gc_shutdown, _gc_orient, _gc_label, _gc_icon, _gc_id_new, NULL,
-     e_gadcon_site_is_not_toolbar
+     _systray_site_is_safe
   },
   E_GADCON_CLIENT_STYLE_INSET
 };

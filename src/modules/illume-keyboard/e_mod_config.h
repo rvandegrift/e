@@ -1,8 +1,8 @@
 #ifndef E_MOD_CONFIG_H
 #define E_MOD_CONFIG_H
 
-#define IL_CONFIG_MIN 0
-#define IL_CONFIG_MAJ 0
+#define IL_CONFIG_MIN 3
+#define IL_CONFIG_MAJ 1
 
 typedef struct _Il_Kbd_Config Il_Kbd_Config;
 
@@ -15,6 +15,12 @@ struct _Il_Kbd_Config
 
    // Not User Configurable. Placeholders
    const char *mod_dir;
+   int zoom_level;
+   int slide_dim;
+   double hold_timer;
+   double scale_height;
+   int layout;
+
    E_Config_Dialog *cfd;
 };
 

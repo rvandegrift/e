@@ -13,7 +13,7 @@ INCLUDES               = -I. \
                          -I$(top_srcdir) \
                          -I$(top_srcdir)/src/modules/$(MODULE) \
                          -I$(top_srcdir)/src/bin \
-                         -I$(top_srcdir)/src/lib \
+                         -I$(top_builddir)/src/bin \
                          -I$(top_srcdir)/src/modules \
                          @e_cflags@
 
@@ -22,7 +22,9 @@ pkg_LTLIBRARIES        = module.la
 module_la_SOURCES      = e_mod_main.c \
                          e_mod_main.h \
 			 e_int_config_interaction.c \
-                         e_int_config_interaction.h
+                         e_int_config_interaction.h \
+                         e_int_config_mouse.c \
+                         e_int_config_mouse.h
 
 module_la_LIBADD       = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version

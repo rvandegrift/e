@@ -77,6 +77,25 @@ e_modapi_init(E_Module *m)
 
    /* allocate enough zones */
    zones = calloc(zcount, sizeof(Ecore_X_Window));
+   if (!zones) 
+     {
+        /* free the keyboard */
+        E_FREE(_e_illume_kbd);
+
+        /* shutdown quickpanel & kbd sub-systems */
+        e_mod_quickpanel_shutdown();
+        e_mod_kbd_shutdown();
+
+        /* shutdown the config subsystem */
+        e_mod_illume_config_shutdown();
+
+        /* clear module directory variable */
+        if (_e_illume_mod_dir) eina_stringshare_del(_e_illume_mod_dir);
+        _e_illume_mod_dir = NULL;
+
+        return NULL;
+     }
+
    zcount = 0;
 
    /* loop the zones and create quickpanels for each one */

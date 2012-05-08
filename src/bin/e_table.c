@@ -74,6 +74,7 @@ e_table_freeze(Evas_Object *obj)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERR(0);
    sd = evas_object_smart_data_get(obj);
    sd->frozen++;
    return sd->frozen;
@@ -84,6 +85,7 @@ e_table_thaw(Evas_Object *obj)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERR(0);
    sd = evas_object_smart_data_get(obj);
    sd->frozen--;
    if (sd->frozen <= 0) _e_table_smart_reconfigure(sd);
@@ -95,6 +97,7 @@ e_table_homogenous_set(Evas_Object *obj, int homogenous)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERRNR();
    sd = evas_object_smart_data_get(obj);
    if (sd->homogenous == homogenous) return;
    sd->homogenous = homogenous;
@@ -108,6 +111,7 @@ e_table_pack(Evas_Object *obj, Evas_Object *child, int col, int row, int colspan
    E_Smart_Data *sd;
    E_Table_Item *ti;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERRNR();
    sd = evas_object_smart_data_get(obj);
    _e_table_smart_adopt(sd, child);
    sd->items = eina_list_append(sd->items, child);
@@ -166,6 +170,7 @@ e_table_col_row_size_get(Evas_Object *obj, int *cols, int *rows)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERRNR();
    sd = evas_object_smart_data_get(obj);
    if (sd->changed) _e_table_smart_extents_calcuate(sd);
    if (cols) *cols = sd->size.cols;
@@ -177,6 +182,7 @@ e_table_size_min_get(Evas_Object *obj, Evas_Coord *minw, Evas_Coord *minh)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERRNR();
    sd = evas_object_smart_data_get(obj);
    if (sd->changed) _e_table_smart_extents_calcuate(sd);
    if (minw) *minw = sd->min.w;
@@ -188,6 +194,7 @@ e_table_size_max_get(Evas_Object *obj, Evas_Coord *maxw, Evas_Coord *maxh)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERRNR();
    sd = evas_object_smart_data_get(obj);
    if (sd->changed) _e_table_smart_extents_calcuate(sd);
    if (maxw) *maxw = sd->max.w;
@@ -199,6 +206,7 @@ e_table_align_get(Evas_Object *obj, double *ax, double *ay)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERRNR();
    sd = evas_object_smart_data_get(obj);
    if (ax) *ax = sd->align.x;
    if (ay) *ay = sd->align.y;
@@ -209,6 +217,7 @@ e_table_align_set(Evas_Object *obj, double ax, double ay)
 {
    E_Smart_Data *sd;
    
+   if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERRNR();
    sd = evas_object_smart_data_get(obj);
    if ((sd->align.x == ax) && (sd->align.y == ay)) return;
    sd->align.x = ax;
@@ -291,8 +300,6 @@ _e_table_smart_reconfigure(E_Smart_Data *sd)
 
    if (!sd->changed) return;
    
-   x = sd->x;
-   y = sd->y;
    w = sd->w;
    h = sd->h;
 
@@ -302,16 +309,8 @@ _e_table_smart_reconfigure(E_Smart_Data *sd)
    minh = sd->min.h;
    expandw = 0;
    expandh = 0;
-   if (w < minw)
-     {
-	x = x + ((w - minw) * (1.0 - sd->align.x));
-	w = minw;
-     }
-   if (h < minh)
-     {
-	y = y + ((h - minh) * (1.0 - sd->align.y));
-	h = minh;
-     }
+   if (w < minw) w = minw;
+   if (h < minh) h = minh;
    EINA_LIST_FOREACH(sd->items, l, obj)
      {
 	E_Table_Item *ti;
@@ -570,18 +569,18 @@ _e_table_smart_reconfigure(E_Smart_Data *sd)
 	     EINA_LIST_FOREACH(sd->items, l, obj)
 	       {
 		  E_Table_Item *ti;
-		  Evas_Coord ww, hh, ow, oh, i;
+		  Evas_Coord ww, hh, ow, oh, idx;
 		  
 		  ti = evas_object_data_get(obj, "e_table_data");
 		  
 		  xx = x;
-		  for (i = 0; i < ti->col; i++) xx += cols[i];
+		  for (idx = 0; idx < ti->col; idx++) xx += cols[idx];
 		  ww = 0;
-		  for (i = ti->col; i < (ti->col + ti->colspan); i++) ww += cols[i];
+		  for (idx = ti->col; idx < (ti->col + ti->colspan); idx++) ww += cols[idx];
 		  yy = y;
-		  for (i = 0; i < ti->row; i++) yy += rows[i];
+		  for (idx = 0; idx < ti->row; idx++) yy += rows[idx];
 		  hh = 0;
-		  for (i = ti->row; i < (ti->row + ti->rowspan); i++) hh += rows[i];
+		  for (idx = ti->row; idx < (ti->row + ti->rowspan); idx++) hh += rows[idx];
 
 		  ow = ti->min.w;
 		  if (ti->fill_w) ow = ww;

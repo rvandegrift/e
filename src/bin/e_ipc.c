@@ -32,45 +32,48 @@ e_ipc_init(void)
      }
    else
      {
-	struct stat st;
+        struct stat st;
 
-	if (stat(buf, &st) == 0)
-	  {
-	     if ((st.st_uid ==
-		  getuid()) &&
-		 ((st.st_mode & (S_IFDIR|S_IRWXU|S_IRWXG|S_IRWXO)) ==
-		  (S_IRWXU|S_IFDIR)))
-	       {
-	       }
-	     else
-	       {
-		  e_error_message_show(_("Possible IPC Hack Attempt. The IPC socket\n"
-					 "directory already exists BUT has permissions\n"
-					 "that are too leanient (must only be readable\n" "and writable by the owner, and nobody else)\n"
-					 "or is not owned by you. Please check:\n"
-					 "%s/enlightenment-%s\n"), tmp, user);
-		  return 0;
-	       }
-	  }
-	else
-	  {
-	     e_error_message_show(_("The IPC socket directory cannot be created or\n"
-				    "examined.\n"
-				    "Please check:\n"
-				    "%s/enlightenment-%s\n"),
-				  tmp, user);
-	     return 0;
-	  }
+        if (stat(buf, &st) == 0)
+          {
+             if ((st.st_uid == getuid()) &&
+                 ((st.st_mode & (S_IFDIR | S_IRWXU | S_IRWXG | S_IRWXO)) ==
+                  (S_IRWXU | S_IFDIR)))
+               {
+               }
+             else
+               {
+                  e_error_message_show(_("Possible IPC Hack Attempt. The IPC socket\n"
+                                         "directory already exists BUT has permissions\n"
+                                         "that are too leanient (must only be readable\n" "and writable by the owner, and nobody else)\n"
+                                                                                          "or is not owned by you. Please check:\n"
+                                                                                          "%s/enlightenment-%s\n"), tmp, user);
+                  return 0;
+               }
+          }
+        else
+          {
+             e_error_message_show(_("The IPC socket directory cannot be created or\n"
+                                    "examined.\n"
+                                    "Please check:\n"
+                                    "%s/enlightenment-%s\n"),
+                                  tmp, user);
+             return 0;
+          }
      }
-   snprintf(buf, sizeof(buf), "%s/enlightenment-%s/disp-%s-%i", tmp, user, disp, pid);
+   snprintf(buf, sizeof(buf), "%s/enlightenment-%s/disp-%s-%i", 
+            tmp, user, disp, pid);
    _e_ipc_server = ecore_ipc_server_add(ECORE_IPC_LOCAL_SYSTEM, buf, 0, NULL);
    e_util_env_set("E_IPC_SOCKET", "");
    if (!_e_ipc_server) return 0;
    e_util_env_set("E_IPC_SOCKET", buf);
    printf("INFO: E_IPC_SOCKET=%s\n", buf);
-   ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_ADD, _e_ipc_cb_client_add, NULL);
-   ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_DEL, _e_ipc_cb_client_del, NULL);
-   ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_DATA, _e_ipc_cb_client_data, NULL);
+   ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_ADD, 
+                           _e_ipc_cb_client_add, NULL);
+   ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_DEL, 
+                           _e_ipc_cb_client_del, NULL);
+   ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_DATA, 
+                           _e_ipc_cb_client_data, NULL);
 
    e_ipc_codec_init();
 #endif
@@ -84,8 +87,8 @@ e_ipc_shutdown(void)
    e_ipc_codec_shutdown();
    if (_e_ipc_server)
      {
-	ecore_ipc_server_del(_e_ipc_server);
-	_e_ipc_server = NULL;
+        ecore_ipc_server_del(_e_ipc_server);
+        _e_ipc_server = NULL;
      }
 #endif
    return 1;
@@ -99,7 +102,8 @@ _e_ipc_cb_client_add(void *data __UNUSED__, int type __UNUSED__, void *event)
    Ecore_Ipc_Event_Client_Add *e;
 
    e = event;
-   if (ecore_ipc_client_server_get(e->client) != _e_ipc_server) return ECORE_CALLBACK_PASS_ON;
+   if (ecore_ipc_client_server_get(e->client) != _e_ipc_server) 
+     return ECORE_CALLBACK_PASS_ON;
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -109,7 +113,8 @@ _e_ipc_cb_client_del(void *data __UNUSED__, int type __UNUSED__, void *event)
    Ecore_Ipc_Event_Client_Del *e;
 
    e = event;
-   if (ecore_ipc_client_server_get(e->client) != _e_ipc_server) return ECORE_CALLBACK_PASS_ON;
+   if (ecore_ipc_client_server_get(e->client) != _e_ipc_server) 
+     return ECORE_CALLBACK_PASS_ON;
    /* delete client sruct */
    e_thumb_client_del(e);
    e_fm2_client_del(e);
@@ -124,7 +129,8 @@ _e_ipc_cb_client_data(void *data __UNUSED__, int type __UNUSED__, void *event)
    Ecore_Ipc_Event_Client_Data *e;
 
    e = event;
-   if (ecore_ipc_client_server_get(e->client) != _e_ipc_server) return ECORE_CALLBACK_PASS_ON;
+   if (ecore_ipc_client_server_get(e->client) != _e_ipc_server) 
+     return ECORE_CALLBACK_PASS_ON;
    switch (e->major)
      {
       case E_IPC_DOMAIN_SETUP:
@@ -133,7 +139,7 @@ _e_ipc_cb_client_data(void *data __UNUSED__, int type __UNUSED__, void *event)
       case E_IPC_DOMAIN_EVENT:
         switch (e->minor)
           {
-          case E_IPC_OP_EXEC_ACTION:
+           case E_IPC_OP_EXEC_ACTION:
                {
                   E_Ipc_2Str *req = NULL;
 
@@ -151,7 +157,7 @@ _e_ipc_cb_client_data(void *data __UNUSED__, int type __UNUSED__, void *event)
                               {
                                  E_Action *act = e_action_find(req->str1);
 
-                                 if (act && act->func.go)
+                                 if ((act) && (act->func.go))
                                    {
                                       act->func.go(E_OBJECT(man), req->str2);
                                       ok = 1;
@@ -178,22 +184,43 @@ _e_ipc_cb_client_data(void *data __UNUSED__, int type __UNUSED__, void *event)
                     }
                }
              break;
-          default:
+
+           default:
              break;
           }
-	break;
+        break;
+
       case E_IPC_DOMAIN_THUMB:
-	e_thumb_client_data(e);
-	break;
+        e_thumb_client_data(e);
+        break;
+
       case E_IPC_DOMAIN_FM:
-	e_fm2_client_data(e);
-	break;
+        e_fm2_client_data(e);
+        break;
+
       case E_IPC_DOMAIN_INIT:
-	e_init_client_data(e);
-	break;
+        e_init_client_data(e);
+        break;
+
+      case E_IPC_DOMAIN_ALERT:
+          {
+             switch (e->minor)
+               {
+                case E_ALERT_OP_RESTART:
+                  if (getenv("E_START_MTRACK"))
+                    e_util_env_set("MTRACK", "track");
+                  ecore_app_restart();
+                  break;
+                case E_ALERT_OP_EXIT:
+                  exit(-11);
+                  break;
+               }
+          }
+        break;
       default:
-	break;
+        break;
      }
    return 1;
 }
+
 #endif

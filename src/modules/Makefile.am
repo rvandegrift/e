@@ -26,6 +26,10 @@ if USE_MODULE_TEMPERATURE
 SUBDIRS += temperature
 endif
 
+if USE_MODULE_NOTIFICATION
+SUBDIRS += notification
+endif
+
 if USE_MODULE_CPUFREQ
 SUBDIRS += cpufreq
 endif
@@ -58,10 +62,6 @@ if USE_MODULE_CONF
 SUBDIRS += conf
 endif
 
-if USE_MODULE_CONF_WALLPAPER
-SUBDIRS += conf_wallpaper
-endif
-
 if USE_MODULE_CONF_WALLPAPER2
 SUBDIRS += conf_wallpaper2
 endif
@@ -70,80 +70,20 @@ if USE_MODULE_CONF_THEME
 SUBDIRS += conf_theme
 endif
 
-if USE_MODULE_CONF_COLORS
-SUBDIRS += conf_colors
-endif
-
-if USE_MODULE_CONF_FONTS
-SUBDIRS += conf_fonts
-endif
-
-if USE_MODULE_CONF_BORDERS
-SUBDIRS += conf_borders
-endif
-
-if USE_MODULE_CONF_ICON_THEME
-SUBDIRS += conf_icon_theme
-endif
-
-if USE_MODULE_CONF_MOUSE_CURSOR
-SUBDIRS += conf_mouse_cursor
-endif
-
-if USE_MODULE_CONF_TRANSITIONS
-SUBDIRS += conf_transitions
-endif
-
-if USE_MODULE_CONF_STARTUP
-SUBDIRS += conf_startup
-endif
-
 if USE_MODULE_CONF_INTL
 SUBDIRS += conf_intl
-endif
-
-if USE_MODULE_CONF_IMC
-SUBDIRS += conf_imc
-endif
-
-if USE_MODULE_CONF_PROFILES
-SUBDIRS += conf_profiles
 endif
 
 if USE_MODULE_MSGBUS
 SUBDIRS += msgbus
 endif
 
-if USE_MODULE_CONF_ENGINE
-SUBDIRS += conf_engine
-endif
-
 if USE_MODULE_CONF_APPLICATIONS
 SUBDIRS += conf_applications
 endif
 
-if USE_MODULE_CONF_DESKS
-SUBDIRS += conf_desks
-endif
-
-if USE_MODULE_CONF_DESK
-SUBDIRS += conf_desk
-endif
-
 if USE_MODULE_CONF_DISPLAY
 SUBDIRS += conf_display
-endif
-
-if USE_MODULE_CONF_DESKLOCK
-SUBDIRS += conf_desklock
-endif
-
-if USE_MODULE_CONF_SCREENSAVER
-SUBDIRS += conf_screensaver
-endif
-
-if USE_MODULE_CONF_DPMS
-SUBDIRS += conf_dpms
 endif
 
 if USE_MODULE_CONF_SHELVES
@@ -154,28 +94,8 @@ if USE_MODULE_CONF_KEYBINDINGS
 SUBDIRS += conf_keybindings
 endif
 
-if USE_MODULE_CONF_MOUSEBINDINGS
-SUBDIRS += conf_mousebindings
-endif
-
 if USE_MODULE_CONF_EDGEBINDINGS
 SUBDIRS += conf_edgebindings
-endif
-
-if USE_MODULE_CONF_ACPIBINDINGS
-SUBDIRS += conf_acpibindings
-endif
-
-if USE_MODULE_CONF_MOUSE
-SUBDIRS += conf_mouse
-endif
-
-if USE_MODULE_CONF_WINDOW_DISPLAY
-SUBDIRS += conf_window_display
-endif
-
-if USE_MODULE_CONF_WINDOW_FOCUS
-SUBDIRS += conf_window_focus
 endif
 
 if USE_MODULE_CONF_WINDOW_REMEMBERS
@@ -190,10 +110,6 @@ if USE_MODULE_CONF_MENUS
 SUBDIRS += conf_menus
 endif
 
-if USE_MODULE_CONF_CLIENTLIST
-SUBDIRS += conf_clientlist
-endif
-
 if USE_MODULE_CONF_DIALOGS
 SUBDIRS += conf_dialogs
 endif
@@ -202,24 +118,16 @@ if USE_MODULE_CONF_PERFORMANCE
 SUBDIRS += conf_performance
 endif
 
-if USE_MODULE_CONF_WINLIST
-SUBDIRS += conf_winlist
-endif
-
 if USE_MODULE_CONF_PATHS
 SUBDIRS += conf_paths
-endif
-
-if USE_MODULE_CONF_MIME
-SUBDIRS += conf_mime
 endif
 
 if USE_MODULE_CONF_INTERACTION
 SUBDIRS += conf_interaction
 endif
 
-if USE_MODULE_CONF_SCALE
-SUBDIRS += conf_scale
+if USE_MODULE_CONF_RANDR
+SUBDIRS += conf_randr
 endif
 
 if USE_MODULE_GADMAN
@@ -236,10 +144,6 @@ endif
 
 if USE_MODULE_BLUEZ
 SUBDIRS += bluez
-endif
-
-if USE_MODULE_ILLUME
-SUBDIRS += illume
 endif
 
 if USE_MODULE_ILLUME2
@@ -263,34 +167,6 @@ if USE_MODULE_EVERYTHING
 SUBDIRS += everything
 endif
 
-if USE_MODULE_EVERYTHING_FILES
-SUBDIRS += everything-files
-endif
-
-if USE_MODULE_EVERYTHING_APPS
-SUBDIRS += everything-apps
-endif
-
-if USE_MODULE_EVERYTHING_FILES
-SUBDIRS += everything-files
-endif
-
-if USE_MODULE_EVERYTHING_ASPELL
-SUBDIRS += everything-aspell
-endif
-
-if USE_MODULE_EVERYTHING_SETTINGS
-SUBDIRS += everything-settings
-endif
-
-if USE_MODULE_EVERYTHING_CALC
-SUBDIRS += everything-calc
-endif
-
-if USE_MODULE_EVERYTHING_WINDOWS
-SUBDIRS += everything-windows
-endif
-
 if USE_MODULE_SYSTRAY
 SUBDIRS += systray
 endif
@@ -302,3 +178,27 @@ endif
 if USE_MODULE_OFONO
 SUBDIRS += ofono
 endif
+
+if USE_MODULE_SHOT
+SUBDIRS += shot
+endif
+
+if USE_MODULE_BACKLIGHT
+SUBDIRS += backlight
+endif
+
+if USE_MODULE_TASKS
+SUBDIRS += tasks
+endif
+
+#if HAVE_WAYLAND_DRM
+# SUBDIRS += wl_drm
+#endif
+
+#if HAVE_WAYLAND_SHELL
+# SUBDIRS += wl_shell
+#endif
+
+#if HAVE_WAYLAND_SCREENSHOT
+# SUBDIRS += wl_screenshot
+#endif

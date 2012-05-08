@@ -1,6 +1,7 @@
 #include "e.h"
 #include "e_mod_main.h"
 #include "e_mod_config.h"
+#include "e_kbd_int.h"
 
 /* local function prototypes */
 static void *_il_kbd_config_create(E_Config_Dialog *cfd);
@@ -29,7 +30,11 @@ il_kbd_config_init(E_Module *m)
    E_CONFIG_VAL(D, T, use_internal, INT);
    E_CONFIG_VAL(D, T, run_keyboard, STR);
    E_CONFIG_VAL(D, T, dict, STR);
-
+   E_CONFIG_VAL(D, T, zoom_level, INT);
+   E_CONFIG_VAL(D, T, hold_timer, DOUBLE);
+   E_CONFIG_VAL(D, T, slide_dim, INT);
+   E_CONFIG_VAL(D, T, scale_height, DOUBLE);
+   E_CONFIG_VAL(D, T, layout, INT);
    il_kbd_cfg = e_config_domain_load("module.illume-keyboard", conf_edd);
    if ((il_kbd_cfg) && 
        ((il_kbd_cfg->version >> 16) < IL_CONFIG_MAJ)) 
@@ -44,11 +49,26 @@ il_kbd_config_init(E_Module *m)
         il_kbd_cfg->use_internal = 1;
         il_kbd_cfg->run_keyboard = NULL;
         il_kbd_cfg->dict = eina_stringshare_add("English_(US).dic");
+        il_kbd_cfg->zoom_level = 4;
+        il_kbd_cfg->slide_dim = 4;
+        il_kbd_cfg->hold_timer = 0.25;
      }
    if (il_kbd_cfg) 
      {
         /* Add new config variables here */
         /* if ((il_kbd_cfg->version & 0xffff) < 1) */
+        if ((il_kbd_cfg->version & 0xffff) < 2)
+          {
+             il_kbd_cfg->zoom_level = 4;
+             il_kbd_cfg->slide_dim = 4;
+             il_kbd_cfg->hold_timer = 0.25;
+             il_kbd_cfg->scale_height = 1.0;
+          }
+        if ((il_kbd_cfg->version & 0xffff) < IL_CONFIG_MIN)
+          {
+             il_kbd_cfg->layout = E_KBD_INT_TYPE_ALPHA;
+          }
+
         il_kbd_cfg->version = (IL_CONFIG_MAJ << 16) | IL_CONFIG_MIN;
      }
 
@@ -128,7 +148,7 @@ _il_kbd_config_free(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdat
 static Evas_Object *
 _il_kbd_config_ui(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata __UNUSED__) 
 {
-   Evas_Object *list, *of, *ow;
+   Evas_Object *list, *of, *ow, *sl, *ol;
    E_Radio_Group *rg;
    Eina_List *l;
 
@@ -164,8 +184,8 @@ _il_kbd_config_ui(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_D
                     }
                   nn++;
                }
-	     EINA_LIST_FREE(kbds, desktop)
-	       efreet_desktop_free(desktop);
+             EINA_LIST_FREE(kbds, desktop)
+               efreet_desktop_free(desktop);
           }
      }
 
@@ -189,11 +209,50 @@ _il_kbd_config_ui(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_D
              e_widget_framelist_object_append(of, ow);
              evas_object_smart_callback_add(ow, "changed", 
                                             _il_kbd_config_changed, NULL);
-	     efreet_desktop_free(desktop);
+             efreet_desktop_free(desktop);
              nn++;
-	  }
+          }
      }
+   
+   ol = e_widget_label_add(evas, _("Displacement ratio"));
+   e_widget_framelist_object_append(of, ol);
+   sl = e_widget_slider_add(evas, EINA_TRUE, 0, "1/%.0f", 1.0, 10.0, 1.0, 0,
+                            NULL, &(il_kbd_cfg->slide_dim), 150);
+   e_widget_framelist_object_append(of, sl);
+
+   ol = e_widget_label_add(evas, _("Delay for zoom popup"));
+   e_widget_framelist_object_append(of, ol);
+   sl = e_widget_slider_add(evas, EINA_TRUE, 0, "%.2f second(s)", 0.0, 3.0, 0.01, 0,
+                            &(il_kbd_cfg->hold_timer), NULL, 150);
+   e_widget_framelist_object_append(of, sl);
+
+   ol = e_widget_label_add(evas, _("Zoom level"));
+   e_widget_framelist_object_append(of, ol);
+   sl = e_widget_slider_add(evas, EINA_TRUE, 0, "%.0f", 1.0, 10.0, 1.0, 0,
+                            NULL, &(il_kbd_cfg->zoom_level), 150);
+   e_widget_framelist_object_append(of, sl);
+
+   ol = e_widget_label_add(evas, _("Height"));
+   e_widget_framelist_object_append(of, ol);
+   sl = e_widget_slider_add(evas, EINA_TRUE, 0, "%.2f", 0.2, 2.0, 0.1, 0,
+                            &(il_kbd_cfg->scale_height), NULL, 150);
+   evas_object_smart_callback_add(sl, "changed", 
+                                  _il_kbd_config_changed, NULL);
+        
+   e_widget_framelist_object_append(of, sl);
+
    e_widget_list_object_append(list, of, 1, 0, 0.0);
+
+   of = e_widget_framelist_add(evas, _("Layout"), 0);
+   rg = e_widget_radio_group_new(&(il_kbd_cfg->layout));
+   ow = e_widget_radio_add(evas, _("Default"), E_KBD_INT_TYPE_ALPHA, rg);
+   e_widget_framelist_object_append(of, ow);
+   evas_object_smart_callback_add(ow, "changed", _il_kbd_config_changed, NULL);
+   ow = e_widget_radio_add(evas, _("Terminal"), E_KBD_INT_TYPE_TERMINAL, rg);
+   e_widget_framelist_object_append(of, ow);
+   evas_object_smart_callback_add(ow, "changed", _il_kbd_config_changed, NULL);
+   e_widget_list_object_append(list, of, 1, 0, 0.0);
+   
    return list;
 }
 
@@ -242,8 +301,8 @@ _il_kbd_config_change_timeout(void *data __UNUSED__)
                     }
                   nn++;
                }
-	     EINA_LIST_FREE(kbds, desktop)
-	       efreet_desktop_free(desktop);
+             EINA_LIST_FREE(kbds, desktop)
+               efreet_desktop_free(desktop);
           }
      }
 

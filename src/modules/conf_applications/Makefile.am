@@ -13,7 +13,7 @@ INCLUDES               = -I. \
                          -I$(top_srcdir) \
                          -I$(top_srcdir)/src/modules/$(MODULE) \
                          -I$(top_srcdir)/src/bin \
-                         -I$(top_srcdir)/src/lib \
+                         -I$(top_builddir)/src/bin \
                          -I$(top_srcdir)/src/modules \
                          @e_cflags@
 pkgdir                 = $(libdir)/enlightenment/modules/$(MODULE)/$(MODULE_ARCH)
@@ -21,7 +21,13 @@ pkg_LTLIBRARIES        = module.la
 module_la_SOURCES      = e_mod_main.c \
                          e_mod_main.h \
 			 e_int_config_apps.c \
-                         e_int_config_apps.h
+                         e_int_config_apps.h \
+			 e_int_config_defapps.c \
+                         e_int_config_defapps.h \
+			 e_int_config_deskenv.c \
+			 e_int_config_deskenv.h \
+			 e_int_config_delapps.c \
+                         e_int_config_delapps.h
 
 module_la_LIBADD       = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version

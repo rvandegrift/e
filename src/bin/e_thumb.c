@@ -259,9 +259,13 @@ e_thumb_client_data(Ecore_Ipc_Event_Client_Data *e)
 		       _pending--;
 		       eth->done = 1;
 		       if (_pending == 0) _e_thumb_thumbnailers_kill();
-                       e_icon_preload_set(obj, 1);
-		       e_icon_file_key_set(obj, icon, "/thumbnail/data");
-                       _e_thumb_key_load(eth, icon);
+		       if (ecore_file_exists(icon))
+			 {
+			    e_icon_preload_set(obj, 1);
+			    e_icon_file_key_set(obj, icon, "/thumbnail/data");
+			    _e_thumb_key_load(eth, icon);
+			 }
+
 		       evas_object_smart_callback_call(obj, "e_thumb_gen", NULL);
 		    }
 	       }
@@ -417,6 +421,19 @@ _e_thumb_cb_exe_event_del(void *data __UNUSED__, int type __UNUSED__, void *even
 	  {
 	     _thumbnailers_exe = eina_list_remove_list(_thumbnailers_exe, l);
 	     break;
+	  }
+     }
+   if ((!_thumbnailers_exe) && (_thumb_queue))
+     {
+	while ((int) eina_list_count(_thumbnailers_exe) < _num_thumbnailers)
+	  {
+	     Ecore_Exe *exe_thumb;
+             char buf[4096];
+
+	     snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_thumb --nice=%d", e_prefix_lib_get(),
+		      e_config->thumb_nice);
+	     exe_thumb = ecore_exe_run(buf, NULL);
+	     _thumbnailers_exe = eina_list_append(_thumbnailers_exe, exe_thumb);
 	  }
      }
    return ECORE_CALLBACK_PASS_ON;

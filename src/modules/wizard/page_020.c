@@ -22,10 +22,12 @@ _profile_change(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
    snprintf(buf, sizeof(buf), "%s/profile.desktop", dir);
    desk = efreet_desktop_new(buf);
    if (desk)
-     e_widget_textblock_markup_set(textblock, desk->comment);
+     {
+        e_widget_textblock_markup_set(textblock, desk->comment);
+        efreet_desktop_free(desk);
+     }
    else
      e_widget_textblock_markup_set(textblock, _("Unknown"));
-   if (desk) efreet_desktop_free(desk);
 
    // enable next once you choose a profile
    e_wizard_button_next_enable_set(1);
@@ -92,6 +94,7 @@ wizard_page_show(E_Wizard_Page *pg)
 	     free(prof);
 	     continue;
 	  }
+        if (!strcmp(prof, "standard")) sel = i;
 	snprintf(buf, sizeof(buf), "%s/profile.desktop", dir);
         desk = efreet_desktop_new(buf);
 	label = prof;
@@ -127,32 +130,26 @@ wizard_page_show(E_Wizard_Page *pg)
    evas_object_show(ob);
    evas_object_show(of);
    e_wizard_page_show(o);
-   pg->data = of;
+//   pg->data = o;
    e_wizard_button_next_enable_set(0);
    return 1; /* 1 == show ui, and wait for user, 0 == just continue */
 }
 
 EAPI int
-wizard_page_hide(E_Wizard_Page *pg)
+wizard_page_hide(E_Wizard_Page *pg __UNUSED__)
 {
-   evas_object_del(pg->data);
+//   evas_object_del(pg->data);
    // actually apply profile
-   if (e_config_profile_get())
-     {
-	char buf[PATH_MAX];
-	if (e_user_dir_snprintf(buf, sizeof(buf), "config/%s", 
-                                e_config_profile_get()) >= sizeof(buf))
-	  return 1;
-	ecore_file_recursive_rm(buf);
-     }
    if (!profile) profile = "standard";
    e_config_profile_set(profile);
+   e_config_profile_del(e_config_profile_get());
+   e_config_load();
+   e_config_save();
    return 1;
 }
 
 EAPI int
 wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
-   // no need. done in page_070's wizard_page_show()
    return 1;
 }

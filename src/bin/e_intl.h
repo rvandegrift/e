@@ -1,6 +1,7 @@
-#ifdef E_TYPEDEFS
-
+#ifdef E_INTERNAL
 #if E_INTERNAL
+
+#ifdef E_TYPEDEFS
 #ifdef HAVE_GETTEXT
 #define _(str) gettext(str)
 #define d_(str, dom) dgettext(PACKAGE dom, str)
@@ -8,10 +9,8 @@
 #define _(str) (str)
 #define d_(str, dom) (str)
 #endif
-#endif
-
 /* This macro is used to just mark string for translation, this is useful
- * for string lists which are not dynamically allocated 
+ * for string lists which are not dynamically allocated
  */
 #define N_(str) (str)
 
@@ -56,5 +55,9 @@ EAPI E_Locale_Parts	*e_intl_locale_parts_get(const char *locale);
 EAPI void		 e_intl_locale_parts_free(E_Locale_Parts *locale_parts);
 EAPI char               *e_intl_locale_parts_combine(E_Locale_Parts *locale_parts, int mask);
 EAPI char		*e_intl_locale_charset_canonic_get(const char *charset);
+
+#endif
+#endif
+
 #endif
 #endif

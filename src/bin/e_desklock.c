@@ -69,6 +69,7 @@ static Eina_Bool _e_desklock_cb_key_down(void *data, int type, void *event);
 static Eina_Bool _e_desklock_cb_mouse_move(void *data, int type, void *event);
 static Eina_Bool _e_desklock_cb_custom_desklock_exit(void *data, int type, void *event);
 static Eina_Bool _e_desklock_cb_idle_poller(void *data);
+static Eina_Bool _e_desklock_cb_window_stack(void *data, int type, void *event);
 
 static void _e_desklock_null(void);
 static void _e_desklock_passwd_update(void);
@@ -109,7 +110,8 @@ e_desklock_init(void)
 EINTERN int
 e_desklock_shutdown(void)
 {
-   e_desklock_hide();
+   if (!x_fatal)
+      e_desklock_hide();
    if (e_config->desklock_background)
      e_filereg_deregister(e_config->desklock_background);
 
@@ -361,6 +363,18 @@ e_desklock_show(void)
      eina_list_append(edd->handlers,
 		      ecore_event_handler_add(ECORE_EVENT_KEY_DOWN,
 					      _e_desklock_cb_key_down, NULL));
+   edd->handlers =
+     eina_list_append(edd->handlers,
+		      ecore_event_handler_add(ECORE_X_EVENT_WINDOW_STACK,
+					      _e_desklock_cb_window_stack, NULL));
+   edd->handlers =
+     eina_list_append(edd->handlers,
+		      ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CONFIGURE,
+					      _e_desklock_cb_window_stack, NULL));
+   edd->handlers =
+     eina_list_append(edd->handlers,
+		      ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CREATE,
+					      _e_desklock_cb_window_stack, NULL));
 
    if ((total_zone_num > 1) && (e_config->desklock_login_box_zone == -2)) 
      {
@@ -444,6 +458,47 @@ e_desklock_hide(void)
 }
 
 static Eina_Bool
+_e_desklock_cb_window_stack(void *data __UNUSED__,
+			    int   type,
+			    void *event)
+{
+   Ecore_X_Window win, win2 = 0;
+   E_Desklock_Popup_Data *edp;
+   Eina_List *l;
+   Eina_Bool raise_win = EINA_TRUE;
+
+   if (type == ECORE_X_EVENT_WINDOW_STACK)
+     win = ((Ecore_X_Event_Window_Stack*) event)->event_win;
+   else if (type == ECORE_X_EVENT_WINDOW_CONFIGURE)
+     {
+        win = ((Ecore_X_Event_Window_Configure*) event)->event_win;
+        win2 = ((Ecore_X_Event_Window_Configure*) event)->win;
+     }
+   else if (type == ECORE_X_EVENT_WINDOW_CREATE)
+     win = ((Ecore_X_Event_Window_Create*) event)->win;
+   else 
+     return ECORE_CALLBACK_PASS_ON;
+   
+   EINA_LIST_FOREACH(edd->elock_wnd_list, l, edp)
+     {
+	if ((win == edp->popup_wnd->evas_win) ||
+            ((win2) && (win2 == edp->popup_wnd->evas_win)))
+	  {
+	     raise_win = EINA_FALSE;	     
+	     break;
+	  }
+     }
+
+   if (raise_win)
+     {
+	EINA_LIST_FOREACH(edd->elock_wnd_list, l, edp)
+	  ecore_evas_raise(edp->popup_wnd->ecore_evas);
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
 _e_desklock_cb_key_down(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_Event_Key *ev = event;
@@ -508,13 +563,15 @@ _e_desklock_cb_mouse_move(void *data __UNUSED__, int type __UNUSED__, void *even
 static void
 _e_desklock_passwd_update(void)
 {
-   char passwd_hidden[PASSWD_LEN] = "", *p, *pp;
+   int len, i;
+   char passwd_hidden[PASSWD_LEN] = "", *pp;
    E_Desklock_Popup_Data *edp;
    Eina_List *l;
 
    if (!edd) return;
 
-   for (p = edd->passwd, pp = passwd_hidden; *p; p++, pp++)
+   len = eina_unicode_utf8_get_len(edd->passwd);
+   for (i = 0, pp = passwd_hidden ; i < len ; i++, pp++)
      *pp = '*';
    *pp = 0;
 
@@ -608,18 +665,18 @@ _e_desklock_state_set(int state)
 {
    Eina_List *l;
    E_Desklock_Popup_Data *edp;
-   const char *signal, *text;
+   const char *signal_desklock, *text;
    if (!edd) return;
 
    edd->state = state;
    if (state == E_DESKLOCK_STATE_CHECKING)
      {
-	signal = "e,state,checking";
+	signal_desklock = "e,state,checking";
 	text = "Authenticating...";
      }
    else if (state == E_DESKLOCK_STATE_INVALID)
      {
-	signal = "e,state,invalid";
+	signal_desklock = "e,state,invalid";
 	text = "The password you entered is invalid. Try again.";
      }
    else
@@ -627,8 +684,8 @@ _e_desklock_state_set(int state)
 
    EINA_LIST_FOREACH(edd->elock_wnd_list, l, edp)
      {
-	edje_object_signal_emit(edp->login_box, signal, "e.desklock");
-	edje_object_signal_emit(edp->bg_object, signal, "e.desklock");
+	edje_object_signal_emit(edp->login_box, signal_desklock, "e.desklock");
+	edje_object_signal_emit(edp->bg_object, signal_desklock, "e.desklock");
 	edje_object_part_text_set(edp->login_box, "e.text.title", text);
      }
 }
@@ -706,8 +763,8 @@ _desklock_auth(char *passwd)
 	sigaction(SIGABRT, &action, NULL);
 
 	current_user = _desklock_auth_get_current_user();
-	eina_strlcpy(da.user, current_user, PATH_MAX);
-	eina_strlcpy(da.passwd, passwd, PATH_MAX);
+	eina_strlcpy(da.user, current_user, sizeof(da.user));
+	eina_strlcpy(da.passwd, passwd, sizeof(da.passwd));
 	/* security - null out passwd string once we are done with it */
 	for (p = passwd; *p; p++) *p = 0;
 	da.pam.handle = NULL;
@@ -718,7 +775,7 @@ _desklock_auth(char *passwd)
 	if (pamerr != PAM_SUCCESS)
 	  {
 	     free(current_user);
-	     exit(pamerr);
+	     exit(1);
 	  }
 	pamerr = pam_authenticate(da.pam.handle, 0);
 	pam_end(da.pam.handle, pamerr);

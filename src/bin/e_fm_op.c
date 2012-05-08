@@ -49,6 +49,12 @@ void *alloca (size_t);
 
 #define FREE(p) do { if (p) {free((void *)p); p = NULL;} } while (0)
 
+#define LG(fmt, args...) {\
+   FILE *f = fopen("log", "a"); \
+   if (f) fprintf(f, fmt, ##args); \
+   if (f) fclose(f); \
+}
+
 typedef struct _E_Fm_Op_Task E_Fm_Op_Task;
 typedef struct _E_Fm_Op_Copy_Data E_Fm_Op_Copy_Data;
 
@@ -156,17 +162,15 @@ main(int argc, char **argv)
    last = argc - 1;
    i = 2;
 
-   if (strcmp(argv[1], "cp") == 0)
-     type = E_FM_OP_COPY;
-   else if (strcmp(argv[1], "mv") == 0)
-     type = E_FM_OP_MOVE;
-   else if (strcmp(argv[1], "rm") == 0)
-     type = E_FM_OP_REMOVE;
-   else if (strcmp(argv[1], "lns") == 0)
-     type = E_FM_OP_SYMLINK;
+   if (!strcmp(argv[1], "cp")) type = E_FM_OP_COPY;
+   else if (!strcmp(argv[1], "mv")) type = E_FM_OP_MOVE;
+   else if (!strcmp(argv[1], "rm")) type = E_FM_OP_REMOVE;
+   else if (!strcmp(argv[1], "lns")) type = E_FM_OP_SYMLINK;
    else return 0;
 
-   if ((type == E_FM_OP_COPY) || (type == E_FM_OP_MOVE) || (type == E_FM_OP_SYMLINK))
+   if ((type == E_FM_OP_COPY) || 
+       (type == E_FM_OP_SYMLINK) || 
+       (type == E_FM_OP_MOVE))
      {
 	if (argc < 4) goto quit;
 
@@ -214,7 +218,7 @@ main(int argc, char **argv)
 
 		  /* Don't move a dir into itself */
 		  if (ecore_file_is_dir(p) &&
-		      (strncmp(p, p2, p2_len) == 0) &&
+		      (strncmp(p, p2, PATH_MAX) == 0) &&
 		      ((p[p2_len] == '/') || (p[p2_len] == '\0')))
 		    goto skip_arg;
 
@@ -417,8 +421,7 @@ _e_fm_op_stdin_data(void *data __UNUSED__, Ecore_Fd_Handler * fd_handler)
    static int length = 0;
    char *begin = NULL;
    ssize_t num = 0;
-   int msize;
-   int identity;
+   int msize, identity;
 
    fd = ecore_main_fd_handler_fd_get(fd_handler);
    if (!buf) 
@@ -446,7 +449,7 @@ _e_fm_op_stdin_data(void *data __UNUSED__, Ecore_Fd_Handler * fd_handler)
         buf = _e_fm_op_stdin_buffer;
         begin = _e_fm_op_stdin_buffer;
 
-	while (length >= 3 * sizeof(int))
+	while (length >= ((int)(3 * sizeof(int))))
 	  {
              begin = buf;
 
@@ -466,7 +469,7 @@ _e_fm_op_stdin_data(void *data __UNUSED__, Ecore_Fd_Handler * fd_handler)
 	     memcpy(&msize, buf, sizeof(int));
 	     buf += sizeof(int);
 
-	     if ((length - 3 * sizeof(int)) < msize)
+	     if ((length - 3 * (int)sizeof(int)) < msize)
 	       {
 		  /* There is not enough data to read the whole message. */
                   break;
@@ -675,6 +678,14 @@ _e_fm_op_work_idler(void *data __UNUSED__)
         if ((!_e_fm_op_scan_idler_p) && (!_e_fm_op_work_error) && 
             (!_e_fm_op_scan_error))
           ecore_main_loop_quit();
+        // if 
+        // _e_fm_op_scan_idler_p == NULL &&
+        // _e_fm_op_work_error == NULL &&
+        // _e_fm_op_scan_error == 1
+        // we can spin forever. why are we spinning at all? there are no
+        // tasks to be done. we have an error. wait for it to be handled
+        if ((!_e_fm_op_work_queue) && (!_e_fm_op_scan_queue))
+          ecore_main_loop_quit();
 
         return ECORE_CALLBACK_RENEW;
      }
@@ -776,7 +787,13 @@ _e_fm_op_scan_idler(void *data __UNUSED__)
                                         task->dst.name);
           }
         else
-          task->started = 1;
+          {
+             task->started = 1;
+             _e_fm_op_scan_queue =
+               eina_list_remove_list(_e_fm_op_scan_queue, node);
+             node = NULL;
+             _e_fm_op_scan_atom(task);
+          }
      }
    else if (dir && !task->started)
      {
@@ -866,6 +883,8 @@ _e_fm_op_send_error(E_Fm_Op_Task *task __UNUSED__, E_Fm_Op_Type type, const char
      }
    else
      {
+        int ret = 0;
+
         vsnprintf(str, READBUFSIZE - 3 * sizeof(int), fmt, ap);
         len = strlen(str);
 
@@ -873,7 +892,7 @@ _e_fm_op_send_error(E_Fm_Op_Task *task __UNUSED__, E_Fm_Op_Type type, const char
         *((int *)(buf + sizeof(int))) = type;
         *((int *)(buf + (2 * sizeof(int)))) = len + 1;
 
-        write(STDOUT_FILENO, buf, (3 * sizeof(int)) + len + 1);
+        ret = write(STDOUT_FILENO, buf, (3 * sizeof(int)) + len + 1);
 
         E_FM_OP_DEBUG("%s", str);
 	E_FM_OP_DEBUG(" Error sent.\n");
@@ -923,6 +942,7 @@ _e_fm_op_update_progress_report(int percent, int eta, double elapsed, off_t done
    const int id = E_FM_OP_PROGRESS;
    char *p, *data;
    int size, src_len, dst_len;
+   int ret = 0;
 
    src_len = strlen(src);
    dst_len = strlen(dst);
@@ -950,7 +970,7 @@ _e_fm_op_update_progress_report(int percent, int eta, double elapsed, off_t done
    P(dst);
 #undef P
 
-   write(STDOUT_FILENO, data, (3 * sizeof(int)) + size);
+   ret = write(STDOUT_FILENO, data, (3 * sizeof(int)) + size);
 
    E_FM_OP_DEBUG("Time left: %d at %e\n", eta, elapsed);
    E_FM_OP_DEBUG("Progress %d. \n", percent);
@@ -978,8 +998,8 @@ _e_fm_op_update_progress(E_Fm_Op_Task *task, off_t _plus_e_fm_op_done, off_t _pl
 {
    static int ppercent = -1;
    int percent;
-   static double ctime = 0;
-   static double stime = 0;
+   static double c_time = 0;
+   static double s_time = 0;
    double eta = 0;
    static int peta = -1;
    static E_Fm_Op_Task *ptask = NULL;
@@ -999,13 +1019,13 @@ _e_fm_op_update_progress(E_Fm_Op_Task *task, off_t _plus_e_fm_op_done, off_t _pl
 
         eta = peta;
 
-        if (!stime) stime = ecore_time_get();
+        if (!s_time) s_time = ecore_time_get();
 
         /* Update ETA once a second */
-        if ((_e_fm_op_done) && (ecore_time_get() - ctime > 1.0 )) 
+        if ((_e_fm_op_done) && (ecore_time_get() - c_time > 1.0 )) 
           {
-             ctime = ecore_time_get();
-             eta = (ctime - stime) * (_e_fm_op_total - _e_fm_op_done) / _e_fm_op_done;
+             c_time = ecore_time_get();
+             eta = (c_time - s_time) * (_e_fm_op_total - _e_fm_op_done) / _e_fm_op_done;
              eta = (int) (eta + 0.5);
           }
 
@@ -1014,7 +1034,7 @@ _e_fm_op_update_progress(E_Fm_Op_Task *task, off_t _plus_e_fm_op_done, off_t _pl
 	     ppercent = percent;
              peta = eta;
              ptask = task;
-	     _e_fm_op_update_progress_report(percent, eta, ctime - stime,
+	     _e_fm_op_update_progress_report(percent, eta, c_time - s_time,
 					     _e_fm_op_done, _e_fm_op_total,
 					     task->src.name, task->dst.name);
 	  }
@@ -1026,11 +1046,12 @@ static void
 _e_fm_op_copy_stat_info(E_Fm_Op_Task *task)
 {
    struct utimbuf ut;
+   int ret = 0;
 
    if (!task->dst.name) return;
 
    chmod(task->dst.name, task->src.st.st_mode);
-   chown(task->dst.name, task->src.st.st_uid, task->src.st.st_gid);
+   ret = chown(task->dst.name, task->src.st.st_uid, task->src.st.st_gid);
    ut.actime = task->src.st.st_atime;
    ut.modtime = task->src.st.st_mtime;
    utime(task->dst.name, &ut);

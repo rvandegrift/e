@@ -13,7 +13,7 @@ INCLUDES               = -I. \
                          -I$(top_srcdir) \
                          -I$(top_srcdir)/src/modules/$(MODULE) \
                          -I$(top_srcdir)/src/bin \
-                         -I$(top_srcdir)/src/lib \
+                         -I$(top_builddir)/src/bin \
                          -I$(top_srcdir)/src/modules \
                          @e_cflags@
 pkgdir                 = $(libdir)/enlightenment/modules/$(MODULE)/$(MODULE_ARCH)
@@ -23,7 +23,14 @@ module_la_SOURCES      = e_mod_main.c \
                          e_int_config_window_manip.h \
 			 e_int_config_window_geometry.c \
 			 e_int_config_window_maxpolicy.c \
-			 e_int_config_window_stacking.c
+			 e_int_config_window_stacking.c \
+                         e_int_config_window_process.c \
+                         e_int_config_window_display.c \
+                         e_int_config_window_display.h \
+                         e_int_config_focus.c \
+                         e_int_config_focus.h \
+                         e_int_config_clientlist.c \
+                         e_int_config_clientlist.h
 			 
 module_la_LIBADD       = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version

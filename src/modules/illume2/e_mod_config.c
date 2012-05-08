@@ -36,6 +36,7 @@ e_mod_illume_config_init(void)
 #define D _il_conf_edd
    E_CONFIG_VAL(D, T, version, INT);
    E_CONFIG_VAL(D, T, animation.vkbd.duration, INT);
+   E_CONFIG_VAL(D, T, animation.vkbd.resize_before, INT);
    E_CONFIG_VAL(D, T, animation.quickpanel.duration, INT);
    E_CONFIG_VAL(D, T, policy.name, STR);
    E_CONFIG_VAL(D, T, policy.vkbd.class, STR);
@@ -123,6 +124,7 @@ e_mod_illume_config_shutdown(void)
 int 
 e_mod_illume_config_save(void) 
 {
+   if ((!_il_conf_edd) || (!_e_illume_cfg)) return 0;
    return e_config_domain_save("module.illume2", _il_conf_edd, _e_illume_cfg);
 }
 
@@ -197,6 +199,7 @@ _e_mod_illume_config_new(void)
    _e_illume_cfg = E_NEW(E_Illume_Config, 1);
    _e_illume_cfg->version = 0;
    _e_illume_cfg->animation.vkbd.duration = 1000;
+   _e_illume_cfg->animation.vkbd.resize_before = 1;
    _e_illume_cfg->animation.quickpanel.duration = 1000;
    _e_illume_cfg->policy.name = eina_stringshare_add("illume");
 
