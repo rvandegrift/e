@@ -174,6 +174,10 @@ e_int_menus_main_new(void)
 
    subm = e_menu_new();
    dat->enlightenment = subm;
+   
+   l = _e_int_menus_augmentation_find("enlightenment/0");
+   if (l) _e_int_menus_augmentation_add(subm, l);
+   
    mi = e_menu_item_new(m);
    e_menu_item_label_set(mi, _("Enlightenment"));
    e_util_menu_item_theme_icon_set(mi, "enlightenment");
@@ -189,14 +193,14 @@ e_int_menus_main_new(void)
    e_util_menu_item_theme_icon_set(mi, "preferences-desktop-theme");
    e_menu_item_callback_set(mi, _e_int_menus_themes_about, NULL);
 
-   l = _e_int_menus_augmentation_find("main/5");
-   if (l) _e_int_menus_augmentation_add(m, l);
+   l = _e_int_menus_augmentation_find("enlightenment/1");
+   if (l) _e_int_menus_augmentation_add(subm, l);
 
    mi = e_menu_item_new(subm);
    e_menu_item_separator_set(mi, 1);
 
-   l = _e_int_menus_augmentation_find("main/6");
-   if (l) _e_int_menus_augmentation_add(m, l);
+   l = _e_int_menus_augmentation_find("enlightenment/2");
+   if (l) _e_int_menus_augmentation_add(subm, l);
 
    mi = e_menu_item_new(subm);
    e_menu_item_label_set(mi, _("Restart"));
@@ -208,13 +212,16 @@ e_int_menus_main_new(void)
    e_util_menu_item_theme_icon_set(mi, "application-exit");
    e_menu_item_callback_set(mi, _e_int_menus_main_exit, NULL);
 
-   l = _e_int_menus_augmentation_find("main/7");
+   l = _e_int_menus_augmentation_find("enlightenment/3");
+   if (l) _e_int_menus_augmentation_add(subm, l);
+   
+   l = _e_int_menus_augmentation_find("main/5");
    if (l) _e_int_menus_augmentation_add(m, l);
 
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
 
-   l = _e_int_menus_augmentation_find("main/8");
+   l = _e_int_menus_augmentation_find("main/6");
    if (l) _e_int_menus_augmentation_add(m, l);
 
    subm = e_int_menus_config_new();
@@ -224,10 +231,10 @@ e_int_menus_main_new(void)
    e_util_menu_item_theme_icon_set(mi, "preferences-system");
    e_menu_item_submenu_set(mi, subm);
 
-   l = _e_int_menus_augmentation_find("main/9");
+   l = _e_int_menus_augmentation_find("main/7");
    if (l) _e_int_menus_augmentation_add(m, l);
 
-   l = eina_hash_find(_e_int_menus_augmentation, "main/10");
+   l = eina_hash_find(_e_int_menus_augmentation, "main/8");
    if (l) 
      {
         separator = 1;
@@ -236,7 +243,7 @@ e_int_menus_main_new(void)
         _e_int_menus_augmentation_add(m, l);
      }
 
-   l = eina_hash_find(_e_int_menus_augmentation, "main/11");
+   l = eina_hash_find(_e_int_menus_augmentation, "main/9");
    if (l) 
      {
         if (!separator) 
@@ -883,15 +890,12 @@ _e_int_menus_clients_group_class_cb(const void *d1, const void *d2)
    bd1 = d1;
    bd2 = d2;
 
-   if (strcmp((const char*)bd1->client.icccm.class, 
-	      (const char*)bd2->client.icccm.class) > 0) 
+   if (!bd1->client.icccm.class)
+     return -1;
+   if (!bd2->client.icccm.class)
      return 1;
 
-   if (strcmp((const char*)bd1->client.icccm.class, 
-	      (const char*)bd2->client.icccm.class) < 0) 
-     return -1;
-
-   return -1;   /* Returning '-1' on equal is intentional */
+   return (strcmp(bd1->client.icccm.class, bd2->client.icccm.class) > 0 ? 1 : -1);
 }
 
 static int
@@ -932,19 +936,17 @@ _e_int_menus_clients_sort_z_order_cb(const void *d1, const void *d2)
 static void
 _e_int_menus_clients_menu_add_iconified(Eina_List *borders, E_Menu *m)
 {
-   Eina_List *l = NULL;
-   E_Border *bd;
-   E_Menu_Item *mi;
-
    if (eina_list_count(borders) > 0)
      { 
+        Eina_List *l = NULL;
+        E_Border *bd = NULL;
+        E_Menu_Item *mi = NULL;
+
 	mi = e_menu_item_new(m); 
 	e_menu_item_separator_set(mi, 1); 
 
 	EINA_LIST_FOREACH(borders, l, bd)
-	  { 
-	     _e_int_menus_clients_item_create(bd, m);
-	  }
+          _e_int_menus_clients_item_create(bd, m);
      }
 }
 
@@ -954,7 +956,7 @@ _e_int_menus_clients_add_by_class(Eina_List *borders, E_Menu *m)
    Eina_List *l = NULL, *ico = NULL;
    E_Border *bd; 
    E_Menu *subm = NULL;
-   E_Menu_Item *mi;
+   E_Menu_Item *mi = NULL;
    char *class = NULL;
 
    class = strdup("");
@@ -1005,7 +1007,7 @@ _e_int_menus_clients_add_by_desk(E_Desk *curr_desk, Eina_List *borders, E_Menu *
    Eina_List *l = NULL, *alt = NULL, *ico = NULL;
    E_Border *bd;
    E_Menu *subm;
-   E_Menu_Item *mi;
+   E_Menu_Item *mi = NULL;
 
    /* Deal with present desk first */
    EINA_LIST_FOREACH(borders, l, bd)
@@ -1096,7 +1098,7 @@ static void
 _e_int_menus_clients_pre_cb(void *data __UNUSED__, E_Menu *m)
 {
    E_Menu *subm;
-   E_Menu_Item *mi;
+   E_Menu_Item *mi = NULL;
    Eina_List *l = NULL, *borders = NULL;
    E_Border *border;
    E_Zone *zone = NULL;
@@ -1512,7 +1514,7 @@ _e_int_menus_shelves_add_cb(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_
    cs = E_NEW(E_Config_Shelf, 1);
    cs->name = eina_stringshare_add("shelf");
    cs->container = con->num;
-   cs->zone = zone->id;
+   cs->zone = zone->num;
    cs->popup = 1;
    cs->layer = 200;
    cs->orient = E_GADCON_ORIENT_CORNER_BR;

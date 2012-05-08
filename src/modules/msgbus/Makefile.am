@@ -9,7 +9,7 @@ INCLUDES               = -I. \
                          -I$(top_srcdir) \
                          -I$(top_srcdir)/src/modules/$(MODULE) \
                          -I$(top_srcdir)/src/bin \
-                         -I$(top_srcdir)/src/lib \
+                         -I$(top_builddir)/src/bin \
                          -I$(top_srcdir)/src/modules \
                          @e_cflags@
 
@@ -25,6 +25,7 @@ pkg_LTLIBRARIES        = module.la
 module_la_SOURCES      = e_mod_main.c \
                          e_mod_main.h \
                          msgbus_lang.c \
+			 msgbus_audit.c \
                          msgbus_desktop.c
 
 module_la_LIBADD       = @e_libs@ @dlopen_libs@

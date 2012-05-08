@@ -12,12 +12,12 @@
 #define SLIDE_LEFT   1
 #define SLIDE_RIGHT -1
 
-typedef struct _Evry_View	Evry_View;
 typedef struct _History		Evry_History;
 typedef struct _Config		Evry_Config;
 typedef struct _Evry_Selector	Evry_Selector;
 typedef struct _Tab_View	Tab_View;
 typedef struct _Evry_Window	Evry_Window;
+typedef struct _Gadget_Config   Gadget_Config;
 
 struct _Evry_Window
 {
@@ -45,6 +45,14 @@ struct _Evry_Window
   Eina_Bool grab;
 
   Evry_State *state_clearing;
+
+  struct
+  {
+      void (*hide) (Evry_Window *win, int finished);
+  } func;    
+
+  /* only to be used by creator of win */
+  void *data;
 };
 
 struct _Evry_Selector
@@ -120,26 +128,6 @@ struct _Evry_State
   Eina_Bool delete_me;
 };
 
-struct _Evry_View
-{
-  Evry_View  *id;
-  const char *name;
-  const char *trigger;
-  int active;
-  Evas_Object *o_list;
-  Evas_Object *o_bar;
-
-  Evry_View *(*create) (Evry_View *view, const Evry_State *s, const Evas_Object *swallow);
-  void (*destroy)      (Evry_View *view);
-  int  (*cb_key_down)  (Evry_View *view, const Ecore_Event_Key *ev);
-  int  (*update)       (Evry_View *view);
-  void (*clear)        (Evry_View *view);
-
-  int priority;
-
-  Evry_State *state;
-};
-
 struct _Tab_View
 {
   const Evry_State *state;
@@ -157,7 +145,7 @@ struct _Tab_View
   double align;
   double align_to;
   Ecore_Animator *animator;
-  Ecore_Idle_Exiter *timer;
+  Ecore_Timer *timer;
 };
 
 struct _Config
@@ -196,8 +184,9 @@ struct _Config
   /* use up/down keys for prev/next in thumb view */
   int cycle_mode;
 
+  Eina_List *gadgets;
+  
   unsigned char first_run;
-
   /* not saved data */
   Eina_List *actions;
   Eina_List *views;
@@ -205,6 +194,14 @@ struct _Config
   int min_w, min_h;
 };
 
+struct _Gadget_Config
+{
+  const char *id;
+  const char *plugin;
+  int hide_after_action;
+  int popup;
+};
+  
 struct _History
 {
   int version;
@@ -226,7 +223,7 @@ void  evry_plugin_update(Evry_Plugin *plugin, int state);
 void  evry_clear_input(Evry_Plugin *p);
 
 /* evry_util.c */
-Evas_Object *evry_icon_mime_get(const char *mime, Evas *e);
+/* Evas_Object *evry_icon_mime_get(const char *mime, Evas *e); */
 Evas_Object *evry_icon_theme_get(const char *icon, Evas *e);
 int   evry_fuzzy_match(const char *str, const char *match);
 Eina_List *evry_fuzzy_match_sort(Eina_List *items);
@@ -237,9 +234,9 @@ void  evry_util_file_detail_set(Evry_Item_File *file);
 int   evry_util_module_config_check(const char *module_name, int conf, int epoch, int version);
 Evas_Object *evry_util_icon_get(Evry_Item *it, Evas *e);
 int   evry_util_plugin_items_add(Evry_Plugin *p, Eina_List *items, const char *input, int match_detail, int set_usage);
-int   evry_items_sort_func(const void *data1, const void *data2);
 void  evry_item_changed(Evry_Item *it, int change_icon, int change_selected);
 char *evry_util_md5_sum(const char *str);
+void evry_util_items_sort(Eina_List **items, int flags);
 
 const char *evry_file_path_get(Evry_Item_File *file);
 const char *evry_file_url_get(Evry_Item_File *file);
@@ -263,8 +260,7 @@ Evry_Plugin *evry_plugin_new(Evry_Plugin *base, const char *name, const char *la
 			     Evry_Type item_type,
 			     Evry_Plugin *(*begin) (Evry_Plugin *p, const Evry_Item *item),
 			     void (*cleanup) (Evry_Plugin *p),
-			     int  (*fetch)   (Evry_Plugin *p, const char *input),
-			     void (*free) (Evry_Plugin *p));
+			     int  (*fetch)   (Evry_Plugin *p, const char *input));
 
 void  evry_plugin_free(Evry_Plugin *p);
 
@@ -302,13 +298,13 @@ void  evry_plug_collection_shutdown(void);
 
 int   evry_init(void);
 int   evry_shutdown(void);
-Evry_Window *evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params);
+Evry_Window *evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params, Eina_Bool popup);
 void  evry_hide(Evry_Window *win, int clear);
 
-int   evry_plug_actions_init();
-void  evry_plug_actions_shutdown();
+int   evry_plug_actions_init(void);
+void  evry_plug_actions_shutdown(void);
 
-Evry_Plugin *evry_aggregator_new(Evry_Window *win, int type);
+Evry_Plugin *evry_aggregator_new(int type);
 
 void  evry_history_init(void);
 void  evry_history_free(void);
@@ -325,57 +321,33 @@ int   evry_view_toggle(Evry_State *s, const char *trigger);
 int evry_gadget_init(void);
 void evry_gadget_shutdown(void);
 
+Eina_Bool evry_plug_apps_init(E_Module *m);
+void evry_plug_apps_shutdown(void);
+void evry_plug_apps_save(void);
+
+Eina_Bool evry_plug_files_init(E_Module *m);
+void evry_plug_files_shutdown(void);
+void evry_plug_files_save(void);
+
+Eina_Bool evry_plug_windows_init(E_Module *m);
+void evry_plug_windows_shutdown(void);
+void evry_plug_windows_save(void);
+
+Eina_Bool evry_plug_settings_init(E_Module *m);
+void evry_plug_settings_shutdown(void);
+void evry_plug_settings_save(void);
+
+Eina_Bool evry_plug_calc_init(E_Module *m);
+void evry_plug_calc_shutdown(void);
+void evry_plug_calc_save(void);
+
 Ecore_Event_Handler *evry_event_handler_add(int type, Eina_Bool (*func) (void *data, int type, void *event), const void *data);
 
+extern Evry_API *evry;
 extern Evry_History *evry_hist;
 extern Evry_Config  *evry_conf;
 extern int  _evry_events[NUM_EVRY_EVENTS];
-
-#define EVRY_ITEM_NEW(_base, _plugin, _label, _icon_get, _free)		\
-  (_base *) evry_item_new(EVRY_ITEM(E_NEW(_base, 1)), EVRY_PLUGIN(_plugin), \
-			  _label, _icon_get, _free)
-
-#define EVRY_ITEM_FREE(_item) evry_item_free((Evry_Item *)_item)
-#define EVRY_ITEM_REF(_item) evry_item_ref((Evry_Item *)_item)
-
-#define EVRY_PLUGIN_NEW(_base, _name, _icon, _item_type, _begin, _cleanup, _fetch, _free) \
-  evry_plugin_new(EVRY_PLUGIN(E_NEW(_base, 1)), _name, _(_name), _icon, _item_type, \
-		  _begin, _cleanup, _fetch, _free)
-
-#define EVRY_ACTION_NEW(_name, _in1, _in2, _icon, _action, _check)	\
-  evry_action_new(_name, _(_name), _in1, _in2, _icon, _action, _check)
-
-#define EVRY_PLUGIN_FREE(_p)			\
-  if (_p) evry_plugin_free(EVRY_PLUGIN(_p))
-
-#define EVRY_PLUGIN_UPDATE(_p, _action)			\
-  if (_p) evry_plugin_update(EVRY_PLUGIN(_p), _action)
-
-#define EVRY_PLUGIN_ITEMS_FREE(_p) {		\
-     Evry_Item *it;				\
-     EINA_LIST_FREE(EVRY_PLUGIN(_p)->items, it) \
-       evry_item_free(it); }
-
-#define EVRY_PLUGIN_ITEMS_ADD(_plugin, _items, _input, _match_detail, _set_usage) \
-  evry_util_plugin_items_add(EVRY_PLUGIN(_plugin), _items, _input, _match_detail, _set_usage)
-
-
-/*** Common Logging  ***/
-extern int _e_module_evry_log_dom;
-
-#ifndef EINA_LOG_DEFAULT_COLOR
-#define EINA_LOG_DEFAULT_COLOR EINA_COLOR_CYAN
-#endif
-
-#undef DBG
-#undef INF
-#undef WRN
-#undef ERR
-
-#define DBG(...) EINA_LOG_DOM_DBG(_e_module_evry_log_dom, __VA_ARGS__)
-#define INF(...) EINA_LOG_DOM_INFO(_e_module_evry_log_dom, __VA_ARGS__)
-#define WRN(...) EINA_LOG_DOM_WARN(_e_module_evry_log_dom, __VA_ARGS__)
-#define ERR(...) EINA_LOG_DOM_ERR(_e_module_evry_log_dom, __VA_ARGS__)
+extern E_Module *_mod_evry;
 
 /*** E Module ***/
 EAPI void *e_modapi_init     (E_Module *m);
@@ -383,13 +355,34 @@ EAPI int   e_modapi_shutdown (E_Module *m);
 EAPI int   e_modapi_save     (E_Module *m);
 EAPI E_Config_Dialog *evry_config_dialog(E_Container *con, const char *params);
 EAPI E_Config_Dialog *evry_collection_conf_dialog(E_Container *con, const char *params);
-
 EAPI extern E_Module_Api e_modapi;
 
-//#define CHECK_REFS
+/* #define CHECK_REFS 1
+ * #define PRINT_REFS 1
+ * #define CHECK_TIME 1
+ * #undef DBG
+ * #define DBG(...) ERR(__VA_ARGS__) */
 
 #ifdef CHECK_REFS
 extern Eina_List *_refd;
 #endif
+
+#ifdef CHECK_TIME
+extern double _evry_time;
+#endif
+
+
+/**
+ * @addtogroup Optional_Launcher
+ * @{
+ *
+ * @defgroup Module_Everything Everything Launcher
+ *
+ * Flexible launcher with plugins. Can do search as you type
+ * filtering, browse directories, view pictures, simple math, spell
+ * checking and of course: launching programs and executing commands.
+ *
+ * @}
+ */
 
 #endif

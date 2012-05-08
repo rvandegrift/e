@@ -78,6 +78,7 @@ e_widget_preview_file_set(Evas_Object *obj, const char *file, const char *key)
    if (wd->o_thumb) evas_object_del(wd->o_thumb);
 
    wd->o_thumb = e_icon_add(e_livethumb_evas_get(wd->img));
+   e_icon_fill_inside_set(wd->o_thumb, 0);
    e_icon_file_key_set(wd->o_thumb, file, key);
    evas_object_show(wd->o_thumb);
    e_livethumb_thumb_set(wd->img, wd->o_thumb);
@@ -119,6 +120,15 @@ e_widget_preview_thumb_set(Evas_Object *obj, const char *file, const char *key _
    evas_object_show(wd->img);
 
    return 1;
+}
+
+EAPI void
+e_widget_preview_vsize_set(Evas_Object *obj, Evas_Coord w, Evas_Coord h)
+{
+   E_Widget_Data *wd;
+
+   wd = e_widget_data_get(obj);
+   e_livethumb_vsize_set(wd->img, w, h);
 }
 
 static void

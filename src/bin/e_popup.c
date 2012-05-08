@@ -42,12 +42,14 @@ e_popup_new(E_Zone *zone, int x, int y, int w, int h)
    pop = E_OBJECT_ALLOC(E_Popup, E_POPUP_TYPE, _e_popup_free);
    if (!pop) return NULL;
    pop->zone = zone;
+   pop->zx = pop->zone->x;
+   pop->zy = pop->zone->y;
    pop->x = x;
    pop->y = y;
    pop->w = w;
    pop->h = h;
    pop->layer = 250;
-   pop->ecore_evas = e_canvas_new(e_config->evas_engine_popups, pop->zone->container->win,
+   pop->ecore_evas = e_canvas_new(pop->zone->container->win,
 				  pop->zone->x + pop->x, pop->zone->y + pop->y, pop->w, pop->h, 1, 1,
 				  &(pop->evas_win));
    if (!pop->ecore_evas)
@@ -123,7 +125,10 @@ e_popup_move(E_Popup *pop, int x, int y)
 {
    E_OBJECT_CHECK(pop);
    E_OBJECT_TYPE_CHECK(pop, E_POPUP_TYPE);
-   if ((pop->x == x) && (pop->y == y)) return;
+   if ((pop->x == x) && (pop->y == y) && 
+       (pop->zone->x == pop->zx) && (pop->zone->y == pop->zy)) return;
+   pop->zx = pop->zone->x;
+   pop->zy = pop->zone->y;
    pop->x = x;
    pop->y = y;
    ecore_evas_move(pop->ecore_evas,
@@ -152,7 +157,10 @@ e_popup_move_resize(E_Popup *pop, int x, int y, int w, int h)
    E_OBJECT_CHECK(pop);
    E_OBJECT_TYPE_CHECK(pop, E_POPUP_TYPE);
    if ((pop->x == x) && (pop->y == y) &&
-       (pop->w == w) && (pop->h == h)) return;
+       (pop->w == w) && (pop->h == h) &&
+       (pop->zone->x == pop->zx) && (pop->zone->y == pop->zy)) return;
+   pop->zx = pop->zone->x;
+   pop->zy = pop->zone->y;
    pop->x = x;
    pop->y = y;
    pop->w = w;

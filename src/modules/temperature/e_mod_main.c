@@ -6,11 +6,18 @@
 #include <sys/sysctl.h>
 #endif
 
+#ifdef __OpenBSD__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <sys/sensors.h>
+#endif
+
+
 /* gadcon requirements */
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-static char *_gc_label(E_Gadcon_Client_Class *client_class);
+static const char *_gc_label(E_Gadcon_Client_Class *client_class);
 static Evas_Object *_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas);
 static const char *_gc_id_new(E_Gadcon_Client_Class *client_class);
 /* and actually define the gadcon class that this module provides (just 1) */
@@ -163,7 +170,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
 
-static char *
+static const char *
 _gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Temperature");
@@ -217,26 +224,23 @@ _temperature_face_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj
    ev = event_info;
    if ((ev->button == 3) && (!inst->menu))
      {
-        E_Menu *ma, *mg;
+        E_Menu *m;
         E_Menu_Item *mi;
         int cx, cy;
 
-        ma = e_menu_new();
-        e_menu_post_deactivate_callback_set(ma, _temperature_face_cb_post_menu, inst);
-        inst->menu = ma;
-
-        mg = e_menu_new();
-
-        mi = e_menu_item_new(mg);
+        m = e_menu_new();
+        mi = e_menu_item_new(m);
         e_menu_item_label_set(mi, _("Settings"));
         e_util_menu_item_theme_icon_set(mi, "configure");
         e_menu_item_callback_set(mi, _temperature_face_cb_menu_configure, inst);
 
-        e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
+        m = e_gadcon_client_util_menu_items_append(inst->gcc, m, 0);
+        e_menu_post_deactivate_callback_set(m, _temperature_face_cb_post_menu, inst);
+        inst->menu = m;
 
         e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-        e_menu_activate_mouse(ma,
+        e_menu_activate_mouse(m,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_AUTO, ev->timestamp);

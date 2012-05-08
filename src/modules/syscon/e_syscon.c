@@ -24,6 +24,8 @@ static Evas_Object *o_flow_secondary = NULL;
 static Evas_Object *o_flow_extra = NULL;
 static int inevas = 0;
 static Ecore_Timer *deftimer = NULL;
+static double show_time = 0.0;
+static int act_count = 0;
 
 /* externally accessible functions */
 int
@@ -47,8 +49,32 @@ e_syscon_show(E_Zone *zone, const char *defact)
    int x, y, w, h, zx, zy, zw, zh;
    int iw, ih;
    Eina_List *l;
+   double t;
 
-   if (popup) return 0;
+   t = ecore_loop_time_get();
+   if (popup)
+     {
+        if ((t - show_time) > 0.5)
+          {
+             for (l = e_config->syscon.actions; l; l = l->next)
+               {
+                  E_Config_Syscon_Action *sca;
+                  E_Action *a;
+                  
+                  if (!(sca = l->data)) continue;
+                  if (!sca->action) continue;
+                  a = e_action_find(sca->action);
+                  if (!a) continue;
+                  if (sca->is_main == 2)
+                    {
+                       a->func.go(NULL, sca->params);
+                       e_syscon_hide();
+                       break;
+                    }
+               }
+          }
+        return 0;
+     }
 
    input_window = ecore_x_window_input_new(zone->container->win, zone->x,
                                            zone->y, zone->w, zone->h);
@@ -97,6 +123,9 @@ e_syscon_show(E_Zone *zone, const char *defact)
    edje_object_signal_callback_add(o, "e,action,syscon", "*", 
                                    _cb_signal_syscon, NULL);
 
+   act_count = 0;
+   show_time = t;
+   
    // main (default):
    //  halt | suspend | desk_lock
    // secondary (default):
@@ -104,8 +133,6 @@ e_syscon_show(E_Zone *zone, const char *defact)
    // extra (example for illume):
    //  home | close | kill
 
-   iw = 64 * e_scale;
-   ih = 64 * e_scale;
 
    o = e_flowlayout_add(popup->evas);
    o_flow_main = o;
@@ -317,6 +344,69 @@ _cb_key_down(__UNUSED__ void *data, __UNUSED__ int type, void *event)
      {
         // FIXME: implement focus and key control... eventually
      }
+   else if (!strcmp(ev->key, "Down"))
+     {
+        // FIXME: implement focus and key control... eventually
+     }
+   else if (!strcmp(ev->key, "Left"))
+     {
+        // FIXME: implement focus and key control... eventually
+     }
+   else if (!strcmp(ev->key, "Right"))
+     {
+        // FIXME: implement focus and key control... eventually
+     }
+   else if (!strcmp(ev->key, "Tab"))
+     {
+        // FIXME: implement focus and key control... eventually
+     }
+   else if (!strcmp(ev->key, "Enter"))
+     {
+        // FIXME: implement focus and key control... eventually
+     }
+   else
+     {
+        E_Action *act;
+        double t;
+        
+        t = ecore_loop_time_get();
+        if (t - show_time > 0.5)
+          {
+             act = e_bindings_key_down_event_find(E_BINDING_CONTEXT_ANY, ev);
+             if ((act) && (act->name))
+               {
+                  if (!strcmp(act->name, "syscon"))
+                    {
+                       if (popup)
+                         {
+                            e_syscon_show(popup->zone, do_defact);
+                         }
+                    }
+                  else
+                    {
+                       Eina_List *l;
+                       
+                       for (l = e_config->syscon.actions; l; l = l->next)
+                         {
+                            E_Config_Syscon_Action *sca;
+                            
+                            if (!(sca = l->data)) continue;
+                            if (!sca->action) continue;
+                            if (!strcmp(sca->action, act->name))
+                              {
+                                 act_count++;
+                                 if (act_count > 2)
+                                   {
+                                      act->func.go(NULL, sca->params);
+                                      e_syscon_hide();
+                                      break;
+                                   }
+                              }
+                         }
+                    }
+               }
+          }
+     }
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -445,9 +535,15 @@ _cb_signal_action_extra(void *data, Evas_Object *obj __UNUSED__, const char *emi
 static Eina_Bool
 _cb_timeout_defaction(void *data __UNUSED__)
 {
+   const char *defact = NULL;
    deftimer = NULL;
    if (!do_defact) return ECORE_CALLBACK_CANCEL;
+   defact = eina_stringshare_add(do_defact);
    e_syscon_hide();
-   _do_action_name(do_defact);
+   if (defact)
+     {
+        _do_action_name(defact);
+        eina_stringshare_del(defact);
+     }
    return ECORE_CALLBACK_CANCEL;
 }

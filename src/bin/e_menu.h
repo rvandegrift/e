@@ -21,6 +21,9 @@ typedef struct _E_Menu_Category_Callback E_Menu_Category_Callback;
 
 #define E_MENU_ITEM_TYPE 0xE0b0100a
 
+typedef void (*E_Menu_Cb) (void *data, E_Menu *m, E_Menu_Item *mi);
+
+
 struct _E_Menu
 {
    E_Object             e_obj_inherit;
@@ -110,27 +113,27 @@ struct _E_Menu_Item
    
    struct {
       void *data;
-      void (*func) (void *data, E_Menu *m, E_Menu_Item *mi);
+      E_Menu_Cb func;
    } cb; /* Callback for menu item activation */
 
    struct {
       void *data;
-      void (*func) (void *data, E_Menu *m, E_Menu_Item *mi);
+      E_Menu_Cb func;
    } realize_cb; /* Callback for menu item icon realization */
 
     struct {
       void *data;
-      void (*func) (void *data, E_Menu *m, E_Menu_Item *mi);
+      E_Menu_Cb func;
    } submenu_pre_cb;
 
     struct {
       void *data;
-      void (*func) (void *data, E_Menu *m, E_Menu_Item *mi);
+      E_Menu_Cb func;
    } submenu_post_cb;
 
    struct {
       void *data;
-      void (*func) (void *data, E_Menu *m, E_Menu_Item *mi);
+      E_Menu_Cb func;
    } drag_cb; /* Callback for menu item dragging */
 
    struct {
@@ -181,6 +184,7 @@ EAPI void         e_menu_post_deactivate_callback_set(E_Menu *m,  void (*func) (
 EAPI E_Menu      *e_menu_root_get(E_Menu *m);
 
 EAPI E_Menu_Item *e_menu_item_new(E_Menu *m);
+EAPI E_Menu_Item *e_menu_item_new_relative(E_Menu *m, E_Menu_Item *rel);
 EAPI E_Menu_Item *e_menu_item_nth(E_Menu *m, int n);
 EAPI int          e_menu_item_num_get(const E_Menu_Item *mi);
 EAPI void         e_menu_item_icon_file_set(E_Menu_Item *mi, const char *icon);
@@ -193,11 +197,11 @@ EAPI void         e_menu_item_radio_set(E_Menu_Item *mi, int rad);
 EAPI void         e_menu_item_radio_group_set(E_Menu_Item *mi, int radg);
 EAPI void         e_menu_item_toggle_set(E_Menu_Item *mi, int tog);
 EAPI int          e_menu_item_toggle_get(E_Menu_Item *mi);
-EAPI void         e_menu_item_callback_set(E_Menu_Item *mi,  void (*func) (void *data, E_Menu *m, E_Menu_Item *mi), void *data);
-EAPI void         e_menu_item_realize_callback_set(E_Menu_Item *mi,  void (*func) (void *data, E_Menu *m, E_Menu_Item *mi), void *data);
-EAPI void         e_menu_item_submenu_pre_callback_set(E_Menu_Item *mi,  void (*func) (void *data, E_Menu *m, E_Menu_Item *mi), void *data);
-EAPI void         e_menu_item_submenu_post_callback_set(E_Menu_Item *mi,  void (*func) (void *data, E_Menu *m, E_Menu_Item *mi), void *data);
-EAPI void         e_menu_item_drag_callback_set(E_Menu_Item *mi,  void (*func) (void *data, E_Menu *m, E_Menu_Item *mi), void *data);
+EAPI void         e_menu_item_callback_set(E_Menu_Item *mi,  E_Menu_Cb func, void *data);
+EAPI void         e_menu_item_realize_callback_set(E_Menu_Item *mi,  E_Menu_Cb func, void *data);
+EAPI void         e_menu_item_submenu_pre_callback_set(E_Menu_Item *mi,  E_Menu_Cb func, void *data);
+EAPI void         e_menu_item_submenu_post_callback_set(E_Menu_Item *mi,  E_Menu_Cb func, void *data);
+EAPI void         e_menu_item_drag_callback_set(E_Menu_Item *mi,  E_Menu_Cb func, void *data);
 EAPI void         e_menu_item_active_set(E_Menu_Item *mi, int active);
 EAPI void         e_menu_item_disabled_set(E_Menu_Item *mi, int disable);
 

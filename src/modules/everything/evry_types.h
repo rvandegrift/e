@@ -11,18 +11,19 @@ typedef struct _History_Item		History_Item;
 typedef struct _History_Entry		History_Entry;
 typedef struct _History_Types		History_Types;
 typedef struct _Evry_State	        Evry_State;
+typedef struct _Evry_View	        Evry_View;
 
 typedef unsigned int Evry_Type;
 
 struct _Evry_Item
 {
-  /* label to show for this item */
+  /* label to show for this item (stringshared) */
   const char *label;
 
-  /* optional: more information to be shown */
+  /* optional: (stringshared) more information to be shown */
   const char *detail;
 
-  /* optional: for 'static' fdo icon name, otherwise use _icon_get */
+  /* optional: (stringshared) fdo icon name, otherwise use _icon_get */
   const char *icon;
 
   /* item can be browsed, e.g. folders */
@@ -54,7 +55,7 @@ struct _Evry_Item
   Evas_Object *(*icon_get) (Evry_Item *it, Evas *e);
   void (*free) (Evry_Item *it);
 
-  /* do not set by plugin! */
+  /* do not set! */
   int ref;
   Eina_List *items;
   Eina_Bool selected;
@@ -70,7 +71,7 @@ struct _Evry_Action
 
   /* identifier */
   const char *name;
-
+  
   struct
   {
     /* requested type for action */
@@ -101,16 +102,16 @@ struct _Evry_Action
      default is FALSE */
   Eina_Bool remember_context;
 
+  /* required: do something */
   int  (*action)     (Evry_Action *act);
 
   /* optional: check whether action fits to chosen item */
   int  (*check_item) (Evry_Action *act, const Evry_Item *it);
   /* optional */
   void (*free)       (Evry_Action *act);
-  /* optional: must be defined when  action is browseable */
+  /* optional: must be defined when  action is browseable, return
+     list of Evry_Action items */
   Eina_List *(*fetch) (Evry_Action *act);
-
-  /* int method; */
 };
 
 struct _Evry_Item_App
@@ -136,29 +137,42 @@ struct _Evry_Plugin
 {
   Evry_Item base;
 
+  /* not to be set by plugin! */
+  Plugin_Config *config;
+  unsigned int request;
+  Evry_State *state;
+
   /* identifier */
   const char *name;
 
-  /* list of items visible for everything after fetch */
+  /* list of items visible to everything */
   Eina_List *items;
 
-  /* required: get candidates matching string, fill 'items' list */
+  /* required:
+     Called each time Evry updates the state to which this plugin
+     instance belongs to, i.e. when the user typed something.
+     Query for candidates matching string.
+     return positive when items were found, zero otherwise. */
   int  (*fetch) (Evry_Plugin *p, const char *input);
 
-  /* required: run when state is removed in which this plugin is
-     active. free 'items' here */
-  void (*finish) (Evry_Plugin *p);
-
-  /* plugin is added to the list of current plugins and
-     queried for results when not returning NULL. The previous
-     selectors item is passed, i.e. a plugin registered as action
-     receives the subject, a plugin registered as object receives the
-     action item. here you can check wheter the plugin can be queried,
-     for given context (provided by item) */
+  /* required:
+     Called when an Evry_State is created in which this plugin could
+     be querid.  Return a new instance of base plugin 'p'. The plugin
+     instance is added to the list of current plugins and queried for
+     results when not returning NULL.
+     The previous selectors 'item' is passed, i.e. a plugin registered
+     as action receives the subject, a plugin registered as object
+     receives the action item. here you can check wheter the plugin
+     should be queried in given context (provided by item) */
   Evry_Plugin *(*begin) (Evry_Plugin *p, const Evry_Item *item);
 
-  /* optional: provide a list of subitems of 'item'. this function
-     must return a new instance which must be freed in 'finish' */
+  /* required:
+     Called when the Evry_State to which the plugin instance belongs
+     to is destroyed.
+     Free instance returned by 'begin' */
+  void (*finish) (Evry_Plugin *p);
+
+  /* optional: provide a list of subitems to 'item'. */
   Evry_Plugin *(*browse) (Evry_Plugin *p, const Evry_Item *item);
 
   /* optional: try to complete current item:
@@ -167,17 +181,13 @@ struct _Evry_Plugin
   int  (*complete) (Evry_Plugin *p, const Evry_Item *item, char **input);
 
   /* optional: handle key events: return positive when key was
-     handled */
+     handled by plugin */
   int  (*cb_key_down)  (Evry_Plugin *p, const Ecore_Event_Key *ev);
 
-  /* optional: use this when begin returned a new instance or you
-     have extended plugin struct */
-  void (*free) (Evry_Plugin *p);
-
-  /* optiona: actions only used with this plugin, dont require */
+  /* optional: list of Evry_Action that are specific for items of this plugin */
   Eina_List *actions;
   
-  /* optional: set type which the plugin can handle in begin */
+  /* optional: set type which the plugin can handle in 'begin' */
   Evry_Type input_type;
 
   /* optional: whether the plugin uses evry_async_update to add new items */
@@ -196,13 +206,11 @@ struct _Evry_Plugin
      'configure' button in everything config */
   const char *config_path;
 
-  /* set theme file to fetch icons from */
+  /* optional: set theme file to fetch icons from */
   const char *theme_path;
 
-  /* not to be set by plugin! */
-  Plugin_Config *config;
-  unsigned int request;
-  Evry_State *state;
+  /* optional: provide a view that is specific for this plugins' items */
+  Evry_View *view;
 };
 
 struct _Plugin_Config
@@ -242,6 +250,26 @@ struct _Plugin_Config
   Eina_List *plugins;
 };
 
+struct _Evry_View
+{
+  Evry_View  *id;
+  const char *name;
+  const char *trigger;
+  int active;
+  Evas_Object *o_list;
+  Evas_Object *o_bar;
+
+  Evry_View *(*create) (Evry_View *view, const Evry_State *s, const Evas_Object *swallow);
+  void (*destroy)      (Evry_View *view);
+  int  (*cb_key_down)  (Evry_View *view, const Ecore_Event_Key *ev);
+  int  (*update)       (Evry_View *view);
+  void (*clear)        (Evry_View *view);
+
+  int priority;
+
+  Evry_State *state;
+};
+
 struct _History_Item
 {
   const char *plugin;
@@ -263,5 +291,8 @@ struct _History_Types
 {
   Eina_Hash *types;
 };
+
+void evry_item_app_free(Evry_Item_App *it);
+void evry_item_file_free(Evry_Item_File *it);
 
 #endif

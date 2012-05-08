@@ -39,61 +39,37 @@ host_triplet = @host@
 @USE_MODULE_PAGER_TRUE@am__append_4 = pager
 @USE_MODULE_BATTERY_TRUE@am__append_5 = battery
 @USE_MODULE_TEMPERATURE_TRUE@am__append_6 = temperature
-@USE_MODULE_CPUFREQ_TRUE@am__append_7 = cpufreq
-@USE_MODULE_IBOX_TRUE@am__append_8 = ibox
-@USE_MODULE_START_TRUE@am__append_9 = start
-@USE_MODULE_WINLIST_TRUE@am__append_10 = winlist
-@USE_MODULE_FILEMAN_TRUE@am__append_11 = fileman
-@USE_MODULE_FILEMAN_OPINFO_TRUE@am__append_12 = fileman_opinfo
-@USE_MODULE_WIZARD_TRUE@am__append_13 = wizard
-@USE_MODULE_CONF_TRUE@am__append_14 = conf
-@USE_MODULE_CONF_WALLPAPER_TRUE@am__append_15 = conf_wallpaper
+@USE_MODULE_NOTIFICATION_TRUE@am__append_7 = notification
+@USE_MODULE_CPUFREQ_TRUE@am__append_8 = cpufreq
+@USE_MODULE_IBOX_TRUE@am__append_9 = ibox
+@USE_MODULE_START_TRUE@am__append_10 = start
+@USE_MODULE_WINLIST_TRUE@am__append_11 = winlist
+@USE_MODULE_FILEMAN_TRUE@am__append_12 = fileman
+@USE_MODULE_FILEMAN_OPINFO_TRUE@am__append_13 = fileman_opinfo
+@USE_MODULE_WIZARD_TRUE@am__append_14 = wizard
+@USE_MODULE_CONF_TRUE@am__append_15 = conf
 @USE_MODULE_CONF_WALLPAPER2_TRUE@am__append_16 = conf_wallpaper2
 @USE_MODULE_CONF_THEME_TRUE@am__append_17 = conf_theme
-@USE_MODULE_CONF_COLORS_TRUE@am__append_18 = conf_colors
-@USE_MODULE_CONF_FONTS_TRUE@am__append_19 = conf_fonts
-@USE_MODULE_CONF_BORDERS_TRUE@am__append_20 = conf_borders
-@USE_MODULE_CONF_ICON_THEME_TRUE@am__append_21 = conf_icon_theme
-@USE_MODULE_CONF_MOUSE_CURSOR_TRUE@am__append_22 = conf_mouse_cursor
-@USE_MODULE_CONF_TRANSITIONS_TRUE@am__append_23 = conf_transitions
-@USE_MODULE_CONF_STARTUP_TRUE@am__append_24 = conf_startup
-@USE_MODULE_CONF_INTL_TRUE@am__append_25 = conf_intl
-@USE_MODULE_CONF_IMC_TRUE@am__append_26 = conf_imc
-@USE_MODULE_CONF_PROFILES_TRUE@am__append_27 = conf_profiles
-@USE_MODULE_MSGBUS_TRUE@am__append_28 = msgbus
-@USE_MODULE_CONF_ENGINE_TRUE@am__append_29 = conf_engine
-@USE_MODULE_CONF_APPLICATIONS_TRUE@am__append_30 = conf_applications
-@USE_MODULE_CONF_DESKS_TRUE@am__append_31 = conf_desks
-@USE_MODULE_CONF_DESK_TRUE@am__append_32 = conf_desk
-@USE_MODULE_CONF_DISPLAY_TRUE@am__append_33 = conf_display
-@USE_MODULE_CONF_DESKLOCK_TRUE@am__append_34 = conf_desklock
-@USE_MODULE_CONF_SCREENSAVER_TRUE@am__append_35 = conf_screensaver
-@USE_MODULE_CONF_DPMS_TRUE@am__append_36 = conf_dpms
-@USE_MODULE_CONF_SHELVES_TRUE@am__append_37 = conf_shelves
-@USE_MODULE_CONF_KEYBINDINGS_TRUE@am__append_38 = conf_keybindings
-@USE_MODULE_CONF_MOUSEBINDINGS_TRUE@am__append_39 = conf_mousebindings
-@USE_MODULE_CONF_EDGEBINDINGS_TRUE@am__append_40 = conf_edgebindings
-@USE_MODULE_CONF_ACPIBINDINGS_TRUE@am__append_41 = conf_acpibindings
-@USE_MODULE_CONF_MOUSE_TRUE@am__append_42 = conf_mouse
-@USE_MODULE_CONF_WINDOW_DISPLAY_TRUE@am__append_43 = conf_window_display
-@USE_MODULE_CONF_WINDOW_FOCUS_TRUE@am__append_44 = conf_window_focus
-@USE_MODULE_CONF_WINDOW_REMEMBERS_TRUE@am__append_45 = conf_window_remembers
-@USE_MODULE_CONF_WINDOW_MANIPULATION_TRUE@am__append_46 = conf_window_manipulation
-@USE_MODULE_CONF_MENUS_TRUE@am__append_47 = conf_menus
-@USE_MODULE_CONF_CLIENTLIST_TRUE@am__append_48 = conf_clientlist
-@USE_MODULE_CONF_DIALOGS_TRUE@am__append_49 = conf_dialogs
-@USE_MODULE_CONF_PERFORMANCE_TRUE@am__append_50 = conf_performance
-@USE_MODULE_CONF_WINLIST_TRUE@am__append_51 = conf_winlist
-@USE_MODULE_CONF_PATHS_TRUE@am__append_52 = conf_paths
-@USE_MODULE_CONF_MIME_TRUE@am__append_53 = conf_mime
-@USE_MODULE_CONF_INTERACTION_TRUE@am__append_54 = conf_interaction
-@USE_MODULE_CONF_SCALE_TRUE@am__append_55 = conf_scale
-@USE_MODULE_GADMAN_TRUE@am__append_56 = gadman
-@USE_MODULE_MIXER_TRUE@am__append_57 = mixer
-@USE_MODULE_CONNMAN_TRUE@am__append_58 = connman
-@USE_MODULE_BLUEZ_TRUE@am__append_59 = bluez
-@USE_MODULE_ILLUME_TRUE@am__append_60 = illume
-@USE_MODULE_ILLUME2_TRUE@am__append_61 = \
+@USE_MODULE_CONF_INTL_TRUE@am__append_18 = conf_intl
+@USE_MODULE_MSGBUS_TRUE@am__append_19 = msgbus
+@USE_MODULE_CONF_APPLICATIONS_TRUE@am__append_20 = conf_applications
+@USE_MODULE_CONF_DISPLAY_TRUE@am__append_21 = conf_display
+@USE_MODULE_CONF_SHELVES_TRUE@am__append_22 = conf_shelves
+@USE_MODULE_CONF_KEYBINDINGS_TRUE@am__append_23 = conf_keybindings
+@USE_MODULE_CONF_EDGEBINDINGS_TRUE@am__append_24 = conf_edgebindings
+@USE_MODULE_CONF_WINDOW_REMEMBERS_TRUE@am__append_25 = conf_window_remembers
+@USE_MODULE_CONF_WINDOW_MANIPULATION_TRUE@am__append_26 = conf_window_manipulation
+@USE_MODULE_CONF_MENUS_TRUE@am__append_27 = conf_menus
+@USE_MODULE_CONF_DIALOGS_TRUE@am__append_28 = conf_dialogs
+@USE_MODULE_CONF_PERFORMANCE_TRUE@am__append_29 = conf_performance
+@USE_MODULE_CONF_PATHS_TRUE@am__append_30 = conf_paths
+@USE_MODULE_CONF_INTERACTION_TRUE@am__append_31 = conf_interaction
+@USE_MODULE_CONF_RANDR_TRUE@am__append_32 = conf_randr
+@USE_MODULE_GADMAN_TRUE@am__append_33 = gadman
+@USE_MODULE_MIXER_TRUE@am__append_34 = mixer
+@USE_MODULE_CONNMAN_TRUE@am__append_35 = connman
+@USE_MODULE_BLUEZ_TRUE@am__append_36 = bluez
+@USE_MODULE_ILLUME2_TRUE@am__append_37 = \
 @USE_MODULE_ILLUME2_TRUE@        illume2 \
 @USE_MODULE_ILLUME2_TRUE@        illume-home \
 @USE_MODULE_ILLUME2_TRUE@        illume-home-toggle \
@@ -104,18 +80,14 @@ host_triplet = @host@
 @USE_MODULE_ILLUME2_TRUE@        illume-mode-toggle \
 @USE_MODULE_ILLUME2_TRUE@        illume-bluetooth
 
-@USE_MODULE_SYSCON_TRUE@am__append_62 = syscon
-@USE_MODULE_EVERYTHING_TRUE@am__append_63 = everything
-@USE_MODULE_EVERYTHING_FILES_TRUE@am__append_64 = everything-files
-@USE_MODULE_EVERYTHING_APPS_TRUE@am__append_65 = everything-apps
-@USE_MODULE_EVERYTHING_FILES_TRUE@am__append_66 = everything-files
-@USE_MODULE_EVERYTHING_ASPELL_TRUE@am__append_67 = everything-aspell
-@USE_MODULE_EVERYTHING_SETTINGS_TRUE@am__append_68 = everything-settings
-@USE_MODULE_EVERYTHING_CALC_TRUE@am__append_69 = everything-calc
-@USE_MODULE_EVERYTHING_WINDOWS_TRUE@am__append_70 = everything-windows
-@USE_MODULE_SYSTRAY_TRUE@am__append_71 = systray
-@USE_MODULE_COMP_TRUE@am__append_72 = comp
-@USE_MODULE_OFONO_TRUE@am__append_73 = ofono
+@USE_MODULE_SYSCON_TRUE@am__append_38 = syscon
+@USE_MODULE_EVERYTHING_TRUE@am__append_39 = everything
+@USE_MODULE_SYSTRAY_TRUE@am__append_40 = systray
+@USE_MODULE_COMP_TRUE@am__append_41 = comp
+@USE_MODULE_OFONO_TRUE@am__append_42 = ofono
+@USE_MODULE_SHOT_TRUE@am__append_43 = shot
+@USE_MODULE_BACKLIGHT_TRUE@am__append_44 = backlight
+@USE_MODULE_TASKS_TRUE@am__append_45 = tasks
 subdir = src/modules
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -123,7 +95,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/ac_attribute.m4 \
 	$(top_srcdir)/m4/efl_doxygen.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 $(top_srcdir)/m4/gettext.m4 \
-	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/intlmacosx.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -132,7 +104,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -158,25 +130,17 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = ibar dropshadow clock pager battery temperature cpufreq \
-	ibox start winlist fileman fileman_opinfo wizard conf \
-	conf_wallpaper conf_wallpaper2 conf_theme conf_colors \
-	conf_fonts conf_borders conf_icon_theme conf_mouse_cursor \
-	conf_transitions conf_startup conf_intl conf_imc conf_profiles \
-	msgbus conf_engine conf_applications conf_desks conf_desk \
-	conf_display conf_desklock conf_screensaver conf_dpms \
-	conf_shelves conf_keybindings conf_mousebindings \
-	conf_edgebindings conf_acpibindings conf_mouse \
-	conf_window_display conf_window_focus conf_window_remembers \
-	conf_window_manipulation conf_menus conf_clientlist \
-	conf_dialogs conf_performance conf_winlist conf_paths \
-	conf_mime conf_interaction conf_scale gadman mixer connman \
-	bluez illume illume2 illume-home illume-home-toggle \
+DIST_SUBDIRS = ibar dropshadow clock pager battery temperature \
+	notification cpufreq ibox start winlist fileman fileman_opinfo \
+	wizard conf conf_wallpaper2 conf_theme conf_intl msgbus \
+	conf_applications conf_display conf_shelves conf_keybindings \
+	conf_edgebindings conf_window_remembers \
+	conf_window_manipulation conf_menus conf_dialogs \
+	conf_performance conf_paths conf_interaction conf_randr gadman \
+	mixer connman bluez illume2 illume-home illume-home-toggle \
 	illume-softkey illume-keyboard illume-indicator \
 	illume-kbd-toggle illume-mode-toggle illume-bluetooth syscon \
-	everything everything-files everything-apps everything-aspell \
-	everything-settings everything-calc everything-windows systray \
-	comp ofono
+	everything systray comp ofono shot backlight tasks
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
   dir0=`pwd`; \
@@ -226,6 +190,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DBUS_MOUNT_CONFIG = @DBUS_MOUNT_CONFIG@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DSYMUTIL = @DSYMUTIL@
@@ -245,6 +210,9 @@ ECORE_IMF_VERSION = @ECORE_IMF_VERSION@
 EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
+EEZE_CFLAGS = @EEZE_CFLAGS@
+EEZE_LIBS = @EEZE_LIBS@
+EEZE_MOUNT_CONFIG = @EEZE_MOUNT_CONFIG@
 EGREP = @EGREP@
 ENOTIFY_CFLAGS = @ENOTIFY_CFLAGS@
 ENOTIFY_LIBS = @ENOTIFY_LIBS@
@@ -256,6 +224,8 @@ EXCHANGE_CFLAGS = @EXCHANGE_CFLAGS@
 EXCHANGE_LIBS = @EXCHANGE_LIBS@
 EXCHANGE_VERSION = @EXCHANGE_VERSION@
 EXEEXT = @EXEEXT@
+E_ALERT_CFLAGS = @E_ALERT_CFLAGS@
+E_ALERT_LIBS = @E_ALERT_LIBS@
 E_CFLAGS = @E_CFLAGS@
 E_FM_CFLAGS = @E_FM_CFLAGS@
 E_FM_LIBS = @E_FM_LIBS@
@@ -270,12 +240,16 @@ E_INIT_LIBS = @E_INIT_LIBS@
 E_LIBS = @E_LIBS@
 E_REMOTE_CFLAGS = @E_REMOTE_CFLAGS@
 E_REMOTE_LIBS = @E_REMOTE_LIBS@
+E_START_CFLAGS = @E_START_CFLAGS@
+E_START_LIBS = @E_START_LIBS@
 E_SYS_CFLAGS = @E_SYS_CFLAGS@
 E_SYS_LIBS = @E_SYS_LIBS@
 E_THUMB_CFLAGS = @E_THUMB_CFLAGS@
 E_THUMB_LIBS = @E_THUMB_LIBS@
 FGREP = @FGREP@
+GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GMSGFMT = @GMSGFMT@
+GMSGFMT_015 = @GMSGFMT_015@
 GREP = @GREP@
 HAVE_ALSA = @HAVE_ALSA@
 HAVE_BATTERY = @HAVE_BATTERY@
@@ -286,12 +260,14 @@ HAVE_ENOTIFY = @HAVE_ENOTIFY@
 HAVE_EOFONO = @HAVE_EOFONO@
 HAVE_EXCHANGE = @HAVE_EXCHANGE@
 HAVE_TEMPERATURE = @HAVE_TEMPERATURE@
+HIBERNATE = @HIBERNATE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
+INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
@@ -307,9 +283,9 @@ LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MKINSTALLDIRS = @MKINSTALLDIRS@
 MODULE_ARCH = @MODULE_ARCH@
 MSGFMT = @MSGFMT@
+MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -330,6 +306,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSUB = @POSUB@
 RANLIB = @RANLIB@
 SED = @SED@
@@ -338,78 +316,52 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+SUSPEND = @SUSPEND@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
 TEMPERATURE_VERSION = @TEMPERATURE_VERSION@
+USE_MODULE_BACKLIGHT = @USE_MODULE_BACKLIGHT@
 USE_MODULE_BATTERY = @USE_MODULE_BATTERY@
 USE_MODULE_BLUEZ = @USE_MODULE_BLUEZ@
 USE_MODULE_CLOCK = @USE_MODULE_CLOCK@
 USE_MODULE_COMP = @USE_MODULE_COMP@
 USE_MODULE_CONF = @USE_MODULE_CONF@
-USE_MODULE_CONF_ACPIBINDINGS = @USE_MODULE_CONF_ACPIBINDINGS@
 USE_MODULE_CONF_APPLICATIONS = @USE_MODULE_CONF_APPLICATIONS@
-USE_MODULE_CONF_BORDERS = @USE_MODULE_CONF_BORDERS@
-USE_MODULE_CONF_CLIENTLIST = @USE_MODULE_CONF_CLIENTLIST@
-USE_MODULE_CONF_COLORS = @USE_MODULE_CONF_COLORS@
-USE_MODULE_CONF_DESK = @USE_MODULE_CONF_DESK@
-USE_MODULE_CONF_DESKLOCK = @USE_MODULE_CONF_DESKLOCK@
-USE_MODULE_CONF_DESKS = @USE_MODULE_CONF_DESKS@
 USE_MODULE_CONF_DIALOGS = @USE_MODULE_CONF_DIALOGS@
 USE_MODULE_CONF_DISPLAY = @USE_MODULE_CONF_DISPLAY@
-USE_MODULE_CONF_DPMS = @USE_MODULE_CONF_DPMS@
 USE_MODULE_CONF_EDGEBINDINGS = @USE_MODULE_CONF_EDGEBINDINGS@
-USE_MODULE_CONF_ENGINE = @USE_MODULE_CONF_ENGINE@
-USE_MODULE_CONF_FONTS = @USE_MODULE_CONF_FONTS@
-USE_MODULE_CONF_ICON_THEME = @USE_MODULE_CONF_ICON_THEME@
-USE_MODULE_CONF_IMC = @USE_MODULE_CONF_IMC@
 USE_MODULE_CONF_INTERACTION = @USE_MODULE_CONF_INTERACTION@
 USE_MODULE_CONF_INTL = @USE_MODULE_CONF_INTL@
 USE_MODULE_CONF_KEYBINDINGS = @USE_MODULE_CONF_KEYBINDINGS@
 USE_MODULE_CONF_MENUS = @USE_MODULE_CONF_MENUS@
-USE_MODULE_CONF_MIME = @USE_MODULE_CONF_MIME@
-USE_MODULE_CONF_MOUSE = @USE_MODULE_CONF_MOUSE@
-USE_MODULE_CONF_MOUSEBINDINGS = @USE_MODULE_CONF_MOUSEBINDINGS@
-USE_MODULE_CONF_MOUSE_CURSOR = @USE_MODULE_CONF_MOUSE_CURSOR@
 USE_MODULE_CONF_PATHS = @USE_MODULE_CONF_PATHS@
 USE_MODULE_CONF_PERFORMANCE = @USE_MODULE_CONF_PERFORMANCE@
-USE_MODULE_CONF_PROFILES = @USE_MODULE_CONF_PROFILES@
-USE_MODULE_CONF_SCALE = @USE_MODULE_CONF_SCALE@
-USE_MODULE_CONF_SCREENSAVER = @USE_MODULE_CONF_SCREENSAVER@
+USE_MODULE_CONF_RANDR = @USE_MODULE_CONF_RANDR@
 USE_MODULE_CONF_SHELVES = @USE_MODULE_CONF_SHELVES@
-USE_MODULE_CONF_STARTUP = @USE_MODULE_CONF_STARTUP@
 USE_MODULE_CONF_THEME = @USE_MODULE_CONF_THEME@
-USE_MODULE_CONF_TRANSITIONS = @USE_MODULE_CONF_TRANSITIONS@
-USE_MODULE_CONF_WALLPAPER = @USE_MODULE_CONF_WALLPAPER@
 USE_MODULE_CONF_WALLPAPER2 = @USE_MODULE_CONF_WALLPAPER2@
-USE_MODULE_CONF_WINDOW_DISPLAY = @USE_MODULE_CONF_WINDOW_DISPLAY@
-USE_MODULE_CONF_WINDOW_FOCUS = @USE_MODULE_CONF_WINDOW_FOCUS@
 USE_MODULE_CONF_WINDOW_MANIPULATION = @USE_MODULE_CONF_WINDOW_MANIPULATION@
 USE_MODULE_CONF_WINDOW_REMEMBERS = @USE_MODULE_CONF_WINDOW_REMEMBERS@
-USE_MODULE_CONF_WINLIST = @USE_MODULE_CONF_WINLIST@
 USE_MODULE_CONNMAN = @USE_MODULE_CONNMAN@
 USE_MODULE_CPUFREQ = @USE_MODULE_CPUFREQ@
 USE_MODULE_DROPSHADOW = @USE_MODULE_DROPSHADOW@
 USE_MODULE_EVERYTHING = @USE_MODULE_EVERYTHING@
-USE_MODULE_EVERYTHING_APPS = @USE_MODULE_EVERYTHING_APPS@
-USE_MODULE_EVERYTHING_ASPELL = @USE_MODULE_EVERYTHING_ASPELL@
-USE_MODULE_EVERYTHING_CALC = @USE_MODULE_EVERYTHING_CALC@
-USE_MODULE_EVERYTHING_FILES = @USE_MODULE_EVERYTHING_FILES@
-USE_MODULE_EVERYTHING_SETTINGS = @USE_MODULE_EVERYTHING_SETTINGS@
-USE_MODULE_EVERYTHING_WINDOWS = @USE_MODULE_EVERYTHING_WINDOWS@
 USE_MODULE_FILEMAN = @USE_MODULE_FILEMAN@
 USE_MODULE_FILEMAN_OPINFO = @USE_MODULE_FILEMAN_OPINFO@
 USE_MODULE_GADMAN = @USE_MODULE_GADMAN@
 USE_MODULE_IBAR = @USE_MODULE_IBAR@
 USE_MODULE_IBOX = @USE_MODULE_IBOX@
-USE_MODULE_ILLUME = @USE_MODULE_ILLUME@
 USE_MODULE_ILLUME2 = @USE_MODULE_ILLUME2@
 USE_MODULE_MIXER = @USE_MODULE_MIXER@
 USE_MODULE_MSGBUS = @USE_MODULE_MSGBUS@
+USE_MODULE_NOTIFICATION = @USE_MODULE_NOTIFICATION@
 USE_MODULE_OFONO = @USE_MODULE_OFONO@
 USE_MODULE_PAGER = @USE_MODULE_PAGER@
+USE_MODULE_SHOT = @USE_MODULE_SHOT@
 USE_MODULE_START = @USE_MODULE_START@
 USE_MODULE_SYSCON = @USE_MODULE_SYSCON@
 USE_MODULE_SYSTRAY = @USE_MODULE_SYSTRAY@
+USE_MODULE_TASKS = @USE_MODULE_TASKS@
 USE_MODULE_TEMPERATURE = @USE_MODULE_TEMPERATURE@
 USE_MODULE_WINLIST = @USE_MODULE_WINLIST@
 USE_MODULE_WIZARD = @USE_MODULE_WIZARD@
@@ -417,12 +369,11 @@ USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
 VERSION = @VERSION@
+WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
+WAYLAND_LIBS = @WAYLAND_LIBS@
 XGETTEXT = @XGETTEXT@
-XMKMF = @XMKMF@
-X_CFLAGS = @X_CFLAGS@
-X_EXTRA_LIBS = @X_EXTRA_LIBS@
-X_LIBS = @X_LIBS@
-X_PRE_LIBS = @X_PRE_LIBS@
+XGETTEXT_015 = @XGETTEXT_015@
+XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -490,8 +441,6 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 version_info = @version_info@
-x_cflags = @x_cflags@
-x_libs = @x_libs@
 MAINTAINERCLEANFILES = Makefile.in
 SUBDIRS = $(am__append_1) $(am__append_2) $(am__append_3) \
 	$(am__append_4) $(am__append_5) $(am__append_6) \
@@ -507,17 +456,7 @@ SUBDIRS = $(am__append_1) $(am__append_2) $(am__append_3) \
 	$(am__append_34) $(am__append_35) $(am__append_36) \
 	$(am__append_37) $(am__append_38) $(am__append_39) \
 	$(am__append_40) $(am__append_41) $(am__append_42) \
-	$(am__append_43) $(am__append_44) $(am__append_45) \
-	$(am__append_46) $(am__append_47) $(am__append_48) \
-	$(am__append_49) $(am__append_50) $(am__append_51) \
-	$(am__append_52) $(am__append_53) $(am__append_54) \
-	$(am__append_55) $(am__append_56) $(am__append_57) \
-	$(am__append_58) $(am__append_59) $(am__append_60) \
-	$(am__append_61) $(am__append_62) $(am__append_63) \
-	$(am__append_64) $(am__append_65) $(am__append_66) \
-	$(am__append_67) $(am__append_68) $(am__append_69) \
-	$(am__append_70) $(am__append_71) $(am__append_72) \
-	$(am__append_73)
+	$(am__append_43) $(am__append_44) $(am__append_45)
 all: all-recursive
 
 .SUFFIXES:
@@ -865,6 +804,18 @@ uninstall-am:
 	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-recursive \
 	uninstall uninstall-am
 
+
+#if HAVE_WAYLAND_DRM
+# SUBDIRS += wl_drm
+#endif
+
+#if HAVE_WAYLAND_SHELL
+# SUBDIRS += wl_shell
+#endif
+
+#if HAVE_WAYLAND_SCREENSHOT
+# SUBDIRS += wl_screenshot
+#endif
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -17,10 +17,15 @@ typedef enum _E_Direction
 
 typedef enum _E_Transition
 {
-   E_TRANSITION_LINEAR,
-   E_TRANSITION_SINUSOIDAL,
-   E_TRANSITION_ACCELERATE,
-   E_TRANSITION_DECELERATE
+   E_TRANSITION_LINEAR = 0,
+   E_TRANSITION_SINUSOIDAL = 1,
+   E_TRANSITION_ACCELERATE = 2,
+   E_TRANSITION_DECELERATE = 3,
+   E_TRANSITION_ACCELERATE_LOTS = 4,
+   E_TRANSITION_DECELERATE_LOTS = 5,
+   E_TRANSITION_SINUSOIDAL_LOTS = 6,
+   E_TRANSITION_BOUNCE = 7,
+   E_TRANSITION_BOUNCE_LOTS = 8
 } E_Transition;
 
 typedef enum _E_Stacking
@@ -172,6 +177,7 @@ struct _E_Border
    Ecore_X_Window  event_win;
    const char     *internal_icon;
    const char     *internal_icon_key;
+   Eina_Bool       bg_evas_in : 1;
 
    struct {
       Ecore_X_Window shell_win;
@@ -190,11 +196,11 @@ struct _E_Border
       
       /* ICCCM */
       struct {
-         char *title;
-         char *name;
-         char *class;
-         char *icon_name;
-         char *machine;
+	 const char *title;
+	 const char *name;
+	 const char *class;
+         const char *icon_name;
+         const char *machine;
          int min_w, min_h;
          int max_w, max_h;
          int base_w, base_h;
@@ -210,7 +216,7 @@ struct _E_Border
          Ecore_X_Window transient_for;
          Ecore_X_Window client_leader;
          Ecore_X_Gravity gravity;
-         char *window_role;
+         const char *window_role;
          unsigned char take_focus : 1;
          unsigned char accepts_focus : 1;
          unsigned char urgent : 1;
@@ -252,8 +258,8 @@ struct _E_Border
       struct {
          pid_t         pid;
          unsigned int  desktop;
-         char         *name;
-         char         *icon_name;
+         const char         *name;
+         const char         *icon_name;
          Ecore_X_Icon *icons;
          int           num_icons;
          unsigned int  user_time;
@@ -338,11 +344,23 @@ struct _E_Border
       /* Extra e stuff */
       struct {
          struct {
+            struct {
+               int x, y;
+
+               unsigned char updated : 1;
+            } video_position;
+            Ecore_X_Window video_parent;
+            E_Border *video_parent_border;
+            Eina_List *video_child;
+
             unsigned char centered : 1;
+            unsigned char video : 1;
          } state;
 
          struct {
             unsigned char state : 1;
+            unsigned char video_parent : 1;
+            unsigned char video_position : 1;
          } fetch;
       } e;
       
@@ -427,6 +445,7 @@ struct _E_Border
    unsigned int    deskshow : 1;
    unsigned int    sticky : 1;
    unsigned int    shaped : 1;
+   unsigned int    shaped_input : 1;
    unsigned int    need_shape_merge : 1;
    unsigned int    need_shape_export : 1;
    unsigned int    fullscreen : 1;
@@ -443,6 +462,7 @@ struct _E_Border
    unsigned int    need_maximize : 1;
    E_Maximize      maximized;
    unsigned int    borderless : 1;
+   unsigned char   offer_resistance : 1;
    const char     *bordername;
 
    unsigned int    lock_user_location : 1; /*DONE*/
@@ -487,6 +507,7 @@ struct _E_Border
       int x, y, w, h;
       unsigned int layer;
       int zone;
+	  E_Maximize maximized;
    } saved;
 
    struct {
@@ -529,6 +550,7 @@ struct _E_Border
       unsigned char shading : 1;
       unsigned char shaded : 1;
       unsigned char shape : 1;
+      unsigned char shape_input : 1;
       unsigned char icon : 1;
    } changes;
 
@@ -562,7 +584,12 @@ struct _E_Border
    unsigned char post_move   : 1;
    unsigned char post_resize : 1;
    unsigned char post_show : 1;
+   
    Ecore_Idle_Enterer *post_job;
+
+   Eina_Bool argb;
+   
+   int tmp_input_hidden;
 };
 
 struct _E_Border_Pending_Move_Resize 
@@ -703,6 +730,8 @@ EAPI E_Border *e_border_under_pointer_get(E_Desk *desk, E_Border *exclude);
 EAPI int e_border_pointer_warp_to_center(E_Border *bd);
 
 EAPI void e_border_comp_hidden_set(E_Border *bd, Eina_Bool hidden);
+EAPI void e_border_tmp_input_hidden_push(E_Border *bd);
+EAPI void e_border_tmp_input_hidden_pop(E_Border *bd);
 
 extern EAPI int E_EVENT_BORDER_RESIZE;
 extern EAPI int E_EVENT_BORDER_MOVE;

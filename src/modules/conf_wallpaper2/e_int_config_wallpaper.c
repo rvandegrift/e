@@ -159,14 +159,11 @@ _e_smart_reconfigure_do(void *data)
    evas = evas_object_evas_get(obj);
    EINA_LIST_FOREACH(sd->items, l, it)
      {
-        xx = sd->x - sd->cx + x;
         if (x > (sd->w - ww))
           {
              x = 0;
              y += hh;
-             xx = sd->x - sd->cx + x;
           }
-        yy = sd->y - sd->cy + y;
         it->x = x;
         it->y = y;
         it->w = ww;
@@ -434,7 +431,7 @@ _e_smart_add(Evas_Object *obj)
    Smart_Data *sd = calloc(1, sizeof(Smart_Data));
 
    if (!sd) return;
-   sd->x = sd->y = sd->w = sd->h = 0;
+
    sd->sx = sd->sy = -1;
    evas_object_smart_data_set(obj, sd);
 }
@@ -1129,11 +1126,11 @@ wp_browser_new(E_Container *con)
    zone = e_util_zone_current_get(con->manager);
    desk = e_desk_current_get(zone);
    info->con_num = con->num;
-   info->zone_num = zone->id;
+   info->zone_num = zone->num;
    info->desk_x = desk->x;
    info->desk_y = desk->y;
    info->mode = 0;
-   cfbg = e_bg_config_get(con->num, zone->id, desk->x, desk->y);
+   cfbg = e_bg_config_get(con->num, zone->num, desk->x, desk->y);
    if (cfbg)
      {
         if ((cfbg->container >= 0) && (cfbg->zone >= 0))

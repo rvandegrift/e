@@ -8,11 +8,6 @@ EAPI E_Path *path_icons = NULL;
 EAPI E_Path *path_modules = NULL;
 EAPI E_Path *path_backgrounds = NULL;
 EAPI E_Path *path_messages = NULL;
-EAPI int restart = 0;
-EAPI int good = 0;
-EAPI int evil = 0;
-EAPI int starting = 1;
-EAPI int stopping = 0;
 
 typedef struct _E_Util_Fake_Mouse_Up_Info E_Util_Fake_Mouse_Up_Info;
 typedef struct _E_Util_Image_Import_Settings E_Util_Image_Import_Settings;
@@ -62,6 +57,7 @@ static void _e_util_image_import_settings_del(void *obj);
 
 static Eina_Bool _e_util_image_import_exit(void *data, int type __UNUSED__, void *event);
 static void _e_util_image_import_handle_free(E_Util_Image_Import_Handle *handle);
+static Evas_Object *_e_util_icon_add(const char *path, Evas *evas, int size);
 
 /* local subsystem globals */
 static Ecore_Timer *_e_util_dummy_timer = NULL;
@@ -120,36 +116,36 @@ e_util_zone_current_get(E_Manager *man)
 }
 
 EAPI int
-e_util_glob_match(const char *str, const char *glob)
+e_util_glob_match(const char *str, const char *pattern)
 {
-   if ((!str) || (!glob)) return 0;
-   if (glob[0] == 0)
+   if ((!str) || (!pattern)) return 0;
+   if (pattern[0] == 0)
      {
 	if (str[0] == 0) return 1;
 	return 0;
      }
-   if (!strcmp(glob, "*")) return 1;
-   if (!fnmatch(glob, str, 0)) return 1;
+   if (!strcmp(pattern, "*")) return 1;
+   if (!fnmatch(pattern, str, 0)) return 1;
    return 0;
 }
 
 EAPI int
-e_util_glob_case_match(const char *str, const char *glob)
+e_util_glob_case_match(const char *str, const char *pattern)
 {
    const char *p;
    char *tstr, *tglob, *tp;
 
-   if (glob[0] == 0)
+   if (pattern[0] == 0)
      {
 	if (str[0] == 0) return 1;
 	return 0;
      }
-   if (!strcmp(glob, "*")) return 1;
+   if (!strcmp(pattern, "*")) return 1;
    tstr = alloca(strlen(str) + 1);
    for (tp = tstr, p = str; *p != 0; p++, tp++) *tp = tolower(*p);
    *tp = 0;
-   tglob = alloca(strlen(glob) + 1);
-   for (tp = tglob, p = glob; *p != 0; p++, tp++) *tp = tolower(*p);
+   tglob = alloca(strlen(pattern) + 1);
+   for (tp = tglob, p = pattern; *p != 0; p++, tp++) *tp = tolower(*p);
    *tp = 0;
    if (!fnmatch(tglob, tstr, 0)) return 1;
    return 0;
@@ -417,19 +413,25 @@ e_util_edje_icon_set(Evas_Object *obj, const char *name)
 }
 
 static int
-_e_util_icon_theme_set(Evas_Object *obj, const char *icon)
+_e_util_icon_theme_set(Evas_Object *obj, const char *icon, Eina_Bool fallback)
 {
    const char *file;
    char buf[PATH_MAX];
 
    if ((!icon) || (!icon[0])) return 0;
    snprintf(buf, sizeof(buf), "e/icons/%s", icon);
-   file = e_theme_edje_file_get("base/theme/icons", buf);
+
+   if (fallback)
+     file = e_theme_edje_icon_fallback_file_get(buf);
+   else
+     file = e_theme_edje_file_get("base/theme/icons", buf);
+
    if (file[0])
      {
 	e_icon_file_edje_set(obj, file, buf);
 	return 1;
      }
+
    return 0;
 }
 
@@ -438,15 +440,20 @@ _e_util_icon_fdo_set(Evas_Object *obj, const char *icon)
 {
    const char *path = NULL;
    unsigned int size;
-
+   
    if ((!icon) || (!icon[0])) return 0;
-   size = e_util_icon_size_normalize(48 * e_scale);
+   size = e_icon_scale_size_get(obj);
+   if (size < 16) size = 16;
+   size = e_util_icon_size_normalize(size * e_scale);
+
    path = efreet_icon_path_find(e_config->icon_theme, icon, size);
    if (!path) return 0;
+
    e_icon_file_set(obj, path);
    return 1;
 }
 
+/* use e_icon_size_scale_set(obj, size) to set the preferred icon size */
 EAPI int
 e_util_icon_theme_set(Evas_Object *obj, const char *icon)
 {
@@ -454,33 +461,40 @@ e_util_icon_theme_set(Evas_Object *obj, const char *icon)
      {
 	if (_e_util_icon_fdo_set(obj, icon))
 	  return 1;
-	return _e_util_icon_theme_set(obj, icon);
+	if (_e_util_icon_theme_set(obj, icon, EINA_FALSE))
+	  return 1;
+	return _e_util_icon_theme_set(obj, icon, EINA_TRUE);
      }
    else
      {
-	if (_e_util_icon_theme_set(obj, icon))
+	if (_e_util_icon_theme_set(obj, icon, EINA_FALSE))
 	  return 1;
-	return _e_util_icon_fdo_set(obj, icon);
+	if (_e_util_icon_fdo_set(obj, icon))
+	  return 1;
+	return _e_util_icon_theme_set(obj, icon, EINA_TRUE);
      }
 }
 
-/* WARNING This function is deprecated, You should
- * use e_util_menu_item_theme_icon_set() instead.
- * It provide fallback (e theme <-> fdo theme) in both direction */
-EAPI int
-e_util_menu_item_edje_icon_set(E_Menu_Item *mi, const char *name)
+int
+_e_util_menu_item_edje_icon_set(E_Menu_Item *mi, const char *name, Eina_Bool fallback)
 {
    const char *file;
    char buf[PATH_MAX];
 
    if ((!name) || (!name[0])) return 0;
-   if (name[0]=='/' && ecore_file_exists(name))
+
+   if ((!fallback) && (name[0]=='/') && ecore_file_exists(name))
      {
 	e_menu_item_icon_edje_set(mi, name, "icon");
 	return 1;
      }
    snprintf(buf, sizeof(buf), "e/icons/%s", name);
-   file = e_theme_edje_file_get("base/theme/icons", buf);
+
+   if (fallback)
+     file = e_theme_edje_icon_fallback_file_get(buf);
+   else
+     file = e_theme_edje_file_get("base/theme/icons", buf);
+
    if (file[0])
      {
 	e_menu_item_icon_edje_set(mi, file, buf);
@@ -525,13 +539,17 @@ e_util_menu_item_theme_icon_set(E_Menu_Item *mi, const char *icon)
      {
 	if (_e_util_menu_item_fdo_icon_set(mi, icon))
 	  return 1;
-	return e_util_menu_item_edje_icon_set(mi, icon);
+	if (_e_util_menu_item_edje_icon_set(mi, icon, EINA_FALSE))
+	  return 1;
+	return _e_util_menu_item_edje_icon_set(mi, icon, EINA_TRUE);
      }
    else
      {
-	if (e_util_menu_item_edje_icon_set(mi, icon))
+	if (_e_util_menu_item_edje_icon_set(mi, icon, EINA_FALSE))
 	  return 1;
-	return _e_util_menu_item_fdo_icon_set(mi, icon);
+	if (_e_util_menu_item_fdo_icon_set(mi, icon))
+	  return 1;
+	return _e_util_menu_item_edje_icon_set(mi, icon, EINA_TRUE);
      }
 }
 
@@ -953,27 +971,7 @@ e_util_library_path_restore(void)
 EAPI Evas_Object *
 e_util_icon_add(const char *path, Evas *evas)
 {
-   Evas_Object *o = NULL;
-   const char *ext;
-
-   if (!path) return NULL;
-   if (!ecore_file_exists(path)) return NULL;
-
-   o = e_icon_add(evas);
-   e_icon_preload_set(o, 1);
-   ext = strrchr(path, '.');
-   if (ext)
-     {
-	if (!strcmp(ext, ".edj"))
-	  e_icon_file_edje_set(o, path, "icon");
-	else
-	  e_icon_file_set(o, path);
-     }
-   else
-     e_icon_file_set(o, path);
-   e_icon_fill_inside_set(o, 1);
-
-   return o;
+   return _e_util_icon_add(path, evas, 64); 
 }
 
 EAPI Evas_Object *
@@ -987,7 +985,7 @@ EAPI Evas_Object *
 e_util_icon_theme_icon_add(const char *icon_name, unsigned int size, Evas *evas)
 {
    if (!icon_name) return NULL;
-   if (icon_name[0] == '/') return e_util_icon_add(icon_name, evas);
+   if (icon_name[0] == '/') return _e_util_icon_add(icon_name, evas, size);
    else
      {
 	Evas_Object *obj;
@@ -996,7 +994,7 @@ e_util_icon_theme_icon_add(const char *icon_name, unsigned int size, Evas *evas)
 	path = efreet_icon_path_find(e_config->icon_theme, icon_name, size);
 	if (path)
 	  {
-	     obj = e_util_icon_add(path, evas);
+	     obj = _e_util_icon_add(path, evas, size);
 	     return obj;
 	  }
      }
@@ -1428,6 +1426,34 @@ e_util_container_desk_count_get(E_Container *con)
 }
 
 /* local subsystem functions */
+
+static Evas_Object *
+_e_util_icon_add(const char *path, Evas *evas, int size)
+{
+   Evas_Object *o = NULL;
+   const char *ext;
+
+   if (!path) return NULL;
+   if (!ecore_file_exists(path)) return NULL;
+
+   o = e_icon_add(evas);
+   e_icon_scale_size_set(o, size); 
+   e_icon_preload_set(o, 1);
+   ext = strrchr(path, '.');
+   if (ext)
+     {
+	if (!strcmp(ext, ".edj"))
+	  e_icon_file_edje_set(o, path, "icon");
+	else
+	  e_icon_file_set(o, path);
+     }
+   else
+     e_icon_file_set(o, path);
+   e_icon_fill_inside_set(o, 1);
+
+   return o;
+}
+
 static Eina_Bool
 _e_util_cb_delayed_del(void *data)
 {
@@ -1545,14 +1571,14 @@ _e_util_conf_timer_new(void *data)
 }
 
 EAPI Eina_Bool
-e_util_module_config_check(const char *module_name, int conf, int epoch, int version)
+e_util_module_config_check(const char *module_name, int loaded, int current)
 {
-   if ((conf >> 16) < epoch)
+   if ((loaded >> 16) < (current >> 16))
      {
 	ecore_timer_add(1.0, _e_util_conf_timer_old, strdup(module_name));
 	return EINA_FALSE;
      }
-   else if (conf > version)
+   else if (loaded > current)
      {
 	ecore_timer_add(1.0, _e_util_conf_timer_new, strdup(module_name));
 	return EINA_FALSE;

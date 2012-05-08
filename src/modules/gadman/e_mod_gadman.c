@@ -8,6 +8,8 @@ static void _attach_menu(void *data, E_Gadcon_Client *gcc, E_Menu *menu);
 static void _save_widget_position(E_Gadcon_Client *gcc);
 static void _apply_widget_position(E_Gadcon_Client *gcc);
 static char *_get_bind_text(const char* action);
+static void _on_menu_layer(E_Gadcon_Client *gcc, Gadman_Layer_Type layer);
+static E_Gadcon_Client *_gadman_gadget_add(const E_Gadcon_Client_Class *cc, Gadman_Layer_Type layer, E_Config_Gadcon_Client *src_cf);
 
 static Evas_Object* _create_mover(E_Gadcon *gc);
 static Evas_Object* _get_mover(E_Gadcon_Client *gcc);
@@ -42,7 +44,7 @@ static void _e_gadman_client_remove (void *data __UNUSED__, E_Gadcon_Client *gcc
 
 E_Gadcon_Client *current = NULL;
 Manager *Man = NULL;
-static E_Gadcon_Location * location = NULL;
+static E_Gadcon_Location *location = NULL;
 
 /* Implementation */
 void
@@ -68,9 +70,9 @@ gadman_init(E_Module *m)
    e_container_shape_change_callback_add(Man->container, on_shape_change, NULL);
 
    /* create and register "desktop" location */
-   location = e_gadcon_location_new ("Desktop", E_GADCON_SITE_DESKTOP, 
-				     _e_gadman_client_add, NULL, 
-				     _e_gadman_client_remove, NULL);
+   location = e_gadcon_location_new("Desktop", E_GADCON_SITE_DESKTOP, 
+				    _e_gadman_client_add, NULL, 
+				    _e_gadman_client_remove, NULL);
    e_gadcon_location_set_icon_name(location, "preferences-desktop");
    e_gadcon_location_register(location);
 
@@ -113,7 +115,6 @@ gadman_shutdown(void)
 	     if (gc->config_dialog) e_object_del(E_OBJECT(gc->config_dialog));
 	  }
 
-	eina_list_free(Man->gadgets[layer]);
 	evas_object_del(Man->movers[layer]);
      }
 
@@ -126,6 +127,7 @@ gadman_shutdown(void)
         //ecore_evas_free(Man->top_ee);
      }
    free(Man);
+   Man = NULL;
 }
 
 void
@@ -138,7 +140,7 @@ gadman_populate_class(void *data, E_Gadcon *gc, const E_Gadcon_Client_Class *cc)
 
    EINA_LIST_FOREACH(gc->cf->clients, l, cf_gcc)
      {
-        if (cf_gcc->name && cc->name && !strcmp(cf_gcc->name, cc->name) && (gc->cf->zone == gc->zone->id))
+        if (cf_gcc->name && cc->name && !strcmp(cf_gcc->name, cc->name) && (gc->cf->zone == gc->zone->num))
 	  {
 	     EINA_LIST_FOREACH(Man->gadgets[layer], ll, gcc) 
 	       {
@@ -224,6 +226,12 @@ gadman_gadget_place(E_Config_Gadcon_Client *cf, Gadman_Layer_Type layer, E_Zone 
 E_Gadcon_Client *
 gadman_gadget_add(const E_Gadcon_Client_Class *cc, Gadman_Layer_Type layer)
 {
+  return _gadman_gadget_add(cc, layer, NULL);
+}
+
+static E_Gadcon_Client *
+_gadman_gadget_add(const E_Gadcon_Client_Class *cc, Gadman_Layer_Type layer, E_Config_Gadcon_Client *src_cf)
+{
    E_Config_Gadcon_Client *cf = NULL;
    E_Gadcon_Client *gcc = NULL;
    E_Gadcon *gc;
@@ -236,11 +244,22 @@ gadman_gadget_add(const E_Gadcon_Client_Class *cc, Gadman_Layer_Type layer)
    cf = e_gadcon_client_config_new(gc, cc->name);
    if (cf) 
      {
-	cf->style = eina_stringshare_add(cc->default_style);
-	cf->geom.pos_x = DEFAULT_POS_X;
-	cf->geom.pos_y = DEFAULT_POS_Y;
-	cf->geom.size_w = DEFAULT_SIZE_W;
-	cf->geom.size_h = DEFAULT_SIZE_H;
+       if (!src_cf)
+         {
+           cf->style = eina_stringshare_add(cc->default_style);
+           cf->geom.pos_x = DEFAULT_POS_X;
+           cf->geom.pos_y = DEFAULT_POS_Y;
+           cf->geom.size_w = DEFAULT_SIZE_W;
+           cf->geom.size_h = DEFAULT_SIZE_H;
+         }
+       else
+         {
+           cf->style = eina_stringshare_add(src_cf->style);
+           cf->geom.pos_x = src_cf->geom.pos_x;
+           cf->geom.pos_y = src_cf->geom.pos_y;
+           cf->geom.size_w = src_cf->geom.size_w;
+           cf->geom.size_h = src_cf->geom.size_h;
+         }
      }
 
    /* Place the new gadget */
@@ -265,17 +284,6 @@ gadman_gadget_add(const E_Gadcon_Client_Class *cc, Gadman_Layer_Type layer)
 }
 
 void
-gadman_gadget_remove(E_Gadcon_Client *gcc, Gadman_Layer_Type layer)
-{
-   Man->gadgets[layer] = eina_list_remove(Man->gadgets[layer], gcc);
-
-//   edje_object_part_unswallow(gcc->o_frame, gcc->o_base);
-
-   e_object_del(E_OBJECT(gcc));
-   current = NULL;
-}
-
-void
 gadman_gadget_del(E_Gadcon_Client *gcc)
 {
    Gadman_Layer_Type layer = gcc->gadcon->id - ID_GADMAN_LAYER_BASE;
@@ -284,6 +292,7 @@ gadman_gadget_del(E_Gadcon_Client *gcc)
 //   edje_object_part_unswallow(gcc->o_frame, gcc->o_base);
 
    if (gcc->cf) e_gadcon_client_config_del(gcc->gadcon->cf, gcc->cf);
+   gcc->cf = NULL;
    e_object_del(E_OBJECT(gcc));
    current = NULL;
 }
@@ -486,8 +495,7 @@ _gadman_gadcon_new(const char* name, Gadman_Layer_Type layer, E_Zone *zone, E_Ga
      {
         if (!Man->top_ee)
 	  {
-	     Man->top_ee = e_canvas_new(e_config->evas_engine_popups,
-					Man->container->win, 0, 0, 0, 0, 1, 1,
+	     Man->top_ee = e_canvas_new(Man->container->win, 0, 0, 0, 0, 1, 1,
 					&(Man->top_win));
 	  }
 
@@ -552,7 +560,7 @@ _gadman_gadcon_new(const char* name, Gadman_Layer_Type layer, E_Zone *zone, E_Ga
    gc->cf = NULL;
    EINA_LIST_FOREACH(e_config->gadcons, l, cg)
      {
-        if ((!strcmp(cg->name, name)) && (cg->zone == zone->id))
+        if ((!strcmp(cg->name, name)) && (cg->zone == zone->num))
           {
              gc->cf = cg;
              break;
@@ -565,7 +573,7 @@ _gadman_gadcon_new(const char* name, Gadman_Layer_Type layer, E_Zone *zone, E_Ga
         gc->cf = E_NEW(E_Config_Gadcon, 1);
         gc->cf->name = eina_stringshare_add(name);
         gc->cf->id = gc->id;
-        gc->cf->zone = zone->id;
+        gc->cf->zone = zone->num;
         gc->cf->clients = NULL;
         e_config->gadcons = eina_list_append(e_config->gadcons, gc->cf);
         e_config_save_queue();
@@ -699,8 +707,11 @@ _attach_menu(void *data __UNUSED__, E_Gadcon_Client *gcc, E_Menu *menu)
    //printf("Attach menu (gcc: %x id: %s) [%s]\n", gcc, gcc->cf->id, gcc->cf->style);
    if (!gcc) return;
 
-   mi = e_menu_item_new(menu);
-   e_menu_item_separator_set(mi, 1);
+   if (e_menu_item_nth(menu, 0))
+     {
+        mi = e_menu_item_new(menu);
+        e_menu_item_separator_set(mi, 1);
+     }
 
    /* Move / resize*/
    mi = e_menu_item_new(menu);
@@ -855,7 +866,7 @@ _get_bind_text(const char* action)
           }
         return strdup(b);
      }
-   return "(You must define a binding)";
+   return strdup("(You must define a binding)");
 }
 
 /* Callbacks */
@@ -981,68 +992,35 @@ on_menu_style_vert(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
    _menu_style_orient(data, E_GADCON_ORIENT_VERT);
 }
 
+static void 
+_on_menu_layer(E_Gadcon_Client *gcc, Gadman_Layer_Type layer)
+{
+  const E_Gadcon_Client_Class *cc;  
+
+  E_Gadcon_Client *new_gcc;
+  E_Config_Gadcon_Client *cf;
+
+  cc = gcc->client_class;
+  cf = gcc->cf;
+  
+  new_gcc = _gadman_gadget_add(cc, layer, cf);
+  gadman_gadget_del(gcc);
+  current = new_gcc;
+  
+  e_config_save_queue();
+}
+
 static void
 on_menu_layer_bg(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
-   const Eina_List *l;
-   E_Config_Gadcon_Client *cf;
-   E_Gadcon_Client *gcc;
-   E_Gadcon *gc;
-   unsigned int layer;
-
-   if (!current) return;
-   cf = current->cf;
-   gcc = data;
-
-   gadman_gadget_remove(current, GADMAN_LAYER_TOP);
-   current = gadman_gadget_place(cf, GADMAN_LAYER_BG, gcc->gadcon->zone);
-
-   for (layer = 0; layer < GADMAN_LAYER_COUNT; layer++)
-     {
-	EINA_LIST_FOREACH(Man->gadcons[layer], l, gc)
-	  {
-	     if (gc->zone != current->gadcon->zone) continue;
-	     if (layer == GADMAN_LAYER_BG)
-	       gc->cf->clients = eina_list_append(gc->cf->clients, cf);
-	     else if (layer == GADMAN_LAYER_TOP)
-	       gc->cf->clients = eina_list_remove(gc->cf->clients, cf);
-	  }
-     }
-
-   e_config_save_queue();
+  _on_menu_layer(data, GADMAN_LAYER_BG);
 }
 
 static void
 on_menu_layer_top(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
 {
-   const Eina_List *l;
-   E_Config_Gadcon_Client *cf;
-   E_Gadcon_Client *gcc;
-   E_Gadcon *gc;
-   unsigned int layer;
-
-   if (!current) return;
-   cf = current->cf;
-   gcc = data;
-
-   gadman_gadget_remove(current, GADMAN_LAYER_BG);
-   current = gadman_gadget_place(cf, GADMAN_LAYER_TOP, gcc->gadcon->zone);
-
-   for (layer = 0; layer < GADMAN_LAYER_COUNT; layer++)
-     {
-	EINA_LIST_FOREACH(Man->gadcons[layer], l, gc)
-	  {
-	     if (gc->zone != current->gadcon->zone) continue;
-	     if (layer == GADMAN_LAYER_BG)
-	       gc->cf->clients = eina_list_remove(gc->cf->clients, cf);
-	     else if (layer == GADMAN_LAYER_TOP)
-	       gc->cf->clients = eina_list_append(gc->cf->clients, cf);
-	  }
-     }
-
-   e_config_save_queue();
-
-   gadman_gadgets_show();
+  _on_menu_layer(data, GADMAN_LAYER_TOP);
+  gadman_gadgets_show();
 }
 
 static void
@@ -1082,15 +1060,14 @@ on_frame_click(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void
 
    if (ev->button == 5)
      {
-	E_Menu *ma, *mg;
+	E_Menu *m;
 	int cx, cy, cw, ch;
 
-	ma = e_menu_new();
-	gcc->menu = ma;
-	mg = e_menu_new();
-	e_gadcon_client_util_menu_items_append(gcc, ma, mg, 0);
+	m = e_menu_new();
+	m = e_gadcon_client_util_menu_items_append(gcc, m, 0);
+	gcc->menu = m;
 	e_gadcon_canvas_zone_geometry_get(gcc->gadcon, &cx, &cy, &cw, &ch);
-	e_menu_activate_mouse(ma,
+	e_menu_activate_mouse(m,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
@@ -1131,7 +1108,7 @@ on_top(void *data, Evas_Object *o __UNUSED__, const char *em __UNUSED__, const c
 
         if (h < current->min.h)
 	  {
-	     my -=current->min.h - h;
+	     my -= current->min.h - h;
 	     h = current->min.h;
 	  }
         /* don't go out of the screen */

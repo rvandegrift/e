@@ -5,7 +5,7 @@ static void _e_configure_menu_add(void *data, E_Menu *m);
 static void _e_configure_efreet_desktop_cleanup(void);
 static void _e_configure_efreet_desktop_update(void);
 static Eina_Bool _e_configure_cb_efreet_desktop_cache_update(void *data, int type, void *event);
-static void _e_configure_registry_item_full_add(const char *path, int pri, const char *label, const char *icon_file, const char *icon, E_Config_Dialog *(*func) (E_Container *con, const char *params), void (*generic_func) (E_Container *con, const char *params), Efreet_Desktop *desktop);
+static void _e_configure_registry_item_full_add(const char *path, int pri, const char *label, const char *icon_file, const char *icon, E_Config_Dialog *(*func) (E_Container *con, const char *params), void (*generic_func) (E_Container *con, const char *params), Efreet_Desktop *desktop, const char *params);
 static void _e_configure_registry_item_free(E_Configure_It *eci);
 
 static void _configure_job(void *data);
@@ -60,6 +60,8 @@ e_configure_registry_call(const char *path, E_Container *con, const char *params
 	  EINA_LIST_FOREACH(ecat->items, ll, eci)
 	    if (!strcmp(item, eci->item))
 	      {
+		 if (!params) params = eci->params;
+		 
 		 if (eci->func) eci->func(con, params);
 		 else if (eci->generic_func) eci->generic_func(con, params);
 		 else if (eci->desktop)
@@ -81,13 +83,19 @@ e_configure_registry_call(const char *path, E_Container *con, const char *params
 EAPI void
 e_configure_registry_item_add(const char *path, int pri, const char *label, const char *icon_file, const char *icon, E_Config_Dialog *(*func) (E_Container *con, const char *params))
 {
-   _e_configure_registry_item_full_add(path, pri, label, icon_file, icon, func, NULL, NULL);
+   _e_configure_registry_item_full_add(path, pri, label, icon_file, icon, func, NULL, NULL, NULL);
 }
 
 EAPI void
 e_configure_registry_generic_item_add(const char *path, int pri, const char *label, const char *icon_file, const char *icon, void (*generic_func) (E_Container *con, const char *params))
 {
-   _e_configure_registry_item_full_add(path, pri, label, icon_file, icon, NULL, generic_func, NULL);
+   _e_configure_registry_item_full_add(path, pri, label, icon_file, icon, NULL, generic_func, NULL, NULL);
+}
+
+EAPI void
+e_configure_registry_item_params_add(const char *path, int pri, const char *label, const char *icon_file, const char *icon, E_Config_Dialog *(*func) (E_Container *con, const char *params), const char *params)
+{
+   _e_configure_registry_item_full_add(path, pri, label, icon_file, icon, func, NULL, NULL, params);
 }
 
 EAPI void
@@ -260,7 +268,7 @@ _e_configure_efreet_desktop_cleanup(void)
    Eina_List *l;
    E_Configure_Cat *ecat;
 
-   printf("cleanup\n");
+//   printf("_e_configure_efreet_desktop_cleanup\n");
    /* remove anything with a desktop entry */
    EINA_LIST_FOREACH(e_configure_registry, l, ecat)
      {
@@ -287,7 +295,7 @@ _e_configure_efreet_desktop_update(void)
    /* get desktops */
    settings_desktops = efreet_util_desktop_category_list("Settings");
    system_desktops = efreet_util_desktop_category_list("System");
-   if ((!settings_desktops) || (!system_desktops))
+   if ((!settings_desktops) && (!system_desktops))
      {
 	EINA_LIST_FREE(settings_desktops, desktop)
 	   efreet_desktop_free(desktop);
@@ -307,8 +315,9 @@ _e_configure_efreet_desktop_update(void)
 	const char *cfg_icon;
 	char *label;
 	int cfg_pri;
-
-	if (!eina_list_data_find(system_desktops, desktop)) continue;
+        int dopref;
+        
+        dopref = 0;
 	cfg_cat = NULL;
 	cfg_icon = NULL;
 	cfg_cat_cfg = NULL;
@@ -316,6 +325,11 @@ _e_configure_efreet_desktop_update(void)
 	cfg_cat_name = NULL;
 	cfg_cat_icon = NULL;
 	label = NULL;
+	if (!eina_list_data_find(system_desktops, desktop))
+          {
+             /* settings desktop but not in system -> put in preferences */
+             dopref = 1;
+          }
 	if (desktop->x)
 	  {
 	     cfg_cat_cfg = eina_hash_find(desktop->x, "X-Enlightenment-Config-Category");
@@ -338,34 +352,45 @@ _e_configure_efreet_desktop_update(void)
 	if (desktop->name) label = desktop->name;
 	else if (desktop->generic_name) label = desktop->generic_name;
 	else label = "???";
-	if (!cfg_cat_cfg)
-	  {
-	     const char *ic;
-
-	     snprintf(buf, sizeof(buf), "system/%s", label);
-	     cfg_cat_cfg = buf;
-	     ic = cfg_cat_icon;
-	     if (!ic) ic = "system";
-	     e_configure_registry_category_add("system", 1000, _("System"),
-					       NULL, ic);
-	  }
-	else
-	  {
-	     cfg_cat = ecore_file_dir_get(cfg_cat_cfg);
-	     if (!cfg_cat) cfg_cat = strdup(cfg_cat_cfg);
-	     if (cfg_cat)
-	       {
-		  if (!cfg_cat_name) cfg_cat_name = cfg_cat;
-		  e_configure_registry_category_add(cfg_cat,
-						    1000, cfg_cat_name,
-						    NULL, cfg_cat_icon);
-		  free(cfg_cat);
-		  cfg_cat = NULL;
-	       }
-	  }
-	_e_configure_registry_item_full_add(cfg_cat_cfg, cfg_pri, label,
-					    NULL, cfg_icon,
-					    NULL, NULL, desktop);
+        if (!cfg_cat_cfg)
+          {
+             const char *ic = cfg_cat_icon;
+             
+             if (dopref)
+               {
+                  snprintf(buf, sizeof(buf), "preferences/%s", label);
+                  if (!ic) ic = "preferences-preferences";
+                  e_configure_registry_category_add("preferences", 900,
+                                                    _("Preferences"),
+                                                    NULL, ic);
+               }
+             else
+               {
+                  snprintf(buf, sizeof(buf), "system/%s", label);
+                  if (!ic) ic = "preferences-system";
+                  e_configure_registry_category_add("system", 1000, 
+                                                    _("System"),
+                                                    NULL, ic);
+               }
+             cfg_cat_cfg = buf;
+          }
+        else
+          {
+             cfg_cat = ecore_file_dir_get(cfg_cat_cfg);
+             if (!cfg_cat) cfg_cat = strdup(cfg_cat_cfg);
+             if (cfg_cat)
+               {
+                  if (!cfg_cat_name) cfg_cat_name = cfg_cat;
+                  e_configure_registry_category_add(cfg_cat,
+                                                    1000, cfg_cat_name,
+                                                    NULL, cfg_cat_icon);
+                  free(cfg_cat);
+                  cfg_cat = NULL;
+               }
+          }
+        _e_configure_registry_item_full_add(cfg_cat_cfg, cfg_pri, label,
+                                            NULL, cfg_icon,
+                                            NULL, NULL, desktop, NULL);
      }
    EINA_LIST_FREE(settings_desktops, desktop)
       efreet_desktop_free(desktop);
@@ -383,7 +408,7 @@ _e_configure_cb_efreet_desktop_cache_update(void *data __UNUSED__, int type __UN
 }
 
 static void
-_e_configure_registry_item_full_add(const char *path, int pri, const char *label, const char *icon_file, const char *icon, E_Config_Dialog *(*func) (E_Container *con, const char *params), void (*generic_func) (E_Container *con, const char *params), Efreet_Desktop *desktop)
+_e_configure_registry_item_full_add(const char *path, int pri, const char *label, const char *icon_file, const char *icon, E_Config_Dialog *(*func) (E_Container *con, const char *params), void (*generic_func) (E_Container *con, const char *params), Efreet_Desktop *desktop, const char *params)
 {
    Eina_List *l;
    char *cat;
@@ -403,6 +428,7 @@ _e_configure_registry_item_full_add(const char *path, int pri, const char *label
    eci->label = eina_stringshare_add(label);
    if (icon_file) eci->icon_file = eina_stringshare_add(icon_file);
    if (icon) eci->icon = eina_stringshare_add(icon);
+   if (params) eci->params = eina_stringshare_add(params);
    eci->func = func;
    eci->generic_func = generic_func;
    eci->desktop = desktop;
@@ -436,5 +462,6 @@ _e_configure_registry_item_free(E_Configure_It *eci)
    eina_stringshare_del(eci->icon);
    if (eci->icon_file) eina_stringshare_del(eci->icon_file);
    if (eci->desktop) efreet_desktop_free(eci->desktop);
+   if (eci->params) eina_stringshare_del(eci->params);
    free(eci);
 }

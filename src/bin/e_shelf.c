@@ -28,6 +28,7 @@ static int _e_shelf_gadcon_client_add(void *data, const E_Gadcon_Client_Class *c
 static const char * _e_shelf_orient_icon_name_get(E_Shelf *s);
 static void _e_shelf_bindings_add(E_Shelf *es);
 static void _e_shelf_bindings_del(E_Shelf *es);
+static Eina_Bool _e_shelf_on_current_desk(E_Shelf *es, E_Event_Zone_Edge *ev);
 
 static Eina_List *shelves = NULL;
 static Eina_Hash *winid_shelves = NULL;
@@ -42,6 +43,7 @@ e_shelf_init(void)
 EINTERN int
 e_shelf_shutdown(void)
 {
+   if (x_fatal) return 1;
    while (shelves)
      {
 	E_Shelf *es;
@@ -73,7 +75,7 @@ e_shelf_config_update(void)
 	E_Zone *zone;
 
 	if (cf_es->id <= 0) cf_es->id = id + 1;
-	zone = e_util_container_zone_id_get(cf_es->container, cf_es->zone);
+	zone = e_util_container_zone_number_get(cf_es->container, cf_es->zone);
 	if (zone)
 	  e_shelf_config_new(zone, cf_es);
 	id = cf_es->id;
@@ -822,6 +824,7 @@ _e_shelf_free(E_Shelf *es)
    _e_shelf_bindings_del(es);
 
    e_gadcon_location_unregister(es->gadcon->location);
+   e_gadcon_location_free(es->gadcon->location); 
    e_zone_useful_geometry_dirty(es->zone);
    E_FREE_LIST(es->handlers, ecore_event_handler_del);
 
@@ -879,7 +882,7 @@ static void
 _e_shelf_gadcon_size_request(void *data, E_Gadcon *gc, Evas_Coord w, Evas_Coord h)
 {
    E_Shelf *es;
-   Evas_Coord nx, ny, nw, nh, ww, hh;
+   Evas_Coord nx, ny, nw, nh, ww, hh, wantw, wanth;
 
    es = data;
    nx = es->x;
@@ -916,6 +919,8 @@ _e_shelf_gadcon_size_request(void *data, E_Gadcon *gc, Evas_Coord w, Evas_Coord 
      }
    e_gadcon_swallowed_min_size_set(gc, w, h);
    edje_object_size_min_calc(es->o_base, &nw, &nh);
+   wantw = nw;
+   wanth = nh;
    switch (gc->orient)
      {
       case E_GADCON_ORIENT_FLOAT:
@@ -1038,6 +1043,9 @@ _e_shelf_gadcon_size_request(void *data, E_Gadcon *gc, Evas_Coord w, Evas_Coord 
       default:
 	break;
      }
+   w -= (wantw - nw);
+   h -= (wanth - nh);
+   e_gadcon_swallowed_min_size_set(gc, w, h);
    e_shelf_move_resize(es, nx, ny, nw, nh);
    e_zone_useful_geometry_dirty(es->zone);
 }
@@ -1332,7 +1340,7 @@ _e_shelf_cb_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNU
 	e_menu_post_deactivate_callback_set(mn, _e_shelf_cb_menu_post, es);
 	es->menu = mn;
 
-	_e_shelf_menu_append(es, mn);
+	_e_shelf_menu_pre_cb(es, mn);
 
         e_gadcon_canvas_zone_geometry_get(es->gadcon, &cx, &cy, NULL, NULL);
 	e_menu_activate_mouse(mn,
@@ -1359,6 +1367,8 @@ _e_shelf_cb_mouse_in(void *data, int type, void *event)
 
 	ev = event;
 	if (es->zone != ev->zone) return ECORE_CALLBACK_PASS_ON;
+	if (!_e_shelf_on_current_desk(es, ev)) return ECORE_CALLBACK_PASS_ON;
+
 	switch (es->gadcon->orient)
 	  {
 	   case E_GADCON_ORIENT_FLOAT:
@@ -1842,4 +1852,29 @@ _e_shelf_bindings_del(E_Shelf *es)
    snprintf(buf, sizeof(buf), "shelf.%d", es->id);
    for (edge = E_ZONE_EDGE_LEFT; edge <= E_ZONE_EDGE_BOTTOM_LEFT; edge++)
      e_bindings_edge_del(E_BINDING_CONTEXT_ZONE, edge, E_BINDING_MODIFIER_NONE, 1, buf, NULL, 0);
+}
+
+static Eina_Bool
+_e_shelf_on_current_desk(E_Shelf *es, E_Event_Zone_Edge *ev)
+{
+   E_Config_Shelf_Desk *sd;
+   Eina_List *ll;
+   int on_current_desk = 0;
+   int on_all_desks = 1;
+
+   EINA_LIST_FOREACH(es->cfg->desk_list, ll, sd)
+     {
+	if (!sd) continue;
+	on_all_desks = 0;
+	if ((sd->x == ev->zone->desk_x_current) && (sd->y == ev->zone->desk_y_current))
+	  {
+	     on_current_desk = 1;
+	     break;
+	  }
+     }
+   if (!on_all_desks && !on_current_desk)
+     return EINA_FALSE;
+
+
+   return EINA_TRUE;
 }

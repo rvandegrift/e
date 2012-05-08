@@ -15,6 +15,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -41,7 +42,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/ac_attribute.m4 \
 	$(top_srcdir)/m4/efl_doxygen.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 $(top_srcdir)/m4/gettext.m4 \
-	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/intlmacosx.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -50,7 +51,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -75,7 +76,9 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(pkgdir)"
+am__installdirs = "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(desksdir)" \
+	"$(DESTDIR)$(desktopdir)" "$(DESTDIR)$(favsdir)" \
+	"$(DESTDIR)$(filesdir)"
 LTLIBRARIES = $(pkg_LTLIBRARIES)
 am_module_la_OBJECTS = e_mod_main.lo e_wizard.lo
 module_la_OBJECTS = $(am_module_la_OBJECTS)
@@ -105,6 +108,21 @@ page_030_la_OBJECTS = $(am_page_030_la_OBJECTS)
 page_030_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(page_030_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_040_la_OBJECTS = page_040.lo
+page_040_la_OBJECTS = $(am_page_040_la_OBJECTS)
+page_040_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_040_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_050_la_OBJECTS = page_050.lo
+page_050_la_OBJECTS = $(am_page_050_la_OBJECTS)
+page_050_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_050_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_060_la_OBJECTS = page_060.lo
+page_060_la_OBJECTS = $(am_page_060_la_OBJECTS)
+page_060_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_060_la_LDFLAGS) $(LDFLAGS) -o $@
 am_page_070_la_OBJECTS = page_070.lo
 page_070_la_OBJECTS = $(am_page_070_la_OBJECTS)
 page_070_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -115,6 +133,51 @@ page_080_la_OBJECTS = $(am_page_080_la_OBJECTS)
 page_080_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(page_080_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_090_la_OBJECTS = page_090.lo
+page_090_la_OBJECTS = $(am_page_090_la_OBJECTS)
+page_090_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_090_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_100_la_OBJECTS = page_100.lo
+page_100_la_OBJECTS = $(am_page_100_la_OBJECTS)
+page_100_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_100_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_110_la_OBJECTS = page_110.lo
+page_110_la_OBJECTS = $(am_page_110_la_OBJECTS)
+page_110_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_110_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_120_la_OBJECTS = page_120.lo
+page_120_la_OBJECTS = $(am_page_120_la_OBJECTS)
+page_120_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_120_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_130_la_OBJECTS = page_130.lo
+page_130_la_OBJECTS = $(am_page_130_la_OBJECTS)
+page_130_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_130_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_140_la_OBJECTS = page_140.lo
+page_140_la_OBJECTS = $(am_page_140_la_OBJECTS)
+page_140_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_140_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_150_la_OBJECTS = page_150.lo e_mod_comp_cfdata.lo
+page_150_la_OBJECTS = $(am_page_150_la_OBJECTS)
+page_150_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_150_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_160_la_OBJECTS = page_160.lo
+page_160_la_OBJECTS = $(am_page_160_la_OBJECTS)
+page_160_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_160_la_LDFLAGS) $(LDFLAGS) -o $@
+am_page_170_la_OBJECTS = page_170.lo
+page_170_la_OBJECTS = $(am_page_170_la_OBJECTS)
+page_170_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(page_170_la_LDFLAGS) $(LDFLAGS) -o $@
 am_page_200_la_OBJECTS = page_200.lo
 page_200_la_OBJECTS = $(am_page_200_la_OBJECTS)
 page_200_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -148,12 +211,25 @@ am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(module_la_SOURCES) $(page_000_la_SOURCES) \
 	$(page_010_la_SOURCES) $(page_020_la_SOURCES) \
-	$(page_030_la_SOURCES) $(page_070_la_SOURCES) \
-	$(page_080_la_SOURCES) $(page_200_la_SOURCES)
+	$(page_030_la_SOURCES) $(page_040_la_SOURCES) \
+	$(page_050_la_SOURCES) $(page_060_la_SOURCES) \
+	$(page_070_la_SOURCES) $(page_080_la_SOURCES) \
+	$(page_090_la_SOURCES) $(page_100_la_SOURCES) \
+	$(page_110_la_SOURCES) $(page_120_la_SOURCES) \
+	$(page_130_la_SOURCES) $(page_140_la_SOURCES) \
+	$(page_150_la_SOURCES) $(page_160_la_SOURCES) \
+	$(page_170_la_SOURCES) $(page_200_la_SOURCES)
 DIST_SOURCES = $(module_la_SOURCES) $(page_000_la_SOURCES) \
 	$(page_010_la_SOURCES) $(page_020_la_SOURCES) \
-	$(page_030_la_SOURCES) $(page_070_la_SOURCES) \
-	$(page_080_la_SOURCES) $(page_200_la_SOURCES)
+	$(page_030_la_SOURCES) $(page_040_la_SOURCES) \
+	$(page_050_la_SOURCES) $(page_060_la_SOURCES) \
+	$(page_070_la_SOURCES) $(page_080_la_SOURCES) \
+	$(page_090_la_SOURCES) $(page_100_la_SOURCES) \
+	$(page_110_la_SOURCES) $(page_120_la_SOURCES) \
+	$(page_130_la_SOURCES) $(page_140_la_SOURCES) \
+	$(page_150_la_SOURCES) $(page_160_la_SOURCES) \
+	$(page_170_la_SOURCES) $(page_200_la_SOURCES)
+DATA = $(desks_DATA) $(desktop_DATA) $(favs_DATA) $(files_DATA)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -180,6 +256,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DBUS_MOUNT_CONFIG = @DBUS_MOUNT_CONFIG@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DSYMUTIL = @DSYMUTIL@
@@ -199,6 +276,9 @@ ECORE_IMF_VERSION = @ECORE_IMF_VERSION@
 EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
+EEZE_CFLAGS = @EEZE_CFLAGS@
+EEZE_LIBS = @EEZE_LIBS@
+EEZE_MOUNT_CONFIG = @EEZE_MOUNT_CONFIG@
 EGREP = @EGREP@
 ENOTIFY_CFLAGS = @ENOTIFY_CFLAGS@
 ENOTIFY_LIBS = @ENOTIFY_LIBS@
@@ -210,6 +290,8 @@ EXCHANGE_CFLAGS = @EXCHANGE_CFLAGS@
 EXCHANGE_LIBS = @EXCHANGE_LIBS@
 EXCHANGE_VERSION = @EXCHANGE_VERSION@
 EXEEXT = @EXEEXT@
+E_ALERT_CFLAGS = @E_ALERT_CFLAGS@
+E_ALERT_LIBS = @E_ALERT_LIBS@
 E_CFLAGS = @E_CFLAGS@
 E_FM_CFLAGS = @E_FM_CFLAGS@
 E_FM_LIBS = @E_FM_LIBS@
@@ -224,12 +306,16 @@ E_INIT_LIBS = @E_INIT_LIBS@
 E_LIBS = @E_LIBS@
 E_REMOTE_CFLAGS = @E_REMOTE_CFLAGS@
 E_REMOTE_LIBS = @E_REMOTE_LIBS@
+E_START_CFLAGS = @E_START_CFLAGS@
+E_START_LIBS = @E_START_LIBS@
 E_SYS_CFLAGS = @E_SYS_CFLAGS@
 E_SYS_LIBS = @E_SYS_LIBS@
 E_THUMB_CFLAGS = @E_THUMB_CFLAGS@
 E_THUMB_LIBS = @E_THUMB_LIBS@
 FGREP = @FGREP@
+GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GMSGFMT = @GMSGFMT@
+GMSGFMT_015 = @GMSGFMT_015@
 GREP = @GREP@
 HAVE_ALSA = @HAVE_ALSA@
 HAVE_BATTERY = @HAVE_BATTERY@
@@ -240,12 +326,14 @@ HAVE_ENOTIFY = @HAVE_ENOTIFY@
 HAVE_EOFONO = @HAVE_EOFONO@
 HAVE_EXCHANGE = @HAVE_EXCHANGE@
 HAVE_TEMPERATURE = @HAVE_TEMPERATURE@
+HIBERNATE = @HIBERNATE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
+INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
@@ -261,9 +349,9 @@ LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MKINSTALLDIRS = @MKINSTALLDIRS@
 MODULE_ARCH = @MODULE_ARCH@
 MSGFMT = @MSGFMT@
+MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -284,6 +372,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSUB = @POSUB@
 RANLIB = @RANLIB@
 SED = @SED@
@@ -292,78 +382,52 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+SUSPEND = @SUSPEND@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
 TEMPERATURE_VERSION = @TEMPERATURE_VERSION@
+USE_MODULE_BACKLIGHT = @USE_MODULE_BACKLIGHT@
 USE_MODULE_BATTERY = @USE_MODULE_BATTERY@
 USE_MODULE_BLUEZ = @USE_MODULE_BLUEZ@
 USE_MODULE_CLOCK = @USE_MODULE_CLOCK@
 USE_MODULE_COMP = @USE_MODULE_COMP@
 USE_MODULE_CONF = @USE_MODULE_CONF@
-USE_MODULE_CONF_ACPIBINDINGS = @USE_MODULE_CONF_ACPIBINDINGS@
 USE_MODULE_CONF_APPLICATIONS = @USE_MODULE_CONF_APPLICATIONS@
-USE_MODULE_CONF_BORDERS = @USE_MODULE_CONF_BORDERS@
-USE_MODULE_CONF_CLIENTLIST = @USE_MODULE_CONF_CLIENTLIST@
-USE_MODULE_CONF_COLORS = @USE_MODULE_CONF_COLORS@
-USE_MODULE_CONF_DESK = @USE_MODULE_CONF_DESK@
-USE_MODULE_CONF_DESKLOCK = @USE_MODULE_CONF_DESKLOCK@
-USE_MODULE_CONF_DESKS = @USE_MODULE_CONF_DESKS@
 USE_MODULE_CONF_DIALOGS = @USE_MODULE_CONF_DIALOGS@
 USE_MODULE_CONF_DISPLAY = @USE_MODULE_CONF_DISPLAY@
-USE_MODULE_CONF_DPMS = @USE_MODULE_CONF_DPMS@
 USE_MODULE_CONF_EDGEBINDINGS = @USE_MODULE_CONF_EDGEBINDINGS@
-USE_MODULE_CONF_ENGINE = @USE_MODULE_CONF_ENGINE@
-USE_MODULE_CONF_FONTS = @USE_MODULE_CONF_FONTS@
-USE_MODULE_CONF_ICON_THEME = @USE_MODULE_CONF_ICON_THEME@
-USE_MODULE_CONF_IMC = @USE_MODULE_CONF_IMC@
 USE_MODULE_CONF_INTERACTION = @USE_MODULE_CONF_INTERACTION@
 USE_MODULE_CONF_INTL = @USE_MODULE_CONF_INTL@
 USE_MODULE_CONF_KEYBINDINGS = @USE_MODULE_CONF_KEYBINDINGS@
 USE_MODULE_CONF_MENUS = @USE_MODULE_CONF_MENUS@
-USE_MODULE_CONF_MIME = @USE_MODULE_CONF_MIME@
-USE_MODULE_CONF_MOUSE = @USE_MODULE_CONF_MOUSE@
-USE_MODULE_CONF_MOUSEBINDINGS = @USE_MODULE_CONF_MOUSEBINDINGS@
-USE_MODULE_CONF_MOUSE_CURSOR = @USE_MODULE_CONF_MOUSE_CURSOR@
 USE_MODULE_CONF_PATHS = @USE_MODULE_CONF_PATHS@
 USE_MODULE_CONF_PERFORMANCE = @USE_MODULE_CONF_PERFORMANCE@
-USE_MODULE_CONF_PROFILES = @USE_MODULE_CONF_PROFILES@
-USE_MODULE_CONF_SCALE = @USE_MODULE_CONF_SCALE@
-USE_MODULE_CONF_SCREENSAVER = @USE_MODULE_CONF_SCREENSAVER@
+USE_MODULE_CONF_RANDR = @USE_MODULE_CONF_RANDR@
 USE_MODULE_CONF_SHELVES = @USE_MODULE_CONF_SHELVES@
-USE_MODULE_CONF_STARTUP = @USE_MODULE_CONF_STARTUP@
 USE_MODULE_CONF_THEME = @USE_MODULE_CONF_THEME@
-USE_MODULE_CONF_TRANSITIONS = @USE_MODULE_CONF_TRANSITIONS@
-USE_MODULE_CONF_WALLPAPER = @USE_MODULE_CONF_WALLPAPER@
 USE_MODULE_CONF_WALLPAPER2 = @USE_MODULE_CONF_WALLPAPER2@
-USE_MODULE_CONF_WINDOW_DISPLAY = @USE_MODULE_CONF_WINDOW_DISPLAY@
-USE_MODULE_CONF_WINDOW_FOCUS = @USE_MODULE_CONF_WINDOW_FOCUS@
 USE_MODULE_CONF_WINDOW_MANIPULATION = @USE_MODULE_CONF_WINDOW_MANIPULATION@
 USE_MODULE_CONF_WINDOW_REMEMBERS = @USE_MODULE_CONF_WINDOW_REMEMBERS@
-USE_MODULE_CONF_WINLIST = @USE_MODULE_CONF_WINLIST@
 USE_MODULE_CONNMAN = @USE_MODULE_CONNMAN@
 USE_MODULE_CPUFREQ = @USE_MODULE_CPUFREQ@
 USE_MODULE_DROPSHADOW = @USE_MODULE_DROPSHADOW@
 USE_MODULE_EVERYTHING = @USE_MODULE_EVERYTHING@
-USE_MODULE_EVERYTHING_APPS = @USE_MODULE_EVERYTHING_APPS@
-USE_MODULE_EVERYTHING_ASPELL = @USE_MODULE_EVERYTHING_ASPELL@
-USE_MODULE_EVERYTHING_CALC = @USE_MODULE_EVERYTHING_CALC@
-USE_MODULE_EVERYTHING_FILES = @USE_MODULE_EVERYTHING_FILES@
-USE_MODULE_EVERYTHING_SETTINGS = @USE_MODULE_EVERYTHING_SETTINGS@
-USE_MODULE_EVERYTHING_WINDOWS = @USE_MODULE_EVERYTHING_WINDOWS@
 USE_MODULE_FILEMAN = @USE_MODULE_FILEMAN@
 USE_MODULE_FILEMAN_OPINFO = @USE_MODULE_FILEMAN_OPINFO@
 USE_MODULE_GADMAN = @USE_MODULE_GADMAN@
 USE_MODULE_IBAR = @USE_MODULE_IBAR@
 USE_MODULE_IBOX = @USE_MODULE_IBOX@
-USE_MODULE_ILLUME = @USE_MODULE_ILLUME@
 USE_MODULE_ILLUME2 = @USE_MODULE_ILLUME2@
 USE_MODULE_MIXER = @USE_MODULE_MIXER@
 USE_MODULE_MSGBUS = @USE_MODULE_MSGBUS@
+USE_MODULE_NOTIFICATION = @USE_MODULE_NOTIFICATION@
 USE_MODULE_OFONO = @USE_MODULE_OFONO@
 USE_MODULE_PAGER = @USE_MODULE_PAGER@
+USE_MODULE_SHOT = @USE_MODULE_SHOT@
 USE_MODULE_START = @USE_MODULE_START@
 USE_MODULE_SYSCON = @USE_MODULE_SYSCON@
 USE_MODULE_SYSTRAY = @USE_MODULE_SYSTRAY@
+USE_MODULE_TASKS = @USE_MODULE_TASKS@
 USE_MODULE_TEMPERATURE = @USE_MODULE_TEMPERATURE@
 USE_MODULE_WINLIST = @USE_MODULE_WINLIST@
 USE_MODULE_WIZARD = @USE_MODULE_WIZARD@
@@ -371,12 +435,11 @@ USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
 VERSION = @VERSION@
+WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
+WAYLAND_LIBS = @WAYLAND_LIBS@
 XGETTEXT = @XGETTEXT@
-XMKMF = @XMKMF@
-X_CFLAGS = @X_CFLAGS@
-X_EXTRA_LIBS = @X_EXTRA_LIBS@
-X_LIBS = @X_LIBS@
-X_PRE_LIBS = @X_PRE_LIBS@
+XGETTEXT_015 = @XGETTEXT_015@
+XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -444,26 +507,51 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 version_info = @version_info@
-x_cflags = @x_cflags@
-x_libs = @x_libs@
 MAINTAINERCLEANFILES = Makefile.in
 MODULE = wizard
 
 # data files for the module
 filesdir = $(libdir)/enlightenment/modules/$(MODULE)
+files_DATA = \
+data/def-ibar.txt
+
+desksdir = $(libdir)/enlightenment/modules/$(MODULE)/extra_desktops
+desks_DATA = \
+data/extra_desktops/mplayer.desktop \
+data/extra_desktops/xterm.desktop
+
+favsdir = $(libdir)/enlightenment/modules/$(MODULE)/favorites
+favs_DATA = \
+data/favorites/.order \
+data/favorites/desktop.desktop \
+data/favorites/home.desktop \
+data/favorites/root.desktop \
+data/favorites/tmp.desktop
+
+desktopdir = $(libdir)/enlightenment/modules/$(MODULE)/desktop
+desktop_DATA = \
+data/desktop/home.desktop \
+data/desktop/root.desktop \
+data/desktop/tmp.desktop
+
+
+### dont install these - this way e wont list the module for people to
+# accidentally load
 #files_DATA = \
 # e-module-$(MODULE).edj 
 # module.desktop
-EXTRA_DIST = $(files_DATA) page_040.c page_050.c page_060.c
+EXTRA_DIST = $(files_DATA) $(desks_DATA) $(favs_DATA) $(desktop_DATA)
 
 # the module .so file
 INCLUDES = -I. \
                          -I$(top_srcdir) \
                          -I$(top_srcdir)/src/modules/$(MODULE) \
                          -I$(top_srcdir)/src/bin \
-                         -I$(top_srcdir)/src/lib \
+                         -I$(top_builddir)/src/bin \
                          -I$(top_srcdir)/src/modules \
-                         @e_cflags@
+                         @ECONNMAN_CFLAGS@ \
+                         @e_cflags@ \
+                         -I$(top_srcdir)/src/modules/comp
 
 pkgdir = $(libdir)/enlightenment/modules/$(MODULE)/$(MODULE_ARCH)
 pkg_LTLIBRARIES = module.la \
@@ -471,16 +559,22 @@ pkg_LTLIBRARIES = module.la \
                          page_010.la \
                          page_020.la \
                          page_030.la \
+                         page_040.la \
+                         page_050.la \
+                         page_060.la \
                          page_070.la \
                          page_080.la \
+                         page_090.la \
+                         page_100.la \
+                         page_110.la \
+                         page_120.la \
+                         page_130.la \
+                         page_140.la \
+                         page_150.la \
+                         page_160.la \
+                         page_170.la \
                          page_200.la
 
-
-### disabled because profile selector really does the job. code here just for
-### informational purposes on how to make wizard pages
-# page_040.la
-# page_050.la
-# page_060.la
 module_la_SOURCES = e_mod_main.c \
                          e_mod_main.h \
 			 e_wizard.c \
@@ -490,7 +584,7 @@ module_la_LIBADD = @e_libs@ @dlopen_libs@
 module_la_LDFLAGS = -module -avoid-version
 module_la_DEPENDENCIES = $(top_builddir)/config.h
 
-#Splash screen
+#Auto - Splash screen
 page_000_la_SOURCES = page_000.c
 page_000_la_LIBADD = @e_libs@ @dlopen_libs@
 page_000_la_LDFLAGS = -module -avoid-version
@@ -508,38 +602,97 @@ page_020_la_LIBADD = @e_libs@ @dlopen_libs@
 page_020_la_LDFLAGS = -module -avoid-version
 page_020_la_DEPENDENCIES = $(top_builddir)/config.h
 
-#Choose Menus
+#Auto - set up menu
 page_030_la_SOURCES = page_030.c
 page_030_la_LIBADD = @e_libs@ @dlopen_libs@
 page_030_la_LDFLAGS = -module -avoid-version
 page_030_la_DEPENDENCIES = $(top_builddir)/config.h
 
-#page_040_la_SOURCES      = page_040.c
-#page_040_la_LIBADD       = @e_libs@ @dlopen_libs@
-#page_040_la_LDFLAGS      = -module -avoid-version
-#page_040_la_DEPENDENCIES = $(top_builddir)/config.h
+#Auto - add new app icons
+page_040_la_SOURCES = page_040.c
+page_040_la_LIBADD = @e_libs@ @dlopen_libs@
+page_040_la_LDFLAGS = -module -avoid-version
+page_040_la_DEPENDENCIES = $(top_builddir)/config.h
 
-#page_050_la_SOURCES      = page_050.c
-#page_050_la_LIBADD       = @e_libs@ @dlopen_libs@
-#page_050_la_LDFLAGS      = -module -avoid-version
-#page_050_la_DEPENDENCIES = $(top_builddir)/config.h
+#Request what scaling to use
+page_050_la_SOURCES = page_050.c
+page_050_la_LIBADD = @e_libs@ @dlopen_libs@
+page_050_la_LDFLAGS = -module -avoid-version
+page_050_la_DEPENDENCIES = $(top_builddir)/config.h
 
-#page_060_la_SOURCES      = page_060.c
-#page_060_la_LIBADD       = @e_libs@ @dlopen_libs@
-#page_060_la_LDFLAGS      = -module -avoid-version
-#page_060_la_DEPENDENCIES = $(top_builddir)/config.h
+#Request which focus style to use
+page_060_la_SOURCES = page_060.c
+page_060_la_LIBADD = @e_libs@ @dlopen_libs@
+page_060_la_LDFLAGS = -module -avoid-version
+page_060_la_DEPENDENCIES = $(top_builddir)/config.h
 
-#Choose appliactions
+#Auto - Figure out icon theme to use
 page_070_la_SOURCES = page_070.c
 page_070_la_LIBADD = @e_libs@ @dlopen_libs@
 page_070_la_LDFLAGS = -module -avoid-version
 page_070_la_DEPENDENCIES = $(top_builddir)/config.h
 
-#Choose quick launch
+#Auto - fill ibar
 page_080_la_SOURCES = page_080.c
 page_080_la_LIBADD = @e_libs@ @dlopen_libs@
 page_080_la_LDFLAGS = -module -avoid-version
 page_080_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto - do we need battery?
+page_090_la_SOURCES = page_090.c
+page_090_la_LIBADD = @e_libs@ @dlopen_libs@
+page_090_la_LDFLAGS = -module -avoid-version
+page_090_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto - do we need cpufreq?
+page_100_la_SOURCES = page_100.c
+page_100_la_LIBADD = @e_libs@ @dlopen_libs@
+page_100_la_LDFLAGS = -module -avoid-version
+page_100_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto+feedback - do we need connman?
+page_110_la_SOURCES = page_110.c
+page_110_la_LIBADD = @e_libs@ @dlopen_libs@ @ECONNMAN_LIBS@
+page_110_la_LDFLAGS = -module -avoid-version
+page_110_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto - do we need temperature?
+page_120_la_SOURCES = page_120.c
+page_120_la_LIBADD = @e_libs@ @dlopen_libs@
+page_120_la_LDFLAGS = -module -avoid-version
+page_120_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto - do we need backlight?
+page_130_la_SOURCES = page_130.c
+page_130_la_LIBADD = @e_libs@ @dlopen_libs@
+page_130_la_LDFLAGS = -module -avoid-version
+page_130_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto - do we need temperature?
+page_140_la_SOURCES = page_140.c
+page_140_la_LIBADD = @e_libs@ @dlopen_libs@
+page_140_la_LDFLAGS = -module -avoid-version
+page_140_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Request if compositing is wanted
+page_150_la_SOURCES = page_150.c $(top_srcdir)/src/modules/comp/e_mod_comp_cfdata.c
+page_150_la_LIBADD = @e_libs@ @dlopen_libs@
+page_150_la_LDFLAGS = -module -avoid-version
+page_150_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto - install favorites and ~/Desktop and entries
+page_160_la_SOURCES = page_160.c
+page_160_la_LIBADD = @e_libs@ @dlopen_libs@
+page_160_la_LDFLAGS = -module -avoid-version
+page_160_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Request if user agrees to checking for updates
+page_170_la_SOURCES = page_170.c
+page_170_la_LIBADD = @e_libs@ @dlopen_libs@
+page_170_la_LDFLAGS = -module -avoid-version
+page_170_la_DEPENDENCIES = $(top_builddir)/config.h
+
+#Auto - finish up applying
 page_200_la_SOURCES = page_200.c
 page_200_la_LIBADD = @e_libs@ @dlopen_libs@
 page_200_la_LDFLAGS = -module -avoid-version
@@ -619,10 +772,34 @@ page_020.la: $(page_020_la_OBJECTS) $(page_020_la_DEPENDENCIES)
 	$(AM_V_CCLD)$(page_020_la_LINK) -rpath $(pkgdir) $(page_020_la_OBJECTS) $(page_020_la_LIBADD) $(LIBS)
 page_030.la: $(page_030_la_OBJECTS) $(page_030_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(page_030_la_LINK) -rpath $(pkgdir) $(page_030_la_OBJECTS) $(page_030_la_LIBADD) $(LIBS)
+page_040.la: $(page_040_la_OBJECTS) $(page_040_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_040_la_LINK) -rpath $(pkgdir) $(page_040_la_OBJECTS) $(page_040_la_LIBADD) $(LIBS)
+page_050.la: $(page_050_la_OBJECTS) $(page_050_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_050_la_LINK) -rpath $(pkgdir) $(page_050_la_OBJECTS) $(page_050_la_LIBADD) $(LIBS)
+page_060.la: $(page_060_la_OBJECTS) $(page_060_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_060_la_LINK) -rpath $(pkgdir) $(page_060_la_OBJECTS) $(page_060_la_LIBADD) $(LIBS)
 page_070.la: $(page_070_la_OBJECTS) $(page_070_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(page_070_la_LINK) -rpath $(pkgdir) $(page_070_la_OBJECTS) $(page_070_la_LIBADD) $(LIBS)
 page_080.la: $(page_080_la_OBJECTS) $(page_080_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(page_080_la_LINK) -rpath $(pkgdir) $(page_080_la_OBJECTS) $(page_080_la_LIBADD) $(LIBS)
+page_090.la: $(page_090_la_OBJECTS) $(page_090_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_090_la_LINK) -rpath $(pkgdir) $(page_090_la_OBJECTS) $(page_090_la_LIBADD) $(LIBS)
+page_100.la: $(page_100_la_OBJECTS) $(page_100_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_100_la_LINK) -rpath $(pkgdir) $(page_100_la_OBJECTS) $(page_100_la_LIBADD) $(LIBS)
+page_110.la: $(page_110_la_OBJECTS) $(page_110_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_110_la_LINK) -rpath $(pkgdir) $(page_110_la_OBJECTS) $(page_110_la_LIBADD) $(LIBS)
+page_120.la: $(page_120_la_OBJECTS) $(page_120_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_120_la_LINK) -rpath $(pkgdir) $(page_120_la_OBJECTS) $(page_120_la_LIBADD) $(LIBS)
+page_130.la: $(page_130_la_OBJECTS) $(page_130_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_130_la_LINK) -rpath $(pkgdir) $(page_130_la_OBJECTS) $(page_130_la_LIBADD) $(LIBS)
+page_140.la: $(page_140_la_OBJECTS) $(page_140_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_140_la_LINK) -rpath $(pkgdir) $(page_140_la_OBJECTS) $(page_140_la_LIBADD) $(LIBS)
+page_150.la: $(page_150_la_OBJECTS) $(page_150_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_150_la_LINK) -rpath $(pkgdir) $(page_150_la_OBJECTS) $(page_150_la_LIBADD) $(LIBS)
+page_160.la: $(page_160_la_OBJECTS) $(page_160_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_160_la_LINK) -rpath $(pkgdir) $(page_160_la_OBJECTS) $(page_160_la_LIBADD) $(LIBS)
+page_170.la: $(page_170_la_OBJECTS) $(page_170_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(page_170_la_LINK) -rpath $(pkgdir) $(page_170_la_OBJECTS) $(page_170_la_LIBADD) $(LIBS)
 page_200.la: $(page_200_la_OBJECTS) $(page_200_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(page_200_la_LINK) -rpath $(pkgdir) $(page_200_la_OBJECTS) $(page_200_la_LIBADD) $(LIBS)
 
@@ -632,14 +809,27 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_mod_comp_cfdata.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_mod_main.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_wizard.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_000.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_010.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_020.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_030.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_040.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_050.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_060.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_070.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_080.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_090.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_100.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_110.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_120.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_130.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_140.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_150.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_160.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_170.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page_200.Plo@am__quote@
 
 .c.o:
@@ -666,11 +856,99 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
+e_mod_comp_cfdata.lo: $(top_srcdir)/src/modules/comp/e_mod_comp_cfdata.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT e_mod_comp_cfdata.lo -MD -MP -MF $(DEPDIR)/e_mod_comp_cfdata.Tpo -c -o e_mod_comp_cfdata.lo `test -f '$(top_srcdir)/src/modules/comp/e_mod_comp_cfdata.c' || echo '$(srcdir)/'`$(top_srcdir)/src/modules/comp/e_mod_comp_cfdata.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/e_mod_comp_cfdata.Tpo $(DEPDIR)/e_mod_comp_cfdata.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/src/modules/comp/e_mod_comp_cfdata.c' object='e_mod_comp_cfdata.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o e_mod_comp_cfdata.lo `test -f '$(top_srcdir)/src/modules/comp/e_mod_comp_cfdata.c' || echo '$(srcdir)/'`$(top_srcdir)/src/modules/comp/e_mod_comp_cfdata.c
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-desksDATA: $(desks_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(desksdir)" || $(MKDIR_P) "$(DESTDIR)$(desksdir)"
+	@list='$(desks_DATA)'; test -n "$(desksdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(desksdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(desksdir)" || exit $$?; \
+	done
+
+uninstall-desksDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(desks_DATA)'; test -n "$(desksdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(desksdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(desksdir)" && rm -f $$files
+install-desktopDATA: $(desktop_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(desktopdir)" || $(MKDIR_P) "$(DESTDIR)$(desktopdir)"
+	@list='$(desktop_DATA)'; test -n "$(desktopdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(desktopdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(desktopdir)" || exit $$?; \
+	done
+
+uninstall-desktopDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(desktop_DATA)'; test -n "$(desktopdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(desktopdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(desktopdir)" && rm -f $$files
+install-favsDATA: $(favs_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(favsdir)" || $(MKDIR_P) "$(DESTDIR)$(favsdir)"
+	@list='$(favs_DATA)'; test -n "$(favsdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(favsdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(favsdir)" || exit $$?; \
+	done
+
+uninstall-favsDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(favs_DATA)'; test -n "$(favsdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(favsdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(favsdir)" && rm -f $$files
+install-filesDATA: $(files_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(filesdir)" || $(MKDIR_P) "$(DESTDIR)$(filesdir)"
+	@list='$(files_DATA)'; test -n "$(filesdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(filesdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(filesdir)" || exit $$?; \
+	done
+
+uninstall-filesDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(files_DATA)'; test -n "$(filesdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(filesdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(filesdir)" && rm -f $$files
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -756,9 +1034,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(LTLIBRARIES) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(pkgdir)"; do \
+	for dir in "$(DESTDIR)$(pkgdir)" "$(DESTDIR)$(desksdir)" "$(DESTDIR)$(desktopdir)" "$(DESTDIR)$(favsdir)" "$(DESTDIR)$(filesdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -809,7 +1087,8 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pkgLTLIBRARIES
+install-data-am: install-desksDATA install-desktopDATA \
+	install-favsDATA install-filesDATA install-pkgLTLIBRARIES
 
 install-dvi: install-dvi-am
 
@@ -855,7 +1134,9 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pkgLTLIBRARIES
+uninstall-am: uninstall-desksDATA uninstall-desktopDATA \
+	uninstall-favsDATA uninstall-filesDATA \
+	uninstall-pkgLTLIBRARIES
 
 .MAKE: install-am install-strip
 
@@ -863,15 +1144,18 @@ uninstall-am: uninstall-pkgLTLIBRARIES
 	clean-libtool clean-pkgLTLIBRARIES ctags distclean \
 	distclean-compile distclean-generic distclean-libtool \
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-pkgLTLIBRARIES install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am uninstall-pkgLTLIBRARIES
+	install install-am install-data install-data-am \
+	install-desksDATA install-desktopDATA install-dvi \
+	install-dvi-am install-exec install-exec-am install-favsDATA \
+	install-filesDATA install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-pkgLTLIBRARIES install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-desksDATA \
+	uninstall-desktopDATA uninstall-favsDATA uninstall-filesDATA \
+	uninstall-pkgLTLIBRARIES
 
 
 uninstall:

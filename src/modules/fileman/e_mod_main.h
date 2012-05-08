@@ -11,9 +11,13 @@ typedef struct _Config Config;
 
 #define E_TYPEDEFS 1
 #include "e_fwin.h"
+#include "e_int_config_mime_edit.h"
+#include "e_int_config_mime.h"
 
 #undef E_TYPEDEFS
 #include "e_fwin.h"
+#include "e_int_config_mime_edit.h"
+#include "e_int_config_mime.h"
 
 struct _Config 
 {
@@ -82,5 +86,18 @@ EAPI int   e_modapi_shutdown (E_Module *m);
 EAPI int   e_modapi_save     (E_Module *m);
 
 extern Config *fileman_config;
+
+/**
+ * @addtogroup Optional_Fileman
+ * @{
+ *
+ * @defgroup Module_Fileman File Manager
+ *
+ * Basic file manager with list and grid view, shows thumbnails, can
+ * copy, cut, paste, delete and rename files.
+ *
+ * @see Module_Fileman_Opinfo
+ * @}
+ */
 
 #endif

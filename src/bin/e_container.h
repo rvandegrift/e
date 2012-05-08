@@ -51,13 +51,15 @@ struct _E_Container
       Ecore_X_Window win;
       Eina_List *clients;
    } layers[7];
+   
+   Ecore_X_Window       scratch_win;
 };
 
 struct _E_Border_List
 {
    E_Container *container;
-   int layer;
-   Eina_List *clients;
+   Eina_Array   client_array;
+   int          pos;
 };
 
 struct _E_Container_Shape

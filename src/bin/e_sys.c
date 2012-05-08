@@ -27,6 +27,7 @@ static int _e_sys_can_hibernate = 0;
 static E_Sys_Action _e_sys_action_current = E_SYS_NONE;
 static E_Sys_Action _e_sys_action_after = E_SYS_NONE;
 static Ecore_Exe *_e_sys_exe = NULL;
+static double _e_sys_begin_time = 0.0;
 static double _e_sys_logout_begin_time = 0.0;
 static Ecore_Timer *_e_sys_logout_timer = NULL;
 static E_Obj_Dialog *_e_sys_dialog = NULL;
@@ -89,7 +90,7 @@ e_sys_action_possible_get(E_Sys_Action a)
 EAPI int
 e_sys_action_do(E_Sys_Action a, char *param)
 {
-   int ret;
+   int ret = 0;
 
    if (_e_sys_action_current != E_SYS_NONE)
      {
@@ -113,9 +114,12 @@ e_sys_action_do(E_Sys_Action a, char *param)
 	return 1;
 	break;
       default:
-	return 0;
+        break;
      }
-   _e_sys_action_current = a;
+
+   if (ret) _e_sys_action_current = a;
+   else _e_sys_action_current = E_SYS_NONE;
+
    return ret;
 }
 
@@ -169,13 +173,21 @@ _e_sys_cb_timer(void *data __UNUSED__)
    char buf[4096];
    
    e_init_status_set(_("Checking System Permissions"));
-   snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys -t halt", e_prefix_lib_get());
+   snprintf(buf, sizeof(buf), 
+            "%s/enlightenment/utils/enlightenment_sys -t halt", 
+            e_prefix_lib_get());
    _e_sys_halt_check_exe = ecore_exe_run(buf, NULL);
-   snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys -t reboot", e_prefix_lib_get());
+   snprintf(buf, sizeof(buf), 
+            "%s/enlightenment/utils/enlightenment_sys -t reboot", 
+            e_prefix_lib_get());
    _e_sys_reboot_check_exe = ecore_exe_run(buf, NULL);
-   snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys -t suspend", e_prefix_lib_get());
+   snprintf(buf, sizeof(buf), 
+            "%s/enlightenment/utils/enlightenment_sys -t suspend", 
+            e_prefix_lib_get());
    _e_sys_suspend_check_exe = ecore_exe_run(buf, NULL);
-   snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys -t hibernate", e_prefix_lib_get());
+   snprintf(buf, sizeof(buf), 
+            "%s/enlightenment/utils/enlightenment_sys -t hibernate", 
+            e_prefix_lib_get());
    _e_sys_hibernate_check_exe = ecore_exe_run(buf, NULL);
    return ECORE_CALLBACK_CANCEL;
 }
@@ -307,8 +319,7 @@ _e_sys_logout_confirm_dialog_update(int remaining)
 	      "Do you want to finish the logout<br>"
 	      "anyway without closing these<br>"
 	      "applications first?<br><br>"
-	      "Auto logout in %d seconds."),
-	    remaining);
+	      "Auto logout in %d seconds."), remaining);
 
    e_dialog_text_set(_e_sys_logout_confirm_dialog, txt);
 }
@@ -365,9 +376,12 @@ _e_sys_cb_logout_timer(void *data __UNUSED__)
 		  _e_sys_logout_confirm_dialog = dia;
 		  e_dialog_title_set(dia, _("Logout problems"));
 		  e_dialog_icon_set(dia, "system-log-out", 64);
-		  e_dialog_button_add(dia, _("Logout now"), NULL, _e_sys_cb_logout_logout, NULL);
-		  e_dialog_button_add(dia, _("Wait longer"), NULL, _e_sys_cb_logout_wait, NULL);
-		  e_dialog_button_add(dia, _("Cancel Logout"), NULL, _e_sys_cb_logout_abort, NULL);
+		  e_dialog_button_add(dia, _("Logout now"), NULL, 
+                                      _e_sys_cb_logout_logout, NULL);
+		  e_dialog_button_add(dia, _("Wait longer"), NULL, 
+                                      _e_sys_cb_logout_wait, NULL);
+		  e_dialog_button_add(dia, _("Cancel Logout"), NULL, 
+                                      _e_sys_cb_logout_abort, NULL);
 		  e_dialog_button_focus_num(dia, 1);
 		  _e_sys_logout_confirm_dialog_update(E_LOGOUT_AUTO_TIME);
 		  e_win_centered_set(dia->win, 1);
@@ -432,7 +446,8 @@ _e_sys_current_action(void)
    /* display dialog that currently an action is in progress */
    E_Dialog *dia;
 
-   dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_sys_error_action_busy");
+   dia = e_dialog_new(e_container_current_get(e_manager_current_get()), 
+                      "E", "_sys_error_action_busy");
    if (!dia) return;
 
    e_dialog_title_set(dia, _("Enlightenment is busy with another request"));
@@ -440,45 +455,33 @@ _e_sys_current_action(void)
    switch (_e_sys_action_current)
      {
       case E_SYS_LOGOUT:
-	e_dialog_text_set(dia,
-			  _("Logging out.<br>"
-			    "You cannot perform other system actions<br>"
-			    "once a logout has begun.")
-			  );
+	e_dialog_text_set(dia, _("Logging out.<br>"
+                                 "You cannot perform other system actions<br>"
+                                 "once a logout has begun."));
 	break;
       case E_SYS_HALT:
       case E_SYS_HALT_NOW:
-	e_dialog_text_set(dia,
-			  _("Powering off.<br>"
-			    "You cannot do any other system actions<br>"
-			    "once a shutdown has been started.")
-			  );
+	e_dialog_text_set(dia, _("Powering off.<br>"
+                                 "You cannot do any other system actions<br>"
+                                 "once a shutdown has been started."));
 	break;
       case E_SYS_REBOOT:
-	e_dialog_text_set(dia,
-			  _("Resetting.<br>"
-			    "You cannot do any other system actions<br>"
-			    "once a reboot has begun.")
-			  );
+	e_dialog_text_set(dia, _("Resetting.<br>"
+                                 "You cannot do any other system actions<br>"
+                                 "once a reboot has begun."));
 	break;
       case E_SYS_SUSPEND:
-	e_dialog_text_set(dia,
-			  _("Suspending.<br>"
-			    "Until suspend is complete you cannot perform<br>"
-			    "any other system actions.")
-			  );
+	e_dialog_text_set(dia, _("Suspending.<br>"
+                                 "Until suspend is complete you cannot perform<br>"
+                                 "any other system actions."));
 	break;
       case E_SYS_HIBERNATE:
-	e_dialog_text_set(dia,
-			  _("Hibernating.<br>"
-			    "You cannot perform an other system actions<br>"
-			    "until this is complete.")
-			  );
+	e_dialog_text_set(dia, _("Hibernating.<br>"
+                                 "You cannot perform any other system actions<br>"
+                                 "until this is complete."));
 	break;
       default:
-	e_dialog_text_set(dia,
-			  _("EEK! This should not happen")
-			  );
+	e_dialog_text_set(dia, _("EEK! This should not happen"));
 	break;
      }
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
@@ -493,7 +496,8 @@ _e_sys_action_failed(void)
    /* display dialog that the current action failed */
    E_Dialog *dia;
 
-   dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_sys_error_action_failed");
+   dia = e_dialog_new(e_container_current_get(e_manager_current_get()), 
+                      "E", "_sys_error_action_failed");
    if (!dia) return;
 
    e_dialog_title_set(dia, _("Enlightenment is busy with another request"));
@@ -502,29 +506,19 @@ _e_sys_action_failed(void)
      {
       case E_SYS_HALT:
       case E_SYS_HALT_NOW:
-	e_dialog_text_set(dia,
-			  _("Power off failed.")
-			  );
+	e_dialog_text_set(dia, _("Power off failed."));
 	break;
       case E_SYS_REBOOT:
-	e_dialog_text_set(dia,
-			  _("Reset failed.")
-			  );
+	e_dialog_text_set(dia, _("Reset failed."));
 	break;
       case E_SYS_SUSPEND:
-	e_dialog_text_set(dia,
-			  _("Suspend failed.")
-			  );
+	e_dialog_text_set(dia, _("Suspend failed."));
 	break;
       case E_SYS_HIBERNATE:
-	e_dialog_text_set(dia,
-			  _("Hibernate failed.")
-			  );
+	e_dialog_text_set(dia, _("Hibernate failed."));
 	break;
       default:
-	e_dialog_text_set(dia,
-			  _("EEK! This should not happen")
-			  );
+	e_dialog_text_set(dia, _("EEK! This should not happen"));
 	break;
      }
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
@@ -543,15 +537,21 @@ _e_sys_action_do(E_Sys_Action a, char *param __UNUSED__)
      {
       case E_SYS_EXIT:
 	// XXX TODO: check for e_fm_op_registry entries and confirm
-	if (!e_util_immortal_check()) ecore_main_loop_quit();
+	if (!e_util_immortal_check()) 
+          ecore_main_loop_quit();
+        else 
+          return 0;
 	break;
       case E_SYS_RESTART:
 	// XXX TODO: check for e_fm_op_registry entries and confirm
-	if (!e_util_immortal_check())
+        // FIXME: we dont   share out immortal info to restarted e. :(
+//	if (!e_util_immortal_check())
 	  {
 	     restart = 1;
 	     ecore_main_loop_quit();
 	  }
+//        else
+//          return 0;
 	break;
       case E_SYS_EXIT_NOW:
 	exit(0);
@@ -564,15 +564,18 @@ _e_sys_action_do(E_Sys_Action a, char *param __UNUSED__)
       case E_SYS_HALT_NOW:
 	/* shutdown -h now */
 	if (e_util_immortal_check()) return 0;
-	snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys halt",
-		 e_prefix_lib_get());
+	snprintf(buf, sizeof(buf), 
+                 "%s/enlightenment/utils/enlightenment_sys halt", 
+                 e_prefix_lib_get());
 	if (_e_sys_exe)
 	  {
-	     _e_sys_current_action();
+             if ((ecore_time_get() - _e_sys_begin_time) > 2.0)
+                _e_sys_current_action();
 	     return 0;
 	  }
 	else
 	  {
+             _e_sys_begin_time = ecore_time_get();
 	     _e_sys_exe = ecore_exe_run(buf, NULL);
 	     od = e_obj_dialog_new(e_container_current_get(e_manager_current_get()),
 				   _("Power off"), "E", "_sys_halt");
@@ -591,15 +594,18 @@ _e_sys_action_do(E_Sys_Action a, char *param __UNUSED__)
       case E_SYS_REBOOT:
 	/* shutdown -r now */
 	if (e_util_immortal_check()) return 0;
-	snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys reboot",
+	snprintf(buf, sizeof(buf), 
+                 "%s/enlightenment/utils/enlightenment_sys reboot",
 		 e_prefix_lib_get());
 	if (_e_sys_exe)
 	  {
-	     _e_sys_current_action();
+             if ((ecore_time_get() - _e_sys_begin_time) > 2.0)
+                _e_sys_current_action();
 	     return 0;
 	  }
 	else
 	  {
+             _e_sys_begin_time = ecore_time_get();
 	     _e_sys_exe = ecore_exe_run(buf, NULL);
 	     od = e_obj_dialog_new(e_container_current_get(e_manager_current_get()),
 				   _("Resetting"), "E", "_sys_reboot");
@@ -617,17 +623,20 @@ _e_sys_action_do(E_Sys_Action a, char *param __UNUSED__)
 	break;
       case E_SYS_SUSPEND:
 	/* /etc/acpi/sleep.sh force */
-	snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys suspend",
+	snprintf(buf, sizeof(buf), 
+                 "%s/enlightenment/utils/enlightenment_sys suspend",
 		 e_prefix_lib_get());
 	if (_e_sys_exe)
 	  {
-	     _e_sys_current_action();
+             if ((ecore_time_get() - _e_sys_begin_time) > 2.0)
+                _e_sys_current_action();
 	     return 0;
 	  }
 	else
 	  {
              if (e_config->desklock_on_suspend) e_desklock_show();
              
+             _e_sys_begin_time = ecore_time_get();
 	     _e_sys_exe = ecore_exe_run(buf, NULL);
 	     od = e_obj_dialog_new(e_container_current_get(e_manager_current_get()),
 				   _("Suspending"), "E", "_sys_suspend");
@@ -645,17 +654,20 @@ _e_sys_action_do(E_Sys_Action a, char *param __UNUSED__)
 	break;
       case E_SYS_HIBERNATE:
 	/* /etc/acpi/hibernate.sh force */
-	snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys hibernate",
+	snprintf(buf, sizeof(buf), 
+                 "%s/enlightenment/utils/enlightenment_sys hibernate",
 		 e_prefix_lib_get());
 	if (_e_sys_exe)
 	  {
-	     _e_sys_current_action();
+             if ((ecore_time_get() - _e_sys_begin_time) > 2.0)
+                _e_sys_current_action();
 	     return 0;
 	  }
 	else
 	  {
              if (e_config->desklock_on_suspend) e_desklock_show();
              
+             _e_sys_begin_time = ecore_time_get();
 	     _e_sys_exe = ecore_exe_run(buf, NULL);
 	     od = e_obj_dialog_new(e_container_current_get(e_manager_current_get()),
 				   _("Hibernating"), "E", "_sys_hibernate");

@@ -3,7 +3,7 @@
 m4_define([v_maj], [0])
 m4_define([v_min], [16])
 m4_define([v_mic], [999])
-m4_define([v_rev], m4_esyscmd([(svnversion "${SVN_REPO_PATH:-.}" | grep -v export || echo 0) | awk -F : '{printf("%s\n", $1);}' | tr -d ' :MSP\n']))
+m4_define([v_rev], m4_esyscmd([(svnversion "${SVN_REPO_PATH:-.}" | grep -v '\(export\|Unversioned directory\)' || echo 0) | awk -F : '{printf("%s\n", $1);}' | tr -d ' :MSP\n']))
 m4_if(v_rev, [0], [m4_define([v_rev], m4_esyscmd([git log 2> /dev/null | (grep -m1 git-svn-id || echo 0) | sed -e 's/.*@\([0-9]*\).*/\1/' | tr -d '\n']))])
 ##--   When released, remove the dnl on the below line
 dnl m4_undefine([v_rev])
@@ -11,8 +11,7 @@ dnl m4_undefine([v_rev])
 m4_define([relname], [ver-pre-svn-08])
 m4_define([v_rel], [-release relname])
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
-m4_ifdef([v_rev], [m4_define([v_ver], [v_maj.v_min.v_mic.v_rev])],
-[m4_define([v_ver], [v_maj.v_min.v_mic])])
+m4_ifdef([v_rev], [m4_define([v_ver], [v_maj.v_min.v_mic.v_rev])], [m4_define([v_ver], [v_maj.v_min.v_mic])])
 m4_define([lt_rev], m4_eval(v_maj + v_min))
 m4_define([lt_cur], v_mic)
 m4_define([lt_age], v_min)
@@ -27,8 +26,16 @@ AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_ISC_POSIX
 
+AC_CONFIG_HEADERS([config.h])
+AH_TOP([
+#ifndef EFL_CONFIG_H__
+#define EFL_CONFIG_H__
+])
+AH_BOTTOM([
+#endif /* EFL_CONFIG_H__ */
+])
+
 AM_INIT_AUTOMAKE([1.6 dist-bzip2])
-AM_CONFIG_HEADER([config.h])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_GNU_SOURCE
@@ -70,7 +77,7 @@ EFL_CHECK_PATH_MAX
 AC_CHECK_FUNCS(setenv)
 AC_CHECK_FUNCS(unsetenv)
 
-AC_CHECK_HEADERS(X11/extensions/shape.h,, AC_MSG_ERROR([Cannot find X11/extensions/shape.h. Make sure your CFLAGS environment variable contains include lines for the location of this file]))
+dnl AC_CHECK_HEADERS(X11/extensions/shape.h,, AC_MSG_ERROR([Cannot find X11/extensions/shape.h. Make sure your CFLAGS environment variable contains include lines for the location of this file]))
 
 AC_CHECK_HEADERS(fnmatch.h,, AC_MSG_ERROR([Cannot find fnmatch.h. Make sure your CFLAGS environment variable contains include lines for the location of this file]))
 
@@ -153,25 +160,25 @@ AC_ARG_ENABLE(simple-x11,
   [ want_evas_simple_x11=$enableval ]
 )
     
-x_dir=""
-x_cflags=""
-x_libs=""
-AC_PATH_XTRA
-AC_CHECK_HEADER(X11/X.h,
-  [
-    if test "x$want_evas_simple_x11" = "xyes"; then
-      x_libs="${x_libs} -lX11 -lXext"
-    else
-      x_dir=${x_dir:-/usr/X11R6}
-      x_cflags=${x_cflags:--I${x_includes:-$x_dir/include}}
-      x_libs="${x_libs:--L${x_libraries:-$x_dir/lib}} -lX11 -lXext"
-    fi
-  ],[
-    AC_MSG_ERROR([Cannot find X headers and libraries.])
-  ]
-)
-AC_SUBST(x_cflags)
-AC_SUBST(x_libs)
+dnl x_dir=""
+dnl x_cflags=""
+dnl x_libs=""
+dnl AC_PATH_XTRA
+dnl AC_CHECK_HEADER(X11/X.h,
+dnl   [
+dnl     if test "x$want_evas_simple_x11" = "xyes"; then
+dnl       x_libs="${x_libs} -lX11 -lXext"
+dnl     else
+dnl       x_dir=${x_dir:-/usr/X11R6}
+dnl       x_cflags=${x_cflags:--I${x_includes:-$x_dir/include}}
+dnl       x_libs="${x_libs:--L${x_libraries:-$x_dir/lib}} -lX11 -lXext"
+dnl     fi
+dnl   ],[
+dnl     AC_MSG_ERROR([Cannot find X headers and libraries.])
+dnl   ]
+dnl )
+dnl AC_SUBST(x_cflags)
+dnl AC_SUBST(x_libs)
 
 cf_cflags=""
 cf_libs=""
@@ -245,20 +252,26 @@ ALL_LINGUAS="bg ca cs da de el eo es fi fr fr_CH he hu it ja ko nb nl pl pt_BR r
 AC_SUBST(ALL_LINGUAS)
 
 m4_ifdef([AM_GNU_GETTEXT_VERSION], [
-AM_GNU_GETTEXT_VERSION([0.12.1])
+AM_GNU_GETTEXT_VERSION([0.17])
 ])
 
 m4_ifdef([AM_GNU_GETTEXT], [
 AM_GNU_GETTEXT([external])
 po_makefile_in=po/Makefile.in
-AM_CONDITIONAL([HAVE_PO], [true])
+have_po="yes"
 ],[
-AM_CONDITIONAL([HAVE_PO], [false])
+have_po="no"
 ])
 AC_SUBST(LTLIBINTL)
 if test "x$LIBINTL" = "x"; then
   LIBINTL="$INTLLIBS"
 fi
+
+if test "x${POSUB}" = "x" ; then
+   have_po="no"
+fi
+
+AM_CONDITIONAL([HAVE_PO], [test "x${have_po}" = "xyes"])
 
 AC_CHECK_LIB(dl, dlopen, dlopen_libs=-ldl)
 AC_SUBST(dlopen_libs)
@@ -271,6 +284,14 @@ AC_ARG_ENABLE([install-sysactions],
 AC_MSG_RESULT([$e_cv_enable_install_sysactions])
 AM_CONDITIONAL(INSTALL_SYSACTIONS, test x${e_cv_enable_install_sysactions} = xyes)
 
+AC_MSG_CHECKING([whether to install enlightenment.menu])
+AC_ARG_ENABLE([install-enlightenment-menu],
+  AS_HELP_STRING([--disable-enlightenment-menu],[disable installing /etc/xdg/menus/enlightenment.menu @<:@default=enabled@:>@]),
+    [e_cv_enable_install_enlightenment_menu=$enableval],
+    AC_CACHE_VAL([e_cv_enable_install_enlightenment_menu], [e_cv_enable_install_enlightenment_menu=yes]))
+AC_MSG_RESULT([$e_cv_enable_install_enlightenment_menu])
+AM_CONDITIONAL(INSTALL_ENLIGHTENMENT_MENU, test x${e_cv_enable_install_enlightenment_menu} = xyes)
+
 AC_MSG_CHECKING([whether to enable Files menu item])
 AC_ARG_ENABLE([files],
   AS_HELP_STRING([--disable-files],[disable Files menu item @<:@default=enabled@:>@]),
@@ -281,42 +302,131 @@ if test "[${e_cv_enable_files}]" = yes; then
 fi
 AC_MSG_RESULT([$e_cv_enable_files])
 
-AC_MSG_CHECKING([which device backend to use])
 AC_ARG_ENABLE([device-hal],
   AS_HELP_STRING([--enable-device-hal],[enable hal device backend @<:@default=disabled@:>@]),
-  [e_cv_want_device_hal=$enableval]
-  AC_CACHE_VAL([e_cv_want_device_hal], [e_cv_want_device_hal=no]))
+  [e_cv_want_device_hal=$enableval],
+  [e_cv_want_device_hal=no])
+
+AC_MSG_CHECKING([whether the HAL device backend is enabled])
+AC_MSG_RESULT([${e_cv_want_device_hal}])
 
 AC_ARG_ENABLE([device-udev],
-  AS_HELP_STRING([--enable-device-udev],[enable udev support @<:@default=enabled@:>@]),
+  AS_HELP_STRING([--enable-device-udev],[enable udev device backend @<:@default=enabled@:>@]),
   [e_cv_want_device_udev=$enableval],
-  AC_CACHE_VAL([e_cv_want_device_udev], [e_cv_want_device_udev=yes]))
+  [e_cv_want_device_udev=yes])
 
-eeze_mount=
-if test "x$e_cv_want_device_udev" = "xyes";then
-  PKG_CHECK_EXISTS([eeze >= 1.0.0],
+AC_MSG_CHECKING([whether the UDEV device backend is enabled])
+AC_MSG_RESULT([${e_cv_want_device_udev}])
+
+if test "x$e_cv_want_device_udev" != "xno";then
+  PKG_CHECK_MODULES([EEZE], [eeze >= 1.2.0 ecore >= 1.2.0 eina >= 1.2.0],
     [
       device_backend=eeze
       AC_DEFINE_UNQUOTED([HAVE_EEZE],[1],[enable udev support])
+    ],
+    [device_backend=ehal])
+else
+  device_backend=ehal
+fi
+
+AC_MSG_CHECKING([which device backend to use])
+AC_MSG_RESULT($device_backend)
+
+AM_CONDITIONAL([HAVE_EEZE], [test "x${device_backend}" = "xeeze"])
+test "x${device_backend}" = "xeeze" || AC_DEFINE_UNQUOTED([HAVE_HAL],[1],[enable HAL support])
+
+
+DBUS_MOUNT_CONFIG=1
+dbus_mount="dbus-1"
+hal_mount="ehal >= 1.2.0, edbus >= 1.2.0"
+udisks_mount="eukit >= 1.2.0"
+AC_ARG_ENABLE([mount-hal],
+  AS_HELP_STRING([--enable-mount-hal],[enable hal mounting support @<:@default=enabled@:>@]),
+  [e_cv_want_mount_hal=$enableval],
+  [e_cv_want_mount_hal=yes])
+
+AC_MSG_CHECKING([whether the HAL mounting support is enabled])
+AC_MSG_RESULT([${e_cv_want_mount_hal}])
+
+if test "x$e_cv_want_mount_hal" != "xno";then
+  PKG_CHECK_EXISTS([ehal >= 1.2.0],
+    [],[
+      hal_mount=
+      AC_MSG_NOTICE([HAL mounting disabled])
+    ])
+else
+  hal_mount=
+  AC_MSG_NOTICE([HAL mounting disabled])
+fi
+
+AC_ARG_ENABLE([mount-udisks],
+  AS_HELP_STRING([--enable-mount-udisks],[enable udisks mounting support @<:@default=enabled@:>@]),
+  [e_cv_want_mount_udisks=$enableval],
+  [e_cv_want_mount_udisks=yes])
+
+AC_MSG_CHECKING([whether the UDISKS mounting support is enabled])
+AC_MSG_RESULT([${e_cv_want_mount_udisks}])
+
+if test "x$e_cv_want_mount_udisks" != "xno";then
+  PKG_CHECK_EXISTS([eukit >= 1.2.0],
+    [],[
+      udisks_mount=
+      AC_MSG_NOTICE([udisks mounting disabled])
+    ])
+else
+  udisks_mount=
+  AC_MSG_NOTICE([udisks mounting disabled])
+fi
+
+
+if test "x${e_cv_want_mount_udisks}" = "xno" && test "x${e_cv_want_mount_hal}" = "xno" ; then
+  DBUS_MOUNT_CONFIG=0
+  dbus_mount=
+  test "x${e_cv_want_mount_udisks}" = "xno" && udisks_mount=
+  test "x${e_cv_want_mount_hal}" = "xno" && hal_mount=
+fi
+
+AC_ARG_ENABLE([mount-eeze],
+  AS_HELP_STRING([--enable-mount-eeze],[enable eeze mounting support @<:@default=enabled@:>@]),
+  [e_cv_want_mount_eeze=$enableval],
+  [e_cv_want_mount_eeze=yes])
+
+AC_MSG_CHECKING([whether the Eeze mounting support is enabled])
+AC_MSG_RESULT([${e_cv_want_mount_eeze}])
+
+eeze_mount=
+EEZE_MOUNT_CONFIG=0
+if test "x$e_cv_want_mount_eeze" != "xno" ; then
+      CPPFLAGS_save="$CPPFLAGS"
+      LIBS_save="$LIBS"
+      CPPFLAGS="$EEZE_CFLAGS $CPPFLAGS"
+      LIBS="$EEZE_LIBS $LIBS"
       AC_CHECK_LIB([eeze], [eeze_disk_function],
         [
-           eeze_mount=yes
+           eeze_mount="eeze >= 1.2.0 ecore-con >= 1.2.0"
+           EEZE_MOUNT_CONFIG=1
            AC_DEFINE_UNQUOTED([HAVE_EEZE_MOUNT], [1], [enable eeze mounting])
            AC_MSG_NOTICE([eeze mounting enabled])
         ],
         [
            AC_MSG_NOTICE([eeze mounting disabled])
+           e_cv_want_mount_eeze=no
         ]
       )
-           
-    ],[device_backend=ehal])
+      CPPFLAGS="$CPPFLAGS_save"
+      LIBS="$LIBS_save"
 else
-  device_backend=ehal
+  AC_MSG_NOTICE([eeze mounting disabled])
 fi
-AC_MSG_RESULT($device_backend)
 
-AM_CONDITIONAL([HAVE_EEZE], [test "x${device_backend}" = "xeeze"])
-AM_CONDITIONAL([HAVE_EEZE_MOUNT], [test "x${eeze_mount}" = "xyes"])
+AC_SUBST([EEZE_MOUNT_CONFIG])
+AC_SUBST([DBUS_MOUNT_CONFIG])
+AM_CONDITIONAL([HAVE_HAL_MOUNT], [test -n "$hal_mount"])
+AM_CONDITIONAL([HAVE_EEZE_MOUNT], [false])
+test -n "$hal_mount" && AC_DEFINE_UNQUOTED([HAVE_HAL_MOUNT], [1], [enable HAL mounting])
+test -n "$udisks_mount" && AC_DEFINE_UNQUOTED([HAVE_UDISKS_MOUNT], [1], [enable Udisks mounting])
+AM_CONDITIONAL([HAVE_UDISKS_MOUNT], [test -n "$udisks_mount"])
+AM_CONDITIONAL([HAVE_EEZE_MOUNT], [test -n "$eeze_mount"])
 
 # doxygen program for documentation building
 
@@ -324,110 +434,128 @@ EFL_CHECK_DOXYGEN([build_doc="yes"], [build_doc="no"])
 
 # explicit libs for each binary to reduce linkage requirements
 PKG_CHECK_MODULES(E_REMOTE, [
-  ecore >= 1.0.0
-  ecore-ipc >= 1.0.0
-  eet >= 1.4.0
-  eina >= 1.0.0
+  ecore >= 1.2.0
+  ecore-ipc >= 1.2.0
+  eet >= 1.6.0
+  eina >= 1.2.0
+])
+
+PKG_CHECK_MODULES(E_START, [
+  eina >= 1.2.0
 ])
 
 PKG_CHECK_MODULES(E_IMC, [
-  ecore-file >= 1.0.0
-  eet >= 1.4.0
-  eina >= 1.0.0
+  ecore-file >= 1.2.0
+  eet >= 1.6.0
+  eina >= 1.2.0
 ])
 
 PKG_CHECK_MODULES(E_THUMB, [
-  eina >= 1.0.0
-  evas >= 1.0.0
-  ecore >= 1.0.0
-  ecore-evas >= 1.0.0
-  edje >= 1.0.0
-  ecore-file >= 1.0.0
-  ecore-ipc >= 1.0.0
-  eet >= 1.4.0
-  efreet >= 1.0.0
+  eina >= 1.2.0
+  evas >= 1.2.0
+  ecore >= 1.2.0
+  ecore-evas >= 1.2.0
+  edje >= 1.2.0
+  ecore-file >= 1.2.0
+  ecore-ipc >= 1.2.0
+  eet >= 1.6.0
+  efreet >= 1.2.0
 ])
 
-if test -z $eeze_mount ; then
-  PKG_CHECK_MODULES(E_FM, [
-    ecore >= 1.0.0
-    ecore-file >= 1.0.0
-    ecore-ipc >= 1.0.0
-    eet >= 1.4.0
-    efreet >= 1.0.0
-    dbus-1
-    edbus >= 1.0.0
-    ehal >= 1.0.0
-    eina >= 1.0.0
-  ])
-else
-  PKG_CHECK_MODULES(E_FM, [
-    ecore >= 1.0.0
-    ecore-file >= 1.0.0
-    ecore-ipc >= 1.0.0
-    eet >= 1.4.0
-    efreet >= 1.0.0
-    eeze >= 1.1.0
-    eina >= 1.0.0
-  ])
-fi
+efm_requires="\
+ecore >= 1.2.0 \
+ecore-file >= 1.2.0 \
+ecore-ipc >= 1.2.0 \
+eet >= 1.6.0 \
+efreet >= 1.2.0 \
+edbus >= 1.2.0 \
+eina >= 1.2.0"
+efm_requires="$efm_requires $eeze_mount $dbus_mount $hal_mount $udisks_mount"
+
+AC_MSG_WARN([EFM requirements : $efm_requires])
+
+PKG_CHECK_MODULES(E_FM, [$efm_requires])
 
 PKG_CHECK_MODULES(E_FM_OP, [
-  ecore >= 1.0.0
-  ecore-file >= 1.0.0
-  eina >= 1.0.0
+  ecore >= 1.2.0
+  ecore-file >= 1.2.0
+  eina >= 1.2.0
 ])
 
 PKG_CHECK_MODULES(E_FM_OPEN, [
-  ecore >= 1.0.0
-  ecore-ipc >= 1.0.0
-  eet >= 1.4.0
-  eina >= 1.0.0
+  ecore >= 1.2.0
+  ecore-ipc >= 1.2.0
+  ecore-con >= 1.2.0
+  eet >= 1.6.0
+  eina >= 1.2.0
 ])
 
 PKG_CHECK_MODULES(E_SYS, [
-  eina >= 1.0.0
+  eina >= 1.2.0
 ])
 
 PKG_CHECK_MODULES(E_INIT, [
-  evas >= 1.0.0
-  ecore >= 1.0.0
-  ecore-evas >= 1.0.0
-  ecore-x >= 1.0.0
-  edje >= 1.0.0
-  ecore-ipc >= 1.0.0
-  eina >= 1.0.0
+  evas >= 1.2.0
+  ecore >= 1.2.0
+  ecore-evas >= 1.2.0
+  ecore-x >= 1.2.0
+  edje >= 1.2.0
+  ecore-ipc >= 1.2.0
+  eina >= 1.2.0
 ])
 
-if test -z $eeze_mount ; then
-  hal_check="ehal >= 1.0.0"
-else
-  hal_check=""
-fi
+PKG_CHECK_MODULES(E_ALERT, [
+  xcb
+  xcb-shape
+  eina >= 1.2.0
+  ecore >= 1.2.0
+  ecore-ipc >= 1.2.0
+])
+
 PKG_CHECK_MODULES(E, [
-  evas >= 1.0.0
-  ecore >= 1.0.0
-  ecore-x >= 1.0.0
-  ecore-evas >= 1.0.0
-  ecore-input >= 1.0.0
-  ecore-input-evas >= 1.0.0
-  ecore-con >= 1.0.0
-  ecore-ipc >= 1.0.0
-  ecore-file >= 1.0.0
-  eet >= 1.4.0
-  edje >= 1.0.0
-  efreet >= 1.0.0
-  efreet-mime >= 1.0.0
-  efreet-trash >= 1.0.0
-  eina >= 1.0.0
+  evas >= 1.2.0
+  ecore >= 1.2.0
+  ecore-x >= 1.2.0
+  ecore-evas >= 1.2.0
+  ecore-input >= 1.2.0
+  ecore-input-evas >= 1.2.0
+  ecore-con >= 1.2.0
+  ecore-ipc >= 1.2.0
+  ecore-file >= 1.2.0
+  eet >= 1.6.0
+  edje >= 1.2.0
+  efreet >= 1.2.0
+  efreet-mime >= 1.2.0
+  efreet-trash >= 1.2.0
+  eina >= 1.2.0
   dbus-1
-  edbus >= 1.0.0
-  $hal_check
+  edbus >= 1.2.0
+  $hal_mount
+  $eeze_mount
+  $udisks_mount
   $device_backend
 ])
-requirements_e="evas >= 1.0.0 ecore >= 1.0.0 ecore-x >= 1.0.0 ecore-evas >= 1.0.0 ecore-con >= 1.0.0 ecore-ipc >= 1.0.0 ecore-file >= 1.0.0 eet >= 1.4.0 edje >= 1.0.0 efreet >= 1.0.0 efreet-mime >= 1.0.0 eina >= 1.0.0 dbus-1 edbus >= 1.0.0 $hal_check $device_backend"
+requirements_e="\
+evas >= 1.2.0 \
+ecore >= 1.2.0 \
+ecore-x >= 1.2.0 \
+ecore-evas >= 1.2.0 \
+ecore-con >= 1.2.0 \
+ecore-ipc >= 1.2.0 \
+ecore-file >= 1.2.0 \
+eet >= 1.6.0 \
+edje >= 1.2.0 \
+efreet >= 1.2.0 \
+efreet-mime >= 1.2.0 \
+eina >= 1.2.0 \
+dbus-1 \
+edbus >= 1.2.0 \
+$hal_mount \
+$udisks_mount \
+$eeze_mount \
+$device_backend"
 
-AC_E_CHECK_PKG(ECORE_IMF, [ecore-imf >= 1.0.0 ecore-imf-evas >= 1.0.0], [], [:])
+AC_E_CHECK_PKG(ECORE_IMF, [ ecore-imf >= 1.2.0 ecore-imf-evas >= 1.2.0 ], [], [:])
 
 e_libs=$E_LIBS" "$LIBINTL" "$fnmatch_libs" "$ECORE_IMF_LIBS" "$execinfo_libs
 e_cflags="-DUSE_E_CONFIG_H "$E_CFLAGS" "$ECORE_IMF_CFLAGS
@@ -460,7 +588,7 @@ AC_ARG_WITH(edje-cc,
 ])
 AC_SUBST(edje_cc)
 
-PKG_CHECK_MODULES(EET, [eet >= 1.4.0])
+PKG_CHECK_MODULES(EET, [eet >= 1.6.0])
 AC_ARG_WITH(eet-eet,
 [  --with-eet-eet=PATH              specify a specific path to eet utility],
 [
@@ -477,22 +605,27 @@ AC_DEFINE(E_INTERNAL, 1, "This define can be used to wrap internal E stuff, as c
 AM_CONDITIONAL(HAVE_BATTERY, false)
 define([CHECK_MODULE_BATTERY],
 [
-  AC_E_CHECK_PKG(BATTERY, [ecore >= 1.0.0 ecore-file >= 1.0.0 ecore-con >= 1.0.0 eina >= 1.0.0], [], [BATTERY=false])
+  AC_E_CHECK_PKG(BATTERY, [ ecore >= 1.2.0 ecore-file >= 1.2.0 ecore-con >= 1.2.0 eina >= 1.2.0 ], [], [BATTERY=false])
 ])
 
+have_openbsd="no"
 BATTERY_LDFLAGS=
 case "$host_os" in
   darwin*)
     BATTERY_LDFLAGS="-framework Foundation -framework IOKit"
   ;;
+  openbsd*)
+    have_openbsd="yes"
+  ;;
 esac
 
 AC_SUBST(BATTERY_LDFLAGS)
+AM_CONDITIONAL([HAVE_OPENBSD], [test "x${have_openbsd}" = "xyes"])
 
 AM_CONDITIONAL(HAVE_TEMPERATURE, false)
 define([CHECK_MODULE_TEMPERATURE],
 [
-  AC_E_CHECK_PKG(TEMPERATURE, [ecore >= 1.0.0 ecore-file >= 1.0.0 eina >= 1.0.0], [], [TEMPERATURE=false])
+  AC_E_CHECK_PKG(TEMPERATURE, [ ecore >= 1.2.0 ecore-file >= 1.2.0 eina >= 1.2.0 ], [], [TEMPERATURE=false])
 ])
 
 have_exchange=no
@@ -509,6 +642,38 @@ define([CHECK_MODULE_CONF_THEME],
     AC_E_CHECK_PKG(EXCHANGE, [exchange], [], [:])
   else
     AC_MSG_NOTICE([requested to not use exchange library])
+  fi
+])
+
+
+have_enotify=no
+AM_CONDITIONAL([HAVE_ENOTIFY], [false])
+AC_ARG_ENABLE([enotify],
+  AC_HELP_STRING([--disable-enotify], [disable Enotify support @<:@default=detect@:>@]),
+  [e_cv_want_enotify=$enableval],
+  AC_CACHE_VAL([e_cv_want_enotify], [e_cv_want_enotify=yes])
+)
+if test "x$e_cv_want_enotify" != "xno" ; then
+  AC_E_CHECK_PKG(ENOTIFY, [ edbus >= 1.2.0 enotify >= 1.2.0 ], 
+  [
+    AC_DEFINE_UNQUOTED([HAVE_ENOTIFY], [1], [enable enotify])
+  ], 
+  [
+    AC_MSG_NOTICE([enotify disabled])
+    e_cv_want_enotify=no
+  ])
+else
+  AC_MSG_NOTICE([enotify disabled])
+    e_cv_want_enotify=no
+fi
+AC_SUBST([ENOTIFY_CFLAGS])
+AC_SUBST([ENOTIFY_LIBS])
+
+AM_CONDITIONAL(HAVE_NOTIFICATION, false)
+define([CHECK_MODULE_NOTIFICATION],
+[
+  if test "x$e_cv_want_enotify" = "xno" ; then
+    NOTIFICATION=false
   fi
 ])
 
@@ -543,7 +708,7 @@ AC_SUBST(SOUND_LIBS)
 AM_CONDITIONAL(HAVE_ECONNMAN, false)
 define([CHECK_MODULE_CONNMAN],
 [
-  AC_E_CHECK_PKG(ECONNMAN, [edbus >= 1.0.0 econnman >= 1.0.0], [], [CONNMAN=false])
+  AC_E_CHECK_PKG(ECONNMAN, [ edbus >= 1.2.0 econnman-0.7x >= 1.2.0 ], [], [CONNMAN=false])
 ])
 AC_SUBST(ECONNMAN_CFLAGS)
 AC_SUBST(ECONNMAN_LIBS)
@@ -551,7 +716,7 @@ AC_SUBST(ECONNMAN_LIBS)
 AM_CONDITIONAL(HAVE_EBLUEZ, false)
 define([CHECK_MODULE_BLUEZ],
 [
-  AC_E_CHECK_PKG(EBLUEZ, [edbus >= 1.0.0 ebluez >= 1.0.0], [], [BLUEZ=false])
+  AC_E_CHECK_PKG(EBLUEZ, [ edbus >= 1.2.0 ebluez >= 1.2.0 ], [], [BLUEZ=false])
 ])
 AC_SUBST(EBLUEZ_CFLAGS)
 AC_SUBST(EBLUEZ_LIBS)
@@ -559,10 +724,33 @@ AC_SUBST(EBLUEZ_LIBS)
 AM_CONDITIONAL(HAVE_EOFONO, false)
 define([CHECK_MODULE_OFONO],
 [
-  AC_E_CHECK_PKG(EOFONO, [edbus >= 1.0.0 eofono >= 1.0.0], [], [OFONO=false])
+  AC_E_CHECK_PKG(EOFONO, [ edbus >= 1.2.0 eofono >= 1.2.0 ], [], [OFONO=false])
 ])
 AC_SUBST(EOFONO_CFLAGS)
 AC_SUBST(EOFONO_LIBS)
+
+have_wayland_clients=no
+AC_ARG_ENABLE([wayland-clients],
+  AS_HELP_STRING([--enable-wayland-clients],[enable wayland clients in composite module @<:@default=disabled@:>@]),
+  [e_cv_want_wayland_clients=$enableval],
+  [e_cv_want_wayland_clients=no])
+
+AC_MSG_CHECKING([whether wayland client support is enabled])
+AC_MSG_RESULT([${e_cv_want_wayland_clients}])
+
+if test "x$e_cv_want_wayland_clients" != "xno";then
+  PKG_CHECK_MODULES([WAYLAND], [wayland-server egl >= 7.10 glesv2 gl pixman-1 xcb-image],
+    [
+      have_wayland_clients=yes
+      AC_DEFINE_UNQUOTED([HAVE_WAYLAND_CLIENTS],[1],[enable wayland client support])
+    ],
+    [have_wayland_clients=no])
+else
+  have_wayland_clients=no
+fi
+
+AM_CONDITIONAL([HAVE_WAYLAND_CLIENTS], [test "x${have_wayland_clients}" = "xyes"])
+
 
 AC_E_OPTIONAL_MODULE([ibar], true)
 AC_E_OPTIONAL_MODULE([dropshadow], true)
@@ -570,6 +758,7 @@ AC_E_OPTIONAL_MODULE([clock], true)
 AC_E_OPTIONAL_MODULE([pager], true)
 AC_E_OPTIONAL_MODULE([battery], true, [CHECK_MODULE_BATTERY])
 AC_E_OPTIONAL_MODULE([temperature], true, [CHECK_MODULE_TEMPERATURE])
+AC_E_OPTIONAL_MODULE([notification], true, [CHECK_MODULE_NOTIFICATION])
 AC_E_OPTIONAL_MODULE([cpufreq], true)
 AC_E_OPTIONAL_MODULE([ibox], true)
 AC_E_OPTIONAL_MODULE([start], true)
@@ -578,66 +767,62 @@ AC_E_OPTIONAL_MODULE([fileman], true)
 AC_E_OPTIONAL_MODULE([fileman_opinfo], true)
 AC_E_OPTIONAL_MODULE([wizard], true)
 AC_E_OPTIONAL_MODULE([conf], true)
-AC_E_OPTIONAL_MODULE([conf_wallpaper], true)
 AC_E_OPTIONAL_MODULE([conf_wallpaper2], true)
 AC_E_OPTIONAL_MODULE([conf_theme], true, [CHECK_MODULE_CONF_THEME])
-AC_E_OPTIONAL_MODULE([conf_colors], true)
-AC_E_OPTIONAL_MODULE([conf_fonts], true)
-AC_E_OPTIONAL_MODULE([conf_borders], true)
-AC_E_OPTIONAL_MODULE([conf_icon_theme], true)
-AC_E_OPTIONAL_MODULE([conf_mouse_cursor], true)
-AC_E_OPTIONAL_MODULE([conf_transitions], true)
-AC_E_OPTIONAL_MODULE([conf_startup], true)
 AC_E_OPTIONAL_MODULE([conf_intl], true)
-AC_E_OPTIONAL_MODULE([conf_imc], true)
-AC_E_OPTIONAL_MODULE([conf_profiles], true)
 AC_E_OPTIONAL_MODULE([msgbus], true)
-AC_E_OPTIONAL_MODULE([conf_engine], true)
 AC_E_OPTIONAL_MODULE([conf_applications], true)
-AC_E_OPTIONAL_MODULE([conf_desks], true)
-AC_E_OPTIONAL_MODULE([conf_desk], true)
 AC_E_OPTIONAL_MODULE([conf_display], true)
-AC_E_OPTIONAL_MODULE([conf_desklock], true)
-AC_E_OPTIONAL_MODULE([conf_screensaver], true)
-AC_E_OPTIONAL_MODULE([conf_dpms], true)
 AC_E_OPTIONAL_MODULE([conf_shelves], true)
 AC_E_OPTIONAL_MODULE([conf_keybindings], true)
-AC_E_OPTIONAL_MODULE([conf_mousebindings], true)
 AC_E_OPTIONAL_MODULE([conf_edgebindings], true)
-AC_E_OPTIONAL_MODULE([conf_acpibindings], true)
-AC_E_OPTIONAL_MODULE([conf_mouse], true)
-AC_E_OPTIONAL_MODULE([conf_window_display], true)
-AC_E_OPTIONAL_MODULE([conf_window_focus], true)
 AC_E_OPTIONAL_MODULE([conf_window_remembers], true)
 AC_E_OPTIONAL_MODULE([conf_window_manipulation], true)
 AC_E_OPTIONAL_MODULE([conf_menus], true)
-AC_E_OPTIONAL_MODULE([conf_clientlist], true)
 AC_E_OPTIONAL_MODULE([conf_dialogs], true)
 AC_E_OPTIONAL_MODULE([conf_performance], true)
-AC_E_OPTIONAL_MODULE([conf_winlist], true)
 AC_E_OPTIONAL_MODULE([conf_paths], true)
-AC_E_OPTIONAL_MODULE([conf_mime], true)
 AC_E_OPTIONAL_MODULE([conf_interaction], true)
-AC_E_OPTIONAL_MODULE([conf_scale], true)
 AC_E_OPTIONAL_MODULE([gadman], true)
 AC_E_OPTIONAL_MODULE([mixer], true, [CHECK_MODULE_MIXER])
 AC_E_OPTIONAL_MODULE([connman], true, [CHECK_MODULE_CONNMAN])
 AC_E_OPTIONAL_MODULE([bluez], true, [CHECK_MODULE_BLUEZ])
 AC_E_OPTIONAL_MODULE([ofono], true, [CHECK_MODULE_OFONO])
-AC_E_OPTIONAL_MODULE([illume], true)
 AC_E_OPTIONAL_MODULE([illume2], true)
 AC_E_OPTIONAL_MODULE([syscon], true)
 AC_E_OPTIONAL_MODULE([everything], true)
-AC_E_OPTIONAL_MODULE([everything-files], true)
-AC_E_OPTIONAL_MODULE([everything-apps], true)
-AC_E_OPTIONAL_MODULE([everything-calc], true)
-AC_E_OPTIONAL_MODULE([everything-aspell], true)
-AC_E_OPTIONAL_MODULE([everything-settings], true)
-AC_E_OPTIONAL_MODULE([everything-windows], true)
 AC_E_OPTIONAL_MODULE([systray], true)
 AC_E_OPTIONAL_MODULE([comp], true)
+AC_E_OPTIONAL_MODULE([shot], true)
+AC_E_OPTIONAL_MODULE([backlight], true)
+AC_E_OPTIONAL_MODULE([tasks], true)
+AC_E_OPTIONAL_MODULE([conf_randr], true)
 
-AC_E_CHECK_PKG(ENOTIFY, [edbus >= 1.0.0 enotify >= 1.0.0], [], [])
+SUSPEND=""
+HIBERNATE=""
+case "$host_os" in
+   freebsd*|pcbsd*)
+      SUSPEND="acpiconf -s3"
+      AC_MSG_NOTICE([use suspend method: $SUSPEND])
+      AC_SUBST(SUSPEND)
+      HIBERNATE="acpiconf -s4"
+      AC_MSG_NOTICE([use hibernate method: $HIBERNATE])
+      AC_SUBST(HIBERNATE)
+      ;;
+   *)
+      AC_PATH_PROGS([SUSPEND], [sleep.sh pm-suspend],[/etc/acpi/sleep.sh], [/etc/acpi:/sbin:/usr/sbin:$PATH])
+      if test "$SUSPEND" = "/etc/acpi/sleep.sh" ; then
+         SUSPEND="/etc/acpi/sleep.sh force"
+         AC_MSG_NOTICE([use suspend method: $SUSPEND])
+      fi
+
+      AC_PATH_PROGS([HIBERNATE], [hibernate.sh pm-hibernate],[/etc/acpi/hibernate.sh], [/etc/acpi:/sbin:/usr/sbin:$PATH])
+      if test "$HIBERNATE" = "/etc/acpi/hibernate.sh" ; then
+         HIBERNATE="/etc/acpi/hibernate.sh force"
+         AC_MSG_NOTICE([use hibernate method: $HIBERNATE])
+      fi
+      ;;
+esac
 
 AC_OUTPUT([
 Makefile
@@ -645,6 +830,7 @@ enlightenment.spec
 enlightenment.pc
 src/Makefile
 src/bin/Makefile
+src/bin/e_fm_shared_types.h
 src/bin/e_fm/Makefile
 src/modules/Makefile
 src/modules/ibar/Makefile
@@ -659,6 +845,8 @@ src/modules/battery/Makefile
 src/modules/battery/module.desktop
 src/modules/temperature/Makefile
 src/modules/temperature/module.desktop
+src/modules/notification/Makefile
+src/modules/notification/module.desktop
 src/modules/cpufreq/Makefile
 src/modules/cpufreq/module.desktop
 src/modules/ibox/Makefile
@@ -674,88 +862,40 @@ src/modules/fileman_opinfo/module.desktop
 src/modules/wizard/Makefile
 src/modules/conf/Makefile
 src/modules/conf/module.desktop
-src/modules/conf_wallpaper/Makefile
-src/modules/conf_wallpaper/module.desktop
 src/modules/conf_wallpaper2/Makefile
 src/modules/conf_wallpaper2/module.desktop
 src/modules/conf_theme/Makefile
 src/modules/conf_theme/module.desktop
-src/modules/conf_colors/Makefile
-src/modules/conf_colors/module.desktop
-src/modules/conf_fonts/Makefile
-src/modules/conf_fonts/module.desktop
-src/modules/conf_borders/Makefile
-src/modules/conf_borders/module.desktop
-src/modules/conf_icon_theme/Makefile
-src/modules/conf_icon_theme/module.desktop
-src/modules/conf_mouse_cursor/Makefile
-src/modules/conf_mouse_cursor/module.desktop
-src/modules/conf_transitions/Makefile
-src/modules/conf_transitions/module.desktop
-src/modules/conf_startup/Makefile
-src/modules/conf_startup/module.desktop
 src/modules/conf_intl/Makefile
 src/modules/conf_intl/module.desktop
-src/modules/conf_imc/Makefile
-src/modules/conf_imc/module.desktop
-src/modules/conf_profiles/Makefile
-src/modules/conf_profiles/module.desktop
-src/modules/msgbus/Makefile
-src/modules/msgbus/module.desktop
-src/modules/conf_engine/Makefile
-src/modules/conf_engine/module.desktop
 src/modules/conf_applications/Makefile
 src/modules/conf_applications/module.desktop
-src/modules/conf_desks/Makefile
-src/modules/conf_desks/module.desktop
-src/modules/conf_desk/Makefile
-src/modules/conf_desk/module.desktop
 src/modules/conf_display/Makefile
 src/modules/conf_display/module.desktop
-src/modules/conf_desklock/Makefile
-src/modules/conf_desklock/module.desktop
-src/modules/conf_screensaver/Makefile
-src/modules/conf_screensaver/module.desktop
-src/modules/conf_dpms/Makefile
-src/modules/conf_dpms/module.desktop
 src/modules/conf_shelves/Makefile
 src/modules/conf_shelves/module.desktop
 src/modules/conf_keybindings/Makefile
 src/modules/conf_keybindings/module.desktop
-src/modules/conf_mousebindings/Makefile
-src/modules/conf_mousebindings/module.desktop
 src/modules/conf_edgebindings/Makefile
 src/modules/conf_edgebindings/module.desktop
-src/modules/conf_acpibindings/Makefile
-src/modules/conf_acpibindings/module.desktop
-src/modules/conf_mouse/Makefile
-src/modules/conf_mouse/module.desktop
-src/modules/conf_window_display/Makefile
-src/modules/conf_window_display/module.desktop
-src/modules/conf_window_focus/Makefile
-src/modules/conf_window_focus/module.desktop
 src/modules/conf_window_remembers/Makefile
 src/modules/conf_window_remembers/module.desktop
 src/modules/conf_window_manipulation/Makefile
 src/modules/conf_window_manipulation/module.desktop
 src/modules/conf_menus/Makefile
 src/modules/conf_menus/module.desktop
-src/modules/conf_clientlist/Makefile
-src/modules/conf_clientlist/module.desktop
 src/modules/conf_dialogs/Makefile
 src/modules/conf_dialogs/module.desktop
 src/modules/conf_performance/Makefile
 src/modules/conf_performance/module.desktop
-src/modules/conf_winlist/Makefile
-src/modules/conf_winlist/module.desktop
 src/modules/conf_paths/Makefile
 src/modules/conf_paths/module.desktop
-src/modules/conf_mime/Makefile
-src/modules/conf_mime/module.desktop
 src/modules/conf_interaction/Makefile
 src/modules/conf_interaction/module.desktop
-src/modules/conf_scale/Makefile
-src/modules/conf_scale/module.desktop
+src/modules/msgbus/Makefile
+src/modules/msgbus/module.desktop
+src/modules/conf_randr/Makefile
+src/modules/conf_randr/module.desktop
 src/modules/gadman/Makefile
 src/modules/gadman/module.desktop
 src/modules/mixer/Makefile
@@ -766,10 +906,6 @@ src/modules/bluez/Makefile
 src/modules/bluez/module.desktop
 src/modules/ofono/Makefile
 src/modules/ofono/module.desktop
-src/modules/illume/Makefile
-src/modules/illume/module.desktop
-src/modules/illume/keyboards/Makefile
-src/modules/illume/dicts/Makefile
 src/modules/illume2/Makefile
 src/modules/illume2/doc/illume.dox
 src/modules/illume2/doc/Makefile
@@ -778,6 +914,7 @@ src/modules/illume2/module.desktop
 src/modules/illume2/keyboards/Makefile
 src/modules/illume2/policies/Makefile
 src/modules/illume2/policies/illume/Makefile
+src/modules/illume2/policies/tablet/Makefile
 src/modules/illume-home/Makefile
 src/modules/illume-home/module.desktop
 src/modules/illume-home-toggle/Makefile
@@ -789,6 +926,7 @@ src/modules/illume-keyboard/Makefile
 src/modules/illume-keyboard/module.desktop
 src/modules/illume-keyboard/keyboards/Makefile
 src/modules/illume-keyboard/dicts/Makefile
+src/modules/illume-keyboard/images/Makefile
 src/modules/illume-indicator/Makefile
 src/modules/illume-indicator/module.desktop
 src/modules/illume-indicator/images/Makefile
@@ -803,45 +941,36 @@ src/modules/syscon/module.desktop
 src/modules/everything/Makefile
 src/modules/everything/module.desktop
 src/modules/everything/everything.pc
-src/modules/everything-files/Makefile
-src/modules/everything-files/module.desktop
-src/modules/everything-apps/Makefile
-src/modules/everything-apps/module.desktop
-src/modules/everything-windows/Makefile
-src/modules/everything-windows/module.desktop
-src/modules/everything-settings/Makefile
-src/modules/everything-settings/module.desktop
-src/modules/everything-calc/Makefile
-src/modules/everything-calc/module.desktop
-src/modules/everything-aspell/Makefile
-src/modules/everything-aspell/module.desktop
 src/modules/systray/Makefile
 src/modules/systray/module.desktop
 src/modules/comp/Makefile
 src/modules/comp/module.desktop
+src/modules/shot/Makefile
+src/modules/shot/module.desktop
+src/modules/backlight/Makefile
+src/modules/backlight/module.desktop
+src/modules/tasks/Makefile
+src/modules/tasks/module.desktop
 src/preload/Makefile
 data/Makefile
 data/images/Makefile
 data/input_methods/Makefile
 data/themes/Makefile
 data/themes/images/Makefile
-data/other/Makefile
 data/xsession/Makefile
 data/xsession/enlightenment.desktop
 data/tools/Makefile
 data/etc/Makefile
+data/etc/sysactions.conf
 data/icons/Makefile
 data/backgrounds/Makefile
 doc/Makefile
+doc/Doxyfile
 doc/e.dox
 config/Makefile
 config/default/Makefile
 config/standard/Makefile
-config/minimalist/Makefile
-config/scaleable/Makefile
-config/netbook/Makefile
 config/illume/Makefile
-config/illume-home/Makefile
 $po_makefile_in
 ])
 
@@ -861,7 +990,10 @@ SUMMARY_EOF
 echo
 cat << DEVICE_EOF
 Preferred Backends:
- * device..........: $device_backend
+ * device..............: $device_backend
+ * hal_mount...........: $e_cv_want_mount_hal
+ * udisks_mount........: $e_cv_want_mount_udisks
+ * eeze_mount..........: $e_cv_want_mount_eeze
 DEVICE_EOF
 echo
 

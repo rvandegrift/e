@@ -5,7 +5,7 @@
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-static char *_gc_label(E_Gadcon_Client_Class *client_class);
+static const char *_gc_label(E_Gadcon_Client_Class *client_class);
 static Evas_Object *_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas);
 static const char *_gc_id_new(E_Gadcon_Client_Class *client_class);
 static void _gc_id_del(E_Gadcon_Client_Class *client_class, const char *id);
@@ -117,8 +117,6 @@ static Config_Item *_ibox_config_item_get(const char *id);
 static E_Config_DD *conf_edd = NULL;
 static E_Config_DD *conf_item_edd = NULL;
 
-static int uuid = 0;
-
 Config *ibox_config = NULL;
 
 static E_Gadcon_Client *
@@ -212,7 +210,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
 
-static char *
+static const char *
 _gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("IBox");
@@ -292,26 +290,24 @@ _ibox_cb_empty_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNU
    b = data;
    if (!ibox_config->menu)
      {
-	E_Menu *ma, *mg;
+	E_Menu *m;
 	E_Menu_Item *mi;
 	int cx, cy;
 
-	ma = e_menu_new();
-	e_menu_post_deactivate_callback_set(ma, _ibox_cb_menu_post, NULL);
-	ibox_config->menu = ma;
-
-	mg = e_menu_new();
-
-	mi = e_menu_item_new(mg);
+	m = e_menu_new();
+	mi = e_menu_item_new(m);
 	e_menu_item_label_set(mi, _("Settings"));
 	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _ibox_cb_menu_configuration, b);
 
-	e_gadcon_client_util_menu_items_append(b->inst->gcc, ma, mg, 0);
+	m = e_gadcon_client_util_menu_items_append(b->inst->gcc, m, 0);
+	e_menu_post_deactivate_callback_set(m, _ibox_cb_menu_post, NULL);
+	ibox_config->menu = m;
+
 	
 	e_gadcon_canvas_zone_geometry_get(b->inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-	e_menu_activate_mouse(ma,
+	e_menu_activate_mouse(m,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
@@ -656,12 +652,10 @@ _ibox_cb_icon_mouse_in(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED
 }
 
 static void
-_ibox_cb_icon_mouse_out(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_ibox_cb_icon_mouse_out(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
-   Evas_Event_Mouse_Out *ev;
    IBox_Icon *ic;
 
-   ev = event_info;
    ic = data;
    _ibox_icon_signal_emit(ic, "e,state,unfocused", "e");
    if (ic->ibox->inst->ci->show_label)
@@ -685,27 +679,25 @@ _ibox_cb_icon_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUS
      }
    else if ((ev->button == 3) && (!ibox_config->menu))
      {
-	E_Menu *ma, *mg;
+	E_Menu *m;
 	E_Menu_Item *mi;
 	int cx, cy;
 
-	ma = e_menu_new();
-	e_menu_post_deactivate_callback_set(ma, _ibox_cb_menu_post, NULL);
-	ibox_config->menu = ma;
-
-	mg = e_menu_new();
+	m = e_menu_new();
 
 	/* FIXME: other icon options go here too */
-	mi = e_menu_item_new(mg);
+	mi = e_menu_item_new(m);
 	e_menu_item_label_set(mi, _("Settings"));
 	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _ibox_cb_menu_configuration, ic->ibox);
 
-	e_gadcon_client_util_menu_items_append(ic->ibox->inst->gcc, ma, mg, 0);
+	m = e_gadcon_client_util_menu_items_append(ic->ibox->inst->gcc, m, 0);
+	e_menu_post_deactivate_callback_set(m, _ibox_cb_menu_post, NULL);
+	ibox_config->menu = m;
 	
 	e_gadcon_canvas_zone_geometry_get(ic->ibox->inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-	e_menu_activate_mouse(ma,
+	e_menu_activate_mouse(m,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
@@ -1233,25 +1225,10 @@ _ibox_cb_event_desk_show(void *data __UNUSED__, int type __UNUSED__, void *event
 static Config_Item *
 _ibox_config_item_get(const char *id)
 {
-   Eina_List *l;
    Config_Item *ci;
-   char buf[128];
 
-   if (!id)
-     {
-	snprintf(buf, sizeof(buf), "%s.%d", _gadcon_class.name, ++uuid);
-	id = buf;
-     }
-   else
-     {
-	/* Find old config */
-	for (l = ibox_config->items; l; l = l->next)
-	  {
-	     ci = l->data;
-	     if ((ci->id) && (!strcmp(ci->id, id)))
-	       return ci;
-	  }
-     }
+   GADCON_CLIENT_CONFIG_GET(Config_Item, ibox_config->items, _gadcon_class, id);
+
    ci = E_NEW(Config_Item, 1);
    ci->id = eina_stringshare_add(id);
    ci->show_label = 0;
@@ -1346,56 +1323,6 @@ e_modapi_init(E_Module *m)
 	ci->show_desk = 0;
 	ci->icon_label = 0;
 	ibox_config->items = eina_list_append(ibox_config->items, ci);
-     }
-   else
-     {
-    Eina_List *removes = NULL;
-	Eina_List *l;
-	
-	for (l = ibox_config->items; l; l = l->next)
-	  {
-	     Config_Item *ci = l->data;
-	     if (!ci->id)
-	       removes = eina_list_append(removes, ci);
-	     else
-	       {
-		  Eina_List *ll;
-		  
-		  for (ll = l->next; ll; ll = ll->next)
-		    {
-		       Config_Item *ci2 = ll->data;
-		       if ((ci2->id) && (!strcmp(ci->id, ci2->id)))
-			 {
-			    removes = eina_list_append(removes, ci);
-			    break;
-			 }
-		    }
-	       }
-	  }
-	while (removes)
-	  {
-	     Config_Item *ci = removes->data;
-	     removes = eina_list_remove_list(removes, removes);
-	     ibox_config->items = eina_list_remove(ibox_config->items, ci);
-	     if (ci->id) eina_stringshare_del(ci->id);
-	     free(ci);
-	  }
-	for (l = ibox_config->items; l; l = l->next)
-	  {
-	     Config_Item *ci = l->data;
-	     if (ci->id)
-	       {
-		  const char *p;
-		  p = strrchr(ci->id, '.');
-		  if (p)
-		    {
-		       int id;
-		       
-		       id = atoi(p + 1);
-		       if (id > uuid) uuid = id;
-		    }
-	       }
-	  }
      }
    
    ibox_config->module = m;

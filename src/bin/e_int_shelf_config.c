@@ -176,7 +176,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
 
    /* size */
    ol = e_widget_list_add(evas, 0, 0);
-   ow = e_widget_slider_add(evas, 1, 0, _("Height (%3.0f pixels)"), 4, 120, 4, 0, 
+   ow = e_widget_slider_add(evas, 1, 0, _("Height (%3.0f pixels)"), 4, 256, 4, 0, 
                             NULL, &(cfdata->size), 100);
    e_widget_list_object_append(ol, ow, 1, 1, 0.5);
    ow = e_widget_check_add(evas, _("Shrink to Content Width"), 
@@ -224,7 +224,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
    cfdata->autohide_list = eina_list_append(cfdata->autohide_list, ow);
    e_widget_disabled_set(ow, !cfdata->autohide);
    e_widget_list_object_append(ol, ow, 1, 1, 0.5);
-   ow = e_widget_slider_add(evas, 1, 0, _("%.1f seconds"), 0.2, 6.0, 0.2, 0, 
+   ow = e_widget_slider_add(evas, 1, 0, _("%.2f seconds"), 0.05, 6.0, 0.05, 0, 
                             &(cfdata->hide_duration), NULL, 100);
    cfdata->autohide_list = eina_list_append(cfdata->autohide_list, ow);
    e_widget_disabled_set(ow, !cfdata->autohide);
@@ -255,7 +255,7 @@ static int
 _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata) 
 {
    E_Config_Shelf_Desk *sd;
-   int restart;
+   int restart = 0;
 
    if (!cfdata->escfg->style) 
      {
@@ -303,7 +303,7 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
      }
    else if (cfdata->layer == 1) 
      {
-        if ((cfdata->escfg->popup != 0) || (cfdata->escfg->layer != 1)) 
+        if ((cfdata->escfg->popup != 1) || (cfdata->escfg->layer != 0)) 
           {
              cfdata->escfg->popup = 1;
              cfdata->escfg->layer = 0;
@@ -376,7 +376,7 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
         E_Desk *desk;
         Eina_List *l;
         E_Config_Shelf_Desk *sd;
-        int show;
+        int show = 0;
 
         desk = e_desk_current_get(cfdata->es->zone);
         EINA_LIST_FOREACH(cfdata->escfg->desk_list, l, sd) 
@@ -410,6 +410,7 @@ _fill_styles(E_Config_Dialog_Data *cfdata, Evas_Object *obj)
    Evas *evas;
    Eina_List *l, *styles;
    char *style;
+   const char *str;
    int mw, n = 0;
 
    evas = evas_object_evas_get(obj);
@@ -443,6 +444,9 @@ _fill_styles(E_Config_Dialog_Data *cfdata, Evas_Object *obj)
    e_widget_ilist_thaw(obj);
    edje_thaw();
    evas_event_thaw(evas);
+
+   EINA_LIST_FREE(styles, str)
+     eina_stringshare_del(str);
 }
 
 static void 

@@ -20,6 +20,7 @@ e_modapi_init(E_Module *m)
 {
    if (!il_kbd_config_init(m)) return NULL;
    _il_kbd_start();
+   e_module_delayed_set(m, 1); 
    return m;
 }
 
@@ -71,7 +72,7 @@ _il_kbd_start(void)
         desktop = efreet_util_desktop_file_id_find(il_kbd_cfg->run_keyboard);
         if (!desktop) 
           {
-	     Efreet_Desktop *d;
+             Efreet_Desktop *d;
              Eina_List *kbds, *l;
 
              kbds = efreet_util_desktop_category_list("Keyboard");
@@ -81,19 +82,19 @@ _il_kbd_start(void)
                     {
                        const char *dname;
 
-                       dname = ecore_file_file_get(desktop->orig_path);
+                       dname = ecore_file_file_get(d->orig_path);
                        if (dname) 
                          {
                             if (!strcmp(dname, il_kbd_cfg->run_keyboard))
-			      {
-				 desktop = d;
-				 efreet_desktop_ref(desktop);
-				 break;
-			      }
+                              {
+                                 desktop = d;
+                                 efreet_desktop_ref(desktop);
+                                 break;
+                              }
                          }
                     }
-		  EINA_LIST_FREE(kbds, d)
-		    efreet_desktop_free(d);
+                  EINA_LIST_FREE(kbds, d)
+                    efreet_desktop_free(d);
                }
           }
         if (desktop) 
@@ -109,7 +110,7 @@ _il_kbd_start(void)
                     ecore_event_handler_add(ECORE_EXE_EVENT_DEL, 
                                             _il_kbd_cb_exit, NULL);
                }
-	     efreet_desktop_free(desktop);
+             efreet_desktop_free(desktop);
           }
      }
 }

@@ -10,7 +10,7 @@
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-static char *_gc_label(E_Gadcon_Client_Class *client_class);
+static const char *_gc_label(E_Gadcon_Client_Class *client_class);
 static Evas_Object *_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas);
 static const char *_gc_id_new(E_Gadcon_Client_Class *client_class);
 /* and actually define the gadcon class that this module provides (just 1) */
@@ -126,7 +126,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
    e_gadcon_client_min_size_set(gcc, 16, 16);
 }
 
-static char *
+static const char *
 _gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Cpufreq");
@@ -160,15 +160,18 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
 {
    Instance *inst;
    Evas_Event_Mouse_Down *ev;
-
+   
+   if (cpufreq_config->menu) return;
+     
    inst = data;
    ev = event_info;
-   if ((ev->button == 3) && (!cpufreq_config->menu))
+
+   if (ev->button == 1)
      {
-	E_Menu *ma, *mg, *mo;
+	E_Menu *mg, *mo;
 	E_Menu_Item *mi;
-	int cx, cy;
 	Eina_List *l;
+	int cx, cy;
 	char buf[256];
 
 	mo = e_menu_new();
@@ -305,12 +308,7 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
 	       }
 	  }
 
-	ma = e_menu_new();
-	cpufreq_config->menu = ma;
-	e_menu_post_deactivate_callback_set(ma, _menu_cb_post, inst);
-
 	mg = e_menu_new();
-
 	mi = e_menu_item_new(mg);
 	e_menu_item_label_set(mi, _("Time Between Updates"));
 	e_menu_item_submenu_set(mi, cpufreq_config->menu_poll);
@@ -335,11 +333,32 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
 	     e_menu_item_submenu_set(mi, cpufreq_config->menu_powersave);
 	  }
 
-        e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
+	e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon,
+					  &cx, &cy, NULL, NULL);
+	cpufreq_config->menu = mg;
+	e_menu_post_deactivate_callback_set(mg, _menu_cb_post, inst);
+
+	e_gadcon_locked_set(inst->gcc->gadcon, 1); 
+
+	e_menu_activate_mouse(mg,
+			      e_util_zone_current_get(e_manager_current_get()),
+			      cx + ev->output.x, cy + ev->output.y, 1, 1,
+			      E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
+     }
+   else if (ev->button == 3)
+     {
+	E_Menu *m;
+	int cx, cy;
+	
+	m = e_menu_new();
+	m = e_gadcon_client_util_menu_items_append(inst->gcc, m, 0);
+	cpufreq_config->menu = m;
+	e_menu_post_deactivate_callback_set(m, _menu_cb_post, NULL);
 
 	e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-	e_menu_activate_mouse(ma,
+
+	e_menu_activate_mouse(m,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
@@ -347,8 +366,13 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
 }
 
 static void
-_menu_cb_post(void *data __UNUSED__, E_Menu *m __UNUSED__)
+_menu_cb_post(void *data, E_Menu *m __UNUSED__)
 {
+   Instance *inst = data;
+
+   if (inst)
+     e_gadcon_locked_set(inst->gcc->gadcon, 0); 
+
    if (!cpufreq_config->menu) return;
    e_object_del(E_OBJECT(cpufreq_config->menu));
    cpufreq_config->menu = NULL;
@@ -713,16 +737,20 @@ _cpufreq_status_check_current(Status *s)
    f = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "r");
    if (f)
      {
+        char *p;
+        
+        buf[0] = 0;
 	fgets(buf, sizeof(buf), f);
 	buf[sizeof(buf) - 1] = 0;
 	fclose(f);
+        for (p = buf; (*p != 0) && (isalnum(*p)); p++);
+        *p = 0;
 
 	if ((!s->cur_governor) || (strcmp(buf, s->cur_governor)))
 	  {
 	     ret = 1;
 
-	     if (s->cur_governor)
-	       free(s->cur_governor);
+	     if (s->cur_governor) free(s->cur_governor);
 	     s->cur_governor = strdup(buf);
 
 	     for (i = strlen(s->cur_governor) - 1; i >= 0; i--)
@@ -749,6 +777,7 @@ _cpufreq_face_update_available(Instance *inst)
 
    count = eina_list_count(cpufreq_config->status->frequencies);
    frequency_msg = malloc(sizeof(Edje_Message_Int_Set) + (count - 1) * sizeof(int));
+   EINA_SAFETY_ON_NULL_RETURN(frequency_msg);
    frequency_msg->count = count;
    for (l = cpufreq_config->status->frequencies, i = 0; l; l = l->next, i++)
      frequency_msg->val[i] = (long)l->data;
@@ -771,6 +800,7 @@ _cpufreq_face_update_current(Instance *inst)
    Edje_Message_String governor_msg;
 
    frequency_msg = malloc(sizeof(Edje_Message_Int_Set) + (sizeof(int) * 4));
+   EINA_SAFETY_ON_NULL_RETURN(frequency_msg);
    frequency_msg->count = 5;
    frequency_msg->val[0] = cpufreq_config->status->cur_frequency;
    frequency_msg->val[1] = cpufreq_config->status->can_set_frequency;

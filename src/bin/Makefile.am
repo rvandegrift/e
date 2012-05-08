@@ -1,14 +1,14 @@
 SUBDIRS = e_fm
 
 MAINTAINERCLEANFILES = Makefile.in
+DISTCLEANFILES = e_fm_shared_types.h
 
 INCLUDES = \
 -I$(top_builddir) \
+-I$(top_builddir)/src/bin \
 -I$(top_srcdir) \
 -I$(top_srcdir)/src/bin \
--I$(top_srcdir)/src/lib \
 @e_cflags@ \
-@x_cflags@ \
 @cf_cflags@ \
 @VALGRIND_CFLAGS@ \
 @EDJE_DEF@ \
@@ -28,7 +28,12 @@ internal_bin_PROGRAMS = \
 enlightenment_fm_op \
 enlightenment_init \
 enlightenment_sys \
-enlightenment_thumb
+enlightenment_thumb \
+enlightenment_alert
+
+if HAVE_EEZE
+internal_bin_PROGRAMS += enlightenment_backlight
+endif
 
 ENLIGHTENMENTHEADERS = \
 e_about.h \
@@ -36,6 +41,7 @@ e_acpi.h \
 e_actions.h \
 e_alert.h \
 e_atoms.h \
+e_backlight.h \
 e_bg.h \
 e_bindings.h \
 e_border.h \
@@ -52,14 +58,16 @@ e_confirm_dialog.h \
 e_container.h \
 e_datastore.h \
 e_desk.h \
+e_deskenv.h \
 e_desklock.h \
 e_dialog.h \
 e_dnd.h \
 e_dpms.h \
 e_eap_editor.h \
 e_editable.h \
-e_entry_dialog.h \
 e_entry.h \
+e_entry_dialog.h \
+e_env.h \
 e_error.h \
 e_exec.h \
 e_exehist.h \
@@ -142,6 +150,7 @@ e_theme_about.h \
 e_theme.h \
 e_thumb.h \
 e_toolbar.h \
+e_update.h \
 e_user.h \
 e_utils.h \
 e_widget_aspect.h \
@@ -174,14 +183,17 @@ e_widget_toolbar.h \
 e_widget_toolbook.h \
 e_win.h \
 e_xinerama.h \
+e_xsettings.h \
 e_zone.h
+
 
 enlightenment_src = \
 e_about.c \
 e_acpi.c \
-e_actions.c \
 e_alert.c \
+e_actions.c \
 e_atoms.c \
+e_backlight.c \
 e_bg.c \
 e_bindings.c \
 e_border.c \
@@ -198,6 +210,7 @@ e_confirm_dialog.c \
 e_container.c \
 e_datastore.c \
 e_desk.c \
+e_deskenv.c \
 e_desklock.c \
 e_dialog.c \
 e_dnd.c \
@@ -206,6 +219,7 @@ e_eap_editor.c \
 e_editable.c \
 e_entry.c \
 e_entry_dialog.c \
+e_env.c \
 e_error.c \
 e_exec.c \
 e_exehist.c \
@@ -262,6 +276,13 @@ e_popup.c \
 e_powersave.c \
 e_prefix.c \
 e_randr.c \
+e_randr_serialization.c \
+e_randr_11.c \
+e_randr_11_serialization.c \
+e_randr_12.c \
+e_randr_12_output.c \
+e_randr_12_crtc.c \
+e_randr_12_serialization.c \
 e_remember.c \
 e_resist.c \
 e_scale.c \
@@ -283,6 +304,7 @@ e_theme_about.c \
 e_theme.c \
 e_thumb.c \
 e_toolbar.c \
+e_update.c \
 e_user.c \
 e_utils.c \
 e_widget_aspect.c \
@@ -315,6 +337,7 @@ e_widget_toolbar.c \
 e_widget_toolbook.c \
 e_win.c \
 e_xinerama.c \
+e_xsettings.c \
 e_zone.c \
 $(ENLIGHTENMENTHEADERS)
 
@@ -323,7 +346,7 @@ e_main.c \
 $(enlightenment_src)
 
 enlightenment_LDFLAGS = -export-dynamic
-enlightenment_LDADD = @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ -lm
+enlightenment_LDADD = @e_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ -lm
 
 enlightenment_imc_SOURCES = \
 e.h \
@@ -335,8 +358,8 @@ enlightenment_imc_LDADD = @E_IMC_LIBS@
 
 enlightenment_start_SOURCES = \
 e_start_main.c
-
-enlightenment_start_LDADD = @dlopen_libs@
+enlightenment_start_CFLAGS = $(INCLUDES) @E_START_CFLAGS@
+enlightenment_start_LDADD = @dlopen_libs@ @E_START_LIBS@
 
 enlightenment_thumb_SOURCES = \
 e_sha1.c \
@@ -356,18 +379,40 @@ e_sys_main.c
 
 enlightenment_sys_LDADD = @E_SYS_LIBS@
 
+if HAVE_EEZE
+enlightenment_backlight_SOURCES = \
+e_backlight_main.c
+
+enlightenment_backlight_CFLAGS = @EEZE_CFLAGS@
+enlightenment_backlight_LDADD = @EEZE_LIBS@
+endif
+
 enlightenment_init_SOURCES = \
 e_init_main.c \
 e_xinerama.c
 
 enlightenment_init_LDADD = @E_INIT_LIBS@
 
+enlightenment_alert_SOURCES = \
+e_alert_main.c
+
+enlightenment_alert_LDADD = @E_ALERT_LIBS@
+enlightenment_alert_CFLAGS = @E_ALERT_CFLAGS@
+
 # HACK! why install-data-hook? install-exec-hook is run after bin_PROGRAMS
 # and before internal_bin_PROGRAMS are installed. install-data-hook is
 # run after both
 setuid_root_mode = a=rx,u+xs
+if HAVE_EEZE
 install-data-hook:
 	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_sys$(EXEEXT) || true
-
+	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_backlight$(EXEEXT) || true
+else
+install-data-hook:
+	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_sys$(EXEEXT) || true
+endif
 installed_headersdir = $(prefix)/include/enlightenment
 installed_headers_DATA = $(ENLIGHTENMENTHEADERS)
+
+EXTRA_DIST = \
+	     e_randr_private.h

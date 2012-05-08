@@ -1,6 +1,12 @@
 #ifndef E_MOD_MAIN_H
 #define E_MOD_MAIN_H
 
+#ifdef HAVE_EEZE
+# include <Eeze.h>
+#else
+# include <E_Hal.h>
+#endif
+
 #include "e_mod_main_private.h"
 
 typedef struct _Config Config;
@@ -39,7 +45,7 @@ struct _Config_Face
    Ecore_Event_Handler *tempget_del_handler;
 
    Eina_Bool have_temp:1;
-#ifdef __FreeBSD__
+#if defined (__FreeBSD__) || defined (__OpenBSD__)
    int mib[5];
 #endif
 };
@@ -76,4 +82,16 @@ void config_temperature_module(Config_Face *inst);
 void temperature_face_update_config(Config_Face *inst);
 Eina_List *temperature_get_bus_files(const char* bus);
 
+/**
+ * @addtogroup Optional_Gadgets
+ * @{
+ *
+ * @defgroup Module_Temperature Temperature
+ *
+ * Monitors computer temperature sensors and may do actions given some
+ * thresholds.
+ *
+ * @see Module_CPUFreq
+ * @}
+ */
 #endif

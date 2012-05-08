@@ -59,14 +59,9 @@ _policy_border_set_focus(E_Border *bd)
              /* if the border was hidden due to layout, we need to unhide */
 	     if (!bd->visible) e_illume_border_show(bd);
 
-             /* if the border is iconified then uniconify */
-             if (bd->iconic) 
-               {
-                  /* if the user is allowed to uniconify, then do it */
-                  if (!bd->lock_user_iconify) e_border_uniconify(bd);
-               }
-
-             /* if we can raise the border do it */
+             if ((bd->iconic) && (!bd->lock_user_iconify)) 
+                e_border_uniconify(bd);
+             
              if (!bd->lock_user_stacking) e_border_raise(bd);
 
              /* focus the border */
@@ -164,6 +159,7 @@ _policy_border_hide_below(E_Border *bd)
              if (e_illume_border_is_softkey(b)) continue;
              if (e_illume_border_is_keyboard(b)) continue;
              if (e_illume_border_is_quickpanel(b)) continue;
+             if (e_illume_border_is_home(b)) continue;
 
              if ((bd->fullscreen) || (bd->need_fullscreen)) 
                {
@@ -229,6 +225,7 @@ _policy_border_show_below(E_Border *bd)
              if (e_illume_border_is_softkey(b)) continue;
              if (e_illume_border_is_keyboard(b)) continue;
              if (e_illume_border_is_quickpanel(b)) continue;
+             if (e_illume_border_is_home(b)) continue;
 
              if ((bd->fullscreen) || (bd->need_fullscreen)) 
                {
@@ -293,17 +290,24 @@ _policy_zone_layout_indicator(E_Border *bd, E_Illume_Config_Zone *cz)
    e_illume_border_min_get(bd, NULL, &cz->indicator.size);
 
    /* no point in doing anything here if indicator is hidden */
-   if ((!bd->new_client) && (!bd->visible)) return;
+   if ((!bd->new_client) && (!bd->visible))
+      {
+         ecore_x_e_illume_indicator_geometry_set(bd->zone->black_win,
+                                                 0, 0, 0, 0);
+         return;
+      }
 
    /* if we are dragging, then skip it for now */
    if (bd->client.illume.drag.drag) 
      {
         /* when dragging indicator, we need to trigger a layout update */
+         ecore_x_e_illume_indicator_geometry_set(bd->zone->black_win,
+                                                 0, 0, 0, 0);
         _policy_zone_layout_update(bd->zone);
         return;
      }
 
-//   printf("\tLayout Indicator: %d\n", bd->zone->id);
+//   printf("\tLayout Indicator: %d\n", bd->zone->num);
 
    /* lock indicator window from dragging if we need to */
    if ((cz->mode.dual == 1) && (cz->mode.side == 0)) 
@@ -347,6 +351,9 @@ _policy_zone_layout_indicator(E_Border *bd, E_Illume_Config_Zone *cz)
                }
           }
      }
+   ecore_x_e_illume_indicator_geometry_set(bd->zone->black_win,
+                                           bd->x, bd->y,
+                                           bd->w, bd->h);
 
    /* set layer if needed */
    if (bd->layer != POL_INDICATOR_LAYER) 
@@ -377,15 +384,18 @@ _policy_zone_layout_softkey(E_Border *bd, E_Illume_Config_Zone *cz)
 {
    int ny;
 
-//   printf("\tLayout Softkey\n");
-
    if (!bd) return;
 
    /* grab minimum softkey size */
    e_illume_border_min_get(bd, NULL, &cz->softkey.size);
 
    /* no point in doing anything here if softkey is hidden */
-   if (!bd->visible) return;
+   if (!bd->visible)
+     {
+        ecore_x_e_illume_softkey_geometry_set(bd->zone->black_win,
+                                              0, 0, 0, 0);
+        return;
+     }
 
    /* if we are dragging, then skip it for now */
    /* NB: Disabled currently until we confirm that softkey should be draggable */
@@ -403,6 +413,10 @@ _policy_zone_layout_softkey(E_Border *bd, E_Illume_Config_Zone *cz)
     * So for now, just disable the ny check until this gets sorted out */
 //   if ((bd->x != bd->zone->x) || (bd->y != ny))
      _policy_border_move(bd, bd->zone->x, ny);
+   // set property for apps to find out they are
+   ecore_x_e_illume_softkey_geometry_set(bd->zone->black_win,
+                                         bd->x, bd->y,
+                                         bd->w, bd->h);
 
    /* set layer if needed */
    if (bd->layer != POL_SOFTKEY_LAYER) 
@@ -446,7 +460,8 @@ _policy_zone_layout_keyboard(E_Border *bd, E_Illume_Config_Zone *cz)
 static void 
 _policy_zone_layout_home_single(E_Border *bd, E_Illume_Config_Zone *cz) 
 {
-   int ny, nh;
+   int ny, nh, indsz = 0, sftsz = 0;
+   E_Border *ind, *sft;
 
    if ((!bd) || (!cz)) return;
 
@@ -455,13 +470,26 @@ _policy_zone_layout_home_single(E_Border *bd, E_Illume_Config_Zone *cz)
 
 //   printf("\tLayout Home Single: %s\n", bd->client.icccm.class);
 
+   indsz = cz->indicator.size;
+   sftsz = cz->softkey.size;
+   if ((ind = e_illume_border_indicator_get(bd->zone)))
+     {
+        if (!ind->visible) indsz = 0;
+     }
+   if ((sft = e_illume_border_softkey_get(bd->zone)))
+     {
+        if (!sft->visible) sftsz = 0;
+     }
    /* make sure it's the required width & height */
-   nh = (bd->zone->h - cz->indicator.size - cz->softkey.size);
+   if (e_illume_border_is_conformant(bd)) nh = bd->zone->h;
+   else nh = (bd->zone->h - indsz - sftsz);
+   
    if ((bd->w != bd->zone->w) || (bd->h != nh)) 
      _policy_border_resize(bd, bd->zone->w, nh);
 
    /* move to correct position (relative to zone) if needed */
-   ny = (bd->zone->y + cz->indicator.size);
+   if (e_illume_border_is_conformant(bd)) ny = bd->zone->y;
+   else ny = (bd->zone->y + indsz);
    if ((bd->x != bd->zone->x) || (bd->y != ny)) 
      _policy_border_move(bd, bd->zone->x, ny);
 
@@ -472,17 +500,27 @@ _policy_zone_layout_home_single(E_Border *bd, E_Illume_Config_Zone *cz)
 static void 
 _policy_zone_layout_home_dual_top(E_Border *bd, E_Illume_Config_Zone *cz) 
 {
-   E_Border *home;
-   int ny, nh;
+   E_Border *home, *ind, *sft;
+   int ny, nh, indsz = 0, sftsz = 0;
 
    if ((!bd) || (!cz)) return;
 
    /* no point in adjusting size or position if it's not visible */
    if (!bd->visible) return;
 
+   indsz = cz->indicator.size;
+   sftsz = cz->softkey.size;
+   if ((ind = e_illume_border_indicator_get(bd->zone)))
+     {
+        if (!ind->visible) indsz = 0;
+     }
+   if ((sft = e_illume_border_softkey_get(bd->zone)))
+     {
+        if (!sft->visible) sftsz = 0;
+     }
    /* set some defaults */
-   ny = (bd->zone->y + cz->indicator.size);
-   nh = ((bd->zone->h - cz->indicator.size - cz->softkey.size) / 2);
+   ny = (bd->zone->y + indsz);
+   nh = ((bd->zone->h - indsz - sftsz) / 2);
 
    /* see if there are any other home windows */
    home = e_illume_border_home_get(bd->zone);
@@ -783,11 +821,8 @@ _policy_zone_layout_dialog(E_Border *bd, E_Illume_Config_Zone *cz)
 
    if ((!bd) || (!cz)) return;
 
-   /* no point in adjusting size or position if it's not visible */
-   if (!bd->visible) return;
-
-   /* grab minimum size */
-   e_illume_border_min_get(bd, &mw, &mh);
+   mw = bd->w;
+   mh = bd->h;
 
    /* make sure it fits in this zone */
    if (mw > bd->zone->w) mw = bd->zone->w;
@@ -829,13 +864,14 @@ _policy_zone_layout_dialog(E_Border *bd, E_Illume_Config_Zone *cz)
      _policy_border_move(bd, nx, ny);
 
    /* set layer if needed */
-   if (bd->layer != POL_DIALOG_LAYER) e_border_layer_set(bd, POL_DIALOG_LAYER);
+   if (bd->layer != POL_DIALOG_LAYER) 
+     e_border_layer_set(bd, POL_DIALOG_LAYER);
 }
 
 static void 
 _policy_zone_layout_splash(E_Border *bd, E_Illume_Config_Zone *cz) 
 {
-   E_Border *parent;
+   E_Border *parent = NULL;
    int mw, mh, nx, ny;
 
    /* NB: This code is almost exactly the same as the dialog layout code 
@@ -1024,13 +1060,25 @@ _policy_border_add(E_Border *bd)
     * but we save ourselves a function call this way */
    if ((bd->fullscreen) || (bd->need_fullscreen)) 
      {
-        E_Border *ind;
+        E_Border *ind, *sft;
 
         /* try to get the Indicator on this zone */
         if ((ind = e_illume_border_indicator_get(bd->zone))) 
           {
              /* we have the indicator, hide it if needed */
 	     if (ind->visible) e_illume_border_hide(ind);
+          }
+        /* conformant - may not need softkey */
+        if ((sft = e_illume_border_softkey_get(bd->zone)))
+          {
+             if (e_illume_border_is_conformant(bd)) 
+               {
+                  if (sft->visible) e_illume_border_hide(sft);
+               }
+             else 
+               {
+                  if (!sft->visible) e_illume_border_show(sft);
+               }
           }
      }
 
@@ -1050,7 +1098,7 @@ _policy_border_add(E_Border *bd)
 void 
 _policy_border_del(E_Border *bd) 
 {
-//   printf("Border deleted: %s\n", bd->client.icccm.class);
+//   printf("Policy Border deleted: %s\n", bd->client.icccm.class);
 
    if (!bd) return;
 
@@ -1067,6 +1115,7 @@ _policy_border_del(E_Border *bd)
              /* we have the indicator, show it if needed */
 	     if (!ind->visible) e_illume_border_show(ind);
           }
+        _policy_zone_layout_update(bd->zone);
      }
 
    /* remove from our focus stack */
@@ -1078,7 +1127,7 @@ _policy_border_del(E_Border *bd)
 	E_Illume_Config_Zone *cz;
 
 	/* get the config for this zone */
-	cz = e_illume_zone_config_get(bd->zone->id);
+	cz = e_illume_zone_config_get(bd->zone->num);
 	cz->softkey.size = 0;
 	_policy_zone_layout_update(bd->zone);
      }
@@ -1087,7 +1136,7 @@ _policy_border_del(E_Border *bd)
 	E_Illume_Config_Zone *cz;
 
 	/* get the config for this zone */
-	cz = e_illume_zone_config_get(bd->zone->id);
+	cz = e_illume_zone_config_get(bd->zone->num);
 	cz->indicator.size = 0;
 	_policy_zone_layout_update(bd->zone);
      }
@@ -1099,9 +1148,30 @@ _policy_border_del(E_Border *bd)
 }
 
 void 
-_policy_border_focus_in(E_Border *bd __UNUSED__) 
+_policy_border_focus_in(E_Border *bd) 
 {
+   E_Border *ind;
+
 //   printf("Border focus in: %s\n", bd->client.icccm.name);
+   if ((bd->fullscreen) || (bd->need_fullscreen)) 
+     {
+        /* try to get the Indicator on this zone */
+        if ((ind = e_illume_border_indicator_get(bd->zone))) 
+          {
+             /* we have the indicator, show it if needed */
+	     if (ind->visible) e_illume_border_hide(ind);
+          }
+     }
+   else
+     {
+        /* try to get the Indicator on this zone */
+        if ((ind = e_illume_border_indicator_get(bd->zone))) 
+          {
+             /* we have the indicator, show it if needed */
+	     if (!ind->visible) e_illume_border_show(ind);
+          }
+     }
+   _policy_zone_layout_update(bd->zone);
 }
 
 void 
@@ -1268,10 +1338,10 @@ _policy_zone_layout(E_Zone *zone)
 
    if (!zone) return;
 
-//   printf("Zone Layout: %d\n", zone->id);
+//   printf("Zone Layout: %d\n", zone->num);
 
    /* get the config for this zone */
-   cz = e_illume_zone_config_get(zone->id);
+   cz = e_illume_zone_config_get(zone->num);
 
    /* loop through border list and update layout */
    EINA_LIST_FOREACH(e_border_client_list(), l, bd) 
@@ -1422,12 +1492,12 @@ _policy_zone_mode_change(E_Zone *zone, Ecore_X_Atom mode)
    E_Border *bd;
    int count;
 
-//   printf("Zone mode change: %d\n", zone->id);
+//   printf("Zone mode change: %d\n", zone->num);
 
    if (!zone) return;
 
    /* get the config for this zone */
-   cz = e_illume_zone_config_get(zone->id);
+   cz = e_illume_zone_config_get(zone->num);
 
    /* update config with new mode */
    if (mode == ECORE_X_ATOM_E_ILLUME_MODE_SINGLE) 
@@ -1492,8 +1562,6 @@ void
 _policy_zone_close(E_Zone *zone) 
 {
    E_Border *bd;
-
-//   printf("Zone close\n");
 
    if (!zone) return;
 
@@ -1636,8 +1704,6 @@ _policy_focus_home(E_Zone *zone)
 {
    E_Border *bd;
 
-//   printf("Focus home\n");
-
    if (!zone) return;
    if (!(bd = e_illume_border_home_get(zone))) return;
    _policy_border_set_focus(bd);
@@ -1676,11 +1742,19 @@ _policy_property_change(Ecore_X_Event_Window_Property *event)
          * but we save ourselves a function call this way */
         if ((bd->fullscreen) || (bd->need_fullscreen)) 
           {
-	     if (ind->visible) e_illume_border_hide(ind);
+	     if (ind->visible)
+               {
+                  e_illume_border_hide(ind);
+                  _policy_zone_layout_update(bd->zone);
+               }
           }
         else 
           {
-	     if (!ind->visible) e_illume_border_show(ind);
+	     if (!ind->visible)
+               {
+                  e_illume_border_show(ind);
+                  _policy_zone_layout_update(bd->zone);
+               }
           }
      }
    else if (event->atom == ECORE_X_ATOM_E_ILLUME_INDICATOR_GEOMETRY) 

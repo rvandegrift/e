@@ -3,10 +3,8 @@
 static Ecore_Exe *_e_intl_input_method_exec = NULL;
 static Ecore_Event_Handler *_e_intl_exit_handler = NULL;
 
-static char *_e_intl_orig_lc_messages = NULL;
-static char *_e_intl_orig_language = NULL;
-static char *_e_intl_orig_lc_all = NULL;
 static char *_e_intl_orig_lang = NULL;
+static char *_e_intl_orig_language = NULL;
 static char *_e_intl_language = NULL;
 
 static char *_e_intl_language_alias = NULL;
@@ -14,6 +12,7 @@ static char *_e_intl_language_alias = NULL;
 static char *_e_intl_orig_xmodifiers = NULL;
 static char *_e_intl_orig_qt_im_module = NULL;
 static char *_e_intl_orig_gtk_im_module = NULL;
+static char *_e_intl_orig_ecore_imf_module = NULL;
 
 static const char *_e_intl_imc_personal_path = NULL;
 static const char *_e_intl_imc_system_path = NULL;
@@ -57,14 +56,13 @@ e_intl_init(void)
 
    e_intl_data_init();
 
-   if ((s = getenv("LC_MESSAGES"))) _e_intl_orig_lc_messages = strdup(s);
-   if ((s = getenv("LANGUAGE"))) _e_intl_orig_language = strdup(s);
-   if ((s = getenv("LC_ALL"))) _e_intl_orig_lc_all = strdup(s);
    if ((s = getenv("LANG"))) _e_intl_orig_lang = strdup(s);
+   if ((s = getenv("LANGUAGE"))) _e_intl_orig_language = strdup(s);
 
    if ((s = getenv("GTK_IM_MODULE"))) _e_intl_orig_gtk_im_module = strdup(s);
    if ((s = getenv("QT_IM_MODULE"))) _e_intl_orig_qt_im_module = strdup(s);
    if ((s = getenv("XMODIFIERS"))) _e_intl_orig_xmodifiers = strdup(s);
+   if ((s = getenv("ECORE_IMF_MODULE"))) _e_intl_orig_ecore_imf_module = strdup(s);
 
    return 1;
 }
@@ -73,14 +71,13 @@ EINTERN int
 e_intl_shutdown(void)
 {
    E_FREE(_e_intl_language);
-   E_FREE(_e_intl_orig_lc_messages);
-   E_FREE(_e_intl_orig_language);
-   E_FREE(_e_intl_orig_lc_all);
    E_FREE(_e_intl_orig_lang);
+   E_FREE(_e_intl_orig_language);
 
    E_FREE(_e_intl_orig_gtk_im_module);
    E_FREE(_e_intl_orig_qt_im_module);
    E_FREE(_e_intl_orig_xmodifiers);
+   E_FREE(_e_intl_orig_ecore_imf_module);
 
    if (_e_intl_imc_personal_path)
      eina_stringshare_del(_e_intl_imc_personal_path);
@@ -148,13 +145,8 @@ e_intl_language_set(const char *lang)
     */
    if (!lang)
      {
-	e_util_env_set("LC_MESSAGES", _e_intl_orig_lc_messages);
-	e_util_env_set("LANGUAGE", _e_intl_orig_language);
-	e_util_env_set("LC_ALL", _e_intl_orig_lc_all);
 	e_util_env_set("LANG", _e_intl_orig_lang);
 
-	lang = getenv("LC_MESSAGES");
-	if (!lang) lang = getenv("LANGUAGE");
 	if (!lang) lang = getenv("LC_ALL");
 	if (!lang) lang = getenv("LANG");
 
@@ -197,13 +189,12 @@ e_intl_language_set(const char *lang)
 	/* Only set env vars is a non NULL locale was passed */
 	if (set_envars)
 	  {
-	     e_util_env_set("LANGUAGE", _e_intl_language);
-	     e_util_env_set("LANG", _e_intl_language);
-	     e_util_env_set("LC_ALL", _e_intl_language);
-	     e_util_env_set("LC_MESSAGES", _e_intl_language);
+             e_util_env_set("LANG", lang);
+             /* Unset LANGUAGE, apparently causes issues if set */
+             e_util_env_set("LANGUAGE", NULL);
 	  }
 
-    	setlocale(LC_ALL, _e_intl_language);
+	setlocale(LC_ALL, lang);
         if (_e_intl_language)
 	  {
              char *locale_path;
@@ -326,6 +317,7 @@ e_intl_input_method_set(const char *imc_path)
 	e_util_env_set("GTK_IM_MODULE", _e_intl_orig_gtk_im_module);
         e_util_env_set("QT_IM_MODULE", _e_intl_orig_qt_im_module);
         e_util_env_set("XMODIFIERS", _e_intl_orig_xmodifiers);
+	e_util_env_set("ECORE_IMF_MODULE", _e_intl_orig_ecore_imf_module);
      }
 
    if (imc_path)
@@ -344,6 +336,7 @@ e_intl_input_method_set(const char *imc_path)
 	          e_util_env_set("GTK_IM_MODULE", imc->gtk_im_module);
 	          e_util_env_set("QT_IM_MODULE", imc->qt_im_module);
 	          e_util_env_set("XMODIFIERS", imc->xmodifiers);
+	          e_util_env_set("ECORE_IMF_MODULE", imc->ecore_imf_module);
 
 		  E_EXE_STOP(_e_intl_input_method_exec);
 
@@ -790,6 +783,8 @@ e_intl_locale_parts_combine(E_Locale_Parts *locale_parts, int mask)
 
    if (mask & E_INTL_LOC_MODIFIER)
      locale_size += strlen(locale_parts->modifier) + 1;
+
+   if (!locale_size) return NULL;
 
    /* Allocate memory */
    locale = (char *) malloc(locale_size);

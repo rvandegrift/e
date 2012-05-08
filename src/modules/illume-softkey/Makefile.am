@@ -3,7 +3,10 @@ MODULE = illume-softkey
 SUBDIRS = images
 
 EDJE_CC = @edje_cc@
-EDJE_FLAGS = -v \
+EDJE_FLAGS_VERBOSE_ = 
+EDJE_FLAGS_VERBOSE_0 = 
+EDJE_FLAGS_VERBOSE_1 = -v
+EDJE_FLAGS = $(EDJE_FLAGS_$(V)) \
            -id $(top_srcdir)/src/modules/$(MODULE)/images \
            @EDJE_DEF@
 
@@ -22,7 +25,7 @@ INCLUDES               = -I. \
                          -I$(top_srcdir) \
                          -I$(top_srcdir)/src/modules/$(MODULE) \
                          -I$(top_srcdir)/src/bin \
-                         -I$(top_srcdir)/src/lib \
+                         -I$(top_builddir)/src/bin \
                          -I$(top_srcdir)/src/modules \
                          @e_cflags@
 

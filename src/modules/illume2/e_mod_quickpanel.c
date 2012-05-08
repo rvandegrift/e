@@ -7,6 +7,7 @@ static Eina_Bool _e_mod_quickpanel_cb_mouse_up(void *data, int type __UNUSED__, 
 static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_border_remove(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_border_resize(void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_mod_quickpanel_cb_border_uniconify(void *data __UNUSED__, int type __UNUSED__, void *event);
 static void _e_mod_quickpanel_cb_post_fetch(void *data __UNUSED__, void *data2);
 static void _e_mod_quickpanel_cb_free(E_Illume_Quickpanel *qp);
 static Eina_Bool _e_mod_quickpanel_cb_delay_hide(void *data);
@@ -42,11 +43,15 @@ e_mod_quickpanel_init(void)
                       ecore_event_handler_add(E_EVENT_BORDER_REMOVE, 
                                               _e_mod_quickpanel_cb_border_remove,
                                               NULL));
-
    _qp_hdls = 
      eina_list_append(_qp_hdls, 
                       ecore_event_handler_add(E_EVENT_BORDER_RESIZE, 
                                               _e_mod_quickpanel_cb_border_resize, 
+                                              NULL));
+   _qp_hdls = 
+     eina_list_append(_qp_hdls, 
+                      ecore_event_handler_add(E_EVENT_BORDER_UNICONIFY, 
+                                              _e_mod_quickpanel_cb_border_uniconify, 
                                               NULL));
 
    /* add hook for new borders so we can test for qp borders */
@@ -113,7 +118,7 @@ e_mod_quickpanel_show(E_Illume_Quickpanel *qp)
    duration = _e_illume_cfg->animation.quickpanel.duration;
 
    /* grab the height of the indicator */
-   cz = e_illume_zone_config_get(qp->zone->id);
+   cz = e_illume_zone_config_get(qp->zone->num);
    qp->vert.isize = cz->indicator.size;
 
    /* check animation duration */
@@ -123,26 +128,26 @@ e_mod_quickpanel_show(E_Illume_Quickpanel *qp)
         E_Border *bd;
         int ny = 0;
 
-	ny = qp->vert.isize;
-	if (qp->vert.dir == 1) ny = 0;
+        ny = qp->vert.isize;
+        if (qp->vert.dir == 1) ny = 0;
 
         /* if we are not animating, just show the borders */
         EINA_LIST_FOREACH(qp->borders, l, bd) 
           {
              if (!bd->visible) e_illume_border_show(bd);
              if (qp->vert.dir == 0) 
-	       {
-		  e_border_fx_offset(bd, 0, ny);
-		  ny += bd->h;
-	       }
-	     else 
-	       {
-		  ny -= bd->h;
-		  e_border_fx_offset(bd, 0, ny);
-	       }
+               {
+                  e_border_fx_offset(bd, 0, ny);
+                  ny += bd->h;
+               }
+             else 
+               {
+                  ny -= bd->h;
+                  e_border_fx_offset(bd, 0, ny);
+               }
           }
         qp->visible = 1;
-	_e_mod_quickpanel_clickwin_show(qp);
+        _e_mod_quickpanel_clickwin_show(qp);
      }
    else 
      _e_mod_quickpanel_slide(qp, 1, (double)duration / 1000.0);
@@ -191,9 +196,9 @@ _e_mod_quickpanel_cb_client_message(void *data __UNUSED__, int type __UNUSED__, 
              if ((qp = e_illume_quickpanel_by_zone_get(zone))) 
                {
                   if (qp->visible) 
-		    _e_mod_quickpanel_hide(qp);
+                    _e_mod_quickpanel_hide(qp);
                   else 
-		    e_mod_quickpanel_show(qp);
+                    e_mod_quickpanel_show(qp);
                }
           }
      }
@@ -340,6 +345,21 @@ _e_mod_quickpanel_cb_border_resize(void *data __UNUSED__, int type __UNUSED__, v
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static Eina_Bool 
+_e_mod_quickpanel_cb_border_uniconify(void *data __UNUSED__, int type __UNUSED__, void *event) 
+{
+   E_Event_Border_Uniconify *ev;
+   E_Illume_Quickpanel *qp;
+
+   ev = event;
+   if (!ev->border->client.illume.quickpanel.quickpanel)
+     return ECORE_CALLBACK_PASS_ON;
+   if (!(qp = e_illume_quickpanel_by_zone_get(ev->border->zone)))
+     return ECORE_CALLBACK_PASS_ON;
+   e_mod_quickpanel_show(qp);
+   return ECORE_CALLBACK_PASS_ON;
+}
+
 static void 
 _e_mod_quickpanel_cb_post_fetch(void *data __UNUSED__, void *data2) 
 {
@@ -399,11 +419,11 @@ _e_mod_quickpanel_slide(E_Illume_Quickpanel *qp, int visible, double len)
    qp->vert.adjust_end = 0;
    if (qp->vert.dir == 0) 
      {
-	if (visible) qp->vert.adjust_end = qp->vert.size;
+        if (visible) qp->vert.adjust_end = qp->vert.size;
      }
    else 
      {
-	if (visible) qp->vert.adjust_end = -qp->vert.size;
+        if (visible) qp->vert.adjust_end = -qp->vert.size;
      }
 
    if (!qp->animator) 
@@ -442,7 +462,7 @@ _e_mod_quickpanel_hide(E_Illume_Quickpanel *qp)
              if (bd->visible) e_illume_border_hide(bd);
           }
         qp->visible = 0;
-	_e_mod_quickpanel_clickwin_hide(qp);
+        _e_mod_quickpanel_clickwin_hide(qp);
      }
    else
      _e_mod_quickpanel_slide(qp, 0, (double)duration / 1000.0);
@@ -477,15 +497,15 @@ _e_mod_quickpanel_cb_animate(void *data)
      {
         qp->animator = NULL;
         if (qp->visible) 
-	  {
-	     qp->visible = 0;
-	     _e_mod_quickpanel_clickwin_hide(qp);
-	  }
+          {
+             qp->visible = 0;
+             _e_mod_quickpanel_clickwin_hide(qp);
+          }
         else 
-	  {
-	     qp->visible = 1;
-	     _e_mod_quickpanel_clickwin_show(qp);
-	  }
+          {
+             qp->visible = 1;
+             _e_mod_quickpanel_clickwin_show(qp);
+          }
         return ECORE_CALLBACK_CANCEL;
      }
 
@@ -523,9 +543,9 @@ _e_mod_quickpanel_animate_down(E_Illume_Quickpanel *qp)
      {
         /* don't adjust borders that are being deleted */
         if (e_object_is_del(E_OBJECT(bd))) continue;
-	if (bd->fx.y != (qp->vert.adjust + pbh)) 
-	  e_border_fx_offset(bd, 0, (qp->vert.adjust + pbh));
-	pbh += bd->h;
+        if (bd->fx.y != (qp->vert.adjust + pbh)) 
+          e_border_fx_offset(bd, 0, (qp->vert.adjust + pbh));
+        pbh += bd->h;
 
         if (!qp->visible) 
           {
@@ -557,9 +577,9 @@ _e_mod_quickpanel_animate_up(E_Illume_Quickpanel *qp)
      {
         /* don't adjust borders that are being deleted */
         if (e_object_is_del(E_OBJECT(bd))) continue;
-	pbh -= bd->h;
-	if (bd->fx.y != (qp->vert.adjust + pbh)) 
-	  e_border_fx_offset(bd, 0, (qp->vert.adjust + pbh));
+        pbh -= bd->h;
+        if (bd->fx.y != (qp->vert.adjust + pbh)) 
+          e_border_fx_offset(bd, 0, (qp->vert.adjust + pbh));
 
         if (!qp->visible) 
           {
@@ -589,15 +609,15 @@ _e_mod_quickpanel_clickwin_show(E_Illume_Quickpanel *qp)
    if (qp->clickwin) ecore_x_window_free(qp->clickwin);
    qp->clickwin = 0;
    qp->clickwin = ecore_x_window_input_new(qp->zone->container->win, 
-					   qp->zone->x, qp->zone->y, 
-					   qp->zone->w, qp->zone->h);
+                                           qp->zone->x, qp->zone->y, 
+                                           qp->zone->w, qp->zone->h);
 
    ecore_x_window_configure(qp->clickwin, 
-			    ECORE_X_WINDOW_CONFIGURE_MASK_SIBLING | 
-			    ECORE_X_WINDOW_CONFIGURE_MASK_STACK_MODE, 
-			    qp->zone->x, qp->zone->y, 
-			    qp->zone->w, qp->zone->h, 0, 
-			    ind->win, ECORE_X_WINDOW_STACK_BELOW);
+                            ECORE_X_WINDOW_CONFIGURE_MASK_SIBLING | 
+                            ECORE_X_WINDOW_CONFIGURE_MASK_STACK_MODE, 
+                            qp->zone->x, qp->zone->y, 
+                            qp->zone->w, qp->zone->h, 0, 
+                            ind->win, ECORE_X_WINDOW_STACK_BELOW);
 
    ecore_x_window_show(qp->clickwin);
 }

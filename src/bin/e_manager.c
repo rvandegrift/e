@@ -16,6 +16,7 @@ static Eina_Bool _e_manager_frame_extents_free_cb(const Eina_Hash *hash __UNUSED
 						  const void *key __UNUSED__,
 						  void *data, void *fdata __UNUSED__);
 static E_Manager *_e_manager_get_for_root(Ecore_X_Window root);
+static Eina_Bool _e_manager_clear_timer(void *data);
 #if 0 /* use later - maybe */
 static int _e_manager_cb_window_destroy(void *data, int ev_type, void *ev);
 static int _e_manager_cb_window_hide(void *data, int ev_type, void *ev);
@@ -84,47 +85,62 @@ EAPI E_Manager *
 e_manager_new(Ecore_X_Window root, int num)
 {
    E_Manager *man;
-   Ecore_Event_Handler *h;
 
    if (!ecore_x_window_manage(root)) return NULL;
-   ecore_x_window_background_color_set(root, 0, 0, 0);
    man = E_OBJECT_ALLOC(E_Manager, E_MANAGER_TYPE, _e_manager_free);
    if (!man) return NULL;
    managers = eina_list_append(managers, man);
    man->root = root;
    man->num = num;
    ecore_x_window_size_get(man->root, &(man->w), &(man->h));
-   if (e_config->use_virtual_roots)
-     {
-	man->win = ecore_x_window_override_new(man->root, man->x, man->y, man->w, man->h);
-	ecore_x_icccm_title_set(man->win, "Enlightenment Manager");
-	ecore_x_netwm_name_set(man->win, "Enlightenment Manager");
-	ecore_x_window_raise(man->win);
-     }
-   else
-     {
-	man->win = man->root;
-     }
+   man->win = man->root;
 
-   h = ecore_event_handler_add(ECORE_X_EVENT_WINDOW_SHOW_REQUEST, _e_manager_cb_window_show_request, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CONFIGURE, _e_manager_cb_window_configure, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, _e_manager_cb_key_down, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_EVENT_KEY_UP, _e_manager_cb_key_up, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_X_EVENT_FRAME_EXTENTS_REQUEST, _e_manager_cb_frame_extents_request, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_X_EVENT_PING, _e_manager_cb_ping, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_X_EVENT_SCREENSAVER_NOTIFY, _e_manager_cb_screensaver_notify, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
-   h = ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE, _e_manager_cb_client_message, man);
-   if (h) man->handlers = eina_list_append(man->handlers, h);
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_X_EVENT_WINDOW_SHOW_REQUEST, 
+                                              _e_manager_cb_window_show_request, 
+                                              man));
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CONFIGURE, 
+                                              _e_manager_cb_window_configure, 
+                                              man));
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, 
+                                              _e_manager_cb_key_down, 
+                                              man));
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_EVENT_KEY_UP, 
+                                              _e_manager_cb_key_up, 
+                                              man));
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_X_EVENT_FRAME_EXTENTS_REQUEST, 
+                                              _e_manager_cb_frame_extents_request, 
+                                              man));
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_X_EVENT_PING, 
+                                              _e_manager_cb_ping, 
+                                              man));
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_X_EVENT_SCREENSAVER_NOTIFY, 
+                                              _e_manager_cb_screensaver_notify, 
+                                              man));
+   man->handlers = 
+     eina_list_append(man->handlers, 
+                      ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE, 
+                                              _e_manager_cb_client_message, 
+                                              man));
 
    man->pointer = e_pointer_window_new(man->root, 1);
 
+   ecore_x_window_background_color_set(man->root, 0, 0, 0);
+   
+   man->clear_timer = ecore_timer_add(10.0, _e_manager_clear_timer, man);
    return man;
 }
 
@@ -190,12 +206,13 @@ e_manager_manage_windows(E_Manager *man)
 		  else
                     continue;
 	       }
-	     if (!ecore_x_window_prop_property_get(windows[i],
-						   atom_xmbed,
-						   atom_xmbed, 32,
-						   &data, &count))
-	       data = NULL;
-	     if (!data)
+	     /* XXX manage xembed windows as long as they are not override_redirect..
+	      * if (!ecore_x_window_prop_property_get(windows[i],
+	      * 					   atom_xmbed,
+	      * 					   atom_xmbed, 32,
+	      * 					   &data, &count))
+	      *   data = NULL;
+	      * if (!data) */
 	       {
 		  if (!ecore_x_window_prop_property_get(windows[i],
 							atom_kde_netwm_systray,
@@ -542,6 +559,12 @@ e_manager_comp_src_list(E_Manager *man)
    return man->comp->func.src_list_get(man->comp->data, man);
 }
 
+EAPI E_Manager_Comp_Source*
+e_manager_comp_src_get(E_Manager *man, Ecore_X_Window win)
+{
+   return man->comp->func.src_get(man->comp->data, man, win);
+}
+
 EAPI Evas_Object *
 e_manager_comp_src_image_get(E_Manager *man, E_Manager_Comp_Source *src)
 {
@@ -576,6 +599,24 @@ EAPI Eina_Bool
 e_manager_comp_src_hidden_get(E_Manager *man, E_Manager_Comp_Source *src)
 {
    return man->comp->func.src_hidden_get(man->comp->data, man, src);
+}
+
+EAPI Ecore_X_Window
+e_manager_comp_src_window_get(E_Manager *man, E_Manager_Comp_Source *src)
+{
+   return man->comp->func.src_window_get(man->comp->data, man, src);
+}
+
+EAPI E_Popup *
+e_manager_comp_src_popup_get(E_Manager *man, E_Manager_Comp_Source *src)
+{
+   return man->comp->func.src_popup_get(man->comp->data, man, src);
+}
+
+EAPI E_Border *
+e_manager_comp_src_border_get(E_Manager *man, E_Manager_Comp_Source *src)
+{
+   return man->comp->func.src_border_get(man->comp->data, man, src);
 }
 
 EAPI void
@@ -656,6 +697,7 @@ _e_manager_free(E_Manager *man)
      }
    if (man->pointer) e_object_del(E_OBJECT(man->pointer));
    managers = eina_list_remove(managers, man);
+   if (man->clear_timer) ecore_timer_del(man->clear_timer);
    free(man);
 }
 
@@ -965,12 +1007,17 @@ _e_manager_cb_client_message(void *data __UNUSED__, int ev_type __UNUSED__, void
 		       if (!bd->lock_user_iconify)
 			 e_border_uniconify(bd);
 		    }
-		  if (!bd->iconic) e_desk_show(bd->desk);
+		  if ((!bd->iconic) && (!bd->sticky))
+		    e_desk_show(bd->desk);
 		  if (!bd->lock_user_stacking) e_border_raise(bd);
 		  if (!bd->lock_focus_out)
 		    {
-		       if (e_config->focus_policy != E_FOCUS_CLICK)
-			 ecore_x_pointer_warp(bd->zone->container->win,
+		       /* XXX ooffice does send this request for
+		       config dialogs when the main window gets focus.
+		       causing the pointer to jump back and forth.  */
+		       if ((e_config->focus_policy != E_FOCUS_CLICK) &&
+			   !(bd->client.icccm.name && !strcmp(bd->client.icccm.name, "VCLSalFrame")))
+		       	 ecore_x_pointer_warp(bd->zone->container->win,
 					      bd->x + (bd->w / 2), bd->y + (bd->h / 2));
 		       e_border_focus_set(bd, 1, 1);
 		    }
@@ -1004,6 +1051,14 @@ _e_manager_get_for_root(Ecore_X_Window root)
    return eina_list_data_get(managers);
 }
 
+static Eina_Bool
+_e_manager_clear_timer(void *data)
+{
+   E_Manager *man = data;
+   ecore_x_window_background_color_set(man->root, 0, 0, 0);
+   man->clear_timer = NULL;
+   return EINA_FALSE;
+}
 
 #if 0 /* use later - maybe */
 static int _e_manager_cb_window_destroy(void *data, int ev_type, void *ev){return 1;}

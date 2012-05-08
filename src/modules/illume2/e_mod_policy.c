@@ -78,7 +78,7 @@ e_mod_policy_init(void)
                   Ecore_X_Illume_Mode mode = ECORE_X_ILLUME_MODE_SINGLE;
 
                   /* check for zone config */
-                  if (!(cz = e_illume_zone_config_get(zone->id))) 
+                  if (!(cz = e_illume_zone_config_get(zone->num))) 
                     continue;
 
                   /* set mode on this zone */
@@ -380,6 +380,20 @@ _e_mod_policy_cb_zone_move_resize(void *data __UNUSED__, int type __UNUSED__, vo
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static E_Zone *
+_e_mod_zone_win_get(Ecore_X_Window win)
+{
+   E_Zone *zone = NULL;
+   E_Border *bd;
+
+   if (!(bd = e_border_find_by_client_window(win)))
+     {
+        if (!(zone = e_util_zone_window_find(win))) return NULL;
+     }
+   else if (bd->zone) zone = bd->zone;
+   return zone;
+}
+
 static Eina_Bool
 _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void *event) 
 {
@@ -397,8 +411,8 @@ _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void
    else if (ev->message_type == ECORE_X_ATOM_E_ILLUME_MODE) 
      {
         E_Zone *zone;
-
-        if (!(zone = e_util_zone_window_find(ev->win))) return ECORE_CALLBACK_PASS_ON;
+        
+        if (!(zone = _e_mod_zone_win_get(ev->win))) return ECORE_CALLBACK_PASS_ON;
         if ((_policy) && (_policy->funcs.zone_mode_change))
           _policy->funcs.zone_mode_change(zone, ev->data.l[0]);
      }
@@ -406,7 +420,7 @@ _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void
      {
         E_Zone *zone;
 
-        if (!(zone = e_util_zone_window_find(ev->win))) return ECORE_CALLBACK_PASS_ON;
+        if (!(zone = _e_mod_zone_win_get(ev->win))) return ECORE_CALLBACK_PASS_ON;
         if ((_policy) && (_policy->funcs.zone_close))
           _policy->funcs.zone_close(zone);
      }
@@ -414,7 +428,7 @@ _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void
      {
         E_Zone *zone;
 
-        if (!(zone = e_util_zone_window_find(ev->win))) return ECORE_CALLBACK_PASS_ON;
+        if (!(zone = _e_mod_zone_win_get(ev->win))) return ECORE_CALLBACK_PASS_ON;
         if ((_policy) && (_policy->funcs.focus_back))
           _policy->funcs.focus_back(zone);
      }
@@ -422,7 +436,7 @@ _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void
      {
         E_Zone *zone;
 
-        if (!(zone = e_util_zone_window_find(ev->win))) return ECORE_CALLBACK_PASS_ON;
+        if (!(zone = _e_mod_zone_win_get(ev->win))) return ECORE_CALLBACK_PASS_ON;
         if ((_policy) && (_policy->funcs.focus_forward))
           _policy->funcs.focus_forward(zone);
      }
@@ -430,7 +444,7 @@ _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void
      {
         E_Zone *zone;
 
-        if (!(zone = e_util_zone_window_find(ev->win))) return ECORE_CALLBACK_PASS_ON;
+        if (!(zone = _e_mod_zone_win_get(ev->win))) return ECORE_CALLBACK_PASS_ON;
         if ((_policy) && (_policy->funcs.focus_home))
           _policy->funcs.focus_home(zone);
      }
@@ -525,7 +539,6 @@ _e_mod_policy_cb_hook_layout(void *data __UNUSED__, void *data2 __UNUSED__)
                zl = eina_list_append(zl, bd->zone);
           }
      }
-   l = eina_list_free(l);
 
    /* loop the zones that need updating and call the policy update function */
    EINA_LIST_FREE(zl, zone) 
@@ -533,5 +546,4 @@ _e_mod_policy_cb_hook_layout(void *data __UNUSED__, void *data2 __UNUSED__)
         if ((_policy) && (_policy->funcs.zone_layout))
           _policy->funcs.zone_layout(zone);
      }
-   zl = eina_list_free(zl);
 }

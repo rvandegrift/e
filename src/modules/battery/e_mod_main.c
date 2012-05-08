@@ -1,11 +1,14 @@
 #include "e.h"
 #include "e_mod_main.h"
+#ifdef HAVE_ENOTIFY
+#include "E_Notify.h"
+#endif
 
 /* gadcon requirements */
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-static char *_gc_label(E_Gadcon_Client_Class *client_class);
+static const char *_gc_label(E_Gadcon_Client_Class *client_class);
 static Evas_Object *_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas);
 static const char *_gc_id_new(E_Gadcon_Client_Class *client_class);
 
@@ -82,7 +85,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 
 #ifdef HAVE_EEZE
    eeze_init();
-#else
+#elif !defined __OpenBSD__
    e_dbus_init();
    e_hal_init();
 #endif
@@ -103,7 +106,7 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 
 #ifdef HAVE_EEZE
    eeze_shutdown();
-#else
+#elif !defined __OpenBSD__
    e_hal_shutdown();
    e_dbus_shutdown();
 #endif
@@ -139,7 +142,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
    e_gadcon_client_min_size_set(gcc, mw, mh);
 }
 
-static char *
+static const char *
 _gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Battery");
@@ -174,26 +177,23 @@ _button_cb_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
    ev = event_info;
    if ((ev->button == 3) && (!battery_config->menu))
      {
-	E_Menu *ma, *mg;
+	E_Menu *m;
 	E_Menu_Item *mi;
 	int cx, cy;
 
-	ma = e_menu_new();
-	e_menu_post_deactivate_callback_set(ma, _menu_cb_post, inst);
-	battery_config->menu = ma;
-
-	mg = e_menu_new();
-
-	mi = e_menu_item_new(mg);
+	m = e_menu_new();
+	mi = e_menu_item_new(m);
 	e_menu_item_label_set(mi, _("Settings"));
 	e_util_menu_item_theme_icon_set(mi, "configure");
 	e_menu_item_callback_set(mi, _battery_face_cb_menu_configure, NULL);
 
-	e_gadcon_client_util_menu_items_append(inst->gcc, ma, mg, 0);
+	m = e_gadcon_client_util_menu_items_append(inst->gcc, m, 0);
+	e_menu_post_deactivate_callback_set(m, _menu_cb_post, inst);
+	battery_config->menu = m;
 
 	e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon,
 					  &cx, &cy, NULL, NULL);
-	e_menu_activate_mouse(ma,
+	e_menu_activate_mouse(m,
 			      e_util_zone_current_get(e_manager_current_get()),
 			      cx + ev->output.x, cy + ev->output.y, 1, 1,
 			      E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
@@ -367,6 +367,8 @@ _battery_config_updated(void)
      {
 #ifdef HAVE_EEZE
         ok = _battery_udev_start();
+#elif defined __OpenBSD__
+	ok = _battery_openbsd_start();
 #else
         ok = _battery_dbus_start();
 #endif
@@ -428,9 +430,31 @@ _battery_warning_popup(Instance *inst, int time, double percent)
    Evas *e = NULL;
    Evas_Object *rect = NULL, *popup_bg = NULL;
    int x,y,w,h;
+#ifdef HAVE_ENOTIFY
+   static E_Notification *notification;
+#endif
 
    if ((!inst) || (inst->warning)) return;
 
+#ifdef HAVE_ENOTIFY
+   if (battery_config && battery_config->desktop_notifications)
+     {
+        if (notification) return;
+        notification = e_notification_full_new
+          (
+              _("Battery"),
+              0,
+              "battery-low",
+              _("Your battery is low!"),
+              _("AC power is recommended."),
+              (battery_config->alert_timeout * 1000)
+          );
+        e_notification_send(notification, NULL, NULL);
+        e_notification_unref(notification);
+        notification = NULL;
+        return;
+     }
+#endif
    inst->warning = e_gadcon_popup_new(inst->gcc);
    if (!inst->warning) return;
 
@@ -547,16 +571,35 @@ _battery_update(int full, int time_left, int time_full, Eina_Bool have_battery, 
                _battery_face_time_set(inst->popup_battery, 
                                       time_full);
           }
-        if (have_battery && (!have_power) && (full < 100) &&
-            (((time_left > 0) && battery_config->alert && ((time_left / 60) <= battery_config->alert)) || 
-             (battery_config->alert_p && (full <= battery_config->alert_p)))
+        if (have_battery && 
+            (!have_power) && 
+            (full < 100) &&
+            (
+                (
+                    (time_left > 0) && 
+                    battery_config->alert && 
+                    ((time_left / 60) <= battery_config->alert)
+                ) ||
+                (
+                    battery_config->alert_p && 
+                    (full <= battery_config->alert_p)
+                )
             )
+           )
           {
              double t;
              
+             printf("-------------------------------------- bat warn .. why below\n");
+             printf("have_battery = %i\n", (int)have_battery);
+             printf("have_power = %i\n", (int)have_power);
+             printf("full = %i\n", (int)full);
+             printf("time_left = %i\n", (int)time_left);
+             printf("battery_config->alert = %i\n", (int)battery_config->alert);
+             printf("battery_config->alert_p = %i\n", (int)battery_config->alert_p);
              t = ecore_time_get();
              if ((t - debounce_time) > 30.0)
                {
+                  printf("t-debounce = %3.3f\n", (t - debounce_time));
                   debounce_time = t;
                   if ((t - init_time) > 5.0)
                     _battery_warning_popup(inst, time_left, (double)full / 100.0);
@@ -564,13 +607,26 @@ _battery_update(int full, int time_left, int time_full, Eina_Bool have_battery, 
           }
         else if (have_power || ((time_left / 60) > battery_config->alert))
           _battery_warning_popup_destroy(inst);
+        if ((have_battery) && (!have_power) && (full >= 0) &&
+            (battery_config->suspend_below > 0) &&
+            (full < battery_config->suspend_below))
+	  {
+	     if (battery_config->suspend_method == SUSPEND) 
+               e_sys_action_do(E_SYS_SUSPEND, NULL);
+	     else if (battery_config->suspend_method == HIBERNATE)
+	       e_sys_action_do(E_SYS_HIBERNATE, NULL);
+	     else if (battery_config->suspend_method == SHUTDOWN)
+	       e_sys_action_do(E_SYS_HALT, NULL);
+	  }
      }
    if (!have_battery)
      e_powersave_mode_set(E_POWERSAVE_MODE_LOW);
    else
      {
-        if ((have_power) || (full > 95))
+        if (have_power)
           e_powersave_mode_set(E_POWERSAVE_MODE_LOW);
+        else if (full > 95)
+          e_powersave_mode_set(E_POWERSAVE_MODE_MEDIUM);
         else if (full > 30)
           e_powersave_mode_set(E_POWERSAVE_MODE_HIGH);
         else
@@ -627,9 +683,9 @@ _battery_cb_exe_data(void *data __UNUSED__, int type __UNUSED__, void *event)
                   int have_power = 0;
            
                   if (sscanf(ev->lines[i].line, "%i %i %i %i %i", &full, &time_left, &time_full, 
-                                    &have_battery, &have_power) == 5)
+                             &have_battery, &have_power) == 5)
                     _battery_update(full, time_left, time_full,
-                                           have_battery, have_power);
+                                    have_battery, have_power);
                   else
                     e_powersave_mode_set(E_POWERSAVE_MODE_LOW);
                }
@@ -660,6 +716,10 @@ e_modapi_init(E_Module *m)
 {
    char buf[4096];
 
+#ifdef HAVE_ENOTIFY
+   e_notification_init();
+#endif
+
    conf_edd = E_CONFIG_DD_NEW("Battery_Config", Config);
 #undef T
 #undef D
@@ -669,9 +729,13 @@ e_modapi_init(E_Module *m)
    E_CONFIG_VAL(D, T, alert, INT);
    E_CONFIG_VAL(D, T, alert_p, INT);
    E_CONFIG_VAL(D, T, alert_timeout, INT);
+   E_CONFIG_VAL(D, T, suspend_below, INT);
    E_CONFIG_VAL(D, T, force_mode, INT);
-#ifdef HAVE_EEZE
+#if defined HAVE_EEZE || defined __OpenBSD__
    E_CONFIG_VAL(D, T, fuzzy, INT);
+#endif
+#ifdef HAVE_ENOTIFY
+   E_CONFIG_VAL(D, T, desktop_notifications, INT);
 #endif
 
    battery_config = e_config_domain_load("module.battery", conf_edd);
@@ -682,16 +746,24 @@ e_modapi_init(E_Module *m)
 	battery_config->alert = 30;
 	battery_config->alert_p = 10;
 	battery_config->alert_timeout = 0;
+	battery_config->suspend_below = 0;
 	battery_config->force_mode = 0;
-#ifdef HAVE_EEZE
+#if defined HAVE_EEZE || defined __OpenBSD__
 	battery_config->fuzzy = 0;
+#endif
+#ifdef HAVE_ENOTIFY
+    battery_config->desktop_notifications = 0;
 #endif
      }
    E_CONFIG_LIMIT(battery_config->poll_interval, 4, 4096);
    E_CONFIG_LIMIT(battery_config->alert, 0, 60);
    E_CONFIG_LIMIT(battery_config->alert_p, 0, 100);
    E_CONFIG_LIMIT(battery_config->alert_timeout, 0, 300);
+   E_CONFIG_LIMIT(battery_config->suspend_below, 0, 50);
    E_CONFIG_LIMIT(battery_config->force_mode, 0, 2);
+#ifdef HAVE_ENOTIFY
+   E_CONFIG_LIMIT(battery_config->desktop_notifications, 0, 1);
+#endif
 
    battery_config->module = m;
    battery_config->full = -2;
@@ -757,10 +829,17 @@ e_modapi_shutdown(E_Module *m __UNUSED__)
    
 #ifdef HAVE_EEZE
    _battery_udev_stop();
+#elif defined __OpenBSD__
+   _battery_openbsd_stop();
 #else
    _battery_dbus_stop();
 #endif
    
+
+#ifdef HAVE_ENOTIFY
+   e_notification_shutdown();
+#endif
+
    free(battery_config);
    battery_config = NULL;
    E_CONFIG_DD_FREE(conf_edd);

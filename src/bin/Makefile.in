@@ -39,15 +39,18 @@ bin_PROGRAMS = enlightenment$(EXEEXT) enlightenment_imc$(EXEEXT) \
 	enlightenment_start$(EXEEXT)
 internal_bin_PROGRAMS = enlightenment_fm_op$(EXEEXT) \
 	enlightenment_init$(EXEEXT) enlightenment_sys$(EXEEXT) \
-	enlightenment_thumb$(EXEEXT)
+	enlightenment_thumb$(EXEEXT) enlightenment_alert$(EXEEXT) \
+	$(am__EXEEXT_1)
+@HAVE_EEZE_TRUE@am__append_1 = enlightenment_backlight
 subdir = src/bin
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(srcdir)/e_fm_shared_types.h.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/ac_attribute.m4 \
 	$(top_srcdir)/m4/efl_doxygen.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 $(top_srcdir)/m4/gettext.m4 \
-	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/isc-posix.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/intlmacosx.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -56,38 +59,40 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac-plugins.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = e_fm_shared_types.h
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(internal_bindir)" \
 	"$(DESTDIR)$(installed_headersdir)"
+@HAVE_EEZE_TRUE@am__EXEEXT_1 = enlightenment_backlight$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS) $(internal_bin_PROGRAMS)
 am__objects_1 =
-am__objects_2 = e_about.$(OBJEXT) e_acpi.$(OBJEXT) e_actions.$(OBJEXT) \
-	e_alert.$(OBJEXT) e_atoms.$(OBJEXT) e_bg.$(OBJEXT) \
-	e_bindings.$(OBJEXT) e_border.$(OBJEXT) e_box.$(OBJEXT) \
-	e_canvas.$(OBJEXT) e_color.$(OBJEXT) e_color_class.$(OBJEXT) \
-	e_color_dialog.$(OBJEXT) e_config.$(OBJEXT) \
-	e_config_data.$(OBJEXT) e_config_dialog.$(OBJEXT) \
-	e_configure.$(OBJEXT) e_confirm_dialog.$(OBJEXT) \
-	e_container.$(OBJEXT) e_datastore.$(OBJEXT) e_desk.$(OBJEXT) \
+am__objects_2 = e_about.$(OBJEXT) e_acpi.$(OBJEXT) e_alert.$(OBJEXT) \
+	e_actions.$(OBJEXT) e_atoms.$(OBJEXT) e_backlight.$(OBJEXT) \
+	e_bg.$(OBJEXT) e_bindings.$(OBJEXT) e_border.$(OBJEXT) \
+	e_box.$(OBJEXT) e_canvas.$(OBJEXT) e_color.$(OBJEXT) \
+	e_color_class.$(OBJEXT) e_color_dialog.$(OBJEXT) \
+	e_config.$(OBJEXT) e_config_data.$(OBJEXT) \
+	e_config_dialog.$(OBJEXT) e_configure.$(OBJEXT) \
+	e_confirm_dialog.$(OBJEXT) e_container.$(OBJEXT) \
+	e_datastore.$(OBJEXT) e_desk.$(OBJEXT) e_deskenv.$(OBJEXT) \
 	e_desklock.$(OBJEXT) e_dialog.$(OBJEXT) e_dnd.$(OBJEXT) \
 	e_dpms.$(OBJEXT) e_eap_editor.$(OBJEXT) e_editable.$(OBJEXT) \
-	e_entry.$(OBJEXT) e_entry_dialog.$(OBJEXT) e_error.$(OBJEXT) \
-	e_exec.$(OBJEXT) e_exehist.$(OBJEXT) e_filereg.$(OBJEXT) \
-	e_flowlayout.$(OBJEXT) e_fm.$(OBJEXT) e_fm_custom.$(OBJEXT) \
-	e_fm_device.$(OBJEXT) e_fm_mime.$(OBJEXT) \
-	e_fm_op_registry.$(OBJEXT) e_fm_prop.$(OBJEXT) \
-	e_fm_shared_codec.$(OBJEXT) e_fm_shared_device.$(OBJEXT) \
-	e_focus.$(OBJEXT) e_font.$(OBJEXT) e_gadcon.$(OBJEXT) \
-	e_gadcon_popup.$(OBJEXT) e_grabinput.$(OBJEXT) \
-	e_hints.$(OBJEXT) e_icon.$(OBJEXT) e_ilist.$(OBJEXT) \
-	e_init.$(OBJEXT) e_int_border_locks.$(OBJEXT) \
-	e_int_border_menu.$(OBJEXT) e_int_border_prop.$(OBJEXT) \
-	e_int_border_remember.$(OBJEXT) e_int_config_modules.$(OBJEXT) \
-	e_int_gadcon_config.$(OBJEXT) e_intl.$(OBJEXT) \
-	e_intl_data.$(OBJEXT) e_int_menus.$(OBJEXT) \
+	e_entry.$(OBJEXT) e_entry_dialog.$(OBJEXT) e_env.$(OBJEXT) \
+	e_error.$(OBJEXT) e_exec.$(OBJEXT) e_exehist.$(OBJEXT) \
+	e_filereg.$(OBJEXT) e_flowlayout.$(OBJEXT) e_fm.$(OBJEXT) \
+	e_fm_custom.$(OBJEXT) e_fm_device.$(OBJEXT) \
+	e_fm_mime.$(OBJEXT) e_fm_op_registry.$(OBJEXT) \
+	e_fm_prop.$(OBJEXT) e_fm_shared_codec.$(OBJEXT) \
+	e_fm_shared_device.$(OBJEXT) e_focus.$(OBJEXT) \
+	e_font.$(OBJEXT) e_gadcon.$(OBJEXT) e_gadcon_popup.$(OBJEXT) \
+	e_grabinput.$(OBJEXT) e_hints.$(OBJEXT) e_icon.$(OBJEXT) \
+	e_ilist.$(OBJEXT) e_init.$(OBJEXT) \
+	e_int_border_locks.$(OBJEXT) e_int_border_menu.$(OBJEXT) \
+	e_int_border_prop.$(OBJEXT) e_int_border_remember.$(OBJEXT) \
+	e_int_config_modules.$(OBJEXT) e_int_gadcon_config.$(OBJEXT) \
+	e_intl.$(OBJEXT) e_intl_data.$(OBJEXT) e_int_menus.$(OBJEXT) \
 	e_int_shelf_config.$(OBJEXT) e_int_toolbar_config.$(OBJEXT) \
 	e_ipc.$(OBJEXT) e_ipc_codec.$(OBJEXT) e_layout.$(OBJEXT) \
 	e_livethumb.$(OBJEXT) e_manager.$(OBJEXT) e_maximize.$(OBJEXT) \
@@ -96,15 +101,19 @@ am__objects_2 = e_about.$(OBJEXT) e_acpi.$(OBJEXT) e_actions.$(OBJEXT) \
 	e_obj_dialog.$(OBJEXT) e_object.$(OBJEXT) e_order.$(OBJEXT) \
 	e_pan.$(OBJEXT) e_path.$(OBJEXT) e_place.$(OBJEXT) \
 	e_pointer.$(OBJEXT) e_popup.$(OBJEXT) e_powersave.$(OBJEXT) \
-	e_prefix.$(OBJEXT) e_randr.$(OBJEXT) e_remember.$(OBJEXT) \
+	e_prefix.$(OBJEXT) e_randr.$(OBJEXT) \
+	e_randr_serialization.$(OBJEXT) e_randr_11.$(OBJEXT) \
+	e_randr_11_serialization.$(OBJEXT) e_randr_12.$(OBJEXT) \
+	e_randr_12_output.$(OBJEXT) e_randr_12_crtc.$(OBJEXT) \
+	e_randr_12_serialization.$(OBJEXT) e_remember.$(OBJEXT) \
 	e_resist.$(OBJEXT) e_scale.$(OBJEXT) e_screensaver.$(OBJEXT) \
 	e_scrollframe.$(OBJEXT) e_sha1.$(OBJEXT) e_shelf.$(OBJEXT) \
 	e_signals.$(OBJEXT) e_slidecore.$(OBJEXT) e_slider.$(OBJEXT) \
 	e_slidesel.$(OBJEXT) e_spectrum.$(OBJEXT) e_startup.$(OBJEXT) \
 	e_stolen.$(OBJEXT) e_sys.$(OBJEXT) e_table.$(OBJEXT) \
 	e_test.$(OBJEXT) e_theme_about.$(OBJEXT) e_theme.$(OBJEXT) \
-	e_thumb.$(OBJEXT) e_toolbar.$(OBJEXT) e_user.$(OBJEXT) \
-	e_utils.$(OBJEXT) e_widget_aspect.$(OBJEXT) \
+	e_thumb.$(OBJEXT) e_toolbar.$(OBJEXT) e_update.$(OBJEXT) \
+	e_user.$(OBJEXT) e_utils.$(OBJEXT) e_widget_aspect.$(OBJEXT) \
 	e_widget_button.$(OBJEXT) e_widget.$(OBJEXT) \
 	e_widget_check.$(OBJEXT) e_widget_color_well.$(OBJEXT) \
 	e_widget_config_list.$(OBJEXT) e_widget_csel.$(OBJEXT) \
@@ -119,7 +128,8 @@ am__objects_2 = e_about.$(OBJEXT) e_acpi.$(OBJEXT) e_actions.$(OBJEXT) \
 	e_widget_spectrum.$(OBJEXT) e_widget_table.$(OBJEXT) \
 	e_widget_textblock.$(OBJEXT) e_widget_toolbar.$(OBJEXT) \
 	e_widget_toolbook.$(OBJEXT) e_win.$(OBJEXT) \
-	e_xinerama.$(OBJEXT) e_zone.$(OBJEXT) $(am__objects_1)
+	e_xinerama.$(OBJEXT) e_xsettings.$(OBJEXT) e_zone.$(OBJEXT) \
+	$(am__objects_1)
 am_enlightenment_OBJECTS = e_main.$(OBJEXT) $(am__objects_2)
 enlightenment_OBJECTS = $(am_enlightenment_OBJECTS)
 enlightenment_DEPENDENCIES =
@@ -129,6 +139,23 @@ am__v_lt_0 = --silent
 enlightenment_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(enlightenment_LDFLAGS) $(LDFLAGS) -o $@
+am_enlightenment_alert_OBJECTS =  \
+	enlightenment_alert-e_alert_main.$(OBJEXT)
+enlightenment_alert_OBJECTS = $(am_enlightenment_alert_OBJECTS)
+enlightenment_alert_DEPENDENCIES =
+enlightenment_alert_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(enlightenment_alert_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+am__enlightenment_backlight_SOURCES_DIST = e_backlight_main.c
+@HAVE_EEZE_TRUE@am_enlightenment_backlight_OBJECTS = enlightenment_backlight-e_backlight_main.$(OBJEXT)
+enlightenment_backlight_OBJECTS =  \
+	$(am_enlightenment_backlight_OBJECTS)
+enlightenment_backlight_DEPENDENCIES =
+enlightenment_backlight_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(enlightenment_backlight_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 am_enlightenment_fm_op_OBJECTS =  \
 	enlightenment_fm_op-e_fm_op.$(OBJEXT)
 enlightenment_fm_op_OBJECTS = $(am_enlightenment_fm_op_OBJECTS)
@@ -145,9 +172,14 @@ am_enlightenment_init_OBJECTS = e_init_main.$(OBJEXT) \
 	e_xinerama.$(OBJEXT)
 enlightenment_init_OBJECTS = $(am_enlightenment_init_OBJECTS)
 enlightenment_init_DEPENDENCIES =
-am_enlightenment_start_OBJECTS = e_start_main.$(OBJEXT)
+am_enlightenment_start_OBJECTS =  \
+	enlightenment_start-e_start_main.$(OBJEXT)
 enlightenment_start_OBJECTS = $(am_enlightenment_start_OBJECTS)
 enlightenment_start_DEPENDENCIES =
+enlightenment_start_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(enlightenment_start_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 am_enlightenment_sys_OBJECTS = e_sys_main.$(OBJEXT)
 enlightenment_sys_OBJECTS = $(am_enlightenment_sys_OBJECTS)
 enlightenment_sys_DEPENDENCIES =
@@ -181,14 +213,16 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(enlightenment_SOURCES) $(enlightenment_fm_op_SOURCES) \
-	$(enlightenment_imc_SOURCES) $(enlightenment_init_SOURCES) \
-	$(enlightenment_start_SOURCES) $(enlightenment_sys_SOURCES) \
-	$(enlightenment_thumb_SOURCES)
-DIST_SOURCES = $(enlightenment_SOURCES) $(enlightenment_fm_op_SOURCES) \
-	$(enlightenment_imc_SOURCES) $(enlightenment_init_SOURCES) \
-	$(enlightenment_start_SOURCES) $(enlightenment_sys_SOURCES) \
-	$(enlightenment_thumb_SOURCES)
+SOURCES = $(enlightenment_SOURCES) $(enlightenment_alert_SOURCES) \
+	$(enlightenment_backlight_SOURCES) \
+	$(enlightenment_fm_op_SOURCES) $(enlightenment_imc_SOURCES) \
+	$(enlightenment_init_SOURCES) $(enlightenment_start_SOURCES) \
+	$(enlightenment_sys_SOURCES) $(enlightenment_thumb_SOURCES)
+DIST_SOURCES = $(enlightenment_SOURCES) $(enlightenment_alert_SOURCES) \
+	$(am__enlightenment_backlight_SOURCES_DIST) \
+	$(enlightenment_fm_op_SOURCES) $(enlightenment_imc_SOURCES) \
+	$(enlightenment_init_SOURCES) $(enlightenment_start_SOURCES) \
+	$(enlightenment_sys_SOURCES) $(enlightenment_thumb_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -275,6 +309,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DBUS_MOUNT_CONFIG = @DBUS_MOUNT_CONFIG@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DSYMUTIL = @DSYMUTIL@
@@ -294,6 +329,9 @@ ECORE_IMF_VERSION = @ECORE_IMF_VERSION@
 EDJE_DEF = @EDJE_DEF@
 EET_CFLAGS = @EET_CFLAGS@
 EET_LIBS = @EET_LIBS@
+EEZE_CFLAGS = @EEZE_CFLAGS@
+EEZE_LIBS = @EEZE_LIBS@
+EEZE_MOUNT_CONFIG = @EEZE_MOUNT_CONFIG@
 EGREP = @EGREP@
 ENOTIFY_CFLAGS = @ENOTIFY_CFLAGS@
 ENOTIFY_LIBS = @ENOTIFY_LIBS@
@@ -305,6 +343,8 @@ EXCHANGE_CFLAGS = @EXCHANGE_CFLAGS@
 EXCHANGE_LIBS = @EXCHANGE_LIBS@
 EXCHANGE_VERSION = @EXCHANGE_VERSION@
 EXEEXT = @EXEEXT@
+E_ALERT_CFLAGS = @E_ALERT_CFLAGS@
+E_ALERT_LIBS = @E_ALERT_LIBS@
 E_CFLAGS = @E_CFLAGS@
 E_FM_CFLAGS = @E_FM_CFLAGS@
 E_FM_LIBS = @E_FM_LIBS@
@@ -319,12 +359,16 @@ E_INIT_LIBS = @E_INIT_LIBS@
 E_LIBS = @E_LIBS@
 E_REMOTE_CFLAGS = @E_REMOTE_CFLAGS@
 E_REMOTE_LIBS = @E_REMOTE_LIBS@
+E_START_CFLAGS = @E_START_CFLAGS@
+E_START_LIBS = @E_START_LIBS@
 E_SYS_CFLAGS = @E_SYS_CFLAGS@
 E_SYS_LIBS = @E_SYS_LIBS@
 E_THUMB_CFLAGS = @E_THUMB_CFLAGS@
 E_THUMB_LIBS = @E_THUMB_LIBS@
 FGREP = @FGREP@
+GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GMSGFMT = @GMSGFMT@
+GMSGFMT_015 = @GMSGFMT_015@
 GREP = @GREP@
 HAVE_ALSA = @HAVE_ALSA@
 HAVE_BATTERY = @HAVE_BATTERY@
@@ -335,12 +379,14 @@ HAVE_ENOTIFY = @HAVE_ENOTIFY@
 HAVE_EOFONO = @HAVE_EOFONO@
 HAVE_EXCHANGE = @HAVE_EXCHANGE@
 HAVE_TEMPERATURE = @HAVE_TEMPERATURE@
+HIBERNATE = @HIBERNATE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
+INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
@@ -356,9 +402,9 @@ LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MKINSTALLDIRS = @MKINSTALLDIRS@
 MODULE_ARCH = @MODULE_ARCH@
 MSGFMT = @MSGFMT@
+MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -379,6 +425,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSUB = @POSUB@
 RANLIB = @RANLIB@
 SED = @SED@
@@ -387,78 +435,52 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+SUSPEND = @SUSPEND@
 TEMPERATURE_CFLAGS = @TEMPERATURE_CFLAGS@
 TEMPERATURE_LIBS = @TEMPERATURE_LIBS@
 TEMPERATURE_VERSION = @TEMPERATURE_VERSION@
+USE_MODULE_BACKLIGHT = @USE_MODULE_BACKLIGHT@
 USE_MODULE_BATTERY = @USE_MODULE_BATTERY@
 USE_MODULE_BLUEZ = @USE_MODULE_BLUEZ@
 USE_MODULE_CLOCK = @USE_MODULE_CLOCK@
 USE_MODULE_COMP = @USE_MODULE_COMP@
 USE_MODULE_CONF = @USE_MODULE_CONF@
-USE_MODULE_CONF_ACPIBINDINGS = @USE_MODULE_CONF_ACPIBINDINGS@
 USE_MODULE_CONF_APPLICATIONS = @USE_MODULE_CONF_APPLICATIONS@
-USE_MODULE_CONF_BORDERS = @USE_MODULE_CONF_BORDERS@
-USE_MODULE_CONF_CLIENTLIST = @USE_MODULE_CONF_CLIENTLIST@
-USE_MODULE_CONF_COLORS = @USE_MODULE_CONF_COLORS@
-USE_MODULE_CONF_DESK = @USE_MODULE_CONF_DESK@
-USE_MODULE_CONF_DESKLOCK = @USE_MODULE_CONF_DESKLOCK@
-USE_MODULE_CONF_DESKS = @USE_MODULE_CONF_DESKS@
 USE_MODULE_CONF_DIALOGS = @USE_MODULE_CONF_DIALOGS@
 USE_MODULE_CONF_DISPLAY = @USE_MODULE_CONF_DISPLAY@
-USE_MODULE_CONF_DPMS = @USE_MODULE_CONF_DPMS@
 USE_MODULE_CONF_EDGEBINDINGS = @USE_MODULE_CONF_EDGEBINDINGS@
-USE_MODULE_CONF_ENGINE = @USE_MODULE_CONF_ENGINE@
-USE_MODULE_CONF_FONTS = @USE_MODULE_CONF_FONTS@
-USE_MODULE_CONF_ICON_THEME = @USE_MODULE_CONF_ICON_THEME@
-USE_MODULE_CONF_IMC = @USE_MODULE_CONF_IMC@
 USE_MODULE_CONF_INTERACTION = @USE_MODULE_CONF_INTERACTION@
 USE_MODULE_CONF_INTL = @USE_MODULE_CONF_INTL@
 USE_MODULE_CONF_KEYBINDINGS = @USE_MODULE_CONF_KEYBINDINGS@
 USE_MODULE_CONF_MENUS = @USE_MODULE_CONF_MENUS@
-USE_MODULE_CONF_MIME = @USE_MODULE_CONF_MIME@
-USE_MODULE_CONF_MOUSE = @USE_MODULE_CONF_MOUSE@
-USE_MODULE_CONF_MOUSEBINDINGS = @USE_MODULE_CONF_MOUSEBINDINGS@
-USE_MODULE_CONF_MOUSE_CURSOR = @USE_MODULE_CONF_MOUSE_CURSOR@
 USE_MODULE_CONF_PATHS = @USE_MODULE_CONF_PATHS@
 USE_MODULE_CONF_PERFORMANCE = @USE_MODULE_CONF_PERFORMANCE@
-USE_MODULE_CONF_PROFILES = @USE_MODULE_CONF_PROFILES@
-USE_MODULE_CONF_SCALE = @USE_MODULE_CONF_SCALE@
-USE_MODULE_CONF_SCREENSAVER = @USE_MODULE_CONF_SCREENSAVER@
+USE_MODULE_CONF_RANDR = @USE_MODULE_CONF_RANDR@
 USE_MODULE_CONF_SHELVES = @USE_MODULE_CONF_SHELVES@
-USE_MODULE_CONF_STARTUP = @USE_MODULE_CONF_STARTUP@
 USE_MODULE_CONF_THEME = @USE_MODULE_CONF_THEME@
-USE_MODULE_CONF_TRANSITIONS = @USE_MODULE_CONF_TRANSITIONS@
-USE_MODULE_CONF_WALLPAPER = @USE_MODULE_CONF_WALLPAPER@
 USE_MODULE_CONF_WALLPAPER2 = @USE_MODULE_CONF_WALLPAPER2@
-USE_MODULE_CONF_WINDOW_DISPLAY = @USE_MODULE_CONF_WINDOW_DISPLAY@
-USE_MODULE_CONF_WINDOW_FOCUS = @USE_MODULE_CONF_WINDOW_FOCUS@
 USE_MODULE_CONF_WINDOW_MANIPULATION = @USE_MODULE_CONF_WINDOW_MANIPULATION@
 USE_MODULE_CONF_WINDOW_REMEMBERS = @USE_MODULE_CONF_WINDOW_REMEMBERS@
-USE_MODULE_CONF_WINLIST = @USE_MODULE_CONF_WINLIST@
 USE_MODULE_CONNMAN = @USE_MODULE_CONNMAN@
 USE_MODULE_CPUFREQ = @USE_MODULE_CPUFREQ@
 USE_MODULE_DROPSHADOW = @USE_MODULE_DROPSHADOW@
 USE_MODULE_EVERYTHING = @USE_MODULE_EVERYTHING@
-USE_MODULE_EVERYTHING_APPS = @USE_MODULE_EVERYTHING_APPS@
-USE_MODULE_EVERYTHING_ASPELL = @USE_MODULE_EVERYTHING_ASPELL@
-USE_MODULE_EVERYTHING_CALC = @USE_MODULE_EVERYTHING_CALC@
-USE_MODULE_EVERYTHING_FILES = @USE_MODULE_EVERYTHING_FILES@
-USE_MODULE_EVERYTHING_SETTINGS = @USE_MODULE_EVERYTHING_SETTINGS@
-USE_MODULE_EVERYTHING_WINDOWS = @USE_MODULE_EVERYTHING_WINDOWS@
 USE_MODULE_FILEMAN = @USE_MODULE_FILEMAN@
 USE_MODULE_FILEMAN_OPINFO = @USE_MODULE_FILEMAN_OPINFO@
 USE_MODULE_GADMAN = @USE_MODULE_GADMAN@
 USE_MODULE_IBAR = @USE_MODULE_IBAR@
 USE_MODULE_IBOX = @USE_MODULE_IBOX@
-USE_MODULE_ILLUME = @USE_MODULE_ILLUME@
 USE_MODULE_ILLUME2 = @USE_MODULE_ILLUME2@
 USE_MODULE_MIXER = @USE_MODULE_MIXER@
 USE_MODULE_MSGBUS = @USE_MODULE_MSGBUS@
+USE_MODULE_NOTIFICATION = @USE_MODULE_NOTIFICATION@
 USE_MODULE_OFONO = @USE_MODULE_OFONO@
 USE_MODULE_PAGER = @USE_MODULE_PAGER@
+USE_MODULE_SHOT = @USE_MODULE_SHOT@
 USE_MODULE_START = @USE_MODULE_START@
 USE_MODULE_SYSCON = @USE_MODULE_SYSCON@
 USE_MODULE_SYSTRAY = @USE_MODULE_SYSTRAY@
+USE_MODULE_TASKS = @USE_MODULE_TASKS@
 USE_MODULE_TEMPERATURE = @USE_MODULE_TEMPERATURE@
 USE_MODULE_WINLIST = @USE_MODULE_WINLIST@
 USE_MODULE_WIZARD = @USE_MODULE_WIZARD@
@@ -466,12 +488,11 @@ USE_NLS = @USE_NLS@
 VALGRIND_CFLAGS = @VALGRIND_CFLAGS@
 VALGRIND_LIBS = @VALGRIND_LIBS@
 VERSION = @VERSION@
+WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
+WAYLAND_LIBS = @WAYLAND_LIBS@
 XGETTEXT = @XGETTEXT@
-XMKMF = @XMKMF@
-X_CFLAGS = @X_CFLAGS@
-X_EXTRA_LIBS = @X_EXTRA_LIBS@
-X_LIBS = @X_LIBS@
-X_PRE_LIBS = @X_PRE_LIBS@
+XGETTEXT_015 = @XGETTEXT_015@
+XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -539,17 +560,15 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 version_info = @version_info@
-x_cflags = @x_cflags@
-x_libs = @x_libs@
 SUBDIRS = e_fm
 MAINTAINERCLEANFILES = Makefile.in
+DISTCLEANFILES = e_fm_shared_types.h
 INCLUDES = \
 -I$(top_builddir) \
+-I$(top_builddir)/src/bin \
 -I$(top_srcdir) \
 -I$(top_srcdir)/src/bin \
--I$(top_srcdir)/src/lib \
 @e_cflags@ \
-@x_cflags@ \
 @cf_cflags@ \
 @VALGRIND_CFLAGS@ \
 @EDJE_DEF@ \
@@ -566,6 +585,7 @@ e_acpi.h \
 e_actions.h \
 e_alert.h \
 e_atoms.h \
+e_backlight.h \
 e_bg.h \
 e_bindings.h \
 e_border.h \
@@ -582,14 +602,16 @@ e_confirm_dialog.h \
 e_container.h \
 e_datastore.h \
 e_desk.h \
+e_deskenv.h \
 e_desklock.h \
 e_dialog.h \
 e_dnd.h \
 e_dpms.h \
 e_eap_editor.h \
 e_editable.h \
-e_entry_dialog.h \
 e_entry.h \
+e_entry_dialog.h \
+e_env.h \
 e_error.h \
 e_exec.h \
 e_exehist.h \
@@ -672,6 +694,7 @@ e_theme_about.h \
 e_theme.h \
 e_thumb.h \
 e_toolbar.h \
+e_update.h \
 e_user.h \
 e_utils.h \
 e_widget_aspect.h \
@@ -704,14 +727,16 @@ e_widget_toolbar.h \
 e_widget_toolbook.h \
 e_win.h \
 e_xinerama.h \
+e_xsettings.h \
 e_zone.h
 
 enlightenment_src = \
 e_about.c \
 e_acpi.c \
-e_actions.c \
 e_alert.c \
+e_actions.c \
 e_atoms.c \
+e_backlight.c \
 e_bg.c \
 e_bindings.c \
 e_border.c \
@@ -728,6 +753,7 @@ e_confirm_dialog.c \
 e_container.c \
 e_datastore.c \
 e_desk.c \
+e_deskenv.c \
 e_desklock.c \
 e_dialog.c \
 e_dnd.c \
@@ -736,6 +762,7 @@ e_eap_editor.c \
 e_editable.c \
 e_entry.c \
 e_entry_dialog.c \
+e_env.c \
 e_error.c \
 e_exec.c \
 e_exehist.c \
@@ -792,6 +819,13 @@ e_popup.c \
 e_powersave.c \
 e_prefix.c \
 e_randr.c \
+e_randr_serialization.c \
+e_randr_11.c \
+e_randr_11_serialization.c \
+e_randr_12.c \
+e_randr_12_output.c \
+e_randr_12_crtc.c \
+e_randr_12_serialization.c \
 e_remember.c \
 e_resist.c \
 e_scale.c \
@@ -813,6 +847,7 @@ e_theme_about.c \
 e_theme.c \
 e_thumb.c \
 e_toolbar.c \
+e_update.c \
 e_user.c \
 e_utils.c \
 e_widget_aspect.c \
@@ -845,6 +880,7 @@ e_widget_toolbar.c \
 e_widget_toolbook.c \
 e_win.c \
 e_xinerama.c \
+e_xsettings.c \
 e_zone.c \
 $(ENLIGHTENMENTHEADERS)
 
@@ -853,7 +889,7 @@ e_main.c \
 $(enlightenment_src)
 
 enlightenment_LDFLAGS = -export-dynamic
-enlightenment_LDADD = @e_libs@ @x_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ -lm
+enlightenment_LDADD = @e_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ -lm
 enlightenment_imc_SOURCES = \
 e.h \
 e_config_data.c \
@@ -864,7 +900,8 @@ enlightenment_imc_LDADD = @E_IMC_LIBS@
 enlightenment_start_SOURCES = \
 e_start_main.c
 
-enlightenment_start_LDADD = @dlopen_libs@
+enlightenment_start_CFLAGS = $(INCLUDES) @E_START_CFLAGS@
+enlightenment_start_LDADD = @dlopen_libs@ @E_START_LIBS@
 enlightenment_thumb_SOURCES = \
 e_sha1.c \
 e_thumb_main.c \
@@ -880,11 +917,21 @@ enlightenment_sys_SOURCES = \
 e_sys_main.c
 
 enlightenment_sys_LDADD = @E_SYS_LIBS@
+@HAVE_EEZE_TRUE@enlightenment_backlight_SOURCES = \
+@HAVE_EEZE_TRUE@e_backlight_main.c
+
+@HAVE_EEZE_TRUE@enlightenment_backlight_CFLAGS = @EEZE_CFLAGS@
+@HAVE_EEZE_TRUE@enlightenment_backlight_LDADD = @EEZE_LIBS@
 enlightenment_init_SOURCES = \
 e_init_main.c \
 e_xinerama.c
 
 enlightenment_init_LDADD = @E_INIT_LIBS@
+enlightenment_alert_SOURCES = \
+e_alert_main.c
+
+enlightenment_alert_LDADD = @E_ALERT_LIBS@
+enlightenment_alert_CFLAGS = @E_ALERT_CFLAGS@
 
 # HACK! why install-data-hook? install-exec-hook is run after bin_PROGRAMS
 # and before internal_bin_PROGRAMS are installed. install-data-hook is
@@ -892,6 +939,9 @@ enlightenment_init_LDADD = @E_INIT_LIBS@
 setuid_root_mode = a=rx,u+xs
 installed_headersdir = $(prefix)/include/enlightenment
 installed_headers_DATA = $(ENLIGHTENMENTHEADERS)
+EXTRA_DIST = \
+	     e_randr_private.h
+
 all: all-recursive
 
 .SUFFIXES:
@@ -926,6 +976,8 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+e_fm_shared_types.h: $(top_builddir)/config.status $(srcdir)/e_fm_shared_types.h.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
@@ -1015,6 +1067,12 @@ clean-internal_binPROGRAMS:
 enlightenment$(EXEEXT): $(enlightenment_OBJECTS) $(enlightenment_DEPENDENCIES) 
 	@rm -f enlightenment$(EXEEXT)
 	$(AM_V_CCLD)$(enlightenment_LINK) $(enlightenment_OBJECTS) $(enlightenment_LDADD) $(LIBS)
+enlightenment_alert$(EXEEXT): $(enlightenment_alert_OBJECTS) $(enlightenment_alert_DEPENDENCIES) 
+	@rm -f enlightenment_alert$(EXEEXT)
+	$(AM_V_CCLD)$(enlightenment_alert_LINK) $(enlightenment_alert_OBJECTS) $(enlightenment_alert_LDADD) $(LIBS)
+enlightenment_backlight$(EXEEXT): $(enlightenment_backlight_OBJECTS) $(enlightenment_backlight_DEPENDENCIES) 
+	@rm -f enlightenment_backlight$(EXEEXT)
+	$(AM_V_CCLD)$(enlightenment_backlight_LINK) $(enlightenment_backlight_OBJECTS) $(enlightenment_backlight_LDADD) $(LIBS)
 enlightenment_fm_op$(EXEEXT): $(enlightenment_fm_op_OBJECTS) $(enlightenment_fm_op_DEPENDENCIES) 
 	@rm -f enlightenment_fm_op$(EXEEXT)
 	$(AM_V_CCLD)$(enlightenment_fm_op_LINK) $(enlightenment_fm_op_OBJECTS) $(enlightenment_fm_op_LDADD) $(LIBS)
@@ -1026,7 +1084,7 @@ enlightenment_init$(EXEEXT): $(enlightenment_init_OBJECTS) $(enlightenment_init_
 	$(AM_V_CCLD)$(LINK) $(enlightenment_init_OBJECTS) $(enlightenment_init_LDADD) $(LIBS)
 enlightenment_start$(EXEEXT): $(enlightenment_start_OBJECTS) $(enlightenment_start_DEPENDENCIES) 
 	@rm -f enlightenment_start$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(enlightenment_start_OBJECTS) $(enlightenment_start_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(enlightenment_start_LINK) $(enlightenment_start_OBJECTS) $(enlightenment_start_LDADD) $(LIBS)
 enlightenment_sys$(EXEEXT): $(enlightenment_sys_OBJECTS) $(enlightenment_sys_DEPENDENCIES) 
 	@rm -f enlightenment_sys$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(enlightenment_sys_OBJECTS) $(enlightenment_sys_LDADD) $(LIBS)
@@ -1045,6 +1103,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_actions.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_alert.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_atoms.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_backlight.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_bg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_bindings.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_border.Po@am__quote@
@@ -1061,6 +1120,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_container.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_datastore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_desk.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_deskenv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_desklock.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_dialog.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_dnd.Po@am__quote@
@@ -1069,6 +1129,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_editable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_entry.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_entry_dialog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_env.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_error.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_exec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_exehist.Po@am__quote@
@@ -1128,6 +1189,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_powersave.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_prefix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr_11.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr_11_serialization.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr_12.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr_12_crtc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr_12_output.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr_12_serialization.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_randr_serialization.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_remember.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_resist.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_scale.Po@am__quote@
@@ -1140,7 +1208,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_slider.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_slidesel.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_spectrum.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_start_main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_startup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_stolen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_sys.Po@am__quote@
@@ -1152,6 +1219,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_thumb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_thumb_main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_toolbar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_update.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_user.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget.Po@am__quote@
@@ -1184,8 +1252,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_widget_toolbook.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_xinerama.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_xsettings.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/e_zone.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_alert-e_alert_main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_backlight-e_backlight_main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_fm_op-e_fm_op.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enlightenment_start-e_start_main.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1211,6 +1283,38 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
+enlightenment_alert-e_alert_main.o: e_alert_main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_alert_CFLAGS) $(CFLAGS) -MT enlightenment_alert-e_alert_main.o -MD -MP -MF $(DEPDIR)/enlightenment_alert-e_alert_main.Tpo -c -o enlightenment_alert-e_alert_main.o `test -f 'e_alert_main.c' || echo '$(srcdir)/'`e_alert_main.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_alert-e_alert_main.Tpo $(DEPDIR)/enlightenment_alert-e_alert_main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_alert_main.c' object='enlightenment_alert-e_alert_main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_alert_CFLAGS) $(CFLAGS) -c -o enlightenment_alert-e_alert_main.o `test -f 'e_alert_main.c' || echo '$(srcdir)/'`e_alert_main.c
+
+enlightenment_alert-e_alert_main.obj: e_alert_main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_alert_CFLAGS) $(CFLAGS) -MT enlightenment_alert-e_alert_main.obj -MD -MP -MF $(DEPDIR)/enlightenment_alert-e_alert_main.Tpo -c -o enlightenment_alert-e_alert_main.obj `if test -f 'e_alert_main.c'; then $(CYGPATH_W) 'e_alert_main.c'; else $(CYGPATH_W) '$(srcdir)/e_alert_main.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_alert-e_alert_main.Tpo $(DEPDIR)/enlightenment_alert-e_alert_main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_alert_main.c' object='enlightenment_alert-e_alert_main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_alert_CFLAGS) $(CFLAGS) -c -o enlightenment_alert-e_alert_main.obj `if test -f 'e_alert_main.c'; then $(CYGPATH_W) 'e_alert_main.c'; else $(CYGPATH_W) '$(srcdir)/e_alert_main.c'; fi`
+
+enlightenment_backlight-e_backlight_main.o: e_backlight_main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_backlight_CFLAGS) $(CFLAGS) -MT enlightenment_backlight-e_backlight_main.o -MD -MP -MF $(DEPDIR)/enlightenment_backlight-e_backlight_main.Tpo -c -o enlightenment_backlight-e_backlight_main.o `test -f 'e_backlight_main.c' || echo '$(srcdir)/'`e_backlight_main.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_backlight-e_backlight_main.Tpo $(DEPDIR)/enlightenment_backlight-e_backlight_main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_backlight_main.c' object='enlightenment_backlight-e_backlight_main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_backlight_CFLAGS) $(CFLAGS) -c -o enlightenment_backlight-e_backlight_main.o `test -f 'e_backlight_main.c' || echo '$(srcdir)/'`e_backlight_main.c
+
+enlightenment_backlight-e_backlight_main.obj: e_backlight_main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_backlight_CFLAGS) $(CFLAGS) -MT enlightenment_backlight-e_backlight_main.obj -MD -MP -MF $(DEPDIR)/enlightenment_backlight-e_backlight_main.Tpo -c -o enlightenment_backlight-e_backlight_main.obj `if test -f 'e_backlight_main.c'; then $(CYGPATH_W) 'e_backlight_main.c'; else $(CYGPATH_W) '$(srcdir)/e_backlight_main.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_backlight-e_backlight_main.Tpo $(DEPDIR)/enlightenment_backlight-e_backlight_main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_backlight_main.c' object='enlightenment_backlight-e_backlight_main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_backlight_CFLAGS) $(CFLAGS) -c -o enlightenment_backlight-e_backlight_main.obj `if test -f 'e_backlight_main.c'; then $(CYGPATH_W) 'e_backlight_main.c'; else $(CYGPATH_W) '$(srcdir)/e_backlight_main.c'; fi`
+
 enlightenment_fm_op-e_fm_op.o: e_fm_op.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_op_CFLAGS) $(CFLAGS) -MT enlightenment_fm_op-e_fm_op.o -MD -MP -MF $(DEPDIR)/enlightenment_fm_op-e_fm_op.Tpo -c -o enlightenment_fm_op-e_fm_op.o `test -f 'e_fm_op.c' || echo '$(srcdir)/'`e_fm_op.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_fm_op-e_fm_op.Tpo $(DEPDIR)/enlightenment_fm_op-e_fm_op.Po
@@ -1226,6 +1330,22 @@ enlightenment_fm_op-e_fm_op.obj: e_fm_op.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_fm_op.c' object='enlightenment_fm_op-e_fm_op.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_fm_op_CFLAGS) $(CFLAGS) -c -o enlightenment_fm_op-e_fm_op.obj `if test -f 'e_fm_op.c'; then $(CYGPATH_W) 'e_fm_op.c'; else $(CYGPATH_W) '$(srcdir)/e_fm_op.c'; fi`
+
+enlightenment_start-e_start_main.o: e_start_main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_start_CFLAGS) $(CFLAGS) -MT enlightenment_start-e_start_main.o -MD -MP -MF $(DEPDIR)/enlightenment_start-e_start_main.Tpo -c -o enlightenment_start-e_start_main.o `test -f 'e_start_main.c' || echo '$(srcdir)/'`e_start_main.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_start-e_start_main.Tpo $(DEPDIR)/enlightenment_start-e_start_main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_start_main.c' object='enlightenment_start-e_start_main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_start_CFLAGS) $(CFLAGS) -c -o enlightenment_start-e_start_main.o `test -f 'e_start_main.c' || echo '$(srcdir)/'`e_start_main.c
+
+enlightenment_start-e_start_main.obj: e_start_main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_start_CFLAGS) $(CFLAGS) -MT enlightenment_start-e_start_main.obj -MD -MP -MF $(DEPDIR)/enlightenment_start-e_start_main.Tpo -c -o enlightenment_start-e_start_main.obj `if test -f 'e_start_main.c'; then $(CYGPATH_W) 'e_start_main.c'; else $(CYGPATH_W) '$(srcdir)/e_start_main.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/enlightenment_start-e_start_main.Tpo $(DEPDIR)/enlightenment_start-e_start_main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='e_start_main.c' object='enlightenment_start-e_start_main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(enlightenment_start_CFLAGS) $(CFLAGS) -c -o enlightenment_start-e_start_main.obj `if test -f 'e_start_main.c'; then $(CYGPATH_W) 'e_start_main.c'; else $(CYGPATH_W) '$(srcdir)/e_start_main.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1475,6 +1595,7 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -1576,8 +1697,11 @@ uninstall-am: uninstall-binPROGRAMS uninstall-installed_headersDATA \
 	uninstall-binPROGRAMS uninstall-installed_headersDATA \
 	uninstall-internal_binPROGRAMS
 
-install-data-hook:
-	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_sys$(EXEEXT) || true
+@HAVE_EEZE_TRUE@install-data-hook:
+@HAVE_EEZE_TRUE@	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_sys$(EXEEXT) || true
+@HAVE_EEZE_TRUE@	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_backlight$(EXEEXT) || true
+@HAVE_EEZE_FALSE@install-data-hook:
+@HAVE_EEZE_FALSE@	@chmod $(setuid_root_mode) $(DESTDIR)$(libdir)/enlightenment/utils/enlightenment_sys$(EXEEXT) || true
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

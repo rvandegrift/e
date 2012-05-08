@@ -6,27 +6,13 @@
 #define DEF_MENUCLICK 0.25
 #endif
 
-typedef enum _Eet_Union
-{
-  EET_SCREEN_INFO_11 = (int)((1 << 16) | 1),
-  EET_SCREEN_INFO_12 = (int)((1 << 16) | 2),
-  EET_SCREEN_INFO_13 = (int)((1 << 16) | 3),
-  EET_UNKNOWN
-} Eet_Union;
-
-struct {
-   Eet_Union u;
-   const char *name;
-} eet_mapping[] = {
-  { EET_SCREEN_INFO_11, "E_Config_Screen_11" },
-  { EET_SCREEN_INFO_12, "E_Config_Screen_12" },
-  { EET_SCREEN_INFO_12, "E_Config_Screen_13" },
-  { EET_UNKNOWN, NULL }
-};
+#define RANDR_SERIALIZED_SETUP_11 ((int)((1 << 16) | 1))
+#define RANDR_SERIALIZED_SETUP_12 ((int)((1 << 16) | 2))
+#define RANDR_SERIALIZED_SETUP_13 ((int)((1 << 16) | 3))
 
 EAPI E_Config *e_config = NULL;
 
-static int _e_config_revisions = 0;
+static int _e_config_revisions = 9;
 
 /* local subsystem functions */
 static void _e_config_save_cb(void *data);
@@ -34,8 +20,6 @@ static void _e_config_free(E_Config *cfg);
 static Eina_Bool _e_config_cb_timer(void *data);
 static int _e_config_eet_close_handle(Eet_File *ef, char *file);
 static void _e_config_acpi_bindings_add(void);
-static const char * _eet_union_type_get(const void *data, Eina_Bool *unknow);
-static Eina_Bool _eet_union_type_set(const char *type, void *data, Eina_Bool unknow);
 
 /* local subsystem globals */
 static int _e_config_save_block = 0;
@@ -64,19 +48,30 @@ static E_Config_DD *_e_config_shelf_edd = NULL;
 static E_Config_DD *_e_config_shelf_desk_edd = NULL;
 static E_Config_DD *_e_config_mime_icon_edd = NULL;
 static E_Config_DD *_e_config_syscon_action_edd = NULL;
-static E_Config_DD *_e_config_screen_size_edd = NULL;
-static E_Config_DD *_e_config_screen_size_mm_edd = NULL;
-static E_Config_DD *_e_config_eina_rectangle_edd = NULL;
-static E_Config_DD *_e_config_screen_info_edd = NULL;
-static E_Config_DD *_e_config_screen_restore_info_11_edd = NULL;
-static E_Config_DD *_e_config_screen_restore_info_12_edd = NULL;
-static E_Config_DD *_e_config_screen_output_edid_hash_edd = NULL;
-static E_Config_DD *_e_config_screen_output_restore_info_edd = NULL;
-static E_Config_DD *_e_config_screen_crtc_restore_info_edd = NULL;
+static E_Config_DD *_e_config_env_var_edd = NULL;
+static E_Config_DD *_e_config_randr_size_edd = NULL;
+static E_Config_DD *_e_config_randr_edid_hash_edd = NULL;
+static E_Config_DD *_e_config_randr_serialized_setup_edd = NULL;
+static E_Config_DD *_e_config_randr_serialized_setup_11_edd = NULL;
+static E_Config_DD *_e_config_randr_serialized_setup_12_edd = NULL;
+static E_Config_DD *_e_config_randr_serialized_output_policy_edd = NULL;
+static E_Config_DD *_e_config_randr_serialized_output_edd = NULL;
+static E_Config_DD *_e_config_randr_mode_info_edd = NULL;
+static E_Config_DD *_e_config_randr_serialized_crtc_edd = NULL;
 
 
 EAPI int E_EVENT_CONFIG_ICON_THEME = 0;
 EAPI int E_EVENT_CONFIG_MODE_CHANGED = 0;
+EAPI int E_EVENT_CONFIG_LOADED = 0;
+
+static E_Dialog *_e_config_error_dialog = NULL;
+
+static void
+_e_config_error_dialog_cb_delete(void *dia)
+{
+   if (dia == _e_config_error_dialog)
+     _e_config_error_dialog = NULL;
+}
 
 static char *
 _e_config_profile_name_get(Eet_File *ef)
@@ -122,15 +117,19 @@ e_config_init(void)
 {
    E_EVENT_CONFIG_ICON_THEME = ecore_event_type_new();
    E_EVENT_CONFIG_MODE_CHANGED = ecore_event_type_new();
+   E_EVENT_CONFIG_LOADED = ecore_event_type_new();
 
    _e_config_profile = getenv("E_CONF_PROFILE");
+
    if (_e_config_profile)
-     /* if environment var set - use this profile name */
-    _e_config_profile = strdup(_e_config_profile);
+     {
+	/* if environment var set - use this profile name */
+	_e_config_profile = strdup(_e_config_profile);
+     }
    else
      {
 	Eet_File *ef;
-	char buf[4096];
+	char buf[PATH_MAX];
 
 	/* try user profile config */
 	e_user_dir_concat_static(buf, "config/profile.cfg");
@@ -145,7 +144,7 @@ e_config_init(void)
 	  {
              int i;
 
-             for (i =1; i <= _e_config_revisions; i++)
+             for (i = 1; i <= _e_config_revisions; i++)
                {
                   e_user_dir_snprintf(buf, sizeof(buf), "config/profile.%i.cfg", i);
                   ef = eet_open(buf, EET_FILE_MODE_READ);
@@ -173,16 +172,16 @@ e_config_init(void)
         if (!_e_config_profile)
 	  {
 	     /* no profile config - try other means */
-	     char *link = NULL;
+	     char *lnk = NULL;
 
 	     /* check symlink - if default is a symlink to another dir */
 	     e_prefix_data_concat_static(buf, "data/config/default");
-	     link = ecore_file_readlink(buf);
+	     lnk = ecore_file_readlink(buf);
 	     /* if so use just the filename as the profile - must be a local link */
-	     if (link)
+	     if (lnk)
 	       {
-		  _e_config_profile = strdup(ecore_file_file_get(link));
-		  free(link);
+		  _e_config_profile = strdup(ecore_file_file_get(lnk));
+		  free(lnk);
 	       }
 	     else
 	       _e_config_profile = strdup("default");
@@ -461,6 +460,7 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, prop.command, STR);
    E_CONFIG_VAL(D, T, prop.icon_preference, UCHAR);
    E_CONFIG_VAL(D, T, prop.desktop_file, STR);
+   E_CONFIG_VAL(D, T, prop.offer_resistance, UCHAR);
 
    _e_config_color_class_edd = E_CONFIG_DD_NEW("E_Color_Class", E_Color_Class);
 #undef T
@@ -502,107 +502,108 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, icon, STR);
    E_CONFIG_VAL(D, T, is_main, INT);
 
-   _e_config_screen_size_edd = E_CONFIG_DD_NEW("Ecore_X_Randr_Screen_Size", Ecore_X_Randr_Screen_Size);
+   _e_config_env_var_edd = E_CONFIG_DD_NEW("E_Config_Env_Var",
+                                           E_Config_Env_Var);
+#undef T
+#undef D
+#define T E_Config_Env_Var
+#define D _e_config_env_var_edd
+   E_CONFIG_VAL(D, T, var, STR);
+   E_CONFIG_VAL(D, T, val, STR);
+   E_CONFIG_VAL(D, T, unset, UCHAR);
+
+   _e_config_randr_size_edd = E_CONFIG_DD_NEW("Ecore_X_Randr_Screen_Size", Ecore_X_Randr_Screen_Size);
 #undef T
 #undef D
 #define T Ecore_X_Randr_Screen_Size
-#define D _e_config_screen_size_edd
-   E_CONFIG_VAL(D, T, width, INT);
-   E_CONFIG_VAL(D, T, height, INT);
+#define D _e_config_randr_size_edd
    E_CONFIG_VAL(D, T, width, INT);
    E_CONFIG_VAL(D, T, height, INT);
 
-   _e_config_screen_size_mm_edd = E_CONFIG_DD_NEW("Ecore_X_Randr_Screen_Size_MM", Ecore_X_Randr_Screen_Size_MM);
+   _e_config_randr_edid_hash_edd = E_CONFIG_DD_NEW("E_Randr_Edid_Hash", E_Randr_Edid_Hash);
 #undef T
 #undef D
-#define T Ecore_X_Randr_Screen_Size_MM
-#define D _e_config_screen_size_mm_edd
-   E_CONFIG_VAL(D, T, width, INT);
-   E_CONFIG_VAL(D, T, height, INT);
-   E_CONFIG_VAL(D, T, width_mm, INT);
-   E_CONFIG_VAL(D, T, height_mm, INT);
+#define T E_Randr_Edid_Hash
+#define D _e_config_randr_edid_hash_edd
+   E_CONFIG_VAL(D, T, hash, INT);
 
-   _e_config_screen_restore_info_11_edd = E_CONFIG_DD_NEW("E_Randr_Screen_Restore_Info_11", E_Randr_Screen_Restore_Info_11);
+   _e_config_randr_serialized_setup_11_edd = E_CONFIG_DD_NEW("E_Randr_Serialized_Setup_11", E_Randr_Serialized_Setup_11);
 #undef T
 #undef D
-#define T E_Randr_Screen_Restore_Info_11
-#define D _e_config_screen_restore_info_11_edd
-   E_CONFIG_SUB(D, T, size, _e_config_screen_size_edd);
+#define T E_Randr_Serialized_Setup_11
+#define D _e_config_randr_serialized_setup_11_edd
+   E_CONFIG_VAL(D, T, size.width, INT);
+   E_CONFIG_VAL(D, T, size.height, INT);
+   E_CONFIG_VAL(D, T, size.width_mm, INT);
+   E_CONFIG_VAL(D, T, size.height_mm, INT);
    E_CONFIG_VAL(D, T, orientation, INT);
    E_CONFIG_VAL(D, T, refresh_rate, SHORT);
 
-    _e_config_eina_rectangle_edd = E_CONFIG_DD_NEW("Eina_Rectangle", Eina_Rectangle);
+    _e_config_randr_serialized_output_policy_edd = E_CONFIG_DD_NEW("E_Randr_Serialized_Output_Policy", E_Randr_Serialized_Output_Policy);
 #undef T
 #undef D
-#define T Eina_Rectangle
-#define D _e_config_eina_rectangle_edd
-   E_CONFIG_VAL(D, T, x, INT);
-   E_CONFIG_VAL(D, T, y, INT);
-   E_CONFIG_VAL(D, T, w, INT);
-   E_CONFIG_VAL(D, T, h, INT);
+#define T E_Randr_Serialized_Output_Policy
+#define D _e_config_randr_serialized_output_policy_edd
+   E_CONFIG_VAL(D, T, name, STR);
+   E_CONFIG_VAL(D, T, policy, INT);
 
-      _e_config_screen_output_edid_hash_edd = E_CONFIG_DD_NEW("E_Randr_Output_Edid_Hash", E_Randr_Output_Edid_Hash);
+    _e_config_randr_serialized_output_edd = E_CONFIG_DD_NEW("E_Randr_Serialized_Output", E_Randr_Serialized_Output);
 #undef T
 #undef D
-#define T E_Randr_Output_Edid_Hash
-#define D _e_config_screen_output_edid_hash_edd
-   E_CONFIG_VAL(D, T, hash, INT);
-
-   // FIXME: need to totally re-do this randr config stuff - remove the
-   // union stuff. do this differently to not use unions really. not
-   // intended for how it is used here really.
-    _e_config_screen_output_restore_info_edd = E_CONFIG_DD_NEW("E_Randr_Output_Restore_Info", E_Randr_Output_Restore_Info);
-#undef T
-#undef D
-#define T E_Randr_Output_Restore_Info
-#define D _e_config_screen_output_restore_info_edd
-   E_CONFIG_SUB(D, T, edid_hash, _e_config_screen_output_edid_hash_edd);
+#define T E_Randr_Serialized_Output
+#define D _e_config_randr_serialized_output_edd
+   E_CONFIG_VAL(D, T, name, STR);
    E_CONFIG_VAL(D, T, backlight_level, DOUBLE);
 
-  _e_config_screen_crtc_restore_info_edd = E_CONFIG_DD_NEW("E_Randr_Crtc_Restore_Info", E_Randr_Crtc_Restore_Info);
+    _e_config_randr_mode_info_edd = E_CONFIG_DD_NEW("Ecore_X_Randr_Mode_Info", Ecore_X_Randr_Mode_Info);
 #undef T
 #undef D
-#define T E_Randr_Crtc_Restore_Info
-#define D _e_config_screen_crtc_restore_info_edd
-   E_CONFIG_SUB(D, T, geometry, _e_config_eina_rectangle_edd);
-   E_CONFIG_LIST(D, T, outputs, _e_config_screen_output_restore_info_edd);
+#define T Ecore_X_Randr_Mode_Info
+#define D _e_config_randr_mode_info_edd
+   E_CONFIG_VAL(D, T, xid, INT);
+   E_CONFIG_VAL(D, T, width, INT);
+   E_CONFIG_VAL(D, T, height, INT);
+   E_CONFIG_VAL(D, T, dotClock, LL);
+   E_CONFIG_VAL(D, T, hSyncStart, INT);
+   E_CONFIG_VAL(D, T, hSyncEnd, INT);
+   E_CONFIG_VAL(D, T, hTotal, INT);
+   E_CONFIG_VAL(D, T, hSkew, INT);
+   E_CONFIG_VAL(D, T, vSyncStart, INT);
+   E_CONFIG_VAL(D, T, vSyncEnd, INT);
+   E_CONFIG_VAL(D, T, vTotal, INT);
+   E_CONFIG_VAL(D, T, name, STR);
+   E_CONFIG_VAL(D, T, nameLength, INT);
+   E_CONFIG_VAL(D, T, modeFlags, LL);
+
+  _e_config_randr_serialized_crtc_edd = E_CONFIG_DD_NEW("E_Randr_Serialized_Crtc", E_Randr_Serialized_Crtc);
+#undef T
+#undef D
+#define T E_Randr_Serialized_Crtc
+#define D _e_config_randr_serialized_crtc_edd
+   E_CONFIG_LIST(D, T, outputs, _e_config_randr_serialized_output_edd);
+   E_CONFIG_SUB(D, T, mode_info, _e_config_randr_mode_info_edd);
+   E_CONFIG_VAL(D, T, index, INT);
+   E_CONFIG_VAL(D, T, pos.x, INT);
+   E_CONFIG_VAL(D, T, pos.y, INT);
    E_CONFIG_VAL(D, T, orientation, INT);
 
-   _e_config_screen_restore_info_12_edd = E_CONFIG_DD_NEW("E_Randr_Screen_Restore_Info_12", E_Randr_Screen_Restore_Info_12);
+   _e_config_randr_serialized_setup_12_edd = E_CONFIG_DD_NEW("E_Randr_Serialized_Setup_12", E_Randr_Serialized_Setup_12);
 #undef T
 #undef D
-#define T E_Randr_Screen_Restore_Info_12
-#define D _e_config_screen_restore_info_12_edd
-   E_CONFIG_LIST(D, T, crtcs, _e_config_screen_crtc_restore_info_edd);
-   E_CONFIG_LIST(D, T, outputs_edid_hashes, _e_config_screen_output_edid_hash_edd);
-   E_CONFIG_VAL(D, T, noutputs, INT);
-   E_CONFIG_VAL(D, T, output_policy, INT);
-   E_CONFIG_VAL(D, T, alignment, INT);
+#define T E_Randr_Serialized_Setup_12
+#define D _e_config_randr_serialized_setup_12_edd
+   E_CONFIG_VAL(D, T, timestamp, DOUBLE);
+   E_CONFIG_LIST(D, T, crtcs, _e_config_randr_serialized_crtc_edd);
+   E_CONFIG_LIST(D, T, edid_hashes, _e_config_randr_edid_hash_edd);
 
+   _e_config_randr_serialized_setup_edd = E_CONFIG_DD_NEW("E_Randr_Serialized_Setup", E_Randr_Serialized_Setup);
 #undef T
 #undef D
-#define T E_Randr_Screen_Restore_Info
-#define D _e_config_screen_info_edd
-   Eet_Data_Descriptor_Class eddc;
-   Eet_Data_Descriptor *unified, *edd_11_info, *edd_12_info;
-   EET_EINA_STREAM_DATA_DESCRIPTOR_CLASS_SET(&eddc, T);
-   D = eet_data_descriptor_stream_new(&eddc);
-   eddc.version = EET_DATA_DESCRIPTOR_CLASS_VERSION;
-   eddc.func.type_get = _eet_union_type_get;
-   eddc.func.type_set = _eet_union_type_set;
-   //virtual types to work around EET's inability to differentiate when it
-   //comes to pointers (a->b) vs. values (a.b) in union mappings
-   edd_11_info = E_CONFIG_DD_NEW("E_Randr_Screen_Restore_Info_11_Struct", E_Randr_Screen_Restore_Info_11);
-   E_CONFIG_SUB(edd_11_info, E_Randr_Screen_Restore_Info_Union, restore_info_11, _e_config_screen_restore_info_11_edd);
-   edd_12_info = E_CONFIG_DD_NEW("E_Randr_Screen_Restore_Info_12_Struct", E_Randr_Screen_Restore_Info_12);
-   E_CONFIG_LIST(edd_12_info, E_Randr_Screen_Restore_Info_Union, restore_info_12, _e_config_screen_restore_info_12_edd);
-   unified = eet_data_descriptor_stream_new(&eddc);
-   EET_DATA_DESCRIPTOR_ADD_MAPPING(unified, "E_Config_Screen_11", edd_11_info);
-   EET_DATA_DESCRIPTOR_ADD_MAPPING(unified, "E_Config_Screen_12", edd_12_info);
-   EET_DATA_DESCRIPTOR_ADD_MAPPING(unified, "E_Config_Screen_13", edd_12_info);
-// DISABLE! crashie crashie long time   
-//   EET_DATA_DESCRIPTOR_ADD_UNION(D, T, "E_Randr_Screen_Restore_Info_Union", rrvd_restore_info, randr_version, unified);
-   E_CONFIG_VAL(D, T, randr_version, INT);
+#define T E_Randr_Serialized_Setup
+#define D _e_config_randr_serialized_setup_edd
+   E_CONFIG_SUB(D, T, serialized_setup_11, _e_config_randr_serialized_setup_11_edd);
+   E_CONFIG_LIST(D, T, serialized_setups_12, _e_config_randr_serialized_setup_12_edd);
+   E_CONFIG_LIST(D, T, outputs_policies, _e_config_randr_serialized_output_policy_edd);
 
    _e_config_edd = E_CONFIG_DD_NEW("E_Config", E_Config);
 #undef T
@@ -631,19 +632,8 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, edje_collection_cache, INT); /**/
    E_CONFIG_VAL(D, T, zone_desks_x_count, INT); /**/
    E_CONFIG_VAL(D, T, zone_desks_y_count, INT); /**/
-   E_CONFIG_VAL(D, T, use_virtual_roots, INT); /* should not make this a config option (for now) */
    E_CONFIG_VAL(D, T, show_desktop_icons, INT); /**/
    E_CONFIG_VAL(D, T, edge_flip_dragging, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_default, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_container, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_init, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_menus, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_borders, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_errors, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_popups, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_drag, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_win, INT); /**/
-   E_CONFIG_VAL(D, T, evas_engine_zone, INT); /**/
    E_CONFIG_VAL(D, T, use_composite, INT); /**/
    E_CONFIG_VAL(D, T, language, STR); /**/
    E_CONFIG_LIST(D, T, modules, _e_config_module_edd); /**/
@@ -763,7 +753,8 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, desklock_ask_presentation, UCHAR);
    E_CONFIG_VAL(D, T, desklock_ask_presentation_timeout, DOUBLE);
 
-   E_CONFIG_LIST(D, T, screen_info, _e_config_screen_info_edd);
+   //randr specifics
+   E_CONFIG_SUB(D, T, randr_serialized_setup, _e_config_randr_serialized_setup_edd);
 
    E_CONFIG_VAL(D, T, screensaver_enable, INT);
    E_CONFIG_VAL(D, T, screensaver_timeout, INT);
@@ -773,6 +764,10 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, screensaver_ask_presentation, UCHAR);
    E_CONFIG_VAL(D, T, screensaver_ask_presentation_timeout, DOUBLE);
 
+   E_CONFIG_VAL(D, T, screensaver_suspend, UCHAR);
+   E_CONFIG_VAL(D, T, screensaver_suspend_on_ac, UCHAR);
+   E_CONFIG_VAL(D, T, screensaver_suspend_delay, DOUBLE);
+   
    E_CONFIG_VAL(D, T, dpms_enable, INT);
    E_CONFIG_VAL(D, T, dpms_standby_enable, INT);
    E_CONFIG_VAL(D, T, dpms_suspend_enable, INT);
@@ -806,19 +801,9 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, desk_flip_animate_mode, INT);
    E_CONFIG_VAL(D, T, desk_flip_animate_interpolation, INT);
    E_CONFIG_VAL(D, T, desk_flip_animate_time, DOUBLE);
-   E_CONFIG_VAL(D, T, desk_flip_pan_bg, UCHAR);
-   E_CONFIG_VAL(D, T, desk_flip_pan_x_axis_factor, DOUBLE);
-   E_CONFIG_VAL(D, T, desk_flip_pan_y_axis_factor, DOUBLE);
 
    E_CONFIG_VAL(D, T, wallpaper_import_last_dev, STR);
    E_CONFIG_VAL(D, T, wallpaper_import_last_path, STR);
-
-   E_CONFIG_VAL(D, T, wallpaper_grad_c1_r, INT);
-   E_CONFIG_VAL(D, T, wallpaper_grad_c1_g, INT);
-   E_CONFIG_VAL(D, T, wallpaper_grad_c1_b, INT);
-   E_CONFIG_VAL(D, T, wallpaper_grad_c2_r, INT);
-   E_CONFIG_VAL(D, T, wallpaper_grad_c2_g, INT);
-   E_CONFIG_VAL(D, T, wallpaper_grad_c2_b, INT);
 
    E_CONFIG_VAL(D, T, theme_default_border_style, STR);
 
@@ -830,7 +815,8 @@ e_config_init(void)
 
    E_CONFIG_VAL(D, T, menu_favorites_show, INT);
    E_CONFIG_VAL(D, T, menu_apps_show, INT);
-
+   E_CONFIG_VAL(D, T, menu_gadcon_client_toplevel, INT);
+   
    E_CONFIG_VAL(D, T, ping_clients_interval, INT);
    E_CONFIG_VAL(D, T, cache_flush_poll_interval, INT);
 
@@ -877,6 +863,35 @@ e_config_init(void)
    E_CONFIG_VAL(D, T, exec.show_run_dialog, UCHAR);
    E_CONFIG_VAL(D, T, exec.show_exit_dialog, UCHAR);
 
+   E_CONFIG_VAL(D, T, null_container_win, UCHAR);
+
+   E_CONFIG_LIST(D, T, env_vars, _e_config_env_var_edd);
+
+   E_CONFIG_VAL(D, T, backlight.normal, DOUBLE);
+   E_CONFIG_VAL(D, T, backlight.dim, DOUBLE);
+   E_CONFIG_VAL(D, T, backlight.transition, DOUBLE);
+   E_CONFIG_VAL(D, T, backlight.idle_dim, UCHAR);
+   E_CONFIG_VAL(D, T, backlight.timer, DOUBLE);
+
+   E_CONFIG_VAL(D, T, deskenv.load_xrdb, UCHAR);
+   E_CONFIG_VAL(D, T, deskenv.load_xmodmap, UCHAR);
+   E_CONFIG_VAL(D, T, deskenv.load_gnome, UCHAR);
+   E_CONFIG_VAL(D, T, deskenv.load_kde, UCHAR);
+
+   E_CONFIG_VAL(D, T, xsettings.enabled, UCHAR);
+   E_CONFIG_VAL(D, T, xsettings.match_e17_theme, UCHAR);
+   E_CONFIG_VAL(D, T, xsettings.match_e17_icon_theme, UCHAR);
+   E_CONFIG_VAL(D, T, xsettings.xft_antialias, INT);
+   E_CONFIG_VAL(D, T, xsettings.xft_hinting, INT);
+   E_CONFIG_VAL(D, T, xsettings.xft_hint_style, STR);
+   E_CONFIG_VAL(D, T, xsettings.xft_rgba, STR);
+   E_CONFIG_VAL(D, T, xsettings.net_theme_name, STR);
+   E_CONFIG_VAL(D, T, xsettings.net_icon_theme_name, STR);
+   E_CONFIG_VAL(D, T, xsettings.gtk_font_name, STR);
+
+   E_CONFIG_VAL(D, T, update.check, UCHAR);
+   E_CONFIG_VAL(D, T, update.later, UCHAR);
+   
    e_config_load();
 
    e_config_save_queue();
@@ -908,7 +923,8 @@ e_config_shutdown(void)
    E_CONFIG_DD_FREE(_e_config_shelf_desk_edd);
    E_CONFIG_DD_FREE(_e_config_mime_icon_edd);
    E_CONFIG_DD_FREE(_e_config_syscon_action_edd);
-   E_CONFIG_DD_FREE(_e_config_screen_info_edd);
+   E_CONFIG_DD_FREE(_e_config_env_var_edd);
+   //E_CONFIG_DD_FREE(_e_config_randr_serialized_setup_edd);
    return 1;
 }
 
@@ -982,15 +998,13 @@ e_config_load(void)
      {
         printf("EEEK! no config of any sort! abort abort abort!\n");
         fprintf(stderr, "EEEK! no config of any sort! abort abort abort!\n");
-        e_alert_show("Enlightenment was started without any configuration\n"
-                     "files available for the given profile (normally\n"
-                     "default or the last profile used or provided on the\n"
-                     "command-line with -profile etc.)\n"
-                     "\n"
-                     "Cannot contiue without configuration to work with.\n"
-                     "Please ensure you have system or user configuration\n"
-                     "for the profile you are using before proceeeding."
-                     );
+        e_error_message_show("Enlightenment was started without any configuration\n"
+                             "files available for the given profile (normally\n"
+                             "default or the last profile used or provided on the\n"
+                             "command-line with -profile etc.)\n\n"
+                             "Cannot contiue without configuration to work with.\n"
+                             "Please ensure you have system or user configuration\n"
+                             "for the profile you are using before proceeeding.");
         abort();
      }
    if (e_config->config_version < E_CONFIG_FILE_VERSION)
@@ -1112,12 +1126,6 @@ e_config_load(void)
 	COPYVAL(screensaver_ask_presentation_timeout);
 	IFCFGEND;
 
-        IFCFG(0x0133);
-        COPYVAL(desk_flip_pan_bg);
-        COPYVAL(desk_flip_pan_x_axis_factor);
-        COPYVAL(desk_flip_pan_y_axis_factor);
-        IFCFGEND;
-
         IFCFG(0x0134);
         COPYVAL(exec.expire_timeout);
         COPYVAL(exec.show_run_dialog);
@@ -1137,6 +1145,25 @@ e_config_load(void)
 	COPYVAL(geometry_auto_move);
         IFCFGEND;
 
+        IFCFG(0x0142);
+        COPYVAL(backlight.normal);
+        COPYVAL(backlight.dim);
+        COPYVAL(backlight.transition);
+        COPYVAL(backlight.idle_dim);
+        COPYVAL(backlight.timer);
+        IFCFGEND;
+
+        IFCFG(0x0145);
+        COPYVAL(xsettings.enabled);
+        COPYVAL(xsettings.match_e17_theme);
+        COPYVAL(xsettings.match_e17_icon_theme);
+        IFCFGEND;
+
+        IFCFG(0x0147);
+        COPYVAL(update.check);
+        COPYVAL(update.later);
+        IFCFGEND;
+
         e_config->config_version = E_CONFIG_FILE_VERSION;
         _e_config_free(tcfg);
      }
@@ -1147,7 +1174,7 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->menus_fast_mouse_move_threshhold, 1.0, 2000.0);
    E_CONFIG_LIMIT(e_config->menus_click_drag_timeout, 0.0, 10.0);
    E_CONFIG_LIMIT(e_config->border_shade_animate, 0, 1);
-   E_CONFIG_LIMIT(e_config->border_shade_transition, 0, 3);
+   E_CONFIG_LIMIT(e_config->border_shade_transition, 0, 8);
    E_CONFIG_LIMIT(e_config->border_shade_speed, 1.0, 20000.0);
    E_CONFIG_LIMIT(e_config->framerate, 1.0, 200.0);
    E_CONFIG_LIMIT(e_config->priority, 0, 19);
@@ -1236,9 +1263,6 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->desk_flip_wrap, 0, 1);
    E_CONFIG_LIMIT(e_config->fullscreen_flip, 0, 1);
    E_CONFIG_LIMIT(e_config->icon_theme_overrides, 0, 1);
-   E_CONFIG_LIMIT(e_config->desk_flip_pan_bg, 0, 1);
-   E_CONFIG_LIMIT(e_config->desk_flip_pan_x_axis_factor, 0.0, 1.0);
-   E_CONFIG_LIMIT(e_config->desk_flip_pan_y_axis_factor, 0.0, 1.0);
    E_CONFIG_LIMIT(e_config->remember_internal_windows, 0, 3);
    E_CONFIG_LIMIT(e_config->desk_auto_switch, 0, 1);
 
@@ -1273,6 +1297,7 @@ e_config_load(void)
 
    E_CONFIG_LIMIT(e_config->menu_favorites_show, 0, 1);
    E_CONFIG_LIMIT(e_config->menu_apps_show, 0, 1);
+   E_CONFIG_LIMIT(e_config->menu_gadcon_client_toplevel, 0, 1);
 
    E_CONFIG_LIMIT(e_config->ping_clients_interval, 16, 1024);
 
@@ -1283,6 +1308,8 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->exec.show_run_dialog, 0, 1);
    E_CONFIG_LIMIT(e_config->exec.show_exit_dialog, 0, 1);
 
+   E_CONFIG_LIMIT(e_config->null_container_win, 0, 1);
+   
    /* FIXME: disabled auto apply because it causes problems */
    e_config->cfgdlg_auto_apply = 0;
    /* FIXME: desklock personalized password id disabled for security reasons */
@@ -1290,6 +1317,8 @@ e_config_load(void)
    if (e_config->desklock_personal_passwd)
      eina_stringshare_del(e_config->desklock_personal_passwd);
    e_config->desklock_personal_passwd = NULL;
+
+   ecore_event_add(E_EVENT_CONFIG_LOADED, NULL, NULL, NULL);
 }
 
 EAPI int
@@ -1449,27 +1478,6 @@ e_config_profile_del(const char *prof)
    ecore_file_recursive_rm(buf);
 }
 
-EAPI Eina_List *
-e_config_engine_list(void)
-{
-   Eina_List *l = NULL;
-   l = eina_list_append(l, strdup("SOFTWARE"));
-   /*
-    * DISABLE GL as an accessible engine - it does have problems, ESPECIALLY with
-    * shaped windows (it can't do them), and multiple gl windows and shared
-    * contexts, so for now just disable it. xrender is much more complete in
-    * this regard.
-    */
-#if 0
-   l = eina_list_append(l, strdup("GL"));
-#endif
-   if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_XRENDER_X11))
-     l = eina_list_append(l, strdup("XRENDER"));
-   if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_16_X11))
-     l = eina_list_append(l, strdup("SOFTWARE_16"));
-   return l;
-}
-
 EAPI void
 e_config_save_block_set(int block)
 {
@@ -1500,7 +1508,7 @@ e_config_domain_load(const char *domain, E_Config_DD *edd)
         if (data) return data;
      }
 
-   for (i =1; i <= _e_config_revisions; i++)
+   for (i = 1; i <= _e_config_revisions; i++)
      {
         e_user_dir_snprintf(buf, sizeof(buf), "config/%s/%s.%i.cfg",
                             _e_config_profile, domain, i);
@@ -1535,6 +1543,43 @@ e_config_domain_system_load(const char *domain, E_Config_DD *edd)
    return data;
 }
 
+static void
+_e_config_mv_error(const char *from, const char *to)
+{
+   if (!_e_config_error_dialog)
+     {
+        E_Dialog *dia;
+        
+        dia = e_dialog_new(e_container_current_get(e_manager_current_get()), 
+                           "E", "_sys_error_logout_slow");
+        if (dia)
+          {
+             char buf[8192];
+             
+             e_dialog_title_set(dia, _("Enlightenment Settings Write Problems"));
+             e_dialog_icon_set(dia, "dialog-error", 64);
+             snprintf(buf, sizeof(buf), 
+                      _("Enlightenment has had an error while moving config files<br>"
+                        "from:<br>"
+                        "%s<br>"
+                        "<br>"
+                        "to:<br>"
+                        "%s<br>"
+                        "<br>"
+                        "The rest of the write has been aborted for safety.<br>"),
+                      from, to);
+             e_dialog_text_set(dia, buf);
+             e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
+             e_dialog_button_focus_num(dia, 0);
+             e_win_centered_set(dia->win, 1);
+             e_object_del_attach_func_set(E_OBJECT(dia),
+                                          _e_config_error_dialog_cb_delete);
+             e_dialog_show(dia);
+             _e_config_error_dialog = dia;
+          }
+     }
+}
+
 EAPI int
 e_config_profile_save(void)
 {
@@ -1553,7 +1598,7 @@ e_config_profile_save(void)
 		       strlen(_e_config_profile), 0);
 	if (_e_config_eet_close_handle(ef, buf2))
 	  {
-	     int ret;
+	     Eina_Bool ret = EINA_TRUE;
 
              if (_e_config_revisions > 0)
                {
@@ -1564,17 +1609,28 @@ e_config_profile_save(void)
                     {
                        e_user_dir_snprintf(bsrc, sizeof(bsrc), "config/profile.%i.cfg", i - 1);
                        e_user_dir_snprintf(bdst, sizeof(bdst), "config/profile.%i.cfg", i);
-                       ecore_file_mv(bsrc, bdst);
+                       if ((ecore_file_exists(bsrc)) &&
+                           (ecore_file_size(bsrc)))
+                         {
+                            ret = ecore_file_mv(bsrc, bdst);
+                            if (!ret)
+                              {
+                                 _e_config_mv_error(bsrc, bdst);
+                                 break;
+                              }
+                         }
                     }
-                  e_user_dir_snprintf(bsrc, sizeof(bsrc), "config/profile.cfg");
-                  e_user_dir_snprintf(bdst, sizeof(bdst), "config/profile.1.cfg");
-                  ecore_file_mv(bsrc, bdst);
+                  if (ret)
+                    {
+                       e_user_dir_snprintf(bsrc, sizeof(bsrc), "config/profile.cfg");
+                       e_user_dir_snprintf(bdst, sizeof(bdst), "config/profile.1.cfg");
+                       ret = ecore_file_mv(bsrc, bdst);
+//                       if (!ret)
+//                          _e_config_mv_error(bsrc, bdst);
+                    }
                }
              ret = ecore_file_mv(buf2, buf);
-	     if (!ret)
-	       {
-		  printf("*** Error saving profile. ***");
-	       }
+	     if (!ret) _e_config_mv_error(buf2, buf);
 	  }
 	ecore_file_unlink(buf2);
      }
@@ -1626,7 +1682,11 @@ e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data)
                     {
                        e_user_dir_snprintf(bsrc, sizeof(bsrc), "config/%s/%s.%i.cfg", _e_config_profile, domain, i - 1);
                        e_user_dir_snprintf(bdst, sizeof(bdst), "config/%s/%s.%i.cfg", _e_config_profile, domain, i);
-                       ecore_file_mv(bsrc, bdst);
+                       if ((ecore_file_exists(bsrc)) &&
+                           (ecore_file_size(bsrc)))
+                         {
+                            ecore_file_mv(bsrc, bdst);
+                         }
                     }
                   e_user_dir_snprintf(bsrc, sizeof(bsrc), "config/%s/%s.cfg", _e_config_profile, domain);
                   e_user_dir_snprintf(bdst, sizeof(bdst), "config/%s/%s.1.cfg", _e_config_profile, domain);
@@ -1635,7 +1695,7 @@ e_config_domain_save(const char *domain, E_Config_DD *edd, const void *data)
 	     ret = ecore_file_mv(buf2, buf);
 	     if (!ret)
 	       {
-		  printf("*** Error saving config. ***");
+		  printf("*** Error saving config. ***\n");
 	       }
 	  }
 	ecore_file_unlink(buf2);
@@ -1809,11 +1869,7 @@ _e_config_free(E_Config *ecf)
    E_Color_Class *cc;
    E_Path_Dir *epd;
    E_Remember *rem;
-   E_Randr_Screen_Restore_Info *screen_info;
-   E_Randr_Crtc_Restore_Info *crtc_info;
-   E_Randr_Output_Info *output_info;
-   E_Randr_Screen_Restore_Info_12 *restore_info_12;
-
+   E_Config_Env_Var *evr;
 
    if (!ecf) return;
 
@@ -1962,57 +2018,34 @@ _e_config_free(E_Config *ecf)
         if (sca->icon) eina_stringshare_del(sca->icon);
         E_FREE(sca);
      }
-   if (ecf->screen_info)
+   if(ecf->randr_serialized_setup)
      {
-	EINA_LIST_FREE(ecf->screen_info, screen_info)
-	  {
-	     switch (screen_info->randr_version)
-	       {
-		case EET_SCREEN_INFO_11:
-		   free(screen_info->rrvd_restore_info.restore_info_11);
-		   break;
-		case EET_SCREEN_INFO_12:
-		case EET_SCREEN_INFO_13:
-		   EINA_LIST_FREE(screen_info->rrvd_restore_info.restore_info_12, restore_info_12)
-		     {
-			EINA_LIST_FREE(restore_info_12->crtcs, crtc_info)
-			  {
-			     EINA_LIST_FREE(crtc_info->outputs, output_info)
-			       {
-				  free(output_info->name);
-				  free(output_info->edid);
-				  free (output_info);
-			       }
-			     free (crtc_info);
-			  }
-			free(restore_info_12);
-		     }
-		   eina_list_free(screen_info->rrvd_restore_info.restore_info_12);
-		   break;
-	       }
-	     free(screen_info);
-	  }
+         e_randr_serialized_setup_free(ecf->randr_serialized_setup);
      }
+   EINA_LIST_FREE(ecf->env_vars, evr)
+     {
+        if (evr->var) eina_stringshare_del(evr->var);
+        if (evr->val) eina_stringshare_del(evr->val);
+        E_FREE(evr);
+     }
+   if (ecf->xsettings.net_icon_theme_name)
+     eina_stringshare_del(ecf->xsettings.net_icon_theme_name);
+   if (ecf->xsettings.net_theme_name)
+     eina_stringshare_del(ecf->xsettings.net_theme_name);
+   if (ecf->xsettings.gtk_font_name)
+     eina_stringshare_del(ecf->xsettings.gtk_font_name);
+
    E_FREE(ecf);
 }
 
-static Eina_Bool
+   static Eina_Bool
 _e_config_cb_timer(void *data)
 {
    e_util_dialog_show(_("Settings Upgraded"), "%s", (char *)data);
    return 0;
 }
 
-static E_Dialog *_e_config_error_dialog = NULL;
-
-static void
-_e_config_error_dialog_cb_delete(void *dia)
-{
-   if (dia == _e_config_error_dialog)
-     _e_config_error_dialog = NULL;
-}
-
-static int
+   static int
 _e_config_eet_close_handle(Eet_File *ef, char *file)
 {
    Eet_Error err;
@@ -2021,87 +2054,101 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
    err = eet_close(ef);
    switch (err)
      {
-      case EET_ERROR_WRITE_ERROR:
-	erstr = _("An error occurred while saving Enlightenment's<br>"
-		  "settings to disk. The error could not be<br>"
-		  "deterimined.<br>"
-		  "<br>"
-		  "The file where the error occurred was:<br>"
-		  "%s<br>"
-		  "<br>"
-		  "This file has been deleted to avoid corrupt data.<br>"
-		  );
+      case EET_ERROR_NONE:
+         /* all good - no error */
+         break;
+      case EET_ERROR_BAD_OBJECT:
+         erstr = _("The EET file handle is bad.");
+         break;
+      case EET_ERROR_EMPTY:
+         erstr = _("The file data is empty.");
+         break;
+      case EET_ERROR_NOT_WRITABLE:
+         erstr = _("The file is not writable. Perhaps the disk is read-only<br>or you lost permissions to your files.");
 	break;
+      case EET_ERROR_OUT_OF_MEMORY:
+	erstr = _("Memory ran out while preparing the write.<br>Please free up memory.");
+	break;
+      case EET_ERROR_WRITE_ERROR:
+	erstr = _("This is a generic error.");
+        break;
       case EET_ERROR_WRITE_ERROR_FILE_TOO_BIG:
-	erstr = _("Enlightenment's settings files are too big<br>"
-		  "for the file system they are being saved to.<br>"
-		  "This error is very strange as the files should<br>"
-		  "be extremely small. Please check the settings<br>"
-		  "for your home directory.<br>"
-		  "<br>"
-		  "The file where the error occurred was:<br>"
-		  "%s<br>"
-		  "<br>"
-		  "This file has been deleted to avoid corrupt data.<br>"
-		  );
+	erstr = _("The settings file is too large.<br>It should be very small (a few hundred KB at most).");
 	break;
       case EET_ERROR_WRITE_ERROR_IO_ERROR:
-	erstr = _("An output error occurred when writing the settings<br>"
-		  "files for Enlightenment. Your disk is having troubles<br>"
-		  "and possibly needs replacement.<br>"
-		  "<br>"
-		  "The file where the error occurred was:<br>"
-		  "%s<br>"
-		  "<br>"
-		  "This file has been deleted to avoid corrupt data.<br>"
-		  );
+	erstr = _("You have I/O errors on the disk.<br>Maybe it needs replacing?");
 	break;
       case EET_ERROR_WRITE_ERROR_OUT_OF_SPACE:
-	erstr = _("Enlightenment cannot write its settings file<br>"
-		  "because it ran out of space to write the file.<br>"
-		  "You have either run out of disk space or have<br>"
-		  "gone over your quota limit.<br>"
-		  "<br>"
-		  "The file where the error occurred was:<br>"
-		  "%s<br>"
-		  "<br>"
-		  "This file has been deleted to avoid corrupt data.<br>"
-		  );
+	erstr = _("You ran out of space while writing the file");
 	break;
       case EET_ERROR_WRITE_ERROR_FILE_CLOSED:
-	erstr = _("Enlightenment unexpectedly had the settings file<br>"
-		  "it was writing closed on it. This is very unusual.<br>"
-		  "<br>"
-		  "The file where the error occurred was:<br>"
-		  "%s<br>"
-		  "<br>"
-		  "This file has been deleted to avoid corrupt data.<br>"
-		  );
+	erstr = _("The file was closed on it while writing.");
 	break;
-      default:
+      case EET_ERROR_MMAP_FAILED:
+	erstr = _("Memory-mapping (mmap) of the file failed.");
+	break;
+      case EET_ERROR_X509_ENCODING_FAILED:
+	erstr = _("X509 Encoding failed.");
+	break;
+      case EET_ERROR_SIGNATURE_FAILED:
+	erstr = _("Signature failed.");
+	break;
+      case EET_ERROR_INVALID_SIGNATURE:
+        erstr = _("The signature was invalid.");
+	break;
+      case EET_ERROR_NOT_SIGNED:
+	erstr = _("Not signed.");
+	break;
+      case EET_ERROR_NOT_IMPLEMENTED:
+	erstr = _("Feature not implemented.");
+	break;
+      case EET_ERROR_PRNG_NOT_SEEDED:
+	erstr = _("PRNG was not seeded.");
+	break;
+      case EET_ERROR_ENCRYPT_FAILED:
+	erstr = _("Encryption failed.");
+	break;
+      case EET_ERROR_DECRYPT_FAILED:
+	erstr = _("Decryption failed.");
+	break;
+      default: /* if we get here eet added errors we don't know */
+	erstr = _("The error is unknown to Enlightenment.");
 	break;
      }
    if (erstr)
      {
 	/* delete any partially-written file */
 	ecore_file_unlink(file);
+        /* only show dialog for first error - further ones are likely */
+        /* more of the same error */
 	if (!_e_config_error_dialog)
 	  {
              E_Dialog *dia;
 
-	     dia = e_dialog_new(e_container_current_get(e_manager_current_get()), "E", "_sys_error_logout_slow");
+	     dia = e_dialog_new(e_container_current_get(e_manager_current_get()), 
+                                "E", "_sys_error_logout_slow");
 	     if (dia)
 	       {
 		  char buf[8192];
 
 		  e_dialog_title_set(dia, _("Enlightenment Settings Write Problems"));
 		  e_dialog_icon_set(dia, "dialog-error", 64);
-		  snprintf(buf, sizeof(buf), erstr, file);
+		  snprintf(buf, sizeof(buf), 
+                           _("Enlightenment has had an error while writing<br>"
+                             "its config file.<br>"
+                             "%s<br>"
+                             "<br>"
+                             "The file where the error occurred was:<br>"
+                             "%s<br>"
+                             "<br>"
+                             "This file has been deleted to avoid corrupt data.<br>"),
+                           erstr, file);
 		  e_dialog_text_set(dia, buf);
 		  e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
 		  e_dialog_button_focus_num(dia, 0);
 		  e_win_centered_set(dia->win, 1);
-		  e_object_del_attach_func_set(E_OBJECT(dia), _e_config_error_dialog_cb_delete);
+		  e_object_del_attach_func_set(E_OBJECT(dia),
+                                               _e_config_error_dialog_cb_delete);
 		  e_dialog_show(dia);
 		  _e_config_error_dialog = dia;
 	       }
@@ -2155,37 +2202,4 @@ _e_config_acpi_bindings_add(void)
    bind->action = eina_stringshare_add("suspend");
    bind->params = eina_stringshare_add("now");
    e_config->acpi_bindings = eina_list_append(e_config->acpi_bindings, bind);
-}
-
-static const char *
-_eet_union_type_get(const void *data, Eina_Bool *unknow)
-{
-   const Eet_Union *u = data;
-   int i;
-
-   if (unknow) *unknow = EINA_FALSE;
-   for (i = 0; eet_mapping[i].name; ++i)
-     if (*u == eet_mapping[i].u)
-       return eet_mapping[i].name;
-
-   if (unknow) *unknow = EINA_TRUE;
-   return NULL;
-}
-
-static Eina_Bool
-_eet_union_type_set(const char *type, void *data, Eina_Bool unknow)
-{
-   Eet_Union *u = data;
-   int i;
-
-   if (unknow) return EINA_FALSE;
-
-   for (i = 0; eet_mapping[i].name; ++i)
-     if (strcmp(eet_mapping[i].name, type) == 0)
-       {
-	  *u = eet_mapping[i].u;
-	  return EINA_TRUE;
-       }
-
-   return EINA_FALSE;
 }
