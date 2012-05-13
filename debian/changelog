@@ -1,8 +1,13 @@
-e17 (0.16.999.70492-1) UNRELEASED; urgency=low
+e17 (0.16.999.70492-1) unstable; urgency=low
 
   * New upstream snapshot
+  * drop patches/02_upgrade_notice: it should no longer be needed
+  * drop patches/03_bind_XF86PowerOff_instead_of_Execute: applied upstream
+  * patches/04_evry_fix_default_path_for_terminal: follow upstream changes
+  * debian/control: add Build-Dep on libxcb-shape0-dev for the alert module
+  * debian/e17.install: update following upstream removals/additions
 
- -- Albin Tonnerre <lutin@debian.org>  Tue, 08 May 2012 20:36:03 +0200
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 13 May 2012 20:43:33 +0200
 
 e17 (0.16.999.55225-1) unstable; urgency=low
 
