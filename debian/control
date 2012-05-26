@@ -21,7 +21,7 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, e17-data (= ${source:Version}),
  libevas1-engine-software-x11, libedje-bin, dbus-x11
 Conflicts: enlightenment
 Provides: x-window-manager
-Description: The Enlightenment DR17 Window Manager
+Description: Enlightenment DR17 Window Manager
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
  around windows, backed by an extremely clean and optimized
@@ -65,7 +65,7 @@ Architecture: any
 Section: debug
 Depends: ${misc:Depends}, e17 (= ${binary:Version})
 Priority: extra
-Description: The Enlightenment DR17 Window Manager - debugging symbols
+Description: Enlightenment DR17 Window Manager - debugging symbols
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
  around windows, backed by an extremely clean and optimized
