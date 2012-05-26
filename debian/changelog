@@ -1,3 +1,13 @@
+e17 (0.16.999.70492-2) unstable; urgency=low
+
+  * debian/control: bump Standards-Version to 3.9.3
+  * debian/control: reword e17{,-dbg} short description to make lintian happy
+  * debian/e17.lintian-overrides: remove override for files that no longer exist
+  * Add debian/patches/02_e_alert_path_max.
+      - Fix FTBFS on Hurd: include config.h to get PATH_MAX (Closes: #535775)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 26 May 2012 17:40:36 +0200
+
 e17 (0.16.999.70492-1) unstable; urgency=low
 
   * New upstream snapshot
