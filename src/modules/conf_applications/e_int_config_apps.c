@@ -3,51 +3,51 @@
 typedef struct _E_Config_Data
 {
    const char *title, *icon, *dialog, *filename;
-   Eina_Bool show_autostart;
+   Eina_Bool   show_autostart;
 } E_Config_Data;
 
 typedef struct _E_Config_App_List
 {
    E_Config_Dialog_Data *cfdata;
-   Evas_Object *o_list, *o_add, *o_del, *o_desc;
-   Eina_List *desks;
+   Evas_Object          *o_list, *o_add, *o_del, *o_desc;
+   Eina_List            *desks;
 } E_Config_App_List;
 
 struct _E_Config_Dialog_Data
 {
-   E_Config_Data *data;
-   Evas_Object *o_list, *o_up, *o_down, *o_del;
-   Eina_List *apps;
-   Ecore_Timer *fill_delay;
+   E_Config_Data    *data;
+   Evas_Object      *o_list, *o_up, *o_down, *o_del;
+   Eina_List        *apps;
+   Ecore_Timer      *fill_delay;
    E_Config_App_List apps_user;
    E_Config_App_List apps_xdg; /* xdg autostart apps */
 };
 
 /* local function prototypes */
 static E_Config_Dialog *_create_dialog(E_Container *con, E_Config_Data *data);
-static void *_create_data(E_Config_Dialog *cfd);
-static void _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata);
-static int _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
-static Eina_List *_load_menu(const char *path);
-static Eina_List *_load_order(const char *path);
-static int _save_menu(E_Config_Dialog_Data *cfdata);
-static int _save_order(E_Config_Dialog_Data *cfdata);
-static void _fill_apps_list(E_Config_App_List *apps);
-static void _fill_xdg_list(E_Config_App_List *apps);
-static void _fill_order_list(E_Config_Dialog_Data *cfdata);
-static void _cb_apps_list_selected(void *data);
-static void _cb_order_list_selected(void *data);
-static int _cb_desks_sort(const void *data1, const void *data2);
-static int _cb_desks_name(const void *data1, const void *data2);
-static int _cb_desks_sort(const void *data1, const void *data2);
-static void _cb_add(void *data, void *data2 __UNUSED__);
-static void _cb_del(void *data, void *data2 __UNUSED__);
-static void _cb_up(void *data, void *data2 __UNUSED__);
-static void _cb_down(void *data, void *data2 __UNUSED__);
-static void _cb_order_del(void *data, void *data2 __UNUSED__);
-static Eina_Bool _cb_fill_delay(void *data);
-static void _list_items_state_set(E_Config_App_List *apps);
+static void            *_create_data(E_Config_Dialog *cfd);
+static void             _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
+static Evas_Object     *_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata);
+static int              _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
+static Eina_List       *_load_menu(const char *path);
+static Eina_List       *_load_order(const char *path);
+static int              _save_menu(E_Config_Dialog_Data *cfdata);
+static int              _save_order(E_Config_Dialog_Data *cfdata);
+static void             _fill_apps_list(E_Config_App_List *apps);
+static void             _fill_xdg_list(E_Config_App_List *apps);
+static void             _fill_order_list(E_Config_Dialog_Data *cfdata);
+static void             _cb_apps_list_selected(void *data);
+static void             _cb_order_list_selected(void *data);
+static int              _cb_desks_sort(const void *data1, const void *data2);
+static int              _cb_desks_name(const void *data1, const void *data2);
+static int              _cb_desks_sort(const void *data1, const void *data2);
+static void             _cb_add(void *data, void *data2 __UNUSED__);
+static void             _cb_del(void *data, void *data2 __UNUSED__);
+static void             _cb_up(void *data, void *data2 __UNUSED__);
+static void             _cb_down(void *data, void *data2 __UNUSED__);
+static void             _cb_order_del(void *data, void *data2 __UNUSED__);
+static Eina_Bool        _cb_fill_delay(void *data);
+static void             _list_items_state_set(E_Config_App_List *apps);
 
 E_Config_Dialog *
 e_int_config_apps_add(E_Container *con, const char *params __UNUSED__)
@@ -133,6 +133,36 @@ e_int_config_apps_restart(E_Container *con, const char *params __UNUSED__)
    return _create_dialog(con, data);
 }
 
+E_Config_Dialog *
+e_int_config_apps_desk_lock(E_Container *con, const char *params __UNUSED__)
+{
+   E_Config_Data *data;
+   char buff[PATH_MAX];
+
+   e_user_dir_concat_static(buff, "applications/screen-lock/.order");
+   data = E_NEW(E_Config_Data, 1);
+   data->title = eina_stringshare_add(_("Screen Lock Applications"));
+   data->dialog = eina_stringshare_add("applications/screen_lock_applications");
+   data->icon = eina_stringshare_add("preferences-applications-screen-lock");
+   data->filename = eina_stringshare_add(buff);
+   return _create_dialog(con, data);
+}
+
+E_Config_Dialog *
+e_int_config_apps_desk_unlock(E_Container *con, const char *params __UNUSED__)
+{
+   E_Config_Data *data;
+   char buff[PATH_MAX];
+
+   e_user_dir_concat_static(buff, "applications/screen-unlock/.order");
+   data = E_NEW(E_Config_Data, 1);
+   data->title = eina_stringshare_add(_("Screen Unlock Applications"));
+   data->dialog = eina_stringshare_add("applications/screen_unlock_applications");
+   data->icon = eina_stringshare_add("preferences-applications-screen-unlock");
+   data->filename = eina_stringshare_add(buff);
+   return _create_dialog(con, data);
+}
+
 /* local function prototypes */
 static E_Config_Dialog *
 _create_dialog(E_Container *con, E_Config_Data *data)
@@ -157,7 +187,7 @@ _create_dialog(E_Container *con, E_Config_Data *data)
    v->basic.apply_cfdata = _basic_apply;
 
    cfd = e_config_dialog_new(con, data->title, "E", data->dialog,
-			     data->icon, 0, v, data);
+                             data->icon, 0, v, data);
    return cfd;
 }
 
@@ -210,39 +240,40 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *otb, *ot;
    int mw;
 
+   e_dialog_resizable_set(cfd->dia, 1);
    otb = e_widget_toolbook_add(evas, 24, 24);
 
    if (cfdata->data->show_autostart)
      {
-	/* XDG autostart page */
-	ot = e_widget_table_add(evas, EINA_FALSE);
-	cfdata->apps_xdg.o_list = e_widget_ilist_add(evas, 24, 24, NULL);
-	e_widget_ilist_multi_select_set(cfdata->apps_xdg.o_list, EINA_TRUE);
-	e_widget_size_min_get(cfdata->apps_xdg.o_list, &mw, NULL);
-	if (mw < (200 * e_scale)) mw = (200 * e_scale);
-	e_widget_size_min_set(cfdata->apps_xdg.o_list, mw, (75 * e_scale));
-	e_widget_table_object_append(ot, cfdata->apps_xdg.o_list, 0, 0, 2, 1, 1, 1, 1, 1);
+        /* XDG autostart page */
+        ot = e_widget_table_add(evas, EINA_FALSE);
+        cfdata->apps_xdg.o_list = e_widget_ilist_add(evas, 24, 24, NULL);
+        e_widget_ilist_multi_select_set(cfdata->apps_xdg.o_list, EINA_TRUE);
+        e_widget_size_min_get(cfdata->apps_xdg.o_list, &mw, NULL);
+        if (mw < (200 * e_scale)) mw = (200 * e_scale);
+        e_widget_size_min_set(cfdata->apps_xdg.o_list, mw, (75 * e_scale));
+        e_widget_table_object_append(ot, cfdata->apps_xdg.o_list, 0, 0, 2, 1, 1, 1, 1, 1);
 
-	cfdata->apps_xdg.o_desc = e_widget_textblock_add(evas);
-	e_widget_size_min_set(cfdata->apps_xdg.o_desc, 100, (45 * e_scale));
-	e_widget_table_object_append(ot, cfdata->apps_xdg.o_desc, 0, 1, 2, 1, 1, 1, 0, 0);
+        cfdata->apps_xdg.o_desc = e_widget_textblock_add(evas);
+        e_widget_size_min_set(cfdata->apps_xdg.o_desc, 100, (45 * e_scale));
+        e_widget_table_object_append(ot, cfdata->apps_xdg.o_desc, 0, 1, 2, 1, 1, 1, 0, 0);
 
-	cfdata->apps_xdg.o_add = e_widget_button_add(evas, _("Add"), "list-add",
-						     _cb_add, &cfdata->apps_xdg, NULL);
-	e_widget_disabled_set(cfdata->apps_xdg.o_add, EINA_TRUE);
-	e_widget_table_object_append(ot, cfdata->apps_xdg.o_add, 0, 2, 1, 1, 1, 1, 1, 0);
-	cfdata->apps_xdg.o_del = e_widget_button_add(evas, _("Remove"), "list-remove",
-						     _cb_del, &cfdata->apps_xdg, NULL);
-	e_widget_disabled_set(cfdata->apps_xdg.o_del, EINA_TRUE);
-	e_widget_table_object_append(ot, cfdata->apps_xdg.o_del, 1, 2, 1, 1, 1, 1, 1, 0);
+        cfdata->apps_xdg.o_add = e_widget_button_add(evas, _("Add"), "list-add",
+                                                     _cb_add, &cfdata->apps_xdg, NULL);
+        e_widget_disabled_set(cfdata->apps_xdg.o_add, EINA_TRUE);
+        e_widget_table_object_append(ot, cfdata->apps_xdg.o_add, 0, 2, 1, 1, 1, 1, 1, 0);
+        cfdata->apps_xdg.o_del = e_widget_button_add(evas, _("Remove"), "list-remove",
+                                                     _cb_del, &cfdata->apps_xdg, NULL);
+        e_widget_disabled_set(cfdata->apps_xdg.o_del, EINA_TRUE);
+        e_widget_table_object_append(ot, cfdata->apps_xdg.o_del, 1, 2, 1, 1, 1, 1, 1, 0);
 
-	e_widget_toolbook_page_append(otb, NULL, _("System"), ot,
-				      1, 1, 1, 1, 0.5, 0.0);
+        e_widget_toolbook_page_append(otb, NULL, _("System"), ot,
+                                      1, 1, 1, 1, 0.5, 0.0);
      }
 
    /* Selection page */
@@ -254,11 +285,11 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
    e_widget_size_min_set(cfdata->apps_user.o_list, mw, (75 * e_scale));
    e_widget_table_object_append(ot, cfdata->apps_user.o_list, 0, 0, 2, 1, 1, 1, 1, 1);
    cfdata->apps_user.o_add = e_widget_button_add(evas, _("Add"), "list-add",
-						 _cb_add, &cfdata->apps_user, NULL);
+                                                 _cb_add, &cfdata->apps_user, NULL);
    e_widget_disabled_set(cfdata->apps_user.o_add, EINA_TRUE);
    e_widget_table_object_append(ot, cfdata->apps_user.o_add, 0, 1, 1, 1, 1, 1, 1, 0);
    cfdata->apps_user.o_del = e_widget_button_add(evas, _("Remove"), "list-remove",
-						 _cb_del, &cfdata->apps_user, NULL);
+                                                 _cb_del, &cfdata->apps_user, NULL);
    e_widget_disabled_set(cfdata->apps_user.o_del, EINA_TRUE);
    e_widget_table_object_append(ot, cfdata->apps_user.o_del, 1, 1, 1, 1, 1, 1, 1, 0);
    e_widget_toolbook_page_append(otb, NULL, _("Applications"), ot,
@@ -278,7 +309,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
    e_widget_disabled_set(cfdata->o_down, EINA_TRUE);
    e_widget_table_object_append(ot, cfdata->o_down, 1, 1, 1, 1, 1, 1, 1, 0);
    cfdata->o_del = e_widget_button_add(evas, _("Remove"), "list-remove",
-                                        _cb_order_del, cfdata, NULL);
+                                       _cb_order_del, cfdata, NULL);
    e_widget_disabled_set(cfdata->o_del, EINA_TRUE);
    e_widget_table_object_append(ot, cfdata->o_del, 2, 1, 1, 1, 1, 1, 1, 0);
    e_widget_toolbook_page_append(otb, NULL, _("Order"), ot,
@@ -289,7 +320,6 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
    if (cfdata->fill_delay) ecore_timer_del(cfdata->fill_delay);
    cfdata->fill_delay = ecore_timer_add(0.2, _cb_fill_delay, cfdata);
 
-   e_dialog_resizable_set(cfd->dia, 1);
    e_win_centered_set(cfd->dia->win, 1);
    return otb;
 }
@@ -315,14 +345,15 @@ _load_menu(const char *path)
    Eina_List *apps = NULL, *l;
 
    menu = efreet_menu_parse(path);
-   if ((!menu) || (!menu->entries)) return NULL;
+   if ((!menu) || (!menu->entries)) goto end;
    EINA_LIST_FOREACH(menu->entries, l, entry)
      {
         if (entry->type != EFREET_MENU_ENTRY_DESKTOP) continue;
         efreet_desktop_ref(entry->desktop);
         apps = eina_list_append(apps, entry->desktop);
      }
-   efreet_menu_free(menu);
+end:
+   if (menu) efreet_menu_free(menu);
    return apps;
 }
 
@@ -409,7 +440,7 @@ _list_items_state_set(E_Config_App_List *apps)
              end = NULL;
           }
 
-	if (!end) break;
+        if (!end) break;
 
         if (eina_list_search_unsorted(apps->cfdata->apps, _cb_desks_sort, desk))
           {
@@ -417,7 +448,7 @@ _list_items_state_set(E_Config_App_List *apps)
           }
         else
           {
-            edje_object_signal_emit(end, "e,state,unchecked", "e");
+             edje_object_signal_emit(end, "e,state,unchecked", "e");
           }
 
         icon = e_util_desktop_icon_add(desk, 24, evas);
@@ -486,19 +517,19 @@ _fill_xdg_list(E_Config_App_List *apps)
    files = ecore_file_ls(path);
    EINA_LIST_FREE(files, file)
      {
-	Eina_List *ll;
+        Eina_List *ll;
 
-	if ((file[0] == '.') || !(ext = strrchr(file, '.')) || (strcmp(ext, ".desktop")))
-	  {
-	     free(file);
-	     continue;
-	  }
-	snprintf(buf, sizeof(buf), "%s/%s", path, file);
-	free(file);
+        if ((file[0] == '.') || !(ext = strrchr(file, '.')) || (strcmp(ext, ".desktop")))
+          {
+             free(file);
+             continue;
+          }
+        snprintf(buf, sizeof(buf), "%s/%s", path, file);
+        free(file);
 
-	desk = efreet_desktop_new(buf);
-	if (!desk)
-	  continue;
+        desk = efreet_desktop_new(buf);
+        if (!desk)
+          continue;
 
         ll = eina_list_search_unsorted_list(apps->desks, _cb_desks_sort, desk);
         if (ll)
@@ -561,7 +592,7 @@ _cb_apps_list_selected(void *data)
 {
    E_Config_App_List *apps;
    const E_Ilist_Item *it;
-   Eina_List *l;
+   const Eina_List *l;
    unsigned int enabled = 0, disabled = 0;
 
    if (!(apps = data)) return;
@@ -576,13 +607,13 @@ _cb_apps_list_selected(void *data)
 
    if (apps->o_desc)
      {
-	Efreet_Desktop *desk;
-	int sel;
+        Efreet_Desktop *desk;
+        int sel;
 
-	sel = e_widget_ilist_selected_get(apps->o_list);
-	desk = eina_list_nth(apps->desks, sel);
-	if (desk)
-	  e_widget_textblock_markup_set(apps->o_desc, desk->comment);
+        sel = e_widget_ilist_selected_get(apps->o_list);
+        desk = eina_list_nth(apps->desks, sel);
+        if (desk)
+          e_widget_textblock_markup_set(apps->o_desc, desk->comment);
      }
 
    e_widget_disabled_set(apps->o_add, !disabled);
@@ -632,7 +663,7 @@ _cb_add(void *data, void *data2 __UNUSED__)
 {
    E_Config_App_List *apps;
    const E_Ilist_Item *it;
-   Eina_List *l;
+   const Eina_List *l;
 
    if (!(apps = data)) return;
    EINA_LIST_FOREACH(e_widget_ilist_items_get(apps->o_list), l, it)
@@ -662,7 +693,7 @@ _cb_del(void *data, void *data2 __UNUSED__)
 {
    E_Config_App_List *apps;
    const E_Ilist_Item *it;
-   Eina_List *l;
+   const Eina_List *l;
 
    if (!(apps = data)) return;
    EINA_LIST_FOREACH(e_widget_ilist_items_get(apps->o_list), l, it)
@@ -692,20 +723,20 @@ _cb_order_del(void *data, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
    const E_Ilist_Item *it;
-   Eina_List *l;
+   const Eina_List *l;
 
    if (!(cfdata = data)) return;
    EINA_LIST_FOREACH(e_widget_ilist_items_get(cfdata->o_list), l, it)
      {
-	Efreet_Desktop *desk;
+        Efreet_Desktop *desk;
 
         if ((!it->selected) || (it->header)) continue;
 
-	if ((desk = eina_list_search_unsorted(cfdata->apps, _cb_desks_name, it->label)))
-	  {
-	     cfdata->apps = eina_list_remove(cfdata->apps, desk);
-	     efreet_desktop_unref(desk);
-	  }
+        if ((desk = eina_list_search_unsorted(cfdata->apps, _cb_desks_name, it->label)))
+          {
+             cfdata->apps = eina_list_remove(cfdata->apps, desk);
+             efreet_desktop_unref(desk);
+          }
      }
 
    _list_items_state_set(&(cfdata->apps_xdg));
@@ -824,12 +855,13 @@ _cb_fill_delay(void *data)
 
    if (cfdata->data->show_autostart)
      {
-	_fill_xdg_list(&cfdata->apps_xdg);
-	e_widget_size_min_get(cfdata->apps_xdg.o_list, &mw, NULL);
-	if (mw < (200 * e_scale)) mw = (200 * e_scale);
-	e_widget_size_min_set(cfdata->apps_xdg.o_list, mw, (175 * e_scale));
+        _fill_xdg_list(&cfdata->apps_xdg);
+        e_widget_size_min_get(cfdata->apps_xdg.o_list, &mw, NULL);
+        if (mw < (200 * e_scale)) mw = (200 * e_scale);
+        e_widget_size_min_set(cfdata->apps_xdg.o_list, mw, (175 * e_scale));
      }
 
    cfdata->fill_delay = NULL;
    return ECORE_CALLBACK_CANCEL;
 }
+

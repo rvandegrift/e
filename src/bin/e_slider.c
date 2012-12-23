@@ -18,6 +18,7 @@ struct _E_Smart_Data
    double         val, val_min, val_max, val_range, step_size;
    int            reversed, step_count, horizontal;
    int            direction;
+   int            changing;
    const char    *format;
    Evas_Coord     minw, minh;
    Ecore_Timer   *set_timer;
@@ -253,8 +254,12 @@ _e_smart_set_timer(void *data)
    if (pos < 0.0) pos = 0.0;
    else if (pos > 1.0) pos = 1.0;
    if (sd->reversed) pos = 1.0 - pos;
-   edje_object_part_drag_value_set(sd->edje_obj, "e.dragable.slider", pos, pos);
+   sd->changing++;
+   if (sd->set_timer) ecore_timer_del(sd->set_timer);
    sd->set_timer = NULL;
+   edje_object_part_drag_value_set(sd->edje_obj, "e.dragable.slider", pos, pos);
+   edje_object_message_signal_process(sd->edje_obj);
+   sd->changing--;
    return ECORE_CALLBACK_CANCEL;
 }
 
@@ -353,6 +358,7 @@ _e_smart_signal_cb_drag(void *data, Evas_Object *obj __UNUSED__, const char *emi
    _e_smart_value_fetch(sd);
    _e_smart_value_limit(sd);
    _e_smart_format_update(sd);
+   if (sd->changing) return;
    if (sd->val != pval)
      evas_object_smart_callback_call(sd->smart_obj, "changed", NULL);
 }
@@ -366,6 +372,7 @@ _e_smart_signal_cb_drag_start(void *data, Evas_Object *obj __UNUSED__, const cha
    _e_smart_value_fetch(sd);
    _e_smart_value_limit(sd);
    _e_smart_format_update(sd);
+   if (sd->changing) return;
    if (sd->val != pval)
      evas_object_smart_callback_call(sd->smart_obj, "changed", NULL);
 }
@@ -380,6 +387,7 @@ _e_smart_signal_cb_drag_stop(void *data, Evas_Object *obj __UNUSED__, const char
    _e_smart_value_limit(sd);
    _e_smart_format_update(sd);
    _e_smart_value_update(sd);
+   if (sd->changing) return;
    if (sd->val != pval)
      evas_object_smart_callback_call(sd->smart_obj, "changed", NULL);
 }
@@ -457,7 +465,10 @@ _e_smart_event_mouse_down(void *data, Evas *e, Evas_Object *obj __UNUSED__, void
    Evas_Coord x, y, w, h;
    E_Smart_Data *sd = data;
    double pos;
+   static int in_md = 0;
 
+   if (in_md > 0) return;
+   in_md++;
    evas_object_geometry_get(sd->event, &x, &y, &w, &h);
    if (sd->horizontal)
      {
@@ -480,6 +491,7 @@ _e_smart_event_mouse_down(void *data, Evas *e, Evas_Object *obj __UNUSED__, void
    edje_object_message_signal_process(sd->edje_obj); /* really needed or go in infinite loop */
    evas_event_feed_mouse_cancel(e, 0, NULL);
    evas_event_feed_mouse_down(e, 1, EVAS_BUTTON_NONE, ev->timestamp, NULL);
+   in_md--;
 }
 
 static void
@@ -525,7 +537,7 @@ _e_smart_add(Evas_Object *obj)
    evas_object_color_set(sd->event, 0, 0, 0, 0);
    evas_object_pass_events_set(sd->event, EINA_TRUE);
    edje_object_part_swallow(sd->edje_obj, "e.swallow.bar", sd->event);
-   evas_object_smart_member_add(sd->edje_obj, sd->event);
+   evas_object_smart_member_add(sd->event, sd->edje_obj);
 
    edje_object_signal_callback_add(sd->edje_obj, "drag", "*", _e_smart_signal_cb_drag, sd);
    edje_object_signal_callback_add(sd->edje_obj, "drag,start", "*", _e_smart_signal_cb_drag_start, sd);

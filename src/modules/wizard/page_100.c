@@ -1,12 +1,12 @@
 /* Setup if we need cpufreq? */
-#include "e.h"
-#include "e_mod_main.h"
+#include "e_wizard.h"
 
 #ifdef __FreeBSD__
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
 
+#ifndef __FreeBSD__
 static char *
 read_file(const char *file)
 {
@@ -28,9 +28,10 @@ read_file(const char *file)
    fclose(f);
    return strdup(buf);
 }
-
+#endif
+/*
 EAPI int
-wizard_page_init(E_Wizard_Page *pg __UNUSED__)
+wizard_page_init(E_Wizard_Page *pg __UNUSED__, Eina_Bool *need_xdg_desktops __UNUSED__, Eina_Bool *need_xdg_icons __UNUSED__)
 {
    return 1;
 }
@@ -40,7 +41,7 @@ wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
-
+*/
 EAPI int
 wizard_page_show(E_Wizard_Page *pg __UNUSED__)
 {
@@ -48,10 +49,10 @@ wizard_page_show(E_Wizard_Page *pg __UNUSED__)
 #ifdef __FreeBSD__
    char buf[PATH_MAX];
    size_t len = 0;
-   
+
    len = sizeof(buf);
    if (sysctlbyname("dev.cpu.0.freq_levels", buf, &len, NULL, 0) == 0)
-      hav_cpufreq = 1;
+     hav_cpufreq = 1;
 #else
    char *str, *p;
 
@@ -73,14 +74,14 @@ wizard_page_show(E_Wizard_Page *pg __UNUSED__)
      {
         E_Config_Module *em;
         Eina_List *l;
-        
+
         EINA_LIST_FOREACH(e_config->modules, l, em)
           {
              if (!em->name) continue;
              if (!strcmp(em->name, "cpufreq"))
                {
                   e_config->modules = eina_list_remove_list
-                     (e_config->modules, l);
+                      (e_config->modules, l);
                   if (em->name) eina_stringshare_del(em->name);
                   free(em);
                   break;
@@ -90,7 +91,7 @@ wizard_page_show(E_Wizard_Page *pg __UNUSED__)
      }
    return 0; /* 1 == show ui, and wait for user, 0 == just continue */
 }
-
+/*
 EAPI int
 wizard_page_hide(E_Wizard_Page *pg __UNUSED__)
 {
@@ -102,3 +103,4 @@ wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
+*/

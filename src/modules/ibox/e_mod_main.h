@@ -9,7 +9,6 @@ struct _Config
    /* just config state */
    E_Module        *module;
    Eina_List       *instances;
-   E_Menu          *menu;
    Eina_List       *handlers;
    Eina_List       *items;
    Eina_List	   *config_dialog;
@@ -22,6 +21,8 @@ struct _Config_Item
    int show_zone;
    int show_desk;
    int icon_label;
+   int expand_on_desktop;
+   E_Gadcon_Client *gcc;
 };
 
 EAPI extern E_Module_Api e_modapi;

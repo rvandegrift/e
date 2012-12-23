@@ -18,6 +18,7 @@ _monitor_modes_refs_set(E_Randr_Monitor_Info *mi, Ecore_X_Randr_Output o)
    modes = ecore_x_randr_output_modes_get(e_randr_screen_info.root, o, &nmodes, &npreferred);
    while (--nmodes >= 0)
      {
+        if (!modes[nmodes]) continue;
         if (!(mode_info = _12_screen_info_mode_info_get(modes[nmodes])))
           {
              //Mode unknown to the global structure, so add it
@@ -92,6 +93,7 @@ E_Randr_Output_Info *
 _output_info_new(Ecore_X_Randr_Output output)
 {
    E_Randr_Output_Info *output_info = NULL;
+   char *str;
 
    EINA_SAFETY_ON_TRUE_RETURN_VAL(E_RANDR_12_NO, NULL);
 
@@ -112,7 +114,9 @@ _output_info_new(Ecore_X_Randr_Output output)
    output_info->compatibility_list = NULL;
    output_info->subpixel_order = Ecore_X_Randr_Unset;
 
-   output_info->name = eina_stringshare_add(ecore_x_randr_output_name_get(e_randr_screen_info.root, output_info->xid, &output_info->name_length));
+   str = ecore_x_randr_output_name_get(e_randr_screen_info.root, output_info->xid, &output_info->name_length);
+   output_info->name = eina_stringshare_add(str);
+   free(str);
    output_info->connection_status = ecore_x_randr_output_connection_status_get(e_randr_screen_info.root, output_info->xid);
 
    return output_info;
@@ -185,7 +189,7 @@ _outputs_to_array(Eina_List *outputs_info)
 Eina_List
 *_outputs_common_modes_get(Eina_List *outputs, Ecore_X_Randr_Mode_Info *max_size_mode)
 {
-   Eina_List *common_modes = NULL, *mode_iter, *output_iter;
+   Eina_List *common_modes = NULL, *mode_iter, *output_iter, *mode_next, *output_next;
    E_Randr_Output_Info *output_info;
    Ecore_X_Randr_Mode_Info *mode_info;
 
@@ -196,9 +200,9 @@ Eina_List
    common_modes = eina_list_clone(e_randr_screen_info.rrvd_info.randr_info_12->modes);
    common_modes = eina_list_sort(common_modes, 0, _modes_size_sort_cb);
 
-   EINA_LIST_FOREACH(common_modes, mode_iter, mode_info)
+   EINA_LIST_FOREACH_SAFE(common_modes, mode_iter, mode_next, mode_info)
      {
-        EINA_LIST_FOREACH(outputs, output_iter, output_info)
+        EINA_LIST_FOREACH_SAFE(outputs, output_iter, output_next, output_info)
           {
              if (!output_info || !output_info->monitor)
                continue;
@@ -210,7 +214,7 @@ Eina_List
    if (max_size_mode)
      {
         //remove all modes that are larger than max_size_mode
-        EINA_LIST_FOREACH(common_modes, mode_iter, mode_info)
+        EINA_LIST_FOREACH_SAFE(common_modes, mode_iter, mode_next, mode_info)
           {
              if (_modes_size_sort_cb((void *)max_size_mode, (void *)mode_info) < 0)
                common_modes = eina_list_remove(common_modes, mode_info);

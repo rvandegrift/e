@@ -1,5 +1,4 @@
 #include "e_illume_private.h"
-#include "e_mod_config_policy.h"
 
 /* local function prototypes */
 static void *_e_mod_illume_config_policy_create(E_Config_Dialog *cfd);
@@ -34,7 +33,6 @@ e_mod_illume_config_policy_show(E_Container *con, const char *params __UNUSED__)
    cfd = e_config_dialog_new(con, _("Policy"), "E", "illume/policy", 
                              "enlightenment/policy", 0, v, NULL);
    if (!cfd) return;
-   e_dialog_resizable_set(cfd->dia, 1);
 }
 
 /* local functions */
@@ -73,7 +71,7 @@ _e_mod_illume_config_policy_ui(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Co
      {
         EINA_LIST_FREE(policies, p) 
           {
-             e_widget_ilist_append(ow, NULL, strdup(p->api->label), 
+             e_widget_ilist_append(ow, NULL, p->api->label, 
                                    _e_mod_illume_config_policy_list_changed, NULL, 
                                    strdup(p->api->name));
 
@@ -155,7 +153,7 @@ _e_mod_illume_config_policy_policies_get(void)
              e_object_del(E_OBJECT(p));
              continue;
           }
-        if (file) free(file);
+        free(file);
         l = eina_list_append(l, p);
      }
 

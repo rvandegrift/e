@@ -31,12 +31,12 @@ struct _Config
    unsigned int btn_noplace;
    unsigned int btn_desk;
    unsigned int flip_desk;
+   unsigned int disable_live_preview;
 
    /* just config state */
    E_Module *module;
    E_Config_Dialog *config_dialog;
    Eina_List *instances, *handlers;
-   E_Menu *menu;
 };
 
 EAPI extern E_Module_Api e_modapi;

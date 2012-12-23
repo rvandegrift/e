@@ -1,6 +1,10 @@
 #include "e_mod_main.h"
 
 static int _log_dom = -1;
+#undef DBG
+#undef WARN
+#undef INF
+#undef ERR
 #define DBG(...) EINA_LOG_DOM_DBG(_log_dom, __VA_ARGS__)
 #define WARN(...) EINA_LOG_DOM_WARN(_log_dom, __VA_ARGS__)
 #define INF(...) EINA_LOG_DOM_INFO(_log_dom, __VA_ARGS__)
@@ -86,7 +90,7 @@ static DBusMessage *
 cb_desktop_lock(E_DBus_Object *obj __UNUSED__, DBusMessage *msg)
 {
    DBG("desklock requested");
-   e_desklock_show();
+   e_desklock_show(EINA_FALSE);
 
    return dbus_message_new_method_return(msg);
 }

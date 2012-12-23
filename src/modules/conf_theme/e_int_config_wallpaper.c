@@ -1,27 +1,27 @@
 #include "e.h"
 #include "e_mod_main.h"
 
-static void *_create_data(E_Config_Dialog *cfd);
-static void _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static void _fill_data(E_Config_Dialog_Data *cfdata);
-static int _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
-static int _adv_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+static void            *_create_data(E_Config_Dialog *cfd);
+static void             _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static void             _fill_data(E_Config_Dialog_Data *cfdata);
+static int              _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static Evas_Object     *_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
+static int              _adv_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
+static Evas_Object     *_adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata);
 
 static E_Config_Dialog *_e_int_config_wallpaper_desk(E_Container *con, int con_num, int zone_num, int desk_x, int desk_y);
 
-static void _cb_button_up(void *data1, void *data2);
-static void _cb_files_changed(void *data, Evas_Object *obj, void *event_info);
-static void _cb_files_selection_change(void *data, Evas_Object *obj, void *event_info);
-static void _cb_files_files_changed(void *data, Evas_Object *obj, void *event_info);
-static void _cb_files_files_deleted(void *data, Evas_Object *obj, void *event_info);
-static void _cb_theme_wallpaper(void *data, Evas_Object *obj, void *event_info);
-static void _cb_dir(void *data, Evas_Object *obj, void *event_info);
-static void _cb_import(void *data1, void *data2);
+static void             _cb_button_up(void *data1, void *data2);
+static void             _cb_files_changed(void *data, Evas_Object *obj, void *event_info);
+static void             _cb_files_selection_change(void *data, Evas_Object *obj, void *event_info);
+static void             _cb_files_files_changed(void *data, Evas_Object *obj, void *event_info);
+static void             _cb_files_files_deleted(void *data, Evas_Object *obj, void *event_info);
+static void             _cb_theme_wallpaper(void *data, Evas_Object *obj, void *event_info);
+static void             _cb_dir(void *data, Evas_Object *obj, void *event_info);
+static void             _cb_import(void *data1, void *data2);
 
-#define E_CONFIG_WALLPAPER_ALL 0
-#define E_CONFIG_WALLPAPER_DESK 1
+#define E_CONFIG_WALLPAPER_ALL    0
+#define E_CONFIG_WALLPAPER_DESK   1
 #define E_CONFIG_WALLPAPER_SCREEN 2
 
 struct _E_Config_Wallpaper
@@ -34,23 +34,21 @@ struct _E_Config_Wallpaper
 struct _E_Config_Dialog_Data
 {
    E_Config_Dialog *cfd;
-   Evas_Object *o_fm;
-   Evas_Object *o_up_button;
-   Evas_Object *o_preview;
-   Evas_Object *o_theme_bg;
-   Evas_Object *o_personal;
-   Evas_Object *o_system;
-   int fmdir, use_theme_bg;
-   char *bg;
+   Evas_Object     *o_fm;
+   Evas_Object     *o_up_button;
+   Evas_Object     *o_preview;
+   Evas_Object     *o_theme_bg;
+   Evas_Object     *o_personal;
+   Evas_Object     *o_system;
+   int              fmdir, use_theme_bg;
+   const char      *bg;
 
    /* advanced */
-   int all_this_desk_screen;
+   int              all_this_desk_screen;
 
    /* dialogs */
-   E_Win *win_import;
-#ifdef HAVE_EXCHANGE
-   E_Dialog *dia_web;
-#endif
+   E_Import_Dialog *win_import;
+   E_Import_Config_Dialog *import;
 };
 
 E_Config_Dialog *
@@ -91,7 +89,7 @@ _e_int_config_wallpaper_desk(E_Container *con, int con_num, int zone_num, int de
      cw->specific_config = 1;
    else
      {
-        v->advanced.apply_cfdata   = _adv_apply;
+        v->advanced.apply_cfdata = _adv_apply;
         v->advanced.create_widgets = _adv_create;
      }
 
@@ -115,11 +113,11 @@ _bg_set(E_Config_Dialog_Data *cfdata)
    if (cfdata->bg)
      {
         if (eina_str_has_extension(cfdata->bg, ".edj"))
-           e_widget_preview_edje_set(cfdata->o_preview, cfdata->bg,
-                                     "e/desktop/background");
+          e_widget_preview_edje_set(cfdata->o_preview, cfdata->bg,
+                                    "e/desktop/background");
         else
-           e_widget_preview_file_set(cfdata->o_preview, cfdata->bg,
-                                     NULL);
+          e_widget_preview_file_set(cfdata->o_preview, cfdata->bg,
+                                    NULL);
      }
    else
      {
@@ -131,46 +129,6 @@ _bg_set(E_Config_Dialog_Data *cfdata)
                                   "e/desktop/background");
      }
 }
-
-void
-e_int_config_wallpaper_update(E_Config_Dialog *dia, char *file)
-{
-   E_Config_Dialog_Data *cfdata;
-   char path[PATH_MAX];
-
-   cfdata = dia->cfdata;
-   cfdata->fmdir = 1;
-   e_widget_radio_toggle_set(cfdata->o_personal, 1);
-   e_user_dir_concat_static(path, "backgrounds");
-   E_FREE(cfdata->bg);
-   cfdata->bg = strdup(file);
-   cfdata->use_theme_bg = 0;
-   if (cfdata->o_theme_bg)
-     e_widget_check_checked_set(cfdata->o_theme_bg, cfdata->use_theme_bg);
-   if (cfdata->o_fm) e_widget_flist_path_set(cfdata->o_fm, path, "/");
-   _bg_set(cfdata);
-   if (cfdata->o_fm) e_widget_change(cfdata->o_fm);
-}
-
-void
-e_int_config_wallpaper_import_done(E_Config_Dialog *dia)
-{
-   E_Config_Dialog_Data *cfdata;
-
-   cfdata = dia->cfdata;
-   cfdata->win_import = NULL;
-}
-
-#ifdef HAVE_EXCHANGE
-void
-e_int_config_wallpaper_web_done(E_Config_Dialog *dia)
-{
-   E_Config_Dialog_Data *cfdata;
-
-   cfdata = dia->cfdata;
-   cfdata->dia_web = NULL;
-}
-#endif
 
 static void
 _cb_button_up(void *data1, void *data2 __UNUSED__)
@@ -199,24 +157,22 @@ _cb_files_selection_change(void *data, Evas_Object *obj __UNUSED__, void *event_
    E_Config_Dialog_Data *cfdata;
    Eina_List *selected;
    E_Fm2_Icon_Info *ici;
-   const char *realpath;
+   const char *real_path;
    char buf[PATH_MAX];
 
    cfdata = data;
    if (!cfdata->o_fm) return;
    if (!(selected = e_widget_flist_selected_list_get(cfdata->o_fm))) return;
    ici = selected->data;
-   realpath = e_widget_flist_real_path_get(cfdata->o_fm);
-   if (!strcmp(realpath, "/"))
+   real_path = e_widget_flist_real_path_get(cfdata->o_fm);
+   if (!strcmp(real_path, "/"))
      snprintf(buf, sizeof(buf), "/%s", ici->file);
    else
-     snprintf(buf, sizeof(buf), "%s/%s", realpath, ici->file);
+     snprintf(buf, sizeof(buf), "%s/%s", real_path, ici->file);
    eina_list_free(selected);
    if (ecore_file_is_dir(buf)) return;
 
-   E_FREE(cfdata->bg);
-
-   cfdata->bg = strdup(buf);
+   eina_stringshare_replace(&cfdata->bg, buf);
    _bg_set(cfdata);
    if (cfdata->o_theme_bg)
      e_widget_check_checked_set(cfdata->o_theme_bg, 0);
@@ -300,8 +256,7 @@ _cb_theme_wallpaper(void *data, Evas_Object *obj __UNUSED__, void *event_info __
      {
         f = e_theme_edje_file_get("base/theme/backgrounds",
                                   "e/desktop/background");
-        E_FREE(cfdata->bg);
-        cfdata->bg = strdup(f);
+        eina_stringshare_replace(&cfdata->bg, f);
         _bg_set(cfdata);
      }
    else
@@ -327,30 +282,45 @@ _cb_dir(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 }
 
 static void
+_cb_import_ok(const char *path, void *data)
+{
+   E_Config_Dialog_Data *cfdata;
+
+   cfdata = e_object_data_get(data);
+   cfdata->fmdir = 1;
+   e_widget_radio_toggle_set(cfdata->o_personal, cfdata->fmdir);
+   e_widget_change(cfdata->o_personal);
+   eina_stringshare_replace(&cfdata->bg, path);
+   cfdata->use_theme_bg = 0;
+   if (cfdata->o_theme_bg)
+     e_widget_check_checked_set(cfdata->o_theme_bg, cfdata->use_theme_bg);
+   _bg_set(cfdata);
+   if (cfdata->o_fm) e_widget_change(cfdata->o_fm);
+}
+
+static void
+_cb_import_del(void *data)
+{
+   E_Config_Dialog_Data *cfdata;
+   cfdata = e_object_data_get(data);
+   cfdata->win_import = NULL;
+}
+
+static void
 _cb_import(void *data1, void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
 
    cfdata = data1;
    if (cfdata->win_import)
-     e_win_raise(cfdata->win_import);
-   else
-     cfdata->win_import = e_int_config_wallpaper_fsel(cfdata->cfd);
+     {
+        e_win_raise(cfdata->win_import->dia->win);
+        return;
+     }
+   cfdata->win_import = e_import_dialog_show(cfdata->cfd->dia->win->container, NULL, NULL, (Ecore_End_Cb)_cb_import_ok, NULL);
+   e_object_data_set(E_OBJECT(cfdata->win_import), cfdata);
+   e_object_del_attach_func_set(E_OBJECT(cfdata->win_import), _cb_import_del);
 }
-
-#ifdef HAVE_EXCHANGE
-static void
-_cb_web(void *data1, void *data2 __UNUSED__)
-{
-   E_Config_Dialog_Data *cfdata;
-
-   cfdata = data1;
-   if (cfdata->dia_web)
-      e_win_raise(cfdata->dia_web->win);
-   else
-      cfdata->dia_web = e_int_config_wallpaper_web(cfdata->cfd);
-}
-#endif
 
 static void
 _fill_data(E_Config_Dialog_Data *cfdata)
@@ -362,11 +332,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    cw = cfdata->cfd->data;
    if (cw->specific_config)
      {
-        const char *bg;
-
         /* specific config passed in. set for that only */
-        bg = e_bg_file_get(cw->con_num, cw->zone_num, cw->desk_x, cw->desk_y);
-        if (bg) cfdata->bg = strdup(bg);
+        cfdata->bg = e_bg_file_get(cw->con_num, cw->zone_num, cw->desk_x, cw->desk_y);
      }
    else
      {
@@ -390,13 +357,12 @@ _fill_data(E_Config_Dialog_Data *cfdata)
                   else
                     cfdata->all_this_desk_screen = E_CONFIG_WALLPAPER_SCREEN;
                }
-             E_FREE(cfdata->bg);
-             cfdata->bg = strdup(cfbg->file);
+             eina_stringshare_replace(&cfdata->bg, cfbg->file);
           }
      }
 
    if ((!cfdata->bg) && (e_config->desktop_default_background))
-     cfdata->bg = strdup(e_config->desktop_default_background);
+     cfdata->bg = eina_stringshare_add(e_config->desktop_default_background);
 
    if (cfdata->bg)
      {
@@ -428,13 +394,8 @@ _create_data(E_Config_Dialog *cfd)
 static void
 _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 {
-   if (cfdata->win_import)
-     e_int_config_wallpaper_fsel_del(cfdata->win_import);
-#ifdef HAVE_EXCHANGE
-   if (cfdata->dia_web)
-     e_int_config_wallpaper_web_del(cfdata->dia_web);
-#endif
-   E_FREE(cfdata->bg);
+   if (cfdata->win_import) e_object_del(E_OBJECT(cfdata->win_import));
+   eina_stringshare_del(cfdata->bg);
    E_FREE(cfd->data);
    E_FREE(cfdata);
 }
@@ -442,14 +403,14 @@ _free_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 static Evas_Object *
 _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
-   Evas_Object *o, *rt, *ot;
+   Evas_Object *o, *rt, *ot, *oa;
    Evas_Object *ow;
    E_Zone *zone = NULL;
    E_Radio_Group *rg;
    char path[PATH_MAX];
-   int mw, mh, online;
+   int mw, mh;
 
-   online = ecore_file_download_protocol_available("http://");
+   e_dialog_resizable_set(cfd->dia, 1);
 
    zone = e_zone_current_get(cfd->con);
    o = e_widget_list_add(evas, 0, 1);
@@ -469,7 +430,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_table_object_append(rt, ow, 1, 0, 1, 1, 1, 1, 0, 0);
    e_widget_table_object_append(ot, rt, 0, 0, 1, 1, 0, 0, 0, 0);
 
-   ow = e_widget_button_add(evas, _("Go up a Directory"), "go-up",
+   ow = e_widget_button_add(evas, _("Go up a directory"), "go-up",
                             _cb_button_up, cfdata, NULL);
    cfdata->o_up_button = ow;
    e_widget_table_object_append(ot, ow, 0, 1, 1, 1, 0, 0, 0, 0);
@@ -480,6 +441,11 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
      e_user_dir_concat_static(path, "backgrounds");
 
    ow = e_widget_flist_add(evas);
+   {
+      E_Fm2_Config *cfg;
+      cfg = e_widget_flist_config_get(ow);
+      cfg->view.no_click_rename = 1;
+   }
    cfdata->o_fm = ow;
    evas_object_smart_callback_add(ow, "dir_changed",
                                   _cb_files_changed, cfdata);
@@ -500,30 +466,47 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
                            &cfdata->use_theme_bg);
    cfdata->o_theme_bg = ow;
    evas_object_smart_callback_add(ow, "changed", _cb_theme_wallpaper, cfdata);
-   e_widget_table_object_append(ot, ow, 0, 0, 2 + online, 1, 1, 0, 0, 0);
+   e_widget_table_object_append(ot, ow, 0, 0, 2, 1, 1, 0, 0, 0);
    ow = e_widget_button_add(evas, _("Picture..."), "folder-image",
                             _cb_import, cfdata, NULL);
    e_widget_table_object_append(ot, ow, 0, 1, 1, 1, 1, 0, 0, 0);
 
-#ifdef HAVE_EXCHANGE
-   if (online)
-     {
-        ow = e_widget_button_add(evas, _("Online..."), "network-website",
-                                 _cb_web, cfdata, NULL);
-        e_widget_table_object_append(ot, ow, 2, 1, 1, 1, 1, 0, 0, 0);
-     }
-#endif
-
    mw = 320;
    mh = (320 * zone->h) / zone->w;
+   oa = e_widget_aspect_add(evas, mw, mh);
    ow = e_widget_preview_add(evas, mw, mh);
+   evas_object_size_hint_min_set(ow, mw, mh);
    cfdata->o_preview = ow;
    _bg_set(cfdata);
+   e_widget_aspect_child_set(oa, ow);
    evas_object_show(ow);
-   e_widget_table_object_append(ot, ow, 0, 2, 2 + online, 1, 1, 1, 1, 1);
+   e_widget_table_object_append(ot, oa, 0, 2, 2, 1, 1, 1, 1, 1);
    e_widget_list_object_append(o, ot, 1, 1, 0.5);
-   e_dialog_resizable_set(cfd->dia, 0);
    return o;
+}
+
+static void
+_apply_import_ok(const char *file, E_Import_Config_Dialog *import)
+{
+   E_Config_Dialog *cfd;
+
+   cfd = e_object_data_get(E_OBJECT(import));
+   eina_stringshare_replace(&cfd->cfdata->bg, file);
+   if (cfd->view_type == E_CONFIG_DIALOG_CFDATA_TYPE_BASIC)
+     _basic_apply(cfd, cfd->cfdata);
+   else
+     _adv_apply(cfd, cfd->cfdata);
+}
+
+static void
+_apply_import_del(void *import)
+{
+   E_Config_Dialog *cfd;
+
+   cfd = e_object_data_get(import);
+   cfd->cfdata->import = NULL;
+   e_object_delfn_clear(E_OBJECT(cfd)); // get rid of idler delete function
+   e_object_unref(E_OBJECT(cfd));
 }
 
 static int
@@ -532,6 +515,15 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    E_Config_Wallpaper *cw;
 
    cw = cfd->data;
+   if (!eina_str_has_extension(cfdata->bg, ".edj"))
+     {
+        cfdata->import = e_import_config_dialog_show(NULL, cfdata->bg, (Ecore_End_Cb)_apply_import_ok, NULL);
+        e_dialog_parent_set(cfdata->import->dia, cfd->dia->win);
+        e_object_del_attach_func_set(E_OBJECT(cfdata->import), _apply_import_del);
+        e_object_data_set(E_OBJECT(cfdata->import), cfd);
+        e_object_ref(E_OBJECT(cfd));
+        return 1;
+     }
    if (cw->specific_config)
      {
         /* update a specific config */
@@ -564,14 +556,14 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 static Evas_Object *
 _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
-   Evas_Object *o, *rt, *ot;
+   Evas_Object *o, *rt, *ot, *oa;
    Evas_Object *ow, *of;
    E_Zone *zone = NULL;
    E_Radio_Group *rg;
    char path[PATH_MAX];
-   int mw, mh, online;
+   int mw, mh;
 
-   online = ecore_file_download_protocol_available("http://");
+   e_dialog_resizable_set(cfd->dia, 1);
 
    zone = e_zone_current_get(cfd->con);
    o = e_widget_list_add(evas, 0, 1);
@@ -591,7 +583,7 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_table_object_append(rt, ow, 1, 0, 1, 1, 1, 1, 0, 0);
    e_widget_table_object_append(ot, rt, 0, 0, 1, 1, 0, 0, 0, 0);
 
-   ow = e_widget_button_add(evas, _("Go up a Directory"), "go-up",
+   ow = e_widget_button_add(evas, _("Go up a directory"), "go-up",
                             _cb_button_up, cfdata, NULL);
    cfdata->o_up_button = ow;
    e_widget_table_object_append(ot, ow, 0, 1, 1, 1, 0, 0, 0, 0);
@@ -620,27 +612,21 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
                            &cfdata->use_theme_bg);
    cfdata->o_theme_bg = ow;
    evas_object_smart_callback_add(ow, "changed", _cb_theme_wallpaper, cfdata);
-   e_widget_table_object_append(ot, ow, 0, 0, 2 + online, 1, 1, 0, 0, 0);
+   e_widget_table_object_append(ot, ow, 0, 0, 2, 1, 1, 0, 0, 0);
    ow = e_widget_button_add(evas, _("Picture..."), "folder-image",
                             _cb_import, cfdata, NULL);
    e_widget_table_object_append(ot, ow, 0, 1, 1, 1, 1, 0, 0, 0);
 
-#ifdef HAVE_EXCHANGE
-   if (online)
-     {
-        ow = e_widget_button_add(evas, _("Online..."), "network-website",
-                                 _cb_web, cfdata, NULL);
-        e_widget_table_object_append(ot, ow, 2, 1, 1, 1, 1, 0, 0, 0);
-     }
-#endif
-
    mw = 320;
    mh = (320 * zone->h) / zone->w;
+   oa = e_widget_aspect_add(evas, mw, mh);
    ow = e_widget_preview_add(evas, mw, mh);
-   evas_object_size_hint_aspect_set(ow, EVAS_ASPECT_CONTROL_BOTH, zone->w, zone->h); 
+   evas_object_size_hint_min_set(ow, mw, mh);
+   evas_object_size_hint_aspect_set(ow, EVAS_ASPECT_CONTROL_BOTH, zone->w, zone->h);
    cfdata->o_preview = ow;
    _bg_set(cfdata);
-   e_widget_table_object_append(ot, ow, 0, 2, 2 + online, 1, 1, 1, 1, 1);
+   e_widget_aspect_child_set(oa, ow);
+   e_widget_table_object_append(ot, oa, 0, 2, 2, 1, 1, 1, 1, 1);
 
    rg = e_widget_radio_group_new(&(cfdata->all_this_desk_screen));
    of = e_widget_frametable_add(evas, _("Where to place the Wallpaper"), 0);
@@ -653,11 +639,10 @@ _adv_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
          (e_util_container_zone_number_get(1, 0))))
      e_widget_disabled_set(ow, 1);
    e_widget_frametable_object_append(of, ow, 0, 2, 1, 1, 1, 0, 1, 0);
-   e_widget_table_object_append(ot, of, 0, 3, 2 + online, 1, 1, 0, 1, 0);
+   e_widget_table_object_append(ot, of, 0, 3, 2, 1, 1, 0, 1, 0);
 
    e_widget_list_object_append(o, ot, 1, 1, 0.0);
-   e_dialog_resizable_set(cfd->dia, 0);
-   
+
    return o;
 }
 
@@ -729,3 +714,4 @@ _adv_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
    e_config_save_queue();
    return 1;
 }
+

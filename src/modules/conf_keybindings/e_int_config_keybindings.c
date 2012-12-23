@@ -8,60 +8,57 @@
 #define TEXT_NO_MODIFIER_HEADER _("Single key")
 
 static void        *_create_data(E_Config_Dialog *cfd);
-static void         _free_data(E_Config_Dialog      *cfd,
+static void         _free_data(E_Config_Dialog *cfd,
                                E_Config_Dialog_Data *cfdata);
-static int          _basic_apply_data(E_Config_Dialog      *cfd,
+static int          _basic_apply_data(E_Config_Dialog *cfd,
                                       E_Config_Dialog_Data *cfdata);
-static Evas_Object *_basic_create_widgets(E_Config_Dialog      *cfd,
-                                          Evas                 *evas,
+static Evas_Object *_basic_create_widgets(E_Config_Dialog *cfd,
+                                          Evas *evas,
                                           E_Config_Dialog_Data *cfdata);
 
 /********* private functions ***************/
-static void _fill_actions_list(E_Config_Dialog_Data *cfdata);
+static void         _fill_actions_list(E_Config_Dialog_Data *cfdata);
 
 /**************** Updates ***********/
-static int  _update_key_binding_list(E_Config_Dialog_Data *cfdata,
-                                     E_Config_Binding_Key *bi);
-static void _update_action_list(E_Config_Dialog_Data *cfdata);
-static void _update_action_params(E_Config_Dialog_Data *cfdata);
-static void _update_buttons(E_Config_Dialog_Data *cfdata);
+static int          _update_key_binding_list(E_Config_Dialog_Data *cfdata,
+                                             E_Config_Binding_Key *bi);
+static void         _update_action_list(E_Config_Dialog_Data *cfdata);
+static void         _update_action_params(E_Config_Dialog_Data *cfdata);
+static void         _update_buttons(E_Config_Dialog_Data *cfdata);
 
 /**************** Callbacks *********/
-static void _binding_change_cb(void *data);
-static void _action_change_cb(void *data);
-static void _delete_all_key_binding_cb(void *data,
-                                       void *data2);
-static void _delete_key_binding_cb(void *data,
-                                   void *data2);
-static void _restore_key_binding_defaults_cb(void *data,
-                                             void *data2);
-static void _add_key_binding_cb(void *data,
-                                void *data2);
-static void _modify_key_binding_cb(void *data,
-                                   void *data2);
+static void         _binding_change_cb(void *data);
+static void         _action_change_cb(void *data);
+static void         _delete_all_key_binding_cb(void *data,
+                                               void *data2);
+static void         _delete_key_binding_cb(void *data,
+                                           void *data2);
+static void         _restore_key_binding_defaults_cb(void *data,
+                                                     void *data2);
+static void         _add_key_binding_cb(void *data,
+                                        void *data2);
+static void         _modify_key_binding_cb(void *data,
+                                           void *data2);
 
 /********* Helper *************************/
-static char *_key_binding_header_get(int modifiers);
-static char *_key_binding_text_get(E_Config_Binding_Key *bi);
-static void  _auto_apply_changes(E_Config_Dialog_Data *cfdata);
-static void  _find_key_binding_action(const char *action,
-                                      const char *params,
-                                      int        *g,
-                                      int        *a,
-                                      int        *n);
+static char        *_key_binding_header_get(int modifiers);
+static char        *_key_binding_text_get(E_Config_Binding_Key *bi);
+static void         _auto_apply_changes(E_Config_Dialog_Data *cfdata);
+static void         _find_key_binding_action(const char *action,
+                                             const char *params,
+                                             int *g,
+                                             int *a,
+                                             int *n);
 
 /********* Sorting ************************/
-static int _key_binding_sort_cb(const void *d1,
-                                const void *d2);
+static int       _key_binding_sort_cb(const void *d1,
+                                      const void *d2);
 
 /**************** grab window *******/
 static void      _grab_wnd_show(E_Config_Dialog_Data *cfdata);
 static Eina_Bool _grab_key_down_cb(void *data,
-                                   int   type,
+                                   int type,
                                    void *event);
-static Eina_Bool _grab_mouse_dumb_cb(void *data,
-                                     int   type,
-                                     void *event);
 
 struct _E_Config_Dialog_Data
 {
@@ -75,10 +72,9 @@ struct _E_Config_Dialog_Data
       const char    *binding, *action, *cur;
       char          *params;
       int            cur_act, add;
+      Eina_Bool     changed : 1;
 
-      E_Dialog      *dia;
-      Ecore_X_Window bind_win;
-      Eina_List     *handlers;
+      E_Grab_Dialog *eg;
    } locals;
    struct
    {
@@ -93,7 +89,7 @@ struct _E_Config_Dialog_Data
 
 E_Config_Dialog *
 e_int_config_keybindings(E_Container *con,
-                         const char  *params)
+                         const char *params)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -130,9 +126,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    cfdata->locals.params = strdup("");
    cfdata->locals.cur = NULL;
    cfdata->binding.key = NULL;
-   cfdata->locals.bind_win = 0;
-   cfdata->locals.handlers = NULL;
-   cfdata->locals.dia = NULL;
+   cfdata->locals.eg = NULL;
 
    EINA_LIST_FOREACH(e_config->key_bindings, l, bi)
      {
@@ -157,6 +151,7 @@ _create_data(E_Config_Dialog *cfd)
 
    cfdata = E_NEW(E_Config_Dialog_Data, 1);
    cfdata->cfd = cfd;
+   cfdata->locals.cur_act = -1;
    _fill_data(cfdata);
 
    return cfdata;
@@ -180,8 +175,8 @@ _free_data(E_Config_Dialog *cfd  __UNUSED__,
    eina_stringshare_del(cfdata->locals.binding);
    eina_stringshare_del(cfdata->locals.action);
 
-   if (cfdata->locals.params) free(cfdata->locals.params);
-   if (cfdata->params) free(cfdata->params);
+   free(cfdata->locals.params);
+   free(cfdata->params);
    E_FREE(cfdata);
 }
 
@@ -232,8 +227,8 @@ _basic_apply_data(E_Config_Dialog *cfd  __UNUSED__,
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog      *cfd,
-                      Evas                 *evas,
+_basic_create_widgets(E_Config_Dialog *cfd,
+                      Evas *evas,
                       E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *ot, *of, *ob;
@@ -246,18 +241,18 @@ _basic_create_widgets(E_Config_Dialog      *cfd,
    cfdata->gui.o_binding_list = ob;
    e_widget_size_min_set(ob, 200, 200);
    e_widget_frametable_object_append(of, ob, 0, 0, 2, 1, 1, 1, 1, 1);
-   ob = e_widget_button_add(evas, _("Add Binding"), "list-add", _add_key_binding_cb, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Add"), "list-add", _add_key_binding_cb, cfdata, NULL);
    cfdata->gui.o_add = ob;
    e_widget_frametable_object_append(of, ob, 0, 1, 1, 1, 1, 0, 1, 0);
-   ob = e_widget_button_add(evas, _("Delete Binding"), "list-remove", _delete_key_binding_cb, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Delete"), "list-remove", _delete_key_binding_cb, cfdata, NULL);
    cfdata->gui.o_del = ob;
    e_widget_disabled_set(ob, 1);
    e_widget_frametable_object_append(of, ob, 1, 1, 1, 1, 1, 0, 1, 0);
-   ob = e_widget_button_add(evas, _("Modify Binding"), NULL, _modify_key_binding_cb, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Modify"), NULL, _modify_key_binding_cb, cfdata, NULL);
    cfdata->gui.o_mod = ob;
    e_widget_disabled_set(ob, 1);
    e_widget_frametable_object_append(of, ob, 0, 2, 1, 1, 1, 0, 1, 0);
-   ob = e_widget_button_add(evas, _("Delete All"), NULL, _delete_all_key_binding_cb, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Delete All"), "edit-clear", _delete_all_key_binding_cb, cfdata, NULL);
    cfdata->gui.o_del_all = ob;
    e_widget_disabled_set(ob, 1);
    e_widget_frametable_object_append(of, ob, 1, 2, 1, 1, 1, 0, 1, 0);
@@ -328,7 +323,7 @@ _fill_actions_list(E_Config_Dialog_Data *cfdata)
 /**************** Callbacks *********/
 
 static void
-_add_key_binding_cb(void       *data,
+_add_key_binding_cb(void *data,
                     void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
@@ -342,7 +337,7 @@ _add_key_binding_cb(void       *data,
 }
 
 static void
-_modify_key_binding_cb(void       *data,
+_modify_key_binding_cb(void *data,
                        void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
@@ -362,13 +357,15 @@ _binding_change_cb(void *data)
 
    cfdata = data;
 
-   _auto_apply_changes(cfdata);
+   if (cfdata->locals.changed) _auto_apply_changes(cfdata);
    eina_stringshare_del(cfdata->locals.cur);
    cfdata->locals.cur = NULL;
+   cfdata->locals.cur_act = -1;
 
+   cfdata->locals.changed = 0;
    if ((!cfdata->locals.binding) || (!cfdata->locals.binding[0])) return;
 
-   cfdata->locals.cur = eina_stringshare_add(cfdata->locals.binding);
+   cfdata->locals.cur = eina_stringshare_ref(cfdata->locals.binding);
 
    _update_buttons(cfdata);
    _update_action_list(cfdata);
@@ -381,10 +378,12 @@ _action_change_cb(void *data)
 
    cfdata = data;
    _update_action_params(cfdata);
+   cfdata->locals.cur_act = e_widget_ilist_selected_get(cfdata->gui.o_action_list);
+   cfdata->locals.changed = 1;
 }
 
 static void
-_delete_all_key_binding_cb(void       *data,
+_delete_all_key_binding_cb(void *data,
                            void *data2 __UNUSED__)
 {
    E_Config_Binding_Key *bi;
@@ -414,7 +413,7 @@ _delete_all_key_binding_cb(void       *data,
 }
 
 static void
-_delete_key_binding_cb(void       *data,
+_delete_key_binding_cb(void *data,
                        void *data2 __UNUSED__)
 {
    Eina_List *l = NULL;
@@ -461,13 +460,13 @@ _delete_key_binding_cb(void       *data,
      }
    else
      {
-	e_widget_ilist_selected_set(cfdata->gui.o_binding_list, sel);
-	e_widget_ilist_nth_show(cfdata->gui.o_binding_list, sel, 0);
+        e_widget_ilist_selected_set(cfdata->gui.o_binding_list, sel);
+        e_widget_ilist_nth_show(cfdata->gui.o_binding_list, sel, 0);
      }
 }
 
 static void
-_restore_key_binding_defaults_cb(void       *data,
+_restore_key_binding_defaults_cb(void *data,
                                  void *data2 __UNUSED__)
 {
    E_Config_Dialog_Data *cfdata;
@@ -523,6 +522,9 @@ _restore_key_binding_defaults_cb(void       *data,
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "s",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
                     "window_sticky_toggle", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "f",
+                    E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
+                    "window_fullscreen_toggle", NULL);
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "i",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
                     "window_iconic_toggle", NULL);
@@ -535,6 +537,12 @@ _restore_key_binding_defaults_cb(void       *data,
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "F10",
                     E_BINDING_MODIFIER_CTRL, 0,
                     "window_maximized_toggle", "default horizontal");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Left",
+                    E_BINDING_MODIFIER_WIN, 0,
+                    "window_maximized_toggle", "default left");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Right",
+                    E_BINDING_MODIFIER_WIN, 0,
+                    "window_maximized_toggle", "default right");
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "r",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
                     "window_shaded_toggle", NULL);
@@ -597,7 +605,7 @@ _restore_key_binding_defaults_cb(void       *data,
                     "menu_show", "favorites");
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Insert",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
-                    "exec", "Eterm");
+                    "exec", "terminology");
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Tab",
                     E_BINDING_MODIFIER_ALT, 0,
                     "winlist", "next");
@@ -609,7 +617,7 @@ _restore_key_binding_defaults_cb(void       *data,
                     "restart", NULL);
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Delete",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
-                    "logout", NULL);
+                    "syscon", NULL);
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Escape",
                     E_BINDING_MODIFIER_ALT, 0,
                     "everything", NULL);
@@ -619,12 +627,6 @@ _restore_key_binding_defaults_cb(void       *data,
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "d",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_ALT, 0,
                     "desk_deskshow_toggle", NULL);
-   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Left",
-                    E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_SHIFT, 0,
-                    "screen_send_by", "-1");
-   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Right",
-                    E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_SHIFT, 0,
-                    "screen_send_by", "1");
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "F1",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_SHIFT, 0,
                     "screen_send_to", "0");
@@ -637,6 +639,54 @@ _restore_key_binding_defaults_cb(void       *data,
    CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "F4",
                     E_BINDING_MODIFIER_CTRL | E_BINDING_MODIFIER_SHIFT, 0,
                     "screen_send_to", "3");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86AudioLowerVolume",
+                    0, 0,
+                    "volume_decrease", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86AudioRaiseVolume",
+                    0, 0,
+                    "volume_increase", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86AudioMute",
+                    0, 0,
+                    "volume_mute", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Print",
+                    0, 0,
+                    "shot", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86Standby",
+                    0, 0,
+                    "suspend", "now");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86Start",
+                    0, 0,
+                    "menu_show", "all");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86PowerDown",
+                    0, 0,
+                    "hibernate", "now");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86PowerOff",
+                    0, 0,
+                    "halt", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86Sleep",
+                    0, 0,
+                    "suspend", "now");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86Suspend",
+                    0, 0,
+                    "suspend", "now");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86Hibernate",
+                    0, 0,
+                    "hibernate", "now");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "Execute",
+                    0, 0,
+                    "everything", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86MonBrightnessUp",
+                    0, 0,
+                    "backlight_adjust", "0.1");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86MonBrightnessDown",
+                    0, 0,
+                    "backlight_adjust", "-0.1");
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86LightBulb",
+                    0, 0,
+                    "backlight", NULL);
+   CFG_KEYBIND_DFLT(E_BINDING_CONTEXT_ANY, "XF86BrightnessAdjust",
+                    0, 0,
+                    "backlight", NULL);
 
    eina_stringshare_del(cfdata->locals.cur);
    cfdata->locals.cur = NULL;
@@ -680,7 +730,7 @@ _update_action_list(E_Config_Dialog_Data *cfdata)
 
    if (j >= 0)
      {
-	cnt = e_widget_ilist_count(cfdata->gui.o_action_list);
+        cnt = e_widget_ilist_count(cfdata->gui.o_action_list);
         for (i = 0; i < cnt; i++)
           {
              if (i > j) break;
@@ -735,7 +785,7 @@ _update_action_list(E_Config_Dialog_Data *cfdata)
         else
           {
              e_widget_ilist_unselect(cfdata->gui.o_action_list);
-             if (cfdata->locals.action) free(cfdata->locals.action);
+             free(cfdata->locals.action);
              cfdata->locals.action = strdup("");
              e_widget_entry_clear(cfdata->gui.o_params);
           }
@@ -811,9 +861,9 @@ _update_action_params(E_Config_Dialog_Data *cfdata)
 
    if (action)
      {
-        if (!strcmp(action, actd->act_cmd))
+        if (!e_util_strcmp(action, actd->act_cmd))
           {
-             if ((!params) || (!params[0]))
+             if ((cfdata->locals.cur_act >= 0) && (cfdata->locals.cur_act != e_widget_ilist_selected_get(cfdata->gui.o_action_list)))
                KB_EXAMPLE_PARAMS;
              else
                e_widget_entry_text_set(cfdata->gui.o_params, params);
@@ -954,68 +1004,29 @@ _key_binding_sort_cb(const void *d1,
 }
 
 /**************** grab window *******/
+
+static void
+_grab_wnd_hide(void *data)
+{
+   E_Config_Dialog_Data *cfdata;
+
+   cfdata = e_object_data_get(data);
+   cfdata->locals.eg = NULL;
+}
+
 static void
 _grab_wnd_show(E_Config_Dialog_Data *cfdata)
 {
-   E_Manager *man;
-
-   if (cfdata->locals.bind_win != 0) return;
-
-   man = e_manager_current_get();
-
-   cfdata->locals.dia = e_dialog_new(e_container_current_get(man),
-                                     "E", "_keybind_getkey_dialog");
-   if (!cfdata->locals.dia) return;
-   e_dialog_title_set(cfdata->locals.dia, _("Key Binding Sequence"));
-   e_dialog_icon_set(cfdata->locals.dia, "preferences-desktop-keyboard-shortcuts", 48);
-   e_dialog_text_set(cfdata->locals.dia, TEXT_PRESS_KEY_SEQUENCE);
-   e_win_centered_set(cfdata->locals.dia->win, 1);
-   e_win_borderless_set(cfdata->locals.dia->win, 1);
-
-   cfdata->locals.bind_win = ecore_x_window_input_new(man->root, 0, 0, 1, 1);
-   ecore_x_window_show(cfdata->locals.bind_win);
-   e_grabinput_get(cfdata->locals.bind_win, 0, cfdata->locals.bind_win);
-
-   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
-                                              ecore_event_handler_add(ECORE_EVENT_KEY_DOWN,
-                                                                      _grab_key_down_cb, cfdata));
-
-   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
-                                              ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_DOWN,
-                                                                      _grab_mouse_dumb_cb, NULL));
-
-   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
-                                              ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP,
-                                                                      _grab_mouse_dumb_cb, NULL));
-
-   cfdata->locals.handlers = eina_list_append(cfdata->locals.handlers,
-                                              ecore_event_handler_add(ECORE_EVENT_MOUSE_WHEEL,
-                                                                      _grab_mouse_dumb_cb, NULL));
-
-   e_dialog_show(cfdata->locals.dia);
-   ecore_x_icccm_transient_for_set(cfdata->locals.dia->win->evas_win, cfdata->cfd->dia->win->evas_win);
-}
-
-static void
-_grab_wnd_hide(E_Config_Dialog_Data *cfdata)
-{
-   Ecore_Event_Handler *eh;
-
-   EINA_LIST_FREE(cfdata->locals.handlers, eh)
-     ecore_event_handler_del(eh);
-
-   e_object_del(E_OBJECT(cfdata->locals.dia));
-   cfdata->locals.dia = NULL;
-
-   e_grabinput_release(cfdata->locals.bind_win, cfdata->locals.bind_win);
-   ecore_x_window_free(cfdata->locals.bind_win);
-   cfdata->locals.bind_win = 0;
+   if (cfdata->locals.eg) return;
+   cfdata->locals.eg = e_grab_dialog_show(cfdata->cfd->dia->win, EINA_FALSE, _grab_key_down_cb, NULL, NULL, cfdata);
+   e_object_data_set(E_OBJECT(cfdata->locals.eg), cfdata);
+   e_object_del_attach_func_set(E_OBJECT(cfdata->locals.eg), _grab_wnd_hide);
 }
 
 static Eina_Bool
-_grab_key_down_cb(void          *data,
+_grab_key_down_cb(void *data,
                   __UNUSED__ int type,
-                  void          *event)
+                  void *event)
 {
    E_Config_Dialog_Data *cfdata;
    Ecore_Event_Key *ev;
@@ -1023,189 +1034,161 @@ _grab_key_down_cb(void          *data,
    ev = event;
    cfdata = data;
 
-   if (ev->window != cfdata->locals.bind_win) return ECORE_CALLBACK_PASS_ON;
-
-   if (!strcmp(ev->keyname, "Escape") &&
-       !(ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT) &&
-       !(ev->modifiers & ECORE_EVENT_MODIFIER_CTRL) &&
-       !(ev->modifiers & ECORE_EVENT_MODIFIER_ALT) &&
-       !(ev->modifiers & ECORE_EVENT_MODIFIER_WIN))
+   if ((ev->keyname) && (ev->key) && (ev->compose))
+     printf("'%s' '%s' '%s'\n", ev->keyname, ev->key, ev->compose);
+   else if ((ev->keyname) && (ev->key))
+     printf("'%s' '%s'\n", ev->keyname, ev->key);
+   else
+     printf("unknown key!!!!\n");
+   if (!e_util_strcmp(ev->keyname, "Control_L") || !e_util_strcmp(ev->keyname, "Control_R") ||
+       !e_util_strcmp(ev->keyname, "Shift_L") || !e_util_strcmp(ev->keyname, "Shift_R") ||
+       !e_util_strcmp(ev->keyname, "Alt_L") || !e_util_strcmp(ev->keyname, "Alt_R") ||
+       !e_util_strcmp(ev->keyname, "Super_L") || !e_util_strcmp(ev->keyname, "Super_R"))
      {
-        _grab_wnd_hide(cfdata);
+        /* Do nothing */
      }
    else
      {
-        if ((ev->keyname) && (ev->key) && (ev->compose))
-          printf("'%s' '%s' '%s'\n", ev->keyname, ev->key, ev->compose);
-        else if ((ev->keyname) && (ev->key))
-          printf("'%s' '%s'\n", ev->keyname, ev->key);
-        else
-          printf("unknown key!!!!\n");
-        if (!strcmp(ev->keyname, "Control_L") || !strcmp(ev->keyname, "Control_R") ||
-            !strcmp(ev->keyname, "Shift_L") || !strcmp(ev->keyname, "Shift_R") ||
-            !strcmp(ev->keyname, "Alt_L") || !strcmp(ev->keyname, "Alt_R") ||
-            !strcmp(ev->keyname, "Super_L") || !strcmp(ev->keyname, "Super_R"))
-          {
-             /* Do nothing */
-          }
-        else
-          {
-             E_Config_Binding_Key *bi = NULL, *bi2 = NULL;
-             Eina_List *l = NULL;
-             unsigned int mod = E_BINDING_MODIFIER_NONE;
-             int found = 0, n;
+        E_Config_Binding_Key *bi = NULL;
+        const Eina_List *l = NULL;
+        unsigned int mod = E_BINDING_MODIFIER_NONE;
+        unsigned int n, found = 0;
 
-             if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT)
-               mod |= E_BINDING_MODIFIER_SHIFT;
-             if (ev->modifiers & ECORE_EVENT_MODIFIER_CTRL)
-               mod |= E_BINDING_MODIFIER_CTRL;
-             if (ev->modifiers & ECORE_EVENT_MODIFIER_ALT)
-               mod |= E_BINDING_MODIFIER_ALT;
-             if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN)
-               mod |= E_BINDING_MODIFIER_WIN;
-             /* see comment in e_bindings on numlock
-                if (ev->modifiers & ECORE_X_LOCK_NUM)
-                mod |= ECORE_X_LOCK_NUM;
-              */
+        if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT)
+          mod |= E_BINDING_MODIFIER_SHIFT;
+        if (ev->modifiers & ECORE_EVENT_MODIFIER_CTRL)
+          mod |= E_BINDING_MODIFIER_CTRL;
+        if (ev->modifiers & ECORE_EVENT_MODIFIER_ALT)
+          mod |= E_BINDING_MODIFIER_ALT;
+        if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN)
+          mod |= E_BINDING_MODIFIER_WIN;
+
+        if (cfdata->locals.add)
+          found = !!e_util_binding_match(cfdata->binding.key, ev, &n, NULL);
+        else if (cfdata->locals.cur && cfdata->locals.cur[0])
+          {
+             sscanf(cfdata->locals.cur, "k%d", &n);
+             bi = eina_list_nth(cfdata->binding.key, n);
+             found = !!e_util_binding_match(cfdata->binding.key, ev, &n, bi);
+          }
+
+        if (!found)
+          {
              if (cfdata->locals.add)
                {
-                  found = 0;
-                  for (l = cfdata->binding.key, n = 0; l && !found; l = l->next, n++)
+                  bi = E_NEW(E_Config_Binding_Key, 1);
+
+                  bi->context = E_BINDING_CONTEXT_ANY;
+                  bi->modifiers = mod;
+                  bi->key = eina_stringshare_add(ev->keyname);
+                  bi->action = NULL;
+                  bi->params = NULL;
+                  bi->any_mod = 0;
+
+                  cfdata->binding.key = eina_list_append(cfdata->binding.key, bi);
+
+                  n = _update_key_binding_list(cfdata, bi);
+
+                  e_widget_ilist_selected_set(cfdata->gui.o_binding_list, n);
+                  e_widget_ilist_nth_show(cfdata->gui.o_binding_list, n, 0);
+                  e_widget_ilist_unselect(cfdata->gui.o_action_list);
+                  eina_stringshare_del(cfdata->locals.action);
+                  cfdata->locals.action = eina_stringshare_add("");
+                  if ((cfdata->params) && (cfdata->params[0]))
                     {
-                       bi = l->data;
-                       if (bi->modifiers == mod && !strcmp(bi->key, ev->keyname))
-                         found = 1;
+                       int j, g = -1;
+                       _find_key_binding_action("exec", NULL, &g, NULL, &j);
+                       if (j >= 0)
+                         {
+                            e_widget_ilist_unselect(cfdata->gui.o_action_list);
+                            e_widget_ilist_selected_set(cfdata->gui.o_action_list, (j + g + 1));
+                            e_widget_entry_clear(cfdata->gui.o_params);
+                            e_widget_entry_text_set(cfdata->gui.o_params, cfdata->params);
+                         }
+                    }
+                  else
+                    {
+                       e_widget_entry_clear(cfdata->gui.o_params);
+                       e_widget_disabled_set(cfdata->gui.o_params, 1);
                     }
                }
              else if (cfdata->locals.cur && cfdata->locals.cur[0])
                {
-                  found = 0;
+                  char *label;
+                  E_Ilist_Item *it;
+                  unsigned int i = 0;
+
                   sscanf(cfdata->locals.cur, "k%d", &n);
                   bi = eina_list_nth(cfdata->binding.key, n);
 
-                  for (l = cfdata->binding.key, n = 0; l && !found; l = l->next, n++)
-                    {
-                       bi2 = l->data;
-                       if (bi == bi2) continue;
-                       if (bi2->modifiers == mod && !strcmp(bi2->key, ev->keyname))
-                         found = 1;
-                    }
-               }
-               
-             if (!found)
-               {
-                  if (cfdata->locals.add)
-                    {
-                       bi = E_NEW(E_Config_Binding_Key, 1);
+                  bi->modifiers = mod;
+                  if (bi->key) eina_stringshare_del(bi->key);
+                  bi->key = eina_stringshare_add(ev->keyname);
+                  printf("blub\n");
 
-                       bi->context = E_BINDING_CONTEXT_ANY;
-                       bi->modifiers = mod;
-                       bi->key = eina_stringshare_add(ev->keyname);
-                       bi->action = NULL;
-                       bi->params = NULL;
-                       bi->any_mod = 0;
+                  label = _key_binding_text_get(bi);
 
-                       cfdata->binding.key = eina_list_append(cfdata->binding.key, bi);
-
-                       n = _update_key_binding_list(cfdata, bi);
-
-                       e_widget_ilist_selected_set(cfdata->gui.o_binding_list, n);
-                       e_widget_ilist_unselect(cfdata->gui.o_action_list);
-                       eina_stringshare_del(cfdata->locals.action);
-                       cfdata->locals.action = eina_stringshare_add("");
-                       if ((cfdata->params) && (cfdata->params[0]))
-                         {
-                            int j, g = -1;
-                            _find_key_binding_action("exec", NULL, &g, NULL, &j);
-                            if (j >= 0)
-                              {
-                                 e_widget_ilist_unselect(cfdata->gui.o_action_list);
-                                 e_widget_ilist_selected_set(cfdata->gui.o_action_list, (j + g + 1));
-                                 e_widget_entry_clear(cfdata->gui.o_params);
-                                 e_widget_entry_text_set(cfdata->gui.o_params, cfdata->params);
-                              }
-                         }
-                       else 
-                         {
-                            e_widget_entry_clear(cfdata->gui.o_params);
-                            e_widget_disabled_set(cfdata->gui.o_params, 1);
-                         }
-                    }
-                  else if (cfdata->locals.cur && cfdata->locals.cur[0])
-                    {
-                       char *label;
-                       sscanf(cfdata->locals.cur, "k%d", &n);
-                       bi = eina_list_nth(cfdata->binding.key, n);
-
-                       bi->modifiers = mod;
-                       if (bi->key) eina_stringshare_del(bi->key);
-                       bi->key = eina_stringshare_add(ev->keyname);
-                       printf("blub\n");
-
-                       label = _key_binding_text_get(bi);
-                       e_widget_ilist_nth_label_set(cfdata->gui.o_binding_list, n, label);
-                       free(label);
-                    }
-               }
-             else
-               {
-                  int i = 0;
-                  E_Ilist_Item *it;
-#if 0
-     /* this advice is rather irritating as one sees that the
-        key is bound to an action. if you want to set a
-        keybinding you dont care about whether there is
-        sth else set to it. */
-                  int g, a, j;
-                  const char *label = NULL;
-                  E_Action_Group *actg = NULL;
-                  E_Action_Description *actd = NULL;
-
-                  if (cfdata->locals.add)
-                    _find_key_binding_action(bi->action, bi->params, &g, &a, &j);
-                  else
-                    _find_key_binding_action(bi2->action, bi2->params, &g, &a, &j);
-
-                  actg = eina_list_nth(e_action_groups_get(), g);
-                  if (actg) actd = eina_list_nth(actg->acts, a);
-
-                  if (actd) label = _(actd->act_name);
-
-                  e_util_dialog_show(_("Binding Key Error"),
-                                     _("The binding key sequence, that you choose,"
-                                       " is already used by <br>"
-                                       "<hilight>%s</hilight> action.<br>"
-                                       "Please choose another binding key sequence."),
-                                     label ? label : _("Unknown"));
-#endif
                   EINA_LIST_FOREACH(e_widget_ilist_items_get(cfdata->gui.o_binding_list), l, it)
                     {
-                       if (i++ >= n) break;
                        if (it->header) n++;
+                       if (i++ >= n) break;
                     }
 
-                  e_widget_ilist_nth_show(cfdata->gui.o_binding_list, n - 1, 1);
-                  e_widget_ilist_selected_set(cfdata->gui.o_binding_list, n - 1);
+                  e_widget_ilist_nth_label_set(cfdata->gui.o_binding_list, n, label);
+                  free(label);
                }
-             _grab_wnd_hide(cfdata);
           }
+        else
+          {
+             unsigned int i = 0;
+             E_Ilist_Item *it;
+#if 0
+             /* this advice is rather irritating as one sees that the
+                key is bound to an action. if you want to set a
+                keybinding you dont care about whether there is
+                sth else set to it. */
+             int g, a, j;
+             const char *label = NULL;
+             E_Action_Group *actg = NULL;
+             E_Action_Description *actd = NULL;
+
+             if (cfdata->locals.add)
+               _find_key_binding_action(bi->action, bi->params, &g, &a, &j);
+             else
+               _find_key_binding_action(bi2->action, bi2->params, &g, &a, &j);
+
+             actg = eina_list_nth(e_action_groups_get(), g);
+             if (actg) actd = eina_list_nth(actg->acts, a);
+
+             if (actd) label = _(actd->act_name);
+
+             e_util_dialog_show(_("Binding Key Error"),
+                                _("The binding key sequence, that you choose,"
+                                  " is already used by <br>"
+                                  "<hilight>%s</hilight> action.<br>"
+                                  "Please choose another binding key sequence."),
+                                label ? label : _("Unknown"));
+#endif
+             EINA_LIST_FOREACH(e_widget_ilist_items_get(cfdata->gui.o_binding_list), l, it)
+               {
+                  if (it->header) n++;
+                  if (i++ >= n) break;
+               }
+
+             e_widget_ilist_nth_show(cfdata->gui.o_binding_list, n - 1, 1);
+             e_widget_ilist_selected_set(cfdata->gui.o_binding_list, n - 1);
+          }
+        e_object_del(E_OBJECT(cfdata->locals.eg));
      }
    return ECORE_CALLBACK_PASS_ON;
 }
 
-static Eina_Bool
-_grab_mouse_dumb_cb(__UNUSED__ void *data,
-                    __UNUSED__ int   type,
-                    __UNUSED__ void *event)
-{
-   return ECORE_CALLBACK_RENEW;
-}
 
 /********** Helper *********************************/
 static void
 _auto_apply_changes(E_Config_Dialog_Data *cfdata)
 {
-   int n, g, a, ok;
+   int n, g, a, ok = 0;
    E_Config_Binding_Key *bi;
    E_Action_Group *actg;
    E_Action_Description *actd;
@@ -1224,41 +1207,29 @@ _auto_apply_changes(E_Config_Dialog_Data *cfdata)
    actd = eina_list_nth(actg->acts, a);
    if (!actd) return;
 
-   eina_stringshare_del(bi->action);
-   bi->action = NULL;
-
-   if (actd->act_cmd) bi->action = eina_stringshare_add(actd->act_cmd);
-
-   eina_stringshare_del(bi->params);
-   bi->params = NULL;
-
-   if (actd->act_params)
-     bi->params = eina_stringshare_add(actd->act_params);
-   else
+   eina_stringshare_replace(&bi->action, actd->act_cmd);
+   eina_stringshare_replace(&bi->params, actd->act_params);
+   if (bi->params) return;
+   if (cfdata->locals.params)
      {
         ok = 1;
-        if (cfdata->locals.params)
-          {
-             if (!strcmp(cfdata->locals.params, TEXT_NO_PARAMS))
-               ok = 0;
-
-             if ((actd->param_example) && (!strcmp(cfdata->locals.params, actd->param_example)))
-               ok = 0;
-          }
-        else
+        if (!e_util_strcmp(cfdata->locals.params, TEXT_NO_PARAMS))
           ok = 0;
 
-        if (ok)
-          bi->params = eina_stringshare_add(cfdata->locals.params);
+        else if ((actd->param_example) && (!e_util_strcmp(cfdata->locals.params, actd->param_example)))
+          ok = 0;
      }
+
+   if (ok)
+     bi->params = eina_stringshare_add(cfdata->locals.params);
 }
 
 static void
 _find_key_binding_action(const char *action,
                          const char *params,
-                         int        *g,
-                         int        *a,
-                         int        *n)
+                         int *g,
+                         int *a,
+                         int *n)
 {
    Eina_List *l, *l2;
    int gg = -1, aa = -1, nn = -1, found;
@@ -1277,7 +1248,7 @@ _find_key_binding_action(const char *action,
         for (l2 = actg->acts, aa = 0; l2; l2 = l2->next, aa++)
           {
              actd = l2->data;
-             if (!strcmp((!action ? "" : action), (!actd->act_cmd ? "" : actd->act_cmd)))
+             if (!e_util_strcmp((!action ? "" : action), (!actd->act_cmd ? "" : actd->act_cmd)))
                {
                   if (!params || !params[0])
                     {
@@ -1302,7 +1273,7 @@ _find_key_binding_action(const char *action,
                          }
                        else
                          {
-                            if (!strcmp(params, actd->act_params))
+                            if (!e_util_strcmp(params, actd->act_params))
                               {
                                  if (g) *g = gg;
                                  if (a) *a = aa;

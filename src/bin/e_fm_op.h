@@ -42,6 +42,7 @@ typedef enum _E_Fm_Op_Type
    E_FM_OP_UNMOUNT_DONE,
    E_FM_OP_QUIT,
    E_FM_OP_SYMLINK,
+   E_FM_OP_RENAME,
    E_FM_OP_OK,
    E_FM_OP_ERROR_RETRY_ABORT,
    E_FM_OP_REORDER,
@@ -49,7 +50,10 @@ typedef enum _E_Fm_Op_Type
    E_FM_OP_UNMOUNT_ERROR,
    E_FM_OP_EJECT,
    E_FM_OP_EJECT_DONE,
-   E_FM_OP_EJECT_ERROR
+   E_FM_OP_EJECT_ERROR,
+   E_FM_OP_SECURE_REMOVE,
+   E_FM_OP_DESTROY,
+   E_FM_OP_VOLUME_LIST_DONE
 } E_Fm_Op_Type;
 
 #else

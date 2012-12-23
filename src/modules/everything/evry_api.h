@@ -3,7 +3,7 @@
 
 #include "evry_types.h"
 
-#define EVRY_API_VERSION     30
+#define EVRY_API_VERSION     31
 
 #define EVRY_ACTION_OTHER    0
 #define EVRY_ACTION_FINISHED 1
@@ -120,8 +120,6 @@ struct _Evry_API
   int  (*history_item_usage_set)(Evry_Item *it, const char *input, const char *ctxt);
 
   Ecore_Event_Handler *(*event_handler_add)(int type, Eina_Bool (*func) (void *data, int type, void *event), const void *data);
-
-  int log_dom;
 };
 
 struct _Evry_Event_Item_Changed
@@ -224,9 +222,9 @@ struct _Evry_Event_Action_Performed
 
 /* call free on all items provided by plugin instance '_p' */
 #define EVRY_PLUGIN_ITEMS_FREE(_p) {				\
-     Evry_Item *it;						\
-     EINA_LIST_FREE(EVRY_PLUGIN(_p)->items, it)			\
-       evry->item_free(it); }
+     Evry_Item *_it;						\
+     EINA_LIST_FREE(EVRY_PLUGIN(_p)->items, _it)		\
+       evry->item_free(_it); }
 
 /* append '_item' to list of items provided by plugin instance '_p' */
 #define EVRY_PLUGIN_ITEM_APPEND(_p, _item)                              \
@@ -252,12 +250,12 @@ struct _Evry_Event_Action_Performed
 
 #define EVRY_PLUGIN_MIN_QUERY(_p, _input)				\
   if (!(EVRY_PLUGIN(_p)->config->min_query) ||				\
-      (_input && (strlen(_input) >= EVRY_PLUGIN(_p)->config->min_query)))
+      (_input && ((int) strlen(_input) >= EVRY_PLUGIN(_p)->config->min_query)))
 
 #define EVRY_PLUGIN_ITEMS_CLEAR(_p) {				\
-     Evry_Item *it;						\
-     EINA_LIST_FREE(EVRY_PLUGIN(_p)->items, it)			\
-       if (it) it->fuzzy_match = 0; }
+     Evry_Item *_it;						\
+     EINA_LIST_FREE(EVRY_PLUGIN(_p)->items, _it)		\
+       if (_it) _it->fuzzy_match = 0; }
 
 #define EVRY_PLUGIN_HAS_ITEMS(_p) !!(EVRY_PLUGIN(_p)->items)
 
@@ -273,9 +271,9 @@ struct _Evry_Event_Action_Performed
      _module = E_NEW(Evry_Module, 1);				\
      _module->init     = &_init;				\
      _module->shutdown = &_shutdown;				\
-     Eina_List *l = e_datastore_get("evry_modules");		\
-     l = eina_list_append(l, _module);				\
-     e_datastore_set("evry_modules", l);			\
+     Eina_List *_l = e_datastore_get("evry_modules");		\
+     _l = eina_list_append(_l, _module);			\
+     e_datastore_set("evry_modules", _l);			\
      if ((_evry = e_datastore_get("evry_api")))			\
        _module->active = _init(_evry);				\
   }
@@ -284,9 +282,9 @@ struct _Evry_Event_Action_Performed
   {							\
      if (_module->active) _module->shutdown();		\
      _module->active = EINA_FALSE;			\
-     Eina_List *l = e_datastore_get("evry_modules");	\
-     l = eina_list_remove(l, _module);			\
-     if (l) e_datastore_set("evry_modules", l);		\
+     Eina_List *_l = e_datastore_get("evry_modules");	\
+     _l = eina_list_remove(_l, _module);		\
+     if (_l) e_datastore_set("evry_modules", _l);	\
      else e_datastore_del("evry_modules");		\
      E_FREE(_module);					\
   }
@@ -302,20 +300,5 @@ struct _Evry_Event_Action_Performed
      (x) = NULL;						\
   } while (0)
 
-
-
-#ifndef EINA_LOG_DEFAULT_COLOR
-#define EINA_LOG_DEFAULT_COLOR EINA_COLOR_CYAN
-#endif
-
-#undef DBG
-#undef INF
-#undef WRN
-#undef ERR
-
-#define DBG(...) EINA_LOG_DOM_DBG(evry->log_dom , __VA_ARGS__)
-#define INF(...) EINA_LOG_DOM_INFO(evry->log_dom , __VA_ARGS__)
-#define WRN(...) EINA_LOG_DOM_WARN(evry->log_dom , __VA_ARGS__)
-#define ERR(...) EINA_LOG_DOM_ERR(evry->log_dom , __VA_ARGS__)
 
 #endif

@@ -28,9 +28,6 @@ typedef enum _E_Randr_Configuration_Store_Modifier
          | E_RANDR_CONFIGURATION_STORE_ORIENTATIONS)
 } E_Randr_Configuration_Store_Modifier;
 
-EAPI void e_randr_store_configuration(E_Randr_Configuration_Store_Modifier modifier);
-EAPI void e_randr_11_store_configuration(E_Randr_Configuration_Store_Modifier modifier);
-
 #else
 #ifndef E_RANDR_H
 #define E_RANDR_H
@@ -93,13 +90,13 @@ struct _E_Randr_Output_Info
 
 struct _E_Randr_Screen_Info_11
 {
-   //List of Ecore_X_Randr_Screen_Size_MM*
-   Eina_List *sizes;
+   Ecore_X_Randr_Screen_Size_MM *sizes;
+   int nsizes;
    int csize_index;
    Ecore_X_Randr_Orientation corientation;
    Ecore_X_Randr_Orientation orientations;
-   //List of Ecore_X_Randr_Refresh_Rate*
-   Eina_List *rates;
+   Ecore_X_Randr_Refresh_Rate **rates;
+   int *nrates; // size is nsizes
    Ecore_X_Randr_Refresh_Rate current_rate;
 };
 
@@ -181,15 +178,21 @@ struct _E_Randr_Serialized_Setup
    Eina_List *outputs_policies;
 };
 
-EINTERN Eina_Bool e_randr_init(void);
 EAPI Eina_Bool e_randr_screen_info_refresh(void);
+EAPI void e_randr_store_configuration(E_Randr_Configuration_Store_Modifier modifier);
+EAPI void e_randr_11_store_configuration(E_Randr_Configuration_Store_Modifier modifier);
+EAPI Eina_Bool e_randr_try_restore_configuration(void);
+
+EINTERN Eina_Bool e_randr_init(void);
 EINTERN int e_randr_shutdown(void);
-EINTERN Eina_Bool e_randr_try_restore_configuration(void);
 EINTERN E_Randr_Serialized_Setup *e_randr_serialized_setup_new(void);
 EINTERN void e_randr_serialized_setup_free(E_Randr_Serialized_Setup *ss);
 EINTERN void e_randr_11_serialized_setup_free(E_Randr_Serialized_Setup_11 *ss_11);
 EINTERN void e_randr_12_serialized_setup_free(E_Randr_Serialized_Setup_12 *ss_12);
 EINTERN void e_randr_12_serialized_output_policy_free(E_Randr_Serialized_Output_Policy *policy);
+
+EINTERN Eina_Bool e_randr_12_try_enable_output(E_Randr_Output_Info *output_info, Ecore_X_Randr_Output_Policy policy, Eina_Bool force);
+EINTERN void e_randr_12_ask_dialog_new(E_Randr_Output_Info *oi);
 
 EAPI extern E_Randr_Screen_Info e_randr_screen_info;
 

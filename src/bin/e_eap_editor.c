@@ -3,35 +3,35 @@
 struct _E_Config_Dialog_Data
 {
    Efreet_Desktop *desktop;
-   int type; /* desktop type */
+   int             type; /* desktop type */
 
-   char *name; /* app name (e.g. Firefox) */
-   char *generic_name; /* generic app name (e.g. Web Browser) */
-   char *comment; /* a longer description */
-   char *exec; /* command to execute */
-   char *try_exec; /* executable to test for an apps existence */
-   char *url; /* url to open */
+   char           *name; /* app name (e.g. Firefox) */
+   char           *generic_name; /* generic app name (e.g. Web Browser) */
+   char           *comment; /* a longer description */
+   char           *exec; /* command to execute */
+   char           *try_exec; /* executable to test for an apps existence */
+   char           *url; /* url to open */
 
-   char *startup_wm_class; /* window class */
-   char *categories; /* list of category names that app is in */
-   char *mimes; /* list of mimes this app can handle */
-   char *icon;  /* absolute path to file or icon name */
+   char           *startup_wm_class; /* window class */
+   char           *categories; /* list of category names that app is in */
+   char           *mimes; /* list of mimes this app can handle */
+   char           *icon; /* absolute path to file or icon name */
 
-   int startup_notify;
-   int terminal;
-   int show_in_menus;
+   int             startup_notify;
+   int             terminal;
+   int             show_in_menus;
 
    E_Desktop_Edit *editor;
 
-   char *orig_path; /* informational only */
-   Evas_Object *orig_path_entry; /* to set when info changes */
-   Evas_Object *icon_entry; /* to set when icon changes */
+   char           *orig_path; /* informational only */
+   Evas_Object    *orig_path_entry; /* to set when info changes */
+   Evas_Object    *icon_entry; /* to set when icon changes */
 
    /* speed up check_changed tests */
-   Eina_Bool changed_categories;
-   Eina_Bool changed_mimes;
-   Eina_Bool edited_categories;
-   Eina_Bool edited_mimes;
+   Eina_Bool       changed_categories;
+   Eina_Bool       changed_mimes;
+   Eina_Bool       edited_categories;
+   Eina_Bool       edited_mimes;
 };
 
 /* local subsystem functions */
@@ -56,10 +56,12 @@ static void         _e_desktop_editor_exec_update(E_Config_Dialog_Data *cfdata);
 static void         _e_desktop_edit_select_cb(void *data, Evas_Object *obj);
 static void         _e_desktop_editor_icon_entry_changed(void *data, Evas_Object *obj);
 
-#define IFADD(src, dst) if (src) dst = eina_stringshare_add(src); else dst = NULL
-#define IFDEL(src) if (src) eina_stringshare_del(src);  src = NULL;
-#define IFDUP(src, dst) if (src) dst = strdup(src); else dst = NULL
-#define IFFREE(src) if (src) free(src);  src = NULL;
+#define IFADD(src, dst) if (src) dst = eina_stringshare_add(src); else \
+    dst = NULL
+#define IFDEL(src)      if (src) eina_stringshare_del(src); src = NULL;
+#define IFDUP(src, dst) if (src) dst = strdup(src); else \
+    dst = NULL
+#define IFFREE(src)     if (src) free(src); src = NULL;
 
 /* externally accessible functions */
 
@@ -76,7 +78,7 @@ e_desktop_border_create(E_Border *bd)
    bclass = bd->client.icccm.class;
    if ((bclass) && (bclass[0] == 0)) bclass = NULL;
    btitle = e_border_name_get(bd);
-   
+
    desktop_dir = e_user_desktop_dir_get();
 
    if ((!desktop_dir) || (!e_util_dir_check(desktop_dir))) return NULL;
@@ -84,64 +86,69 @@ e_desktop_border_create(E_Border *bd)
    icon_dir = e_user_icon_dir_get();
    if ((!icon_dir) || (!e_util_dir_check(icon_dir))) return NULL;
 
-   if (bname) 
+   if (bname)
      {
-	snprintf(path, sizeof(path), "%s/%s.desktop", desktop_dir, bname);
-	desktop = efreet_desktop_empty_new(path);
+        snprintf(path, sizeof(path), "%s/%s.desktop", desktop_dir, bname);
+        desktop = efreet_desktop_empty_new(path);
      }
    else
      {
         int i;
-	
-	for (i = 1; i < 65536; i++)
-	  {
-	     snprintf(path, sizeof(path), "%s/_new_app-%i.desktop",
-		      desktop_dir, i);
-	     if (!ecore_file_exists(path))
-	       {
-		  desktop = efreet_desktop_empty_new(path);
-		  break;
-	       }
-	  }
-	if (!desktop)
-	  {
-	     snprintf(path, sizeof(path), "%s/_rename_me-%i.desktop",
-		      desktop_dir, (int)ecore_time_get());
-	     desktop = efreet_desktop_empty_new(NULL);
-	  }
+
+        for (i = 1; i < 65536; i++)
+          {
+             snprintf(path, sizeof(path), "%s/_new_app-%i.desktop",
+                      desktop_dir, i);
+             if (!ecore_file_exists(path))
+               {
+                  desktop = efreet_desktop_empty_new(path);
+                  break;
+               }
+          }
+        if (!desktop)
+          {
+             snprintf(path, sizeof(path), "%s/_rename_me-%i.desktop",
+                      desktop_dir, (int)ecore_time_get());
+             desktop = efreet_desktop_empty_new(NULL);
+          }
      }
 
    if (!desktop)
      {
-	//XXX out of memory?
-	return NULL;
+        //XXX out of memory?
+        return NULL;
      }
    if (bclass) desktop->name = strdup(bclass);
-   else if (bname) desktop->name = strdup(bname);
-   else if (btitle) desktop->name = strdup(btitle);
-   
+   else if (bname)
+     desktop->name = strdup(bname);
+   else if (btitle)
+     desktop->name = strdup(btitle);
+
    if (btitle) desktop->comment = strdup(btitle);
-   
+
    if (bclass) desktop->startup_wm_class = strdup(bclass);
    if (bd->client.icccm.command.argc > 0)
      // FIXME this should concat the entire argv array together
      desktop->exec = strdup(bd->client.icccm.command.argv[0]);
    else if (bname)
-     desktop->exec = strdup(bname); 
+     desktop->exec = strdup(bname);
 
-// disable this   
+// disable this
 //   if (bd->client.netwm.startup_id > 0) desktop->startup_notify = 1;
    if (bd->client.netwm.icons)
      {
-	/* FIXME
-	 * - Find the icon with the best size
-	 * - Should use mkstemp
-	 */
-	snprintf(path, sizeof(path), "%s/%s-%.6f.png", icon_dir, bname, ecore_time_get());
-	if (e_util_icon_save(&(bd->client.netwm.icons[0]), path))
-	  desktop->icon = strdup(path);
-	else
-	  fprintf(stderr, "Could not save file from ARGB: %s\n", path);
+        /* FIXME
+         * - Find the icon with the best size
+         * - Should use mkstemp
+         */
+        char file[PATH_MAX];
+
+        snprintf(file, sizeof(file), "%s-%.6f.png", bname, ecore_time_get());
+        snprintf(path, sizeof(path), "%s/%s", icon_dir, file);
+        if (e_util_icon_save(&(bd->client.netwm.icons[0]), path))
+          desktop->icon = strdup(file);
+        else
+          fprintf(stderr, "Could not save file from ARGB: %s\n", path);
      }
    return desktop;
 }
@@ -162,34 +169,32 @@ e_desktop_border_edit(E_Container *con, E_Border *bd)
       it with values from the border */
    if (!editor->desktop)
      {
-	editor->desktop = e_desktop_border_create(bd);
-	if ((editor->desktop) && (editor->desktop->icon))
-	  editor->tmp_image_path = strdup(editor->desktop->icon);
-	new_desktop = 1;
+        editor->desktop = e_desktop_border_create(bd);
+        if ((editor->desktop) && (editor->desktop->icon))
+          editor->tmp_image_path = strdup(editor->desktop->icon);
+        new_desktop = 1;
      }
 
 #if 0
    if ((!bname) && (!bclass))
      {
-	e_util_dialog_show(_("Incomplete Window Properties"),
-			   _("The window you are creating an icon for<br>"
-			     "does not contain window name and class<br>"
-			     "properties, so the needed properties for<br>"
-			     "the icon so that it will be used for this<br>"
-			     "window cannot be guessed. You will need to<br>"
-			     "use the window title instead. This will only<br>"
-			     "work if the window title is the same at<br>"
-			     "the time the window starts up, and does not<br>"
-			     "change."));
+        e_util_dialog_show(_("Incomplete Window Properties"),
+                           _("The window you are creating an icon for<br>"
+                             "does not contain window name and class<br>"
+                             "properties. Without these, you will have to<br>"
+                             "use the window title instead. This will only<br>"
+                             "work if the window title is the same at<br>"
+                             "the time the window starts up, and does not<br>"
+                             "change."));
      }
-#endif 
+#endif
    if (!_e_desktop_edit_view_create(editor, con))
      {
-	e_object_del(E_OBJECT(editor));
-	editor = NULL;
+        e_object_del(E_OBJECT(editor));
+        editor = NULL;
      }
-   else 
-	e_config_dialog_changed_set(editor->cfd, new_desktop);
+   else
+     e_config_dialog_changed_set(editor->cfd, new_desktop);
 
    return editor;
 }
@@ -205,8 +210,8 @@ e_desktop_edit(E_Container *con, Efreet_Desktop *desktop)
    if (desktop) editor->desktop = desktop;
    if (!_e_desktop_edit_view_create(editor, con))
      {
-	e_object_del(E_OBJECT(editor));
-	editor = NULL;
+        e_object_del(E_OBJECT(editor));
+        editor = NULL;
      }
    return editor;
 }
@@ -220,23 +225,23 @@ _e_desktop_edit_view_create(E_Desktop_Edit *editor, E_Container *con)
    if (!v) return 0;
 
    /* view methods */
-   v->create_cfdata           = _e_desktop_edit_create_data;
-   v->free_cfdata             = _e_desktop_edit_free_data;
-   v->basic.apply_cfdata      = _e_desktop_edit_basic_apply_data;
-   v->basic.create_widgets    = _e_desktop_edit_basic_create_widgets;
-   v->basic.check_changed     = _e_desktop_edit_basic_check_changed;
+   v->create_cfdata = _e_desktop_edit_create_data;
+   v->free_cfdata = _e_desktop_edit_free_data;
+   v->basic.apply_cfdata = _e_desktop_edit_basic_apply_data;
+   v->basic.create_widgets = _e_desktop_edit_basic_create_widgets;
+   v->basic.check_changed = _e_desktop_edit_basic_check_changed;
 
-   editor->cfd = 
-     e_config_dialog_new(con, _("Desktop Entry Editor"), "E", 
-			 "applications/new_application",
-			 "preferences-applications", 0, v, editor);
-   
+   editor->cfd =
+     e_config_dialog_new(con, _("Desktop Entry Editor"), "E",
+                         "applications/new_application",
+                         "preferences-applications", 0, v, editor);
+
    if (!editor->cfd)
      {
-	E_FREE(v);
-	return 0;
+        E_FREE(v);
+        return 0;
      }
-   
+
    return 1;
 }
 
@@ -253,63 +258,64 @@ _e_desktop_edit_free(E_Desktop_Edit *editor)
 }
 
 /**
- * Populates the config dialog's data from the .desktop file passed in 
+ * Populates the config dialog's data from the .desktop file passed in
  */
 static void *
 _e_desktop_edit_create_data(E_Config_Dialog *cfd)
 {
    E_Config_Dialog_Data *cfdata;
-   Efreet_Desktop *desktop = NULL; 
+   Efreet_Desktop *desktop = NULL;
    char path[PATH_MAX];
 
    cfdata = E_NEW(E_Config_Dialog_Data, 1);
    if (!cfdata) return NULL;
+   cfd->dia->win->state.no_reopen = EINA_TRUE;
    cfdata->editor = cfd->data;
 
-   /* 
+   /*
     * If we can't write to the file on it's current location,
     * we always save to the user's applications dir.
     * If the file is already there, then edit it directly. Otherwise, create
-    * a new empty desktop entry there. 
+    * a new empty desktop entry there.
     *
     * cfdata->editor->desktop is the the desktop passed in
     * cfdata->desktop is the desktop to save
     * desktop is the desktop to load
     */
    path[0] = '\0';
-   if (cfdata->editor->desktop) 
+   if (cfdata->editor->desktop)
      {
-	char dir[PATH_MAX];
-	const char *file;
+        char dir[PATH_MAX];
+        const char *file;
 
-	if (ecore_file_can_write (cfdata->editor->desktop->orig_path))
-	  cfdata->desktop = efreet_desktop_uncached_new(cfdata->editor->desktop->orig_path);
-	else
-	  {
-	     snprintf(dir, sizeof(dir), "%s/applications", efreet_data_home_get());
-	     if (!strncmp(dir, cfdata->editor->desktop->orig_path, strlen(dir)))
-	       cfdata->desktop = efreet_desktop_uncached_new(cfdata->editor->desktop->orig_path);
-	     else
-	       {
-	          /* file not in user's dir, so create new desktop that points there */
-	          if (!ecore_file_exists(dir)) ecore_file_mkdir(dir);
-	          file = ecore_file_file_get(cfdata->editor->desktop->orig_path);
-	          snprintf(path, sizeof(path), "%s/%s", dir, file);
-	          /*
-	           * if a file already exists in the user dir with this name, we
-	           * fetch the pointer to it, so the caches stay consistent (this
-	           * probably will never return non null, since the ui shouldn't
-	           * provide a means to edit a file in a system dir when one 
-	           * exists in the user's
-	           */
-	          cfdata->desktop = efreet_desktop_uncached_new(path);
-	       }
-	  }
-	desktop = cfdata->editor->desktop;
+        if (ecore_file_can_write(cfdata->editor->desktop->orig_path))
+          cfdata->desktop = efreet_desktop_uncached_new(cfdata->editor->desktop->orig_path);
+        else
+          {
+             snprintf(dir, sizeof(dir), "%s/applications", efreet_data_home_get());
+             if (!strncmp(dir, cfdata->editor->desktop->orig_path, strlen(dir)))
+               cfdata->desktop = efreet_desktop_uncached_new(cfdata->editor->desktop->orig_path);
+             else
+               {
+                  /* file not in user's dir, so create new desktop that points there */
+                  if (!ecore_file_exists(dir)) ecore_file_mkdir(dir);
+                  file = ecore_file_file_get(cfdata->editor->desktop->orig_path);
+                  snprintf(path, sizeof(path), "%s/%s", dir, file);
+                  /*
+                   * if a file already exists in the user dir with this name, we
+                   * fetch the pointer to it, so the caches stay consistent (this
+                   * probably will never return non null, since the ui shouldn't
+                   * provide a means to edit a file in a system dir when one
+                   * exists in the user's
+                   */
+                  cfdata->desktop = efreet_desktop_uncached_new(path);
+               }
+          }
+        desktop = cfdata->editor->desktop;
      }
 
    if (!cfdata->desktop)
-	cfdata->desktop = efreet_desktop_empty_new(path);
+     cfdata->desktop = efreet_desktop_empty_new(path);
 
    if (!desktop) desktop = cfdata->desktop;
 
@@ -326,7 +332,7 @@ _e_desktop_edit_create_data(E_Config_Dialog *cfd)
      cfdata->categories = efreet_desktop_string_list_join(desktop->categories);
    if (desktop->mime_types)
      cfdata->mimes = efreet_desktop_string_list_join(desktop->mime_types);
-   
+
    IFDUP(desktop->icon, cfdata->icon);
 
    cfdata->startup_notify = desktop->startup_notify;
@@ -347,14 +353,14 @@ _e_desktop_edit_create_data(E_Config_Dialog *cfd)
 static void
 _e_desktop_edit_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
-   if (cfdata->editor->tmp_image_path) 
+   if (cfdata->editor->tmp_image_path)
      {
-	if ((!cfdata->desktop) || (!cfdata->editor->saved) || 
-	    (!cfdata->desktop->icon) ||
-	    (strcmp(cfdata->editor->tmp_image_path, cfdata->desktop->icon)))
-	  {
-	     ecore_file_unlink(cfdata->editor->tmp_image_path);
-	  }
+        if ((!cfdata->desktop) || (!cfdata->editor->saved) ||
+            (!cfdata->desktop->icon) ||
+            (strcmp(cfdata->editor->tmp_image_path, cfdata->desktop->icon)))
+          {
+             ecore_file_unlink(cfdata->editor->tmp_image_path);
+          }
      }
    if (cfdata->desktop) efreet_desktop_free(cfdata->desktop);
 
@@ -370,7 +376,7 @@ _e_desktop_edit_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data 
    IFFREE(cfdata->mimes);
    IFFREE(cfdata->orig_path);
 
-   if (cfdata->editor->icon_fsel_dia) 
+   if (cfdata->editor->icon_fsel_dia)
      e_object_del(E_OBJECT(cfdata->editor->icon_fsel_dia));
 
    e_object_del(E_OBJECT(cfdata->editor));
@@ -380,7 +386,7 @@ _e_desktop_edit_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data 
 static void
 _e_desktop_edit_user_local_desktop_filename_generate(E_Config_Dialog_Data *cfdata, char *path)
 {
-   char basename[PATH_MAX];
+   char buf[PATH_MAX];
    const char *name;
    unsigned int i;
    int prefix;
@@ -388,32 +394,32 @@ _e_desktop_edit_user_local_desktop_filename_generate(E_Config_Dialog_Data *cfdat
    if ((cfdata->name) && (cfdata->name[0]))
      name = cfdata->name;
    else if ((cfdata->desktop) && (cfdata->desktop->name) &&
-	    (cfdata->desktop->name[0]))
+            (cfdata->desktop->name[0]))
      name = cfdata->name;
    else
      name = NULL;
 
    if (name)
      {
-	const char *s = name;
-	for (i = 0; i < sizeof(basename) && s[i]; i++)
-	  {
-	     if (isalnum(s[i]))
-	       basename[i] = s[i];
-	     else
-	       basename[i] = '_';
-	  }
-	basename[i] = '\0';
+        const char *s = name;
+        for (i = 0; i < sizeof(buf) - 1 && s[i]; i++)
+          {
+             if (isalnum(s[i]))
+               buf[i] = s[i];
+             else
+               buf[i] = '_';
+          }
+        buf[i] = '\0';
      }
    else
-     eina_strlcpy(basename, "unnamed_desktop", sizeof(basename));
+     eina_strlcpy(buf, "unnamed_desktop", sizeof(buf));
 
    i = snprintf(path, PATH_MAX, "%s/applications/%s.desktop",
-		efreet_data_home_get(), basename);
+                efreet_data_home_get(), buf);
    if (i >= PATH_MAX)
      {
-	path[0] = '\0';
-	return;
+        path[0] = '\0';
+        return;
      }
    prefix = i - (sizeof(".desktop") - 1);
 
@@ -431,8 +437,8 @@ _e_desktop_edit_update_orig_path(E_Config_Dialog_Data *cfdata)
      orig_path = cfdata->desktop->orig_path;
    else
      {
-	_e_desktop_edit_user_local_desktop_filename_generate(cfdata, path);
-	orig_path = cfdata->orig_path = strdup(path);
+        _e_desktop_edit_user_local_desktop_filename_generate(cfdata, path);
+        orig_path = cfdata->orig_path = strdup(path);
      }
 
    if (cfdata->orig_path_entry)
@@ -454,16 +460,17 @@ _e_desktop_edit_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialo
 
    switch (cfdata->type)
      {
-        case 1:
-          IFFREE(cfdata->desktop->url);
-          IFDUP(cfdata->url, cfdata->desktop->url);
-          break;
-        default:
-          IFFREE(cfdata->desktop->exec);
-          IFDUP(cfdata->exec, cfdata->desktop->exec);
-          IFFREE(cfdata->desktop->try_exec);
-          IFDUP(cfdata->try_exec, cfdata->desktop->try_exec);
-          break;
+      case 1:
+        IFFREE(cfdata->desktop->url);
+        IFDUP(cfdata->url, cfdata->desktop->url);
+        break;
+
+      default:
+        IFFREE(cfdata->desktop->exec);
+        IFDUP(cfdata->exec, cfdata->desktop->exec);
+        IFFREE(cfdata->desktop->try_exec);
+        IFDUP(cfdata->try_exec, cfdata->desktop->try_exec);
+        break;
      }
 
    IFFREE(cfdata->desktop->generic_name);
@@ -490,9 +497,9 @@ _e_desktop_edit_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialo
      cfdata->editor->saved = efreet_desktop_save(cfdata->desktop);
    else
      {
-	_e_desktop_edit_update_orig_path(cfdata);
-	cfdata->editor->saved = efreet_desktop_save_as
-	  (cfdata->desktop, cfdata->orig_path);
+        _e_desktop_edit_update_orig_path(cfdata);
+        cfdata->editor->saved = efreet_desktop_save_as
+            (cfdata->desktop, cfdata->orig_path);
      }
    return 1;
 }
@@ -507,21 +514,21 @@ _e_desktop_edit_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Di
        (cfdata->show_in_menus != !cfdata->desktop->no_display))
      return 1;
 
-#define CHECK(k)						\
-   do								\
-     {								\
-	const char *__k;					\
-	if (cfdata->desktop->k)					\
-	  __k = cfdata->desktop->k;				\
-	else if ((cfdata->editor) && (cfdata->editor->desktop))	\
-	  __k = cfdata->editor->desktop->k;			\
-	else							\
-	  __k = NULL;						\
-	if ((cfdata->k && !__k) || (!cfdata->k && __k) ||	\
-	    (cfdata->k && __k && strcmp(cfdata->k, __k) != 0))	\
-	  return 1;						\
-     }								\
-   while (0)
+#define CHECK(k)                                               \
+  do                                                           \
+    {                                                          \
+       const char *__k;                                        \
+       if (cfdata->desktop->k)                                 \
+         __k = cfdata->desktop->k;                             \
+       else if ((cfdata->editor) && (cfdata->editor->desktop)) \
+         __k = cfdata->editor->desktop->k;                     \
+       else                                                    \
+         __k = NULL;                                           \
+       if ((cfdata->k && !__k) || (!cfdata->k && __k) ||       \
+           (cfdata->k && __k && strcmp(cfdata->k, __k) != 0))  \
+         return 1;                                             \
+    }                                                          \
+  while (0)
 
    CHECK(name);
    CHECK(exec);
@@ -537,90 +544,89 @@ _e_desktop_edit_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Di
 
    if (cfdata->edited_categories)
      {
-	const char *str;
-	Eina_List *lst, *old_lst;
+        const char *str;
+        Eina_List *lst, *old_lst;
 
-	cfdata->edited_categories = EINA_FALSE;
-	cfdata->changed_categories = EINA_FALSE;
+        cfdata->edited_categories = EINA_FALSE;
+        cfdata->changed_categories = EINA_FALSE;
 
-	if (cfdata->desktop->categories)
-	  old_lst = cfdata->desktop->categories;
-	else if ((cfdata->editor) && (cfdata->editor->desktop))
-	  old_lst = cfdata->editor->desktop->categories;
-	else
-	  old_lst = NULL;
+        if (cfdata->desktop->categories)
+          old_lst = cfdata->desktop->categories;
+        else if ((cfdata->editor) && (cfdata->editor->desktop))
+          old_lst = cfdata->editor->desktop->categories;
+        else
+          old_lst = NULL;
 
-	lst = efreet_desktop_string_list_parse(cfdata->categories);
-	if (eina_list_count(lst) != eina_list_count(old_lst))
-	  cfdata->changed_categories = EINA_TRUE;
+        lst = efreet_desktop_string_list_parse(cfdata->categories);
+        if (eina_list_count(lst) != eina_list_count(old_lst))
+          cfdata->changed_categories = EINA_TRUE;
 
-	EINA_LIST_FREE(lst, str)
-	  {
-	     if (!cfdata->changed_categories)
-	       {
-		  Eina_List *n;
-		  const char *old;
-		  Eina_Bool found = EINA_FALSE;
-		  EINA_LIST_FOREACH(old_lst, n, old)
-		    {
-		       if (strcmp(str, old) == 0)
-			 {
-			    found = EINA_TRUE;
-			    break;
-			 }
-		    }
-		  if (!found)
-		    cfdata->changed_categories = EINA_TRUE;
-	       }
-	     eina_stringshare_del(str);
-	  }
+        EINA_LIST_FREE(lst, str)
+          {
+             if (!cfdata->changed_categories)
+               {
+                  Eina_List *n;
+                  const char *old;
+                  Eina_Bool found = EINA_FALSE;
+                  EINA_LIST_FOREACH(old_lst, n, old)
+                    {
+                       if (strcmp(str, old) == 0)
+                         {
+                            found = EINA_TRUE;
+                            break;
+                         }
+                    }
+                  if (!found)
+                    cfdata->changed_categories = EINA_TRUE;
+               }
+             eina_stringshare_del(str);
+          }
      }
    ret |= cfdata->changed_categories;
 
    if (!ret)
      {
-	if (cfdata->edited_mimes)
-	  {
-	     const char *str;
-	     Eina_List *lst, *old_lst;
+        if (cfdata->edited_mimes)
+          {
+             const char *str;
+             Eina_List *lst, *old_lst;
 
-	     cfdata->edited_mimes = EINA_FALSE;
-	     cfdata->changed_mimes = EINA_FALSE;
+             cfdata->edited_mimes = EINA_FALSE;
+             cfdata->changed_mimes = EINA_FALSE;
 
-	     if (cfdata->desktop->mime_types)
-	       old_lst = cfdata->desktop->mime_types;
-	     else if ((cfdata->editor) && (cfdata->editor->desktop))
-	       old_lst = cfdata->editor->desktop->mime_types;
-	     else
-	       old_lst = NULL;
+             if (cfdata->desktop->mime_types)
+               old_lst = cfdata->desktop->mime_types;
+             else if ((cfdata->editor) && (cfdata->editor->desktop))
+               old_lst = cfdata->editor->desktop->mime_types;
+             else
+               old_lst = NULL;
 
-	     lst = efreet_desktop_string_list_parse(cfdata->mimes);
-	     if (eina_list_count(lst) != eina_list_count(old_lst))
-	       cfdata->changed_mimes = EINA_TRUE;
+             lst = efreet_desktop_string_list_parse(cfdata->mimes);
+             if (eina_list_count(lst) != eina_list_count(old_lst))
+               cfdata->changed_mimes = EINA_TRUE;
 
-	     EINA_LIST_FREE(lst, str)
-	       {
-		  if (!cfdata->changed_mimes)
-		    {
-		       Eina_List *n;
-		       const char *old;
-		       Eina_Bool found = EINA_FALSE;
-		       EINA_LIST_FOREACH(old_lst, n, old)
-			 {
-			    if (strcmp(str, old) == 0)
-			      {
-				 found = EINA_TRUE;
-				 break;
-			      }
-			 }
-		       if (!found)
-			 cfdata->changed_mimes = EINA_TRUE;
-		    }
-		  eina_stringshare_del(str);
-	       }
-
-	  }
-	ret |= cfdata->changed_mimes;
+             EINA_LIST_FREE(lst, str)
+               {
+                  if (!cfdata->changed_mimes)
+                    {
+                       Eina_List *n;
+                       const char *old;
+                       Eina_Bool found = EINA_FALSE;
+                       EINA_LIST_FOREACH(old_lst, n, old)
+                         {
+                            if (strcmp(str, old) == 0)
+                              {
+                                 found = EINA_TRUE;
+                                 break;
+                              }
+                         }
+                       if (!found)
+                         cfdata->changed_mimes = EINA_TRUE;
+                    }
+                  eina_stringshare_del(str);
+               }
+          }
+        ret |= cfdata->changed_mimes;
      }
 
    return ret;
@@ -693,11 +699,11 @@ _e_desktop_edit_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas
    e_widget_table_object_append(ot, o, 0, 2, 1, 1, 1, 1, 0, 0);
 
    editor->entry_widget_exec = e_widget_entry_add
-     (evas, &(cfdata->exec), NULL, NULL, NULL);
+       (evas, &(cfdata->exec), NULL, NULL, NULL);
    e_widget_table_object_append(ot, editor->entry_widget_exec, 1, 2, 1, 1, 1, 1, 1, 0);
 
    o = e_widget_button_add
-     (evas, "...", NULL, _e_desktop_editor_cb_exec_select, cfdata, editor);
+       (evas, "...", NULL, _e_desktop_editor_cb_exec_select, cfdata, editor);
    e_widget_table_object_append(ot, o, 2, 2, 1, 1, 0, 0, 0, 0);
 
    // desktop type: url
@@ -705,7 +711,7 @@ _e_desktop_edit_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas
    e_widget_table_object_append(ot, o, 0, 3, 1, 1, 1, 1, 0, 0);
 
    editor->entry_widget_url = e_widget_entry_add
-     (evas, &(cfdata->url), NULL, NULL, NULL);
+       (evas, &(cfdata->url), NULL, NULL, NULL);
    e_widget_table_object_append(ot, editor->entry_widget_url, 1, 3, 1, 1, 1, 1, 1, 0);
    // FIXME: add url selection dialog (file:/etc/..)
 
@@ -715,9 +721,9 @@ _e_desktop_edit_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas
    /* e_widget_size_min_get(ol, &mw, &mh); */
 
    ot = e_widget_table_add(evas, 0);
-   
+
    editor->img_widget = e_widget_button_add
-     (evas, "", NULL, _e_desktop_editor_cb_icon_select, cfdata, editor);
+       (evas, "", NULL, _e_desktop_editor_cb_icon_select, cfdata, editor);
    _e_desktop_editor_icon_update(cfdata);
    e_widget_size_min_set(editor->img_widget, 192, 192);
 
@@ -733,7 +739,7 @@ _e_desktop_edit_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas
 
    e_widget_toolbook_page_append
      (otb, NULL, _("Icon"), ot, 0, 0, 0, 0, 0.5, 0.5);
-   
+
    ot = e_widget_table_add(evas, 0);
 
    o = e_widget_label_add(evas, _("Generic Name"));
@@ -767,13 +773,12 @@ _e_desktop_edit_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas
 
    o = e_widget_entry_add(evas, NULL, NULL, NULL, NULL);
    e_widget_table_object_append(ot, o, 1, 4, 1, 1, 1, 1, 1, 0);
-   e_widget_disabled_set(o, 1);
+   e_widget_entry_readonly_set(o, 1);
    cfdata->orig_path_entry = o;
    _e_desktop_edit_update_orig_path(cfdata);
 
    e_widget_toolbook_page_append
      (otb, NULL, _("General"), ot, 1, 0, 1, 0, 0.5, 0.0);
-
 
    ol = e_widget_list_add(evas, 0, 0);
    o = e_widget_check_add(evas, _("Startup Notify"), &(cfdata->startup_notify));
@@ -787,7 +792,6 @@ _e_desktop_edit_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas
 
    e_widget_toolbook_page_show(otb, 0);
 
-   e_dialog_resizable_set(cfd->dia, 1);
    e_util_win_auto_resize_fill(cfd->dia->win);
    e_win_centered_set(cfd->dia->win, 1);
 
@@ -804,6 +808,7 @@ _e_desktop_editor_cb_icon_select(void *data1, void *data2)
    E_Desktop_Edit *editor;
    char *path = NULL;
    const char *icon_path = NULL;
+   char buf[PATH_MAX + 32];
 
    editor = data2;
    cfdata = data1;
@@ -812,20 +817,21 @@ _e_desktop_editor_cb_icon_select(void *data1, void *data2)
 
    dia = e_dialog_new(cfdata->editor->cfd->con, "E", "_eap_icon_select_dialog");
    if (!dia) return;
-   e_object_del_attach_func_set(E_OBJECT(dia), 
-				_e_desktop_edit_cb_icon_select_destroy);
-   e_dialog_title_set(dia, _("Select an Icon"));
+   e_object_del_attach_func_set(E_OBJECT(dia),
+                                _e_desktop_edit_cb_icon_select_destroy);
+   snprintf(buf, sizeof(buf), _("Select an Icon for '%s'"), ecore_file_file_get(cfdata->orig_path));
+   e_dialog_title_set(dia, buf);
    dia->data = cfdata;
 
    /* absolute path to icon */
    /* XXX change this to a generic icon selector (that can do either
     * files from a dir, or icons in the current theme */
-   if (cfdata->icon) 
+   if (cfdata->icon)
      {
-	if (ecore_file_exists(cfdata->icon))
-	  icon_path = cfdata->icon;
-	else
-	  icon_path = efreet_icon_path_find(e_config->icon_theme, cfdata->icon, 64);
+        if (ecore_file_exists(cfdata->icon))
+          icon_path = cfdata->icon;
+        else
+          icon_path = efreet_icon_path_find(e_config->icon_theme, cfdata->icon, 64);
 
         if (icon_path)
           path = ecore_file_dir_get(icon_path);
@@ -833,29 +839,28 @@ _e_desktop_editor_cb_icon_select(void *data1, void *data2)
 
    if (path)
      {
-	o = e_widget_fsel_add(dia->win->evas, "/", path, NULL, NULL,
-			      _e_desktop_edit_select_cb, cfdata, 
-			      NULL, cfdata, 1);
-	free(path);
+        o = e_widget_fsel_add(dia->win->evas, "/", path, NULL, NULL,
+                              _e_desktop_edit_select_cb, cfdata,
+                              NULL, cfdata, 1);
+        free(path);
      }
    else
      {
-	o = e_widget_fsel_add(dia->win->evas, "~/", "/", NULL, NULL,
-			      _e_desktop_edit_select_cb, cfdata,
-			      NULL, cfdata, 1);
+        o = e_widget_fsel_add(dia->win->evas, "~/", "/", NULL, NULL,
+                              _e_desktop_edit_select_cb, cfdata,
+                              NULL, cfdata, 1);
      }
-   
+
    evas_object_show(o);
    editor->icon_fsel = o;
    e_widget_size_min_get(o, &mw, &mh);
    e_dialog_content_set(dia, o, mw, mh);
 
    /* buttons at the bottom */
-   e_dialog_button_add(dia, _("OK"), NULL, 
-		       _e_desktop_edit_cb_icon_select_ok, cfdata);
-   e_dialog_button_add(dia, _("Cancel"), NULL, 
-		       _e_desktop_edit_cb_icon_select_cancel, cfdata);
-   e_dialog_resizable_set(dia, 1);
+   e_dialog_button_add(dia, _("OK"), NULL,
+                       _e_desktop_edit_cb_icon_select_ok, cfdata);
+   e_dialog_button_add(dia, _("Cancel"), NULL,
+                       _e_desktop_edit_cb_icon_select_cancel, cfdata);
    e_win_centered_set(dia->win, 1);
    e_dialog_show(dia);
    editor->icon_fsel_dia = dia;
@@ -878,48 +883,47 @@ _e_desktop_editor_cb_exec_select(void *data1, void *data2)
 
    dia = e_dialog_new(cfdata->editor->cfd->con, "E", "_eap_exec_select_dialog");
    if (!dia) return;
-   e_object_del_attach_func_set(E_OBJECT(dia), 
-				_e_desktop_edit_cb_exec_select_destroy);
+   e_object_del_attach_func_set(E_OBJECT(dia),
+                                _e_desktop_edit_cb_exec_select_destroy);
    e_dialog_title_set(dia, _("Select an Executable"));
    dia->data = cfdata;
 
    /* absolute path to exe */
-   if (cfdata->exec) 
+   if (cfdata->exec)
      {
-	path = ecore_file_dir_get(cfdata->exec);
-	if (path && !ecore_file_exists(path))
-	  {
-	     free(path);
-	     path = NULL;
-	  }
+        path = ecore_file_dir_get(cfdata->exec);
+        if (path && !ecore_file_exists(path))
+          {
+             free(path);
+             path = NULL;
+          }
      }
 
    if (path)
      {
-	o = e_widget_fsel_add(dia->win->evas, "/", path, NULL, NULL,
-			      _e_desktop_edit_select_cb, cfdata,
-			      NULL, cfdata, 1);
-	free(path);
-	path = NULL;
+        o = e_widget_fsel_add(dia->win->evas, "/", path, NULL, NULL,
+                              _e_desktop_edit_select_cb, cfdata,
+                              NULL, cfdata, 1);
+        free(path);
+        path = NULL;
      }
    else
      {
-	o = e_widget_fsel_add(dia->win->evas, "~/", "/", NULL, NULL,
-			      _e_desktop_edit_select_cb, cfdata,
-			      NULL, cfdata, 1);
+        o = e_widget_fsel_add(dia->win->evas, "~/", "/", NULL, NULL,
+                              _e_desktop_edit_select_cb, cfdata,
+                              NULL, cfdata, 1);
      }
-   
+
    evas_object_show(o);
    editor->exec_fsel = o;
    e_widget_size_min_get(o, &mw, &mh);
    e_dialog_content_set(dia, o, mw, mh);
 
    /* buttons at the bottom */
-   e_dialog_button_add(dia, _("OK"), NULL, 
-		       _e_desktop_edit_cb_exec_select_ok, cfdata);
-   e_dialog_button_add(dia, _("Cancel"), NULL, 
-		       _e_desktop_edit_cb_exec_select_cancel, cfdata);
-   e_dialog_resizable_set(dia, 1);
+   e_dialog_button_add(dia, _("OK"), NULL,
+                       _e_desktop_edit_cb_exec_select_ok, cfdata);
+   e_dialog_button_add(dia, _("Cancel"), NULL,
+                       _e_desktop_edit_cb_exec_select_cancel, cfdata);
    e_win_centered_set(dia->win, 1);
    e_dialog_show(dia);
    editor->exec_fsel_dia = dia;
@@ -936,7 +940,7 @@ _e_desktop_edit_cb_icon_select_destroy(void *obj)
    E_Dialog *dia = obj;
    E_Config_Dialog_Data *cfdata = dia->data;
 
-/* extra unref isn't needed - there is no extra ref() anywhere i saw */   
+/* extra unref isn't needed - there is no extra ref() anywhere i saw */
 /*   e_object_unref(E_OBJECT(dia));*/
    _e_desktop_edit_cb_icon_select_cancel(cfdata, NULL);
 }
@@ -946,12 +950,55 @@ _e_desktop_edit_cb_icon_select_ok(void *data, E_Dialog *dia)
 {
    E_Config_Dialog_Data *cfdata;
    const char *file;
+   char *dir;
+   const char *icon_dir;
 
    cfdata = data;
    file = e_widget_fsel_selection_path_get(cfdata->editor->icon_fsel);
+   dir = ecore_file_dir_get(file);
 
    IFFREE(cfdata->icon);
-   IFDUP(file, cfdata->icon);
+
+   /* TODO: Check for theme icon */
+   icon_dir = e_user_icon_dir_get();
+   if ((icon_dir) && (e_util_dir_check(icon_dir)) && (!e_util_strcmp(dir, icon_dir)))
+     {
+        cfdata->icon = strdup(ecore_file_file_get(file));
+     }
+   else
+     {
+        Eina_List *xdg_dirs, *l;
+        char buf[PATH_MAX];
+
+        xdg_dirs = efreet_data_dirs_get();
+
+        EINA_LIST_FOREACH(xdg_dirs, l, icon_dir)
+          {
+             snprintf(buf, sizeof(buf), "%s/icons", icon_dir);
+             if (!e_util_dir_check(buf)) continue;
+             if (!e_util_strcmp(dir, buf))
+               {
+                  cfdata->icon = strdup(ecore_file_file_get(file));
+                  break;
+               }
+          }
+     }
+   if (!cfdata->icon)
+     {
+        IFDUP(file, cfdata->icon);
+     }
+   else
+     {
+        /* strip ext */
+        char *p;
+        p = strrchr(cfdata->icon, '.');
+        if (p)
+          {
+             /* TODO: Check if known extension */
+             *p = '\0';
+          }
+     }
+   E_FREE(dir);
    e_widget_entry_text_set(cfdata->icon_entry, cfdata->icon);
 
    _e_desktop_edit_cb_icon_select_cancel(data, dia);
@@ -1024,3 +1071,4 @@ _e_desktop_editor_exec_update(E_Config_Dialog_Data *cfdata)
    if (!cfdata->editor->entry_widget_exec) return;
    e_widget_entry_text_set(cfdata->editor->entry_widget_exec, cfdata->exec);
 }
+

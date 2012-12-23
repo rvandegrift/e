@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <pwd.h>
 #include <grp.h>
 #include <fnmatch.h>
@@ -16,8 +17,11 @@
 #include <Eina.h>
 
 /* local subsystem functions */
+#ifdef HAVE_EEZE_MOUNT
+static Eina_Bool mountopts_check(const char *opts);
+static Eina_Bool mount_args_check(int argc, char **argv, const char *action);
+#endif
 static int auth_action_ok(char *a,
-                          uid_t uid,
                           gid_t gid,
                           gid_t *gl,
                           int gn,
@@ -25,11 +29,13 @@ static int auth_action_ok(char *a,
 static int auth_etc_enlightenment_sysactions(char *a,
                                              char *u,
                                              char **g);
+static void auth_etc_enlightenment_sysactions_perm(char *path);
 static char *get_word(char *s,
                       char *d);
 
 /* local subsystem globals */
 static Eina_Hash *actions = NULL;
+static uid_t uid = -1;
 
 /* externally accessible functions */
 int
@@ -38,10 +44,14 @@ main(int argc,
 {
    int i, gn;
    int test = 0;
+   char *action = NULL, *cmd;
+   char *output = NULL;
+#ifdef HAVE_EEZE_MOUNT
    Eina_Bool mnt = EINA_FALSE;
-   char *action, *cmd;
-   uid_t uid;
+   const char *act;
+#endif
    gid_t gid, gl[65536], egid;
+   int pid = 0;
 
    for (i = 1; i < argc; i++)
      {
@@ -63,16 +73,35 @@ main(int argc,
              test = 1;
              action = argv[2];
           }
+   else if (!strcmp(argv[1], "gdb"))
+     {
+        if (argc != 4) exit(1);
+        char *end = NULL;
+
+        action = argv[1];
+        pid = strtoul(argv[2], &end, 10);
+        if (end == NULL || *end != '\0')
+          {
+             printf("Invalid pid for '%s'.\n", argv[3]);
+             exit(0);
+          }
+
+        output = argv[3];
+     }
+#ifdef HAVE_EEZE_MOUNT
         else
           {
              const char *s;
 
              s = strrchr(argv[1], '/');
-             if ((!s) || (!(++s))) exit(1); /* eeze always uses complete path */
+             if ((!s) || (!s[1])) exit(1); /* eeze always uses complete path */
+             s++;
              if (strcmp(s, "mount") && strcmp(s, "umount") && strcmp(s, "eject")) exit(1);
              mnt = EINA_TRUE;
+             act = s;
              action = argv[1];
           }
+#endif
      }
    else if (argc == 2)
      {
@@ -82,6 +111,8 @@ main(int argc,
      {
         exit(1);
      }
+   if (!action) exit(1);
+   fprintf(stderr, "action %s %i\n", action, argc);
 
    uid = getuid();
    gid = getgid();
@@ -105,7 +136,7 @@ main(int argc,
 
    eina_init();
 
-   if (!auth_action_ok(action, uid, gid, gl, gn, egid))
+   if (!auth_action_ok(action, gid, gl, gn, egid))
      {
         printf("ERROR: ACTION NOT ALLOWED: %s\n", action);
         exit(10);
@@ -122,86 +153,267 @@ main(int argc,
         printf("ERROR: UNDEFINED ACTION: %s\n", action);
         exit(20);
      }
-   if ((!test) && (!mnt)) return system(cmd);
+
+   if (!strcmp(action, "gdb"))
+     {
+        char buffer[4096];
+        int r;
+
+	snprintf(buffer, 4096,
+                 "%s --pid=%i "
+		 "-ex 'set logging file %s' "
+		 "-ex 'set logging on' "
+		 "-ex 'thread apply all backtrace full' "
+		 "-ex detach -ex quit > /dev/null 2> /dev/null",
+                 cmd,
+		 pid,
+		 output);
+
+        r = system(buffer);
+
+        exit(WEXITSTATUS(r));
+     }
+   if ((!test)
+#ifdef HAVE_EEZE_MOUNT
+    && (!mnt)
+#endif
+      )
+     return system(cmd);
+#ifdef HAVE_EEZE_MOUNT
    if (mnt)
      {
-        Eina_Strbuf *buf;
         int ret = 0;
         const char *mp = NULL;
+        Eina_Strbuf *buf = NULL;
 
-        buf = eina_strbuf_new();
-        if (!buf) goto err;
-        for (i = 1; i < argc; i++)
+        if (!mount_args_check(argc, argv, act)) exit(40);
+        /* all options are deemed safe at this point, so away we go! */
+        if (!strcmp(act, "mount"))
           {
-             if (!strncmp(argv[i], "/media/", 7))
+             struct stat s;
+
+             mp = argv[5];
+             if (stat("/media", &s))
                {
-                  mp = argv[i];
-                  if (!strcmp(action, "mount"))
+                  mode_t um;
+
+                  um = umask(0);
+                  if (mkdir("/media", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH))
                     {
-                       struct stat s;
-
-                       if (stat("/media", &s))
-                         {
-                            mode_t um;
-
-                            um = umask(0);
-                            if (mkdir("/media", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH))
-                              {
-                                 printf("ERROR: COULD NOT CREATE DIRECTORY /media\n");
-                                 exit(40);
-                              }
-                            umask(um);
-                         }
-                       else if (!S_ISDIR(s.st_mode))
-                         {
-                            printf("ERROR: NOT A DIRECTORY: /media\n");
-                            exit(40);
-                         }
-
-                       if (stat(argv[i], &s))
-                         {
-                            mode_t um;
-
-                            um = umask(0);
-                            if (mkdir(argv[i], S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH))
-                              {
-                                 printf("ERROR: COULD NOT CREATE DIRECTORY %s\n", argv[i]);
-                                 exit(40);
-                              }
-                            umask(um);
-                         }
-                       else if (!S_ISDIR(s.st_mode))
-                         {
-                            printf("ERROR: NOT A DIRECTORY: %s\n", argv[i]);
-                            exit(40);
-                         }
+                       printf("ERROR: COULD NOT CREATE DIRECTORY /media\n");
+                       exit(40);
                     }
+                  umask(um);
                }
-             eina_strbuf_append_printf(buf, "%s ", argv[i]);
+             else if (!S_ISDIR(s.st_mode))
+               {
+                  printf("ERROR: NOT A DIRECTORY: /media\n");
+                  exit(40);
+               }
+
+             if (stat(mp, &s))
+               {
+                  mode_t um;
+
+                  um = umask(0);
+                  if (mkdir(mp, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH))
+                    {
+                       printf("ERROR: COULD NOT CREATE DIRECTORY %s\n", mp);
+                       exit(40);
+                    }
+                  umask(um);
+               }
+             else if (!S_ISDIR(s.st_mode))
+               {
+                  printf("ERROR: NOT A DIRECTORY: %s\n", mp);
+                  exit(40);
+               }
           }
+        buf = eina_strbuf_new();
+        if (!buf) exit(30);
+        for (i = 1; i < argc; i++)
+          eina_strbuf_append_printf(buf, "%s ", argv[i]);
         ret = system(eina_strbuf_string_get(buf));
-        if (mp && (!strcmp(action, "umount")) && (!ret))
+        if ((!strcmp(act, "umount")) && (!ret))
           {
-               if (rmdir(mp))
-                 printf("ERROR: COULD NOT UNLINK MOUNT POINT %s\n", mp);
+             Eina_Iterator *it;
+             char path[PATH_MAX];
+             const char *s;
+             struct stat st;
+             Eina_Bool rm = EINA_TRUE;
+
+             mp = strrchr(argv[2], '/');
+             if (!mp) return ret;
+             snprintf(path, sizeof(path), "/media%s", mp);
+             if (stat(path, &st)) return ret;
+             if (!S_ISDIR(st.st_mode)) return ret;
+             it = eina_file_ls(path);
+             EINA_ITERATOR_FOREACH(it, s)
+               {
+                  /* don't delete any directories with files in them */
+                  rm = EINA_FALSE;
+                  eina_stringshare_del(s);
+               }
+             if (rm)
+               {
+                  if (rmdir(path))
+                    printf("ERROR: COULD NOT UNLINK MOUNT POINT %s\n", path);
+               }
           }
         return ret;
      }
-
+#endif
    eina_shutdown();
 
    return 0;
-
-err:
-   printf("ERROR: MEMORY CRISIS\n");
-   eina_shutdown();
-   return 30;
 }
 
 /* local subsystem functions */
+#ifdef HAVE_EEZE_MOUNT
+static Eina_Bool
+mountopts_check(const char *opts)
+{
+   char buf[64];
+   const char *p;
+   char *end;
+   unsigned long muid;
+   Eina_Bool nosuid, nodev, noexec, nuid;
+
+   nosuid = nodev = noexec = nuid = EINA_FALSE;
+
+   /* these are the only possible options which can be present here; check them strictly */
+   if (eina_strlcpy(buf, opts, sizeof(buf)) >= sizeof(buf)) return EINA_FALSE;
+   for (p = buf; p && p[1]; p = strchr(p + 1, ','))
+     {
+        if (p[0] == ',') p++;
+#define CMP(OPT) \
+  if (!strncmp(p, OPT, sizeof(OPT) - 1))
+
+        CMP("nosuid,")
+          {
+             nosuid = EINA_TRUE;
+             continue;
+          }
+        CMP("nodev,")
+          {
+             nodev = EINA_TRUE;
+             continue;
+          }
+        CMP("noexec,")
+          {
+             noexec = EINA_TRUE;
+             continue;
+          }
+        CMP("utf8,") continue;
+        CMP("utf8=0,") continue;
+        CMP("utf8=1,") continue;
+        CMP("iocharset=utf8,") continue;
+        CMP("uid=")
+          {
+             p += 4;
+             errno = 0;
+             muid = strtoul(p, &end, 10);
+             if (muid == ULONG_MAX) return EINA_FALSE;
+             if (errno) return EINA_FALSE;
+             if (end[0] != ',') return EINA_FALSE;
+             if (muid != uid) return EINA_FALSE;
+             nuid = EINA_TRUE;
+             continue;
+          }
+        return EINA_FALSE;
+     }
+   if ((!nosuid) || (!nodev) || (!noexec) || (!nuid)) return EINA_FALSE;
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+check_uuid(const char *uuid)
+{
+   const char *p;
+
+   for (p = uuid; p[0]; p++)
+     if ((!isalnum(*p)) && (*p != '-')) return EINA_FALSE;
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+mount_args_check(int argc, char **argv, const char *action)
+{
+   Eina_Bool opts = EINA_FALSE;
+   struct stat st;
+   const char *node;
+   char buf[PATH_MAX];
+
+   if (!strcmp(action, "mount"))
+     {
+        /* will ALWAYS be:
+         /path/to/mount -o nosuid,uid=XYZ,[utf8,] UUID=XXXX-XXXX[-XXXX-XXXX] /media/$devnode
+         */
+        if (argc != 6) return EINA_FALSE;
+        if (argv[2][0] == '-')
+          {
+             /* disallow any -options other than -o */
+             if (strcmp(argv[2], "-o")) return EINA_FALSE;
+             opts = mountopts_check(argv[3]);
+          }
+        if (!opts) return EINA_FALSE;
+        if (!strncmp(argv[4], "UUID=", sizeof("UUID=") - 1))
+          {
+             if (!check_uuid(argv[4] + 5)) return EINA_FALSE;
+          }
+        else
+          {
+             if (strncmp(argv[4], "/dev/", 5)) return EINA_FALSE;
+             if (stat(argv[4], &st)) return EINA_FALSE;
+          }
+        
+        node = strrchr(argv[5], '/');
+        if (!node) return EINA_FALSE;
+        if (!node[1]) return EINA_FALSE;
+        if (node - argv[5] != 6) return EINA_FALSE;
+        snprintf(buf, sizeof(buf), "/dev%s", node);
+        if (stat(buf, &st)) return EINA_FALSE;
+     }
+   else if (!strcmp(action, "umount"))
+     {
+        /* will ALWAYS be:
+         /path/to/umount /dev/$devnode
+         */
+        if (argc != 3) return EINA_FALSE;
+        if (strncmp(argv[2], "/dev/", 5)) return EINA_FALSE;
+        if (stat(argv[2], &st)) return EINA_FALSE;
+        node = strrchr(argv[2], '/');
+        if (!node) return EINA_FALSE;
+        if (!node[1]) return EINA_FALSE;
+        if (node - argv[2] != 4) return EINA_FALSE;
+        /* this is good, but it prevents umounting user-mounted removable media;
+         * need to figure out a better way...
+         * 
+        snprintf(buf, sizeof(buf), "/media%s", node);
+        if (stat(buf, &st)) return EINA_FALSE;
+        if (!S_ISDIR(st.st_mode)) return EINA_FALSE;
+        */
+     }
+   else if (!strcmp(action, "eject"))
+     {
+        /* will ALWAYS be:
+         /path/to/eject /dev/$devnode
+         */
+        if (argc != 3) return EINA_FALSE;
+        if (strncmp(argv[2], "/dev/", 5)) return EINA_FALSE;
+        if (stat(argv[2], &st)) return EINA_FALSE;
+        node = strrchr(argv[2], '/');
+        if (!node) return EINA_FALSE;
+        if (!node[1]) return EINA_FALSE;
+        if (node - argv[2] != 4) return EINA_FALSE;
+     }
+   else return EINA_FALSE;
+   return EINA_TRUE;
+}
+#endif
+
 static int
 auth_action_ok(char *a,
-               uid_t uid,
                gid_t gid,
                gid_t *gl,
                int gn,
@@ -258,7 +470,8 @@ auth_etc_enlightenment_sysactions(char *a,
    FILE *f;
    char file[4096], buf[4096], id[4096], ugname[4096], perm[4096], act[4096];
    char *p, *pp, *s, **gp;
-   int len, line = 0, ok = 0;
+   int ok = 0;
+   size_t len, line = 0;
    int allow = 0;
    int deny = 0;
 
@@ -270,6 +483,9 @@ auth_etc_enlightenment_sysactions(char *a,
         f = fopen(file, "r");
         if (!f) return 0;
      }
+
+   auth_etc_enlightenment_sysactions_perm(file);
+
    while (fgets(buf, sizeof(buf), f))
      {
         line++;
@@ -305,14 +521,13 @@ auth_etc_enlightenment_sysactions(char *a,
           }
         else if (!strcmp(id, "group:"))
           {
-             int matched;
+             Eina_Bool matched = EINA_FALSE;
 
-             matched = 0;
              for (gp = g; *gp; gp++)
                {
                   if (!fnmatch(ugname, *gp, 0))
                     {
-                       matched = 1;
+                       matched = EINA_TRUE;
                        if (!strcmp(perm, "allow:")) allow = 1;
                        else if (!strcmp(perm, "deny:"))
                          deny = 1;
@@ -351,7 +566,7 @@ auth_etc_enlightenment_sysactions(char *a,
 
         continue;
 malformed:
-        printf("WARNING: %s:%i\n"
+        printf("WARNING: %s:%zu\n"
                "LINE: '%s'\n"
                "MALFORMED LINE. SKIPPED.\n",
                file, line, buf);
@@ -359,6 +574,21 @@ malformed:
 done:
    fclose(f);
    return ok;
+}
+
+static void
+auth_etc_enlightenment_sysactions_perm(char *path)
+{
+   struct stat st;
+   if (stat(path, &st) == -1)
+     return;
+
+   if ((st.st_mode & S_IWGRP) || (st.st_mode & S_IXGRP) ||
+       (st.st_mode & S_IWOTH) || (st.st_mode & S_IXOTH))
+     {
+        printf("ERROR: CONFIGURATION FILE HAS BAD PERMISSIONS (writable by group and/or others)\n");
+        exit(10);
+     }
 }
 
 static char *
@@ -387,4 +617,3 @@ get_word(char *s,
    *p2 = 0;
    return p1;
 }
-

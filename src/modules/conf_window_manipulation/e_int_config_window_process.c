@@ -36,7 +36,7 @@ e_int_config_window_process(E_Container *con, const char *params __UNUSED__)
    v->basic.check_changed = _basic_check_changed;
 
    /* create config diaolg for NULL object/data */
-   cfd = e_config_dialog_new(con, _("Window Stacking"),
+   cfd = e_config_dialog_new(con, _("Window Process Management"),
 			     "E", "windows/window_process",
 			     "preferences-window-process", 0, v, NULL);
    return cfd;
@@ -98,7 +98,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
    e_widget_list_object_append(o, ob, 1, 0, 0.5);
    ob = e_widget_label_add(evas, _("Kill timeout:"));
    e_widget_list_object_append(o, ob, 1, 0, 0.5);
-   ob = e_widget_slider_add(evas, 1, 0, _("%1.0f sec"), 1.0, 30.0, 1.0, 0, 
+   ob = e_widget_slider_add(evas, 1, 0, _("%1.0f s"), 1.0, 30.0, 1.0, 0, 
                             &(cfdata->kill_timer_wait), NULL, 100);
    e_widget_list_object_append(o, ob, 1, 0, 0.5);
    

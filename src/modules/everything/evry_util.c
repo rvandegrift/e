@@ -430,8 +430,14 @@ evry_icon_theme_get(const char *icon, Evas *e)
      }
    else if (!e_util_icon_theme_set(o, icon))
      {
-        evas_object_del(o);
-        o = NULL;
+        char grp[1024];
+
+        snprintf(grp, sizeof(grp), "fileman/mime/%s", icon);
+        if (!e_util_icon_theme_set(o, grp))
+          {
+             evas_object_del(o);
+             o = NULL;
+          }
      }
 
    return o;
@@ -491,7 +497,7 @@ evry_util_icon_get(Evry_Item *it, Evas *e)
           {
              icon = efreet_mime_type_icon_get(file->mime, e_config->icon_theme, 128);
              /* XXX can do _ref ?*/
-             if ((o = evry_icon_theme_get(icon, e)))
+             if ((o = evry_icon_theme_get(icon, e)) || (o = evry_icon_theme_get(file->mime, e)))
                {
                   /* it->icon = eina_stringshare_add(icon); */
                   return o;
@@ -846,7 +852,7 @@ evry_file_url_get(Evry_Item_File *file)
    if (!file->path)
      return NULL;
 
-   memset(dest, 0, PATH_MAX * 3 + 7);
+   memset(dest, 0, sizeof(dest));
 
    snprintf(dest, 8, "file://");
 

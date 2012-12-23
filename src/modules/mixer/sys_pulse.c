@@ -1,28 +1,29 @@
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-#include "e_mod_system.h"
 #include "e_mod_main.h"
-#include <Ecore.h>
 #include "Pulse.h"
 
-//#define BAD_CH_MAPPING 1
 
-#define PULSE_BUS "org.PulseAudio.Core1"
-#define PULSE_PATH "/org/pulseaudio/core1"
+#define PULSE_BUS       "org.PulseAudio.Core1"
+#define PULSE_PATH      "/org/pulseaudio/core1"
 #define PULSE_INTERFACE "org.PulseAudio.Core1"
 
 static Pulse *conn = NULL;
+static Pulse_Server_Info *info = NULL;
+static Pulse_Sink *default_sink = NULL;
 static Ecore_Event_Handler *ph = NULL;
 static Ecore_Event_Handler *pch = NULL;
 static Ecore_Event_Handler *pdh = NULL;
 static Eina_List *sinks = NULL;
 static Eina_List *sources = NULL;
 static Ecore_Poller *pulse_poller = NULL;
+static Eina_Hash *queue_states = NULL;
 
 static E_DBus_Connection *dbus = NULL;
 static E_DBus_Signal_Handler *dbus_handler = NULL;
-static double last_disc = 0;
+static Ecore_Timer *disc_timer = NULL;
+
+static unsigned int disc_count = 0;
+static unsigned int update_count = 0;
+static Ecore_Timer *update_timer = NULL;
 
 static Eina_Bool
 _pulse_poller_cb(void *d __UNUSED__)
@@ -69,7 +70,7 @@ _dbus_poll(void *data   __UNUSED__,
 static void
 _dbus_test(void *data       __UNUSED__,
            DBusMessage *msg __UNUSED__,
-           DBusError       *error)
+           DBusError *error)
 {
    if ((error) && (dbus_error_is_set(error)))
      {
@@ -90,10 +91,43 @@ _dbus_test(void *data       __UNUSED__,
      }
 }
 
+static void
+_pulse_info_get(Pulse *d __UNUSED__, int type __UNUSED__, Pulse_Server_Info *ev)
+{
+   Eina_List *l;
+   Pulse_Sink *sink;
+
+   pulse_server_info_free(info);
+   info = ev;
+   EINA_LIST_FOREACH(sinks, l, sink)
+     if (ev->default_sink == pulse_sink_name_get(sink))
+       {
+          if (default_sink == sink) return;
+          default_sink = sink;
+          if (!_mixer_using_default) e_mod_mixer_pulse_update();
+          break;
+       }
+   e_mod_mixer_pulse_ready(EINA_TRUE);
+}
+
+static Eina_Bool
+_pulse_update_timer(void *d EINA_UNUSED)
+{
+   e_mod_mixer_pulse_update();
+   update_timer = NULL;
+   return EINA_FALSE;
+}
+
 static Eina_Bool
 _pulse_update(Pulse *d __UNUSED__, int type __UNUSED__, Pulse_Sink *ev __UNUSED__)
 {
-   e_mod_mixer_pulse_update();
+   Pulse_Tag_Id id;
+
+   id = pulse_server_info_get(conn);
+   if (id)
+     pulse_cb_set(conn, id, (Pulse_Cb)_pulse_info_get);
+   if (update_timer) ecore_timer_reset(update_timer);
+   else update_timer = ecore_timer_add(0.2, _pulse_update_timer, NULL);
    return EINA_TRUE;
 }
 
@@ -102,9 +136,12 @@ _pulse_sinks_get(Pulse *p __UNUSED__, Pulse_Tag_Id id __UNUSED__, Eina_List *ev)
 {
    Eina_List *l;
    Pulse_Sink *sink;
-   sinks = ev;
+
+   E_FREE_LIST(sinks, pulse_sink_free);
+
    EINA_LIST_FOREACH(ev, l, sink)
      {
+/*
         printf("Sink:\n");
         printf("\tname: %s\n", pulse_sink_name_get(sink));
         printf("\tidx: %"PRIu32"\n", pulse_sink_idx_get(sink));
@@ -113,17 +150,32 @@ _pulse_sinks_get(Pulse *p __UNUSED__, Pulse_Tag_Id id __UNUSED__, Eina_List *ev)
         printf("\tmuted: %s\n", pulse_sink_muted_get(sink) ? "yes" : "no");
         printf("\tavg: %g\n", pulse_sink_avg_get_pct(sink));
         printf("\tbalance: %f\n", pulse_sink_balance_get(sink));
+*/
+        if (info && (!default_sink))
+          {
+             if (info->default_sink == pulse_sink_name_get(sink))
+               {
+                  default_sink = sink;
+                  break;
+               }
+          }
      }
+
+   sinks = ev;
    pulse_sinks_watch(conn);
-   e_mod_mixer_pulse_ready(EINA_TRUE);
+   if (default_sink) e_mod_mixer_pulse_ready(EINA_TRUE);
 }
 
 static void
 _pulse_sources_get(Pulse *p __UNUSED__, Pulse_Tag_Id id __UNUSED__, Eina_List *ev)
 {
+   eina_list_free(sources);
+   sources = ev;
+/*
    Eina_List *l;
    Pulse_Sink *sink;
    sources = ev;
+
    EINA_LIST_FOREACH(ev, l, sink)
      {
         printf("Sources:\n");
@@ -135,6 +187,7 @@ _pulse_sources_get(Pulse *p __UNUSED__, Pulse_Tag_Id id __UNUSED__, Eina_List *e
         printf("\tavg: %g\n", pulse_sink_avg_get_pct(sink));
         printf("\tbalance: %f\n", pulse_sink_balance_get(sink));
      }
+ */
 }
 
 static Eina_Bool
@@ -149,11 +202,31 @@ _pulse_connected(Pulse *d, int type __UNUSED__, Pulse *ev)
         e_mixer_default_setup();
         return ECORE_CALLBACK_RENEW;
      }
+   if (!queue_states)
+     queue_states = eina_hash_stringshared_new(free);
    pulse_cb_set(conn, id, (Pulse_Cb)_pulse_sinks_get);
    id = pulse_sources_get(conn);
    if (id)
      pulse_cb_set(conn, id, (Pulse_Cb)_pulse_sources_get);
+   id = pulse_server_info_get(conn);
+   if (id)
+     pulse_cb_set(conn, id, (Pulse_Cb)_pulse_info_get);
    return ECORE_CALLBACK_RENEW;
+}
+
+static Eina_Bool
+_pulse_disc_timer(void *d __UNUSED__)
+{
+   disc_timer = NULL;
+   if (disc_count < 5)
+     {
+        if (pulse_connect(conn)) return EINA_FALSE;
+     }
+   e_mod_mixer_pulse_ready(EINA_FALSE);
+   e_mixer_pulse_shutdown();
+   e_mixer_pulse_init();
+   disc_count = 0;
+   return EINA_FALSE;
 }
 
 static Eina_Bool
@@ -167,22 +240,43 @@ _pulse_disconnected(Pulse *d, int type __UNUSED__, Pulse *ev)
      pulse_sink_free(sink);
    EINA_LIST_FREE(sources, sink)
      pulse_sink_free(sink);
+   pulse_server_info_free(info);
+   if (queue_states) eina_hash_free(queue_states);
+   queue_states = NULL;
+   info = NULL;
+   default_sink = NULL;
+   if (update_timer) ecore_timer_del(update_timer);
+   update_timer = NULL;
 
-   printf("PULSEAUDIO: disconnected at %g\n", ecore_time_unix_get());
+//   printf("PULSEAUDIO: disconnected at %g\n", ecore_time_unix_get());
 
-   if (last_disc && (ecore_time_unix_get() - last_disc < 1))
-     {
-        fprintf(stderr, "PULSEAUDIO: disconnecting too quickly, THROTTLED\n");
-        e_mixer_pulse_shutdown();
-        last_disc = 0;
-        e_mod_mixer_pulse_ready(EINA_FALSE);
-     }
-   else
-     {
-        pulse_connect(conn);
-        last_disc = ecore_time_unix_get();
-     }
+   disc_count++;
+   if (disc_timer) return ECORE_CALLBACK_RENEW;
+   disc_timer = ecore_timer_add(1.5, _pulse_disc_timer, NULL);
    return ECORE_CALLBACK_RENEW;
+}
+
+static void
+_pulse_state_queue(Pulse_Sink *sink, int left, int right, int mute)
+{
+   E_Mixer_Channel_State *state = NULL;
+
+   if (queue_states)
+     state = eina_hash_find(queue_states, pulse_sink_name_get(sink));
+   else
+     queue_states = eina_hash_stringshared_new(free);
+   if (!state)
+     {
+        state = E_NEW(E_Mixer_Channel_State, 1);
+        eina_hash_direct_add(queue_states, pulse_sink_name_get(sink), state);
+        state->left = state->right = state->mute = -1;
+     }
+   if (left >= 0)
+     state->left = left;
+   if (right >= 0)
+     state->right = right;
+   if (mute >= 0)
+     state->mute = mute;
 }
 
 static Pulse_Sink *
@@ -209,10 +303,37 @@ _pulse_sink_find(const char *name)
    return NULL;
 }
 
+static Eina_Bool
+_pulse_queue_process(const Eina_Hash *h EINA_UNUSED, const char *key, E_Mixer_Channel_State *state, void *d EINA_UNUSED)
+{
+   Eina_List *l, *list[2] = {sinks, sources};
+   void *s, *ch;
+   int x;
+
+   if ((state->mute == -1) && (state->left == -1) && (state->right == -1)) return EINA_TRUE;
+   ch = (void*)1;
+   for (x = 0; x < 2; x++)
+     EINA_LIST_FOREACH(list[x], l, s)
+       {
+          if (key != pulse_sink_name_get(s)) continue;
+          if ((state->left >= 0) || (state->right >= 0))
+            e_mixer_pulse_set_volume(s, &ch, state->left, state->right);
+          if (state->mute >= 0)
+            e_mixer_pulse_set_mute(s, &ch, state->mute);
+          state->left = state->right = state->mute = -1;
+          return EINA_FALSE;
+       }
+   return EINA_TRUE;
+}
+
 static void
 _pulse_result_cb(Pulse *p __UNUSED__, Pulse_Tag_Id id, void *ev)
 {
    if (!ev) fprintf(stderr, "Command %u failed!\n", id);
+   if (!update_count) return;
+   if (--update_count) return;
+   if (!queue_states) return;
+   eina_hash_foreach(queue_states, (Eina_Hash_Foreach)_pulse_queue_process, NULL);
 }
 
 Eina_Bool
@@ -281,15 +402,23 @@ e_mixer_pulse_shutdown(void)
      pulse_sink_free(sink);
    EINA_LIST_FREE(sources, sink)
      pulse_sink_free(sink);
+   pulse_server_info_free(info);
+   info = NULL;
+   default_sink = NULL;
+   update_count = 0;
+   if (update_timer) ecore_timer_del(update_timer);
+   update_timer = NULL;
 
    pulse_free(conn);
    conn = NULL;
-   ecore_event_handler_del(ph);
+   if (ph) ecore_event_handler_del(ph);
    ph = NULL;
-   ecore_event_handler_del(pch);
+   if (pch) ecore_event_handler_del(pch);
    pch = NULL;
-   ecore_event_handler_del(pdh);
+   if (pdh) ecore_event_handler_del(pdh);
    pdh = NULL;
+   if (queue_states) eina_hash_free(queue_states);
+   queue_states = NULL;
    if (dbus_handler)
      {
         e_dbus_signal_handler_del(dbus, dbus_handler);
@@ -307,7 +436,7 @@ e_mixer_pulse_shutdown(void)
 E_Mixer_System *
 e_mixer_pulse_new(const char *name)
 {
-   return (E_Mixer_System*)_pulse_sink_find(name);
+   return (E_Mixer_System *)_pulse_sink_find(name);
 }
 
 void
@@ -322,49 +451,42 @@ e_mixer_pulse_get_cards(void)
    Pulse_Sink *sink;
 
    EINA_LIST_FOREACH(sinks, l, sink)
-     ret = eina_list_append(ret, pulse_sink_name_get(sink));
+     ret = eina_list_append(ret, eina_stringshare_ref(pulse_sink_name_get(sink)));
    EINA_LIST_FOREACH(sources, l, sink)
-     ret = eina_list_append(ret, pulse_sink_name_get(sink));
+     ret = eina_list_append(ret, eina_stringshare_ref(pulse_sink_name_get(sink)));
    return ret;
 }
 
 void
 e_mixer_pulse_free_cards(Eina_List *cards)
 {
-   eina_list_free(cards);
+   E_FREE_LIST(cards, eina_stringshare_del);
 }
 
 const char *
 e_mixer_pulse_get_default_card(void)
 {
-   if (eina_list_data_get(sinks))
-     return eina_stringshare_ref(pulse_sink_name_get(eina_list_last(sinks)->data));
+   if (default_sink)
+     return eina_stringshare_ref(pulse_sink_name_get(default_sink));
    return NULL;
 }
 
 const char *
 e_mixer_pulse_get_card_name(const char *card)
 {
-   Pulse_Sink *sink = _pulse_sink_find(card);
-   const char *s = pulse_sink_desc_get(sink);
+   Pulse_Sink *sink;
+   const char *s;
+
+   sink = _pulse_sink_find(card);
+   s = pulse_sink_desc_get(sink);
    if ((!s) || (!s[0])) s = pulse_sink_name_get(sink);
-   return eina_stringshare_add(s);
+   return eina_stringshare_ref(s);
 }
 
 Eina_List *
-e_mixer_pulse_get_channels(E_Mixer_System *self)
+e_mixer_pulse_get_channels(E_Mixer_System *self EINA_UNUSED)
 {
-   Eina_List *ret = NULL;
-
-#ifdef BAD_CH_MAPPING
-   uintptr_t id;
-   for (id = 0; id < pulse_sink_channels_count((void *)self); id++)
-     ret = eina_list_append(ret, (void *)(id + 1));
-#else
-   (void)self;
-   ret = eina_list_append(ret, (void *)(1));
-#endif
-   return ret;
+   return eina_list_append(NULL, (void *)(1));
 }
 
 void
@@ -374,46 +496,29 @@ e_mixer_pulse_free_channels(Eina_List *channels)
 }
 
 Eina_List *
-e_mixer_pulse_get_channels_names(E_Mixer_System *self)
+e_mixer_pulse_get_channels_names(E_Mixer_System *self EINA_UNUSED)
 {
-#ifdef BAD_CH_MAPPING
-   return pulse_sink_channel_names_get((void *)self);
-#else
-   (void)self;
    return eina_list_append(NULL, eina_stringshare_add("Output"));
-#endif   
 }
 
 void
 e_mixer_pulse_free_channels_names(Eina_List *channels_names)
 {
    const char *str;
-   EINA_LIST_FREE(channels_names, str) eina_stringshare_del(str);
+   EINA_LIST_FREE(channels_names, str)
+     eina_stringshare_del(str);
 }
 
 const char *
-e_mixer_pulse_get_default_channel_name(E_Mixer_System *self)
+e_mixer_pulse_get_default_channel_name(E_Mixer_System *self EINA_UNUSED)
 {
-#ifdef BAD_CH_MAPPING
-   return e_mixer_pulse_get_channel_name(self, 0);
-#else
-   (void)self;
    return eina_stringshare_add("Output");
-#endif   
 }
 
 E_Mixer_Channel *
-e_mixer_pulse_get_channel_by_name(E_Mixer_System *self, const char *name)
+e_mixer_pulse_get_channel_by_name(E_Mixer_System *self EINA_UNUSED, const char *name EINA_UNUSED)
 {
-#ifdef BAD_CH_MAPPING
-   unsigned int x;
-   x = pulse_sink_channel_name_get_id((void *)self, name);
-   if (x == UINT_MAX) return NULL;
-   return (E_Mixer_Channel *)((uintptr_t)(x + 1));
-#else
-   (void)self, (void)name;
    return (E_Mixer_Channel *)1;
-#endif   
 }
 
 void
@@ -422,38 +527,24 @@ e_mixer_pulse_channel_del(E_Mixer_Channel *channel __UNUSED__)
 }
 
 const char *
-e_mixer_pulse_get_channel_name(E_Mixer_System *self, E_Mixer_Channel *channel)
+e_mixer_pulse_get_channel_name(E_Mixer_System *self EINA_UNUSED, E_Mixer_Channel *channel)
 {
    if (!channel) return NULL;
-#ifdef BAD_CH_MAPPING
-   return pulse_sink_channel_id_get_name((void *)self, 
-                                         ((uintptr_t)channel) - 1);
-#else
-   (void)self;
    return eina_stringshare_add("Output");
-#endif   
 }
 
 int
 e_mixer_pulse_get_volume(E_Mixer_System *self, E_Mixer_Channel *channel, int *left, int *right)
 {
    double volume;
-   
-#ifdef BAD_CH_MAPPING
-   if (!channel) return 0;
-   volume = pulse_sink_channel_volume_get((void *)self, 
-                                          ((uintptr_t)channel) - 1);
-   if (left) *left = (int)volume;
-   if (right) *right = (int)volume;
-#else
    int x, n;
-   
+
    if (!channel) return 0;
    n = pulse_sink_channels_count((void *)self);
    for (x = 0; x < n; x++)
      {
-        volume = pulse_sink_channel_volume_get((void *)self, 
-                                               ((uintptr_t)channel) - 1);
+        volume = pulse_sink_channel_volume_get((void *)self,
+                                               ((uintptr_t)x));
         if (x == 0)
           {
              if (left) *left = (int)volume;
@@ -463,7 +554,6 @@ e_mixer_pulse_get_volume(E_Mixer_System *self, E_Mixer_Channel *channel, int *le
              if (right) *right = (int)volume;
           }
      }
-#endif   
    return 1;
 }
 
@@ -471,31 +561,36 @@ int
 e_mixer_pulse_set_volume(E_Mixer_System *self, E_Mixer_Channel *channel, int left, int right)
 {
    uint32_t id = 0;
-
-#ifdef BAD_CH_MAPPING
-   if (!channel) return 0;
-   id = pulse_type_channel_volume_set(conn, (void *)self, 
-                                      ((uintptr_t)channel) - 1, 
-                                      (left + right) / 2, source);
-   if (!id) return 0;
-   pulse_cb_set(conn, id, (Pulse_Cb)_pulse_result_cb);
-#else
    int x, n;
-   
+
    if (!channel) return 0;
-   n = pulse_sink_channels_count((void *)self); 
-   for (x = 0; x < n; x++)
+   if (update_count > 1)
      {
+        _pulse_state_queue((void*)self, left, right, -1);
+        return 1;
+     }
+   n = pulse_sink_channels_count((void *)self);
+   for (x = 0; x < n; x++, id = 0)
+     {
+        double vol;
+
+        vol = lround(pulse_sink_channel_volume_get(self, x));
         if (x == 0)
           {
-             id |= pulse_sink_channel_volume_set(conn, (void *)self, x, left);
+             if (vol != left)
+               id = pulse_sink_channel_volume_set(conn, (void *)self, x, left);
           }
         else if (x == 1)
           {
-             id |= pulse_sink_channel_volume_set(conn, (void *)self, x, right);
+             if (vol != right)
+               id = pulse_sink_channel_volume_set(conn, (void *)self, x, right);
+          }
+        if (id)
+          {
+             pulse_cb_set(conn, id, (Pulse_Cb)_pulse_result_cb);
+             update_count++;
           }
      }
-#endif   
    return 1;
 }
 
@@ -518,9 +613,15 @@ e_mixer_pulse_set_mute(E_Mixer_System *self, E_Mixer_Channel *channel __UNUSED__
    uint32_t id;
    Eina_Bool source = EINA_FALSE;
 
+   if (update_count > 2)
+     {
+        _pulse_state_queue((void*)self, -1, -1, mute);
+        return 1;
+     }
    source = !!eina_list_data_find(sources, self);
    id = pulse_type_mute_set(conn, pulse_sink_idx_get((void *)self), mute, source);
    if (!id) return 0;
+   update_count++;
    pulse_cb_set(conn, id, (Pulse_Cb)_pulse_result_cb);
    return 1;
 }
@@ -528,40 +629,18 @@ e_mixer_pulse_set_mute(E_Mixer_System *self, E_Mixer_Channel *channel __UNUSED__
 int
 e_mixer_pulse_get_state(E_Mixer_System *self, E_Mixer_Channel *channel, E_Mixer_Channel_State *state)
 {
-#ifdef BAD_CH_MAPPING
-   double vol;
-   if (!state) return 0;
-   if (!channel) return 0;
-   vol = pulse_sink_channel_volume_get((void *)self, 
-                                       ((uintptr_t)channel) - 1);
-   state->mute = pulse_sink_muted_get((void *)self);
-   state->left = state->right = (int)vol;
-#else
    if (!state) return 0;
    if (!channel) return 0;
    e_mixer_pulse_get_mute(self, channel, &(state->mute));
    e_mixer_pulse_get_volume(self, channel, &(state->left), &(state->right));
-#endif   
    return 1;
 }
 
 int
 e_mixer_pulse_set_state(E_Mixer_System *self, E_Mixer_Channel *channel, const E_Mixer_Channel_State *state)
 {
-#ifdef BAD_CH_MAPPING
-   uint32_t id;
-   Eina_Bool source = EINA_FALSE;
-   if (!channel) return 0;
-   source = !!eina_list_data_find(sources, self);
-   id = pulse_type_channel_volume_set(conn, (void *)self, 
-                                      ((uintptr_t)channel) - 1, 
-                                      (state->left + state->right) / 2, source);
-   if (!id) return 0;
-   pulse_cb_set(conn, id, (Pulse_Cb)_pulse_result_cb);
-#else
    e_mixer_pulse_set_volume(self, channel, state->left, state->right);
    e_mixer_pulse_set_mute(self, channel, state->mute);
-#endif   
    return 1;
 }
 
@@ -570,3 +649,4 @@ e_mixer_pulse_has_capture(E_Mixer_System *self __UNUSED__, E_Mixer_Channel *chan
 {
    return 0;
 }
+

@@ -1,10 +1,10 @@
 #include "e.h"
 
 /* local subsystem functions */
-static void _e_order_free(E_Order *eo);
-static void _e_order_cb_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path);
-static void _e_order_read(E_Order *eo);
-static void _e_order_save(E_Order *eo);
+static void      _e_order_free(E_Order *eo);
+static void      _e_order_cb_monitor(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path);
+static void      _e_order_read(E_Order *eo);
+static void      _e_order_save(E_Order *eo);
 static Eina_Bool _e_order_cb_efreet_cache_update(void *data, int ev_type, void *ev);
 
 static Eina_List *orders = NULL;
@@ -15,29 +15,28 @@ EINTERN int
 e_order_init(void)
 {
    char *menu_file = NULL;
-   
-   handlers = 
-     eina_list_append(handlers, 
-                      ecore_event_handler_add(EFREET_EVENT_DESKTOP_CACHE_UPDATE, 
-                                              _e_order_cb_efreet_cache_update, 
+
+   handlers =
+     eina_list_append(handlers,
+                      ecore_event_handler_add(EFREET_EVENT_DESKTOP_CACHE_UPDATE,
+                                              _e_order_cb_efreet_cache_update,
                                               NULL));
    if (e_config->default_system_menu)
-      menu_file = strdup(e_config->default_system_menu);
+     menu_file = strdup(e_config->default_system_menu);
    if (!menu_file)
-      menu_file = strdup("/etc/xdg/menus/applications.menu");
+     menu_file = strdup("/etc/xdg/menus/applications.menu");
    if (menu_file)
      {
         if (!ecore_file_exists(menu_file))
           {
              char buf[PATH_MAX];
-             
-             free(menu_file);
-             menu_file = NULL;
+
+             E_FREE(menu_file);
              snprintf(buf, sizeof(buf), "/etc/xdg/menus/enlightenment.menu");
              if (ecore_file_exists(buf)) menu_file = strdup(buf);
              else
                {
-                  snprintf(buf, sizeof(buf), 
+                  snprintf(buf, sizeof(buf),
                            "%s/etc/xdg/menus/enlightenment.menu",
                            e_prefix_get());
                   if (ecore_file_exists(buf)) menu_file = strdup(buf);
@@ -45,7 +44,7 @@ e_order_init(void)
           }
      }
    efreet_menu_file_set(menu_file);
-   if (menu_file) free(menu_file);
+   free(menu_file);
    return 1;
 }
 
@@ -62,7 +61,7 @@ EAPI E_Order *
 e_order_new(const char *path)
 {
    E_Order *eo;
- 
+
    eo = E_OBJECT_ALLOC(E_Order, E_ORDER_TYPE, _e_order_free);
    if (!eo) return NULL;
 
@@ -73,6 +72,31 @@ e_order_new(const char *path)
    orders = eina_list_append(orders, eo);
 
    return eo;
+}
+
+EAPI E_Order *
+e_order_clone(const E_Order *eo)
+{
+   E_Order *eoc;
+   Eina_List *l;
+   Efreet_Desktop *desktop;
+
+   E_OBJECT_CHECK_RETURN(eo, NULL);
+   E_OBJECT_TYPE_CHECK_RETURN(eo, E_ORDER_TYPE, NULL);
+
+   eoc = E_OBJECT_ALLOC(E_Order, E_ORDER_TYPE, _e_order_free);
+   if (!eoc) return NULL;
+
+   eoc->path = eina_stringshare_ref(eo->path);
+   EINA_LIST_FOREACH(eo->desktops, l, desktop)
+     {
+        efreet_desktop_ref(desktop);
+        eoc->desktops = eina_list_append(eoc->desktops, desktop);
+     }
+   eoc->monitor = ecore_file_monitor_add(eoc->path, _e_order_cb_monitor, eoc);
+
+   orders = eina_list_append(orders, eoc);
+   return eoc;
 }
 
 EAPI void
@@ -133,11 +157,13 @@ e_order_files_append(E_Order *eo, Eina_List *files)
 
    EINA_LIST_FOREACH(files, l, file)
      {
-	Efreet_Desktop *desktop;
+        Efreet_Desktop *desktop;
 
-	desktop = efreet_desktop_get(file);
-	if (!desktop) continue;
-	eo->desktops = eina_list_append(eo->desktops, desktop);
+        if (!strncmp(file, "file://", 7))
+          file += 7;
+        desktop = efreet_desktop_get(file);
+        if (!desktop) continue;
+        eo->desktops = eina_list_append(eo->desktops, desktop);
      }
    _e_order_save(eo);
 }
@@ -153,11 +179,13 @@ e_order_files_prepend_relative(E_Order *eo, Eina_List *files, Efreet_Desktop *be
 
    EINA_LIST_FOREACH(files, l, file)
      {
-	Efreet_Desktop *desktop;
+        Efreet_Desktop *desktop;
 
-	desktop = efreet_desktop_get(file);
-	if (!desktop) continue;
-	eo->desktops = eina_list_prepend_relative(eo->desktops, desktop, before);
+        if (!strncmp(file, "file://", 7))
+          file += 7;
+        desktop = efreet_desktop_get(file);
+        if (!desktop) continue;
+        eo->desktops = eina_list_prepend_relative(eo->desktops, desktop, before);
      }
    _e_order_save(eo);
 }
@@ -188,7 +216,7 @@ static Eina_Bool
 _e_order_cb_monitor_delay(void *data)
 {
    E_Order *eo = data;
-   
+
    /* It doesn't really matter what the change is, just re-read the file */
    _e_order_read(eo);
    if (eo->cb.update) eo->cb.update(eo->cb.data, eo);
@@ -218,36 +246,36 @@ _e_order_read(E_Order *eo)
    f = fopen(eo->path, "rb");
    if (f)
      {
-	char buf[4096];
+        char buf[4096];
 
-	while (fgets(buf, sizeof(buf), f))
-	  {
-	     int len;
+        while (fgets(buf, sizeof(buf), f))
+          {
+             int len;
 
-	     len = strlen(buf);
-	     if (len > 0)
-	       {
-		  if (buf[len - 1] == '\n')
-		    {
-		       buf[len - 1] = 0;
-		       len--;
-		    }
-		  if (len > 0)
-		    {
-		       Efreet_Desktop *desktop = NULL;
-		       
-		       if (buf[0] == '/')
-		         desktop = efreet_desktop_get(buf);
-		       if (!desktop)
-		         desktop = efreet_desktop_get(ecore_file_file_get(buf));
-		       if (!desktop)
-			 desktop = efreet_util_desktop_file_id_find(ecore_file_file_get(buf));
-		       if (desktop) 
+             len = strlen(buf);
+             if (len > 0)
+               {
+                  if (buf[len - 1] == '\n')
+                    {
+                       buf[len - 1] = 0;
+                       len--;
+                    }
+                  if (len > 0)
+                    {
+                       Efreet_Desktop *desktop = NULL;
+
+                       if (buf[0] == '/')
+                         desktop = efreet_desktop_get(buf);
+                       if (!desktop)
+                         desktop = efreet_desktop_get(ecore_file_file_get(buf));
+                       if (!desktop)
+                         desktop = efreet_util_desktop_file_id_find(ecore_file_file_get(buf));
+                       if (desktop)
                          eo->desktops = eina_list_append(eo->desktops, desktop);
-		    }
-	       }
-	  }
-	fclose(f);
+                    }
+               }
+          }
+        fclose(f);
      }
    if (dir) free(dir);
 }
@@ -265,12 +293,12 @@ _e_order_save(E_Order *eo)
 
    EINA_LIST_FOREACH(eo->desktops, l, desktop)
      {
-	const char *id;
+        const char *id;
 
-	id = efreet_util_path_to_file_id(desktop->orig_path);
-	if (id)
+        id = efreet_util_path_to_file_id(desktop->orig_path);
+        if (id)
           fprintf(f, "%s\n", id);
-	else
+        else
           fprintf(f, "%s\n", desktop->orig_path);
      }
 
@@ -286,8 +314,9 @@ _e_order_cb_efreet_cache_update(void *data __UNUSED__, int ev_type __UNUSED__, v
    /* reread all .order files */
    EINA_LIST_FOREACH(orders, l, eo)
      {
-	_e_order_read(eo);
-	if (eo->cb.update) eo->cb.update(eo->cb.data, eo);
+        _e_order_read(eo);
+        if (eo->cb.update) eo->cb.update(eo->cb.data, eo);
      }
    return ECORE_CALLBACK_PASS_ON;
 }
+

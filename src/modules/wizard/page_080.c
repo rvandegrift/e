@@ -1,19 +1,19 @@
 /* Ibar setup */
-#include "e.h"
-#include "e_mod_main.h"
+#include "e_wizard.h"
 
 EAPI int
-wizard_page_init(E_Wizard_Page *pg __UNUSED__)
+wizard_page_init(E_Wizard_Page *pg __UNUSED__, Eina_Bool *need_xdg_desktops, Eina_Bool *need_xdg_icons __UNUSED__)
 {
+   *need_xdg_desktops = EINA_TRUE;
    return 1;
 }
-
+/*
 EAPI int
 wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
-
+*/
 EAPI int
 wizard_page_show(E_Wizard_Page *pg __UNUSED__)
 {
@@ -32,18 +32,20 @@ wizard_page_show(E_Wizard_Page *pg __UNUSED__)
         while (fgets(buf, sizeof(buf), fin))
           {
              Efreet_Desktop *desk;
-             char name[PATH_MAX], buf2[PATH_MAX], *p;
+             char name[4096], buf2[PATH_MAX], *p;
              int n;
-             
+
              if (buf[0] == '#') continue;
              p = buf;
-             while (isspace(*p)) p++;
-             for (;;)
+             while (isspace(*p))
+               p++;
+             for (;; )
                {
                   n = sscanf(p, "%s", name);
                   if (n != 1) break;
                   p += strlen(name);
-                  while (isspace(*p)) p++;
+                  while (isspace(*p))
+                    p++;
                   snprintf(buf2, sizeof(buf2), "%s.desktop", name);
                   desk = efreet_util_desktop_file_id_find(buf2);
                   if (desk)
@@ -56,9 +58,10 @@ wizard_page_show(E_Wizard_Page *pg __UNUSED__)
           }
         fclose(f);
      }
+   fclose(fin);
    return 0; /* 1 == show ui, and wait for user, 0 == just continue */
 }
-
+/*
 EAPI int
 wizard_page_hide(E_Wizard_Page *pg __UNUSED__)
 {
@@ -70,3 +73,4 @@ wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
+*/

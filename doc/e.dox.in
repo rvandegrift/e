@@ -89,5 +89,21 @@ sudo make install
 @author Sthitha <iamsthitha@gmail>
 @author Doyoun Kang <doyoun.kang@samsung.com>
 @author Gwanglim Lee <gl77.lee@samsung.com>
+@author Thomas Gstädtner <thomas@gstaedtner.net>
+@author q66 <quaker66@gmail.com>
+@author Tom Hacohen <tom@stosb.com>
+@author Maxime Villard <rustyBSD@gmx.fr>
+@author Jeremy Zurcher <jeremy@asynk.ch>
+@author Shinwoo Kim <kimcinoo@gmail.com>
+@author Daniel Juyung Seo (SeoZ) <seojuyung2@gmail.com>
+@author Robert David <robert.david.public@gmail.com>
+@author Eduardo Lima (Etrunko) <eblima@gmail.com>
+@author Thanatermesis <thanatermesis.ecvs@gmail.com>
+@author Bruno Dilly <bdilly@profusion.mobi>
+@author Lucas De Marchi <lucas.demarchi@profusion.mobi>
+@author Samuel Mendes <heka.lok@gmail.com>
+@author Boris Faure <billiob@gmail.com>
+@author Michael Stapelberg <michael+e17@stapelberg.de>
+@author Stefan Sperling <stsp@openbsd.org>
 
 */

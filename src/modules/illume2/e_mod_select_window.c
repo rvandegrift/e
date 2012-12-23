@@ -1,5 +1,5 @@
 #include "e_illume_private.h"
-#include "e_mod_select_window.h"
+#include "e_mod_main.h"
 
 /* local function prototypes */
 static void *_e_mod_illume_config_select_window_create_data(E_Config_Dialog *cfd);
@@ -37,7 +37,6 @@ e_mod_illume_config_select_window(E_Illume_Select_Window_Type type)
                              "_config_illume_select_window", 
                              "enlightenment/windows", 0, v, NULL);
    if (!cfd) return;
-   e_dialog_resizable_set(cfd->dia, 1);
 }
 
 static void *
@@ -135,9 +134,9 @@ _e_mod_illume_config_select_window_list_changed(void *data)
         break;
      }
 
-   if (title) free(title);
-   if (name) free(name);
-   if (class) free(class);
+   free(title);
+   free(name);
+   free(class);
 
    if (_sw_change_timer) ecore_timer_del(_sw_change_timer);
    _sw_change_timer = 
@@ -236,9 +235,9 @@ _e_mod_illume_config_select_window_match(E_Border *bd)
         break;
      }
 
-   if (title) free(title);
-   if (name) free(name);
-   if (class) free(class);
+   free(title);
+   free(name);
+   free(class);
 
    return match;
 }

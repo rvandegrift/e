@@ -1,13 +1,23 @@
+/**
+ * @addtogroup Optional_Gadgets
+ * @{
+ *
+ * @defgroup Module_Start Start Button
+ *
+ * Shows a "start here" button or icon.
+ *
+ * @}
+ */
+
 #include "e.h"
-#include "e_mod_main.h"
 
 /* gadcon requirements */
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-static const char *_gc_label(E_Gadcon_Client_Class *client_class);
-static Evas_Object *_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas);
-static const char *_gc_id_new(E_Gadcon_Client_Class *client_class);
+static const char *_gc_label(const E_Gadcon_Client_Class *client_class);
+static Evas_Object *_gc_icon(const E_Gadcon_Client_Class *client_class, Evas *evas);
+static const char *_gc_id_new(const E_Gadcon_Client_Class *client_class);
 /* and actually define the gadcon class that this module provides (just 1) */
 static const E_Gadcon_Client_Class _gadcon_class =
 {
@@ -80,12 +90,68 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 }
     
 static void
-_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
+_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
 {
    Instance *inst;
    Evas_Coord mw, mh;
-
+   char buf[4096];
+   const char *s = "float";
+   
    inst = gcc->data;
+   switch (orient)
+     {
+      case E_GADCON_ORIENT_FLOAT:
+        s = "float";
+        break;
+      case E_GADCON_ORIENT_HORIZ:
+        s = "horizontal";
+        break;
+      case E_GADCON_ORIENT_VERT:
+        s = "vertical";
+        break;
+      case E_GADCON_ORIENT_LEFT:
+        s = "left";
+        break;
+      case E_GADCON_ORIENT_RIGHT:
+        s = "right";
+        break;
+      case E_GADCON_ORIENT_TOP:
+        s = "top";
+        break;
+      case E_GADCON_ORIENT_BOTTOM:
+        s = "bottom";
+        break;
+      case E_GADCON_ORIENT_CORNER_TL:
+        s = "top_left";
+        break;
+      case E_GADCON_ORIENT_CORNER_TR:
+        s = "top_right";
+        break;
+      case E_GADCON_ORIENT_CORNER_BL:
+        s = "bottom_left";
+        break;
+      case E_GADCON_ORIENT_CORNER_BR:
+        s = "bottom_right";
+        break;
+      case E_GADCON_ORIENT_CORNER_LT:
+        s = "left_top";
+        break;
+      case E_GADCON_ORIENT_CORNER_RT:
+        s = "right_top";
+        break;
+      case E_GADCON_ORIENT_CORNER_LB:
+        s = "left_bottom";
+        break;
+      case E_GADCON_ORIENT_CORNER_RB:
+        s = "right_bottom";
+        break;
+      default:
+        break;
+     }
+   snprintf(buf, sizeof(buf), "e,state,orientation,%s", s);
+   edje_object_signal_emit(inst->o_button, buf, "e");
+   edje_object_message_signal_process(inst->o_button);
+   
    mw = 0, mh = 0;
    edje_object_size_min_get(inst->o_button, &mw, &mh);
    if ((mw < 1) || (mh < 1))
@@ -97,13 +163,13 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
 }
    
 static const char *
-_gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_label(const E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Start");
 }
 
 static Evas_Object *
-_gc_icon(E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
+_gc_icon(const E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
 {
    Evas_Object *o;
    char buf[PATH_MAX];
@@ -116,7 +182,7 @@ _gc_icon(E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
 }
 
 static const char *
-_gc_id_new(E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_id_new(const E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _gadcon_class.name;
 }

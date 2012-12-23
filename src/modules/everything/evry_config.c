@@ -165,7 +165,7 @@ _basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 
         if (pc)
           {
-             if (cfdata->page[i].trigger[0])
+             if (cfdata->page[i].trigger && cfdata->page[i].trigger[0])
                eina_stringshare_replace(&pc->trigger, cfdata->page[i].trigger);
              else
                eina_stringshare_replace(&pc->trigger, NULL);
@@ -217,7 +217,7 @@ _fill_list(Eina_List *plugins, Evas_Object *obj, int enabled __UNUSED__)
          *      evas_object_del(end);
          *      end = NULL;
          *   } */
-        e_widget_ilist_append(obj, NULL, pc->name, NULL, pc, NULL);
+        e_widget_ilist_append(obj, NULL, _(pc->name), NULL, pc, NULL);
      }
 
    e_widget_ilist_go(obj);
@@ -445,7 +445,7 @@ _create_plugin_page(E_Config_Dialog_Data *cfdata __UNUSED__, Evas *e, Plugin_Pag
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd, Evas *e, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *e, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *of, *ob, *otb, *otb2;
    E_Radio_Group *rg;
@@ -595,7 +595,6 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *e, E_Config_Dialog_Data *cfdat
                                  o, 1, 0, 1, 0, 0.5, 0.0);
 
    e_widget_toolbook_page_show(otb, 0);
-   e_dialog_resizable_set(cfd->dia, 0);
    return otb;
 }
 

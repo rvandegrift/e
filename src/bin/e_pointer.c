@@ -308,7 +308,7 @@ _e_pointer_canvas_del(E_Pointer *p)
    if (p->pointer_object) evas_object_del(p->pointer_object);
    if (p->hot_object) evas_object_del(p->hot_object);
    if (p->evas) evas_free(p->evas);
-   if (p->pixels) free(p->pixels);
+   free(p->pixels);
    p->pointer_object = NULL;
    p->hot_object = NULL;
    p->evas = NULL;
@@ -445,6 +445,8 @@ fallback:
         cursor = ecore_x_cursor_shape_get(ECORE_X_CURSOR_PLUS);
       else if (!strcmp(type, "hand"))
         cursor = ecore_x_cursor_shape_get(ECORE_X_CURSOR_HAND1);
+      else if (!strcmp(type, "rotate"))
+        cursor = ecore_x_cursor_shape_get(ECORE_X_CURSOR_EXCHANGE);
       else
         {
            printf("Unknown pointer type: %s\n", type);
@@ -645,4 +647,3 @@ _e_pointer_cb_idle_poller(void *data)
      }
    return ECORE_CALLBACK_RENEW;
 }
-

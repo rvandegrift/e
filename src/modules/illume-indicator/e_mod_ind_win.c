@@ -94,7 +94,7 @@ e_mod_ind_win_new(E_Zone *zone)
    /*                                    _e_mod_ind_win_cb_size_request, iwin); */
    e_gadcon_frame_request_callback_set(iwin->gadcon, 
                                        _e_mod_ind_win_cb_frame_request, iwin);
-   e_gadcon_orient(iwin->gadcon, E_GADCON_ORIENT_FLOAT);
+   e_gadcon_orient(iwin->gadcon, E_GADCON_ORIENT_TOP);
    e_gadcon_zone_set(iwin->gadcon, zone);
    e_gadcon_ecore_evas_set(iwin->gadcon, iwin->win->ecore_evas);
 
@@ -190,7 +190,7 @@ _e_mod_ind_win_cb_win_prop(void *data, int type __UNUSED__, void *event)
 {
    Ind_Win *iwin;
    Ecore_X_Event_Window_Property *ev;
-   Evas_Coord h = 0, mw = 0, mh = 0;
+   Evas_Coord mw = 0, mh = 0;
 
    ev = event;
 
@@ -198,8 +198,6 @@ _e_mod_ind_win_cb_win_prop(void *data, int type __UNUSED__, void *event)
    if (ev->win != iwin->win->container->manager->root) 
      return ECORE_CALLBACK_PASS_ON;
    if (ev->atom != ATM_ENLIGHTENMENT_SCALE) return ECORE_CALLBACK_PASS_ON;
-
-   h = (il_ind_cfg->height * e_scale);
 
    edje_object_size_min_calc(iwin->o_base, &mw, &mh);
 //   printf("@@@@@@@@@@@@@@@@@@@@@@@ %i: %ix%i\n", h, mw, mh);
@@ -228,13 +226,12 @@ _e_mod_ind_win_cb_zone_resize(void *data, int type __UNUSED__, void *event)
 {
    Ind_Win *iwin;
    E_Event_Zone_Move_Resize *ev;
-   Evas_Coord h = 0, mw = 0, mh = 0;
+   Evas_Coord mw = 0, mh = 0;
 
    ev = event;
    if (!(iwin = data)) return ECORE_CALLBACK_PASS_ON;
    if (ev->zone != iwin->zone) return ECORE_CALLBACK_PASS_ON;
 
-   h = (il_ind_cfg->height * e_scale);
    edje_object_size_min_calc(iwin->o_base, &mw, &mh);
 //   printf("@@@@@@@@@@@@@@@@@@@@@@@ %i: %ix%i\n", h, mw, mh);
 
@@ -476,6 +473,7 @@ _e_mod_ind_win_cb_menu_append(Ind_Win *iwin, E_Menu *mn)
    e_menu_item_icon_edje_set(mi, buff, "icon");
    e_menu_pre_activate_callback_set(subm, _e_mod_ind_win_cb_menu_pre, iwin);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 }
 
 static void 

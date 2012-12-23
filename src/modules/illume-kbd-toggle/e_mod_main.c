@@ -1,5 +1,4 @@
 #include "e.h"
-#include "e_mod_main.h"
 
 /* local structures */
 typedef struct _Instance Instance;
@@ -14,9 +13,9 @@ struct _Instance
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void _gc_shutdown(E_Gadcon_Client *gcc);
 static void _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-static const char *_gc_label(E_Gadcon_Client_Class *cc);
-static Evas_Object *_gc_icon(E_Gadcon_Client_Class *cc, Evas *evas);
-static const char *_gc_id_new(E_Gadcon_Client_Class *cc);
+static const char *_gc_label(const E_Gadcon_Client_Class *cc);
+static Evas_Object *_gc_icon(const E_Gadcon_Client_Class *cc, Evas *evas);
+static const char *_gc_id_new(const E_Gadcon_Client_Class *cc);
 static void _cb_action_vkbd_enable(void *data, Evas_Object *obj, const char *emission, const char *source);
 static void _cb_action_vkbd_disable(void *data, Evas_Object *obj, const char *emission, const char *source);
 static Eina_Bool _cb_border_focus_in(void *data, int type __UNUSED__, void *event);
@@ -121,13 +120,13 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
 }
 
 static const char *
-_gc_label(E_Gadcon_Client_Class *cc __UNUSED__) 
+_gc_label(const E_Gadcon_Client_Class *cc __UNUSED__) 
 {
    return _("Illume-Keyboard-Toggle");
 }
 
 static Evas_Object *
-_gc_icon(E_Gadcon_Client_Class *cc __UNUSED__, Evas *evas) 
+_gc_icon(const E_Gadcon_Client_Class *cc __UNUSED__, Evas *evas) 
 {
    Evas_Object *o;
    char buff[PATH_MAX];
@@ -139,7 +138,7 @@ _gc_icon(E_Gadcon_Client_Class *cc __UNUSED__, Evas *evas)
 }
 
 static const char *
-_gc_id_new(E_Gadcon_Client_Class *cc __UNUSED__) 
+_gc_id_new(const E_Gadcon_Client_Class *cc __UNUSED__) 
 {
    static char buff[32];
 
@@ -157,7 +156,7 @@ _cb_action_vkbd_enable(void *data, Evas_Object *obj __UNUSED__, const char *emis
    if (!(inst = data)) return;
    if (!(bd = e_border_focused_get())) return;
    if (bd->zone != inst->gcc->gadcon->zone) return;
-   if (bd->client.vkbd.state == ECORE_X_VIRTUAL_KEYBOARD_STATE_ON) return;
+   if (bd->client.vkbd.state >= ECORE_X_VIRTUAL_KEYBOARD_STATE_ON) return;
 
    ecore_x_e_virtual_keyboard_state_set(bd->client.win,
                                         ECORE_X_VIRTUAL_KEYBOARD_STATE_ON);
@@ -172,7 +171,7 @@ _cb_action_vkbd_disable(void *data, Evas_Object *obj __UNUSED__, const char *emi
    if (!(inst = data)) return;
    if (!(bd = e_border_focused_get())) return;
    if (bd->zone != inst->gcc->gadcon->zone) return;
-   if (bd->client.vkbd.state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF) return;
+   if (bd->client.vkbd.state <= ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF) return;
 
    ecore_x_e_virtual_keyboard_state_set(bd->client.win,
                                         ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF);
@@ -226,7 +225,7 @@ _cb_border_property(void *data, int type __UNUSED__, void *event)
 static void
 _set_btn_icon(Evas_Object *obj, Ecore_X_Virtual_Keyboard_State state)
 {
-   if (state == ECORE_X_VIRTUAL_KEYBOARD_STATE_ON)
+   if (state >= ECORE_X_VIRTUAL_KEYBOARD_STATE_ON)
      edje_object_signal_emit(obj, "e,state,vkbd,on", "e");
    else
      edje_object_signal_emit(obj, "e,state,vkbd,off", "e");

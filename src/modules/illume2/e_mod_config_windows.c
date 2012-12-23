@@ -1,6 +1,5 @@
 #include "e_illume_private.h"
-#include "e_mod_config_windows.h"
-#include "e_mod_select_window.h"
+#include "e_mod_main.h"
 
 /* local function prototypes */
 static void *_e_mod_illume_config_windows_create(E_Config_Dialog *cfd);
@@ -39,7 +38,6 @@ e_mod_illume_config_windows_show(E_Container *con, const char *params __UNUSED__
                              "illume/windows", 
                              "preferences-system-windows", 0, v, NULL);
    if (!cfd) return;
-   e_dialog_resizable_set(cfd->dia, 1);
 }
 
 /* local function prototypes */

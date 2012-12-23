@@ -8,10 +8,11 @@
 #include "evry_api.h"
 #include <Efreet_Trash.h>
 
-#define MOD_CONFIG_FILE_EPOCH      0x0001
-#define MOD_CONFIG_FILE_GENERATION 0x008d
-#define MOD_CONFIG_FILE_VERSION \
-  ((MOD_CONFIG_FILE_EPOCH << 16) | MOD_CONFIG_FILE_GENERATION)
+/* Increment for Major Changes */
+#define MOD_CONFIG_FILE_EPOCH      1
+/* Increment for Minor Changes (ie: user doesn't need a new config) */
+#define MOD_CONFIG_FILE_GENERATION 0
+#define MOD_CONFIG_FILE_VERSION    ((MOD_CONFIG_FILE_EPOCH * 1000000) + MOD_CONFIG_FILE_GENERATION)
 
 #define MAX_ITEMS                  10
 #define MAX_SHOWN                  300
@@ -379,14 +380,14 @@ _scan_end_func(void *data, Ecore_Thread *thread __UNUSED__)
      {
         EINA_LIST_FOREACH_SAFE (d->files, l, ll, item)
           {
-             GET_FILE(file, item);
+             GET_FILE(browse, item);
 
              if (item->browseable)
-               file->mime = _mime_dir;
+               browse->mime = _mime_dir;
              else if (ht)
-               _cache_mime_get(ht, file);
+               _cache_mime_get(ht, browse);
 
-             if (file->mime)
+             if (browse->mime)
                {
                   d->files = eina_list_remove_list(d->files, l);
                   _file_add(p, item);
@@ -676,17 +677,17 @@ _fetch(Evry_Plugin *plugin, const char *input)
 
              return 0;
           }
-        int len = strlen(p->directory);
-        len = (len == 1) ? len : len + 1;
+        int lendir = p->directory ? strlen(p->directory) : 0;
+        lendir = (lendir <= 1) ? lendir : lendir + 1;
 
-        p->input = eina_stringshare_add(input + len);
+        p->input = eina_stringshare_add(input + lendir);
      }
    else if (p->directory && input && !strncmp(input, "..", 2))
      {
         if (p->command != CMD_SHOW_PARENT)
           {
              char *dir;
-             char buf[PATH_MAX];
+             char buf[PATH_MAX+1];
              int prio = 0;
 
              if (strncmp(p->directory, "/", 1))
@@ -694,16 +695,16 @@ _fetch(Evry_Plugin *plugin, const char *input)
 
              _free_files(p);
 
-             strncpy(buf, p->directory, PATH_MAX);
+             strncpy(buf, p->directory, sizeof(buf) - 1);
 
              _folder_item_add(p, p->directory, prio++);
 
+             buf[sizeof(buf) - 1] = 0;
              while (strlen(buf) > 1)
                {
-                  buf[PATH_MAX - 1] = 0;
                   dir = dirname(buf);
                   _folder_item_add(p, dir, prio++);
-                  strncpy(buf, dir, PATH_MAX);
+                  strcpy(buf, dir);
                }
 
              p->command = CMD_SHOW_PARENT;
@@ -1071,7 +1072,7 @@ _recentf_fetch(Evry_Plugin *plugin, const char *input)
    GET_PLUGIN(p, plugin);
    Evry_Item_File *file;
    History_Types *ht;
-   size_t len = (input ? strlen(input) : 0);
+   int len = (input ? strlen(input) : 0);
 
    IF_RELEASE(p->input);
 
@@ -1554,21 +1555,13 @@ static void
 _conf_new(void)
 {
    _conf = E_NEW(Module_Config, 1);
-   _conf->version = (MOD_CONFIG_FILE_EPOCH << 16);
+   _conf->show_recent = 0;
+   _conf->show_homedir = 1;
+   _conf->search_recent = 1;
+   _conf->cache_dirs = 0;
+   _conf->search_cache = 0;
 
-#define IFMODCFG(v) if ((_conf->version & 0xffff) < v) {
-#define IFMODCFGEND }
-
-    /* setup defaults */
-    IFMODCFG(0x008d);
-    _conf->show_recent = 0;
-    _conf->show_homedir = 1;
-    _conf->search_recent = 1;
-    _conf->cache_dirs = 0;
-    _conf->search_cache = 0;
-    IFMODCFGEND;
-
-    _conf->version = MOD_CONFIG_FILE_VERSION;
+   _conf->version = MOD_CONFIG_FILE_VERSION;
 }
 
 static void

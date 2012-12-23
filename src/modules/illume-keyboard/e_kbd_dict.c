@@ -153,7 +153,6 @@ _e_kbd_dict_writes_cb_sort(const void *d1, const void *d2)
    kw1 = d1;
    kw2 = d2;
    return _e_kbd_dict_normalized_strcmp(kw1->word, kw2->word);
-   return 0;
 }
 
 static const char *
@@ -416,7 +415,7 @@ e_kbd_dict_save(E_Kbd_Dict *kd)
                   else
                     fprintf(f, "%s %i\n", wd, usage);
                }
-             if (wd) free(wd);
+             free(wd);
              p = pn;
              if (p >= (kd->file.dict + kd->file.size)) break;
           }
@@ -586,7 +585,7 @@ e_kbd_dict_word_usage_adjust(E_Kbd_Dict *kd, const char *word, int adjust)
 
              // FIXME: we need to find an EXACT line match - case and all
              wd = _e_kbd_dict_line_parse(kd, line, &usage);
-             if (wd) free(wd);
+             free(wd);
           }
         usage += adjust;
         _e_kbd_dict_changed_write_add(kd, word, usage);

@@ -32,21 +32,20 @@ void *alloca(size_t);
 #include <Eeze.h>
 #include <Eeze_Disk.h>
 
-#include "e_fm_main.h"
-#include "e_fm_main_eeze.h"
-
-#include "e_fm_shared_codec.h"
 #include "e_fm_shared_device.h"
+#include "e_fm_shared_codec.h"
 #include "e_fm_ipc.h"
 #include "e_fm_device.h"
+#include <eeze_scanner.h>
 
-#include "eeze_scanner.h"
+#include "e_fm_main.h"
+#include "e_fm_main_eeze.h"
 
 static void _e_fm_main_eeze_storage_rescan(const char *syspath);
 static void _e_fm_main_eeze_volume_rescan(const char *syspath);
 static E_Volume *_e_fm_main_eeze_volume_find_fast(const char *syspath);
 static E_Storage *_e_fm_main_eeze_storage_find_fast(const char *syspath);
-
+static void _e_fm_main_eeze_volume_del(const char *syspath);
 
 static Eina_List *_e_stores = NULL;
 static Eina_List *_e_vols = NULL;
@@ -83,6 +82,40 @@ e_util_env_set(const char *var, const char *val)
 	if (getenv(var)) putenv(var);
 #endif
      }
+}
+
+static const char *
+_mount_point_escape(const char *path)
+{
+   const char *p;
+   if (!path) return NULL;
+
+   /* Most app doesn't handle the hostname in the uri so it's put to NULL */
+   for (p = path; *p; p++)
+     if ((!isalnum(*p)) && (*p != '/') && (*p != '_')) return NULL;
+
+   return eina_stringshare_add(path);
+}
+
+static void
+_e_fm_main_eeze_mount_point_set(E_Volume *v)
+{
+   const char *str;
+   char path[PATH_MAX];
+
+   str = strrchr(v->udi, '/');
+   if ((!str) || (!str[1]))
+     {
+        CRI("DEV CHANGED, ABORTING");
+        eina_stringshare_replace(&v->mount_point, NULL);
+        eeze_disk_mount_point_set(v->disk, NULL);
+        return;
+     }
+   /* here we arbitrarily mount everything to /media/$devnode regardless of fstab */
+   eina_stringshare_del(v->mount_point);
+   snprintf(path, sizeof(path), "/media%s", str);
+   v->mount_point = _mount_point_escape(path);
+   eeze_disk_mount_point_set(v->disk, v->mount_point);
 }
 
 static int
@@ -136,8 +169,9 @@ _e_fm_main_eeze_cb_vol_mounted(void *user_data __UNUSED__,
    char *buf;
    int size;
 
-   //v = eeze_disk_data_get(ev->disk); THIS IS BROKEN DON'T ASK WHY
-   v = _e_fm_main_eeze_volume_find_fast(eeze_disk_syspath_get(ev->disk));
+   v = eeze_disk_data_get(ev->disk);
+   if (!v) return ECORE_CALLBACK_RENEW;
+   if (!eina_list_data_find(_e_vols, v)) return ECORE_CALLBACK_RENEW;
    if (v->guard)
      {
         ecore_timer_del(v->guard);
@@ -180,15 +214,16 @@ _e_fm_main_eeze_vol_unmount_timeout(E_Volume *v)
 
 static Eina_Bool
 _e_fm_main_eeze_cb_vol_error(void *user_data __UNUSED__,
-                                 int type __UNUSED__,
-                                 Eeze_Event_Disk_Error *ev)
+                             int type __UNUSED__,
+                             Eeze_Event_Disk_Error *ev)
 {
    E_Volume *v;
    char *buf;
    int size;
 
-   //v = eeze_disk_data_get(ev->disk); THIS IS BROKEN DON'T ASK WHY
-   v = _e_fm_main_eeze_volume_find_fast(eeze_disk_syspath_get(ev->disk));
+   v = eeze_disk_data_get(ev->disk);
+   if (!v) return ECORE_CALLBACK_RENEW;
+   if (!eina_list_data_find(_e_vols, v)) return ECORE_CALLBACK_RENEW;
    if (v->mounted)
      {
         size = _e_fm_main_eeze_format_error_msg(&buf, v, "org.enlightenment.fm2.UnmountError", ev->message);
@@ -214,8 +249,9 @@ _e_fm_main_eeze_cb_vol_unmounted(void *user_data __UNUSED__,
    int size;
    E_Volume *v;
 
-   v = _e_fm_main_eeze_volume_find_fast(eeze_disk_syspath_get(ev->disk));
-   //v = eeze_disk_data_get(ev->disk); THIS IS BROKEN DON'T ASK WHY
+   v = eeze_disk_data_get(ev->disk);
+   if (!v) return ECORE_CALLBACK_RENEW;
+   if (!eina_list_data_find(_e_vols, v)) return ECORE_CALLBACK_RENEW;
    if (v->guard)
      {
         ecore_timer_del(v->guard);
@@ -224,7 +260,7 @@ _e_fm_main_eeze_cb_vol_unmounted(void *user_data __UNUSED__,
 
    v->mounted = EINA_FALSE;
    INF("UNMOUNT: %s from %s", v->udi, v->mount_point);
-   if (!memcmp(v->mount_point, "/media/", 7))
+   if (!strncmp(v->mount_point, e_user_dir_get(), strlen(e_user_dir_get())))
      unlink(v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
    buf = alloca(size);
@@ -263,16 +299,22 @@ _e_fm_main_eeze_cb_vol_ejected(void *user_data __UNUSED__,
    int size;
 
    v = eeze_disk_data_get(ev->disk);
+   if (!v) return ECORE_CALLBACK_RENEW;
+   if (!eina_list_data_find(_e_vols, v)) return ECORE_CALLBACK_RENEW;
    if (v->guard)
      {
         ecore_timer_del(v->guard);
         v->guard = NULL;
      }
 
-   v->mounted = EINA_TRUE;
+   v->mounted = EINA_FALSE;
+   if (!v->mount_point) _e_fm_main_eeze_mount_point_set(v);
+   if (!v->mount_point)
+     {
+        /* we're aborting here, so just fail */
+        return ECORE_CALLBACK_RENEW;
+     }
    INF("EJECT: %s from %s", v->udi, v->mount_point);
-   if (!memcmp(v->mount_point, "/media/", 7))
-     unlink(v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
    buf = alloca(size);
    strcpy(buf, v->udi);
@@ -288,6 +330,13 @@ void
 _e_fm_main_eeze_volume_eject(E_Volume *v)
 {
    if (!v || v->guard) return;
+   if (!eeze_disk_mount_wrapper_get(v->disk))
+     {
+        char buf[PATH_MAX];
+
+        snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys", eina_prefix_lib_get(pfx));
+        eeze_disk_mount_wrapper_set(v->disk, buf);
+     }
    v->guard = ecore_timer_add(E_FM_EJECT_TIMEOUT, (Ecore_Task_Cb)_e_fm_main_eeze_vol_eject_timeout, v);
    eeze_disk_eject(v->disk);
 }
@@ -298,9 +347,10 @@ _e_fm_main_eeze_volume_add(const char *syspath,
 {
    E_Volume *v;
    const char *str;
+   Eeze_Disk_Type type;
 
    if (!syspath) return NULL;
-   if (e_volume_find(syspath)) return NULL;
+   if (_e_fm_main_eeze_volume_find_fast(syspath)) return NULL;
    v = calloc(1, sizeof(E_Volume));
    if (!v) return NULL;
    v->disk = eeze_disk_new(syspath);
@@ -310,16 +360,37 @@ _e_fm_main_eeze_volume_add(const char *syspath,
         return NULL;
      }
    INF("VOL+ %s", syspath);
+   eeze_disk_scan(v->disk);
+   type = eeze_disk_type_get(v->disk);
+   if ((type == EEZE_DISK_TYPE_INTERNAL) || (type == EEZE_DISK_TYPE_UNKNOWN))
+     {
+        str = eeze_disk_mount_point_get(v->disk);
+        if ((type != EEZE_DISK_TYPE_INTERNAL) || (str && (strncmp(str, "/media/", 7))))
+          {
+             INF("VOL is %s, ignoring", (type == EEZE_DISK_TYPE_INTERNAL) ? "internal" : "unknown");
+             eeze_disk_free(v->disk);
+             free(v);
+             return NULL;
+          }
+     }
    eeze_disk_data_set(v->disk, v);
    v->udi = eina_stringshare_add(syspath);
    v->icon = NULL;
    v->first_time = first_time;
+   v->efm_mode = EFM_MODE_USING_EEZE_MOUNT;
    _e_vols = eina_list_append(_e_vols, v);
-   eeze_disk_scan(v->disk);
    v->uuid = eeze_disk_uuid_get(v->disk);
    v->label = eeze_disk_label_get(v->disk);
    v->fstype = eeze_disk_fstype_get(v->disk);
    v->parent = eeze_disk_udev_get_parent(v->disk);
+   {
+      /* check for device being its own parent: this is the case
+       * for devices such as cdroms
+       */
+      str = eeze_udev_syspath_get_subsystem(v->parent);
+      if (strcmp(str, "block"))
+        eina_stringshare_replace(&v->parent, v->udi);
+   }
    str = eeze_disk_udev_get_sysattr(v->disk, "queue/hw_sector_size");
    if (!str)
      str = eeze_udev_syspath_get_sysattr(v->parent, "queue/hw_sector_size");
@@ -342,7 +413,7 @@ _e_fm_main_eeze_volume_add(const char *syspath,
      v->partition = EINA_TRUE;
    eina_stringshare_del(str);
    if (v->mounted)
-     v->mount_point = eeze_disk_mount_point_get(v->disk);
+     v->mount_point = eina_stringshare_add(eeze_disk_mount_point_get(v->disk));
 
    if (v->partition)
      {
@@ -353,6 +424,16 @@ _e_fm_main_eeze_volume_add(const char *syspath,
         v->partition_label = eeze_disk_udev_get_property(v->disk, "ID_FS_LABEL");
      }
 
+   /* if we have dev/sda ANd dev/sda1 - ia a parent vol - del the parent vol
+    * since we actually have real child partition volumes to mount */
+   if ((v->partition != 0) && (v->parent))
+     {
+        E_Volume *v2 = _e_fm_main_eeze_volume_find_fast(v->parent);
+        
+        if ((v2) && (v2->partition == 0))
+          _e_fm_main_eeze_volume_del(v2->udi);
+     }
+   
    {
       E_Storage *s;
       s = e_storage_find(v->parent);
@@ -374,29 +455,16 @@ _e_fm_main_eeze_volume_add(const char *syspath,
    }
 
    v->validated = EINA_TRUE;
-   {
-      void *msg_data;
-      int msg_size;
-
-      msg_data = _e_fm_shared_codec_volume_encode(v, &msg_size);
-      if (msg_data)
-        {
-           ecore_ipc_server_send(_e_fm_ipc_server,
-                                 6 /*E_IPC_DOMAIN_FM*/,
-                                 E_FM_OP_VOLUME_ADD,
-                                 0, 0, 0, msg_data, msg_size);
-           free(msg_data);
-        }
-   }
+   e_fm_ipc_volume_add(v);
    return v;
 }
 
-void
+static void
 _e_fm_main_eeze_volume_del(const char *syspath)
 {
    E_Volume *v;
 
-   v = e_volume_find(syspath);
+   v = _e_fm_main_eeze_volume_find_fast(syspath);
    if (!v) return;
    if (v->guard)
      {
@@ -451,8 +519,9 @@ _e_fm_main_eeze_volume_find(const char *syspath)
 void
 _e_fm_main_eeze_volume_unmount(E_Volume *v)
 {
-   INF("unmount %s %s", v->udi, v->mount_point);
    if (!v || v->guard) return;
+
+   INF("unmount %s %s", v->udi, v->mount_point);
 
    if (!eeze_disk_mount_wrapper_get(v->disk))
      {
@@ -468,22 +537,14 @@ _e_fm_main_eeze_volume_unmount(E_Volume *v)
 void
 _e_fm_main_eeze_volume_mount(E_Volume *v)
 {
-   int opts = 0;
+   int size, opts = 0;
+   char *buf;
 
    if (!v || v->guard)
      return;
 
-   INF("mount %s %s [fs type = %s]", v->udi, v->mount_point, v->fstype);
-
    if (v->fstype)
      {
-        if ((!strcmp(v->fstype, "vfat")) ||
-            (!strcmp(v->fstype, "ntfs"))
-            )
-          {
-             opts = EEZE_DISK_MOUNTOPT_UID;
-          }
-
         if ((!strcmp(v->fstype, "vfat")) ||
             (!strcmp(v->fstype, "ntfs")) ||
             (!strcmp(v->fstype, "iso9660")) ||
@@ -492,21 +553,29 @@ _e_fm_main_eeze_volume_mount(E_Volume *v)
              opts |= EEZE_DISK_MOUNTOPT_UTF8;
           }
      }
+   opts |= EEZE_DISK_MOUNTOPT_UID | EEZE_DISK_MOUNTOPT_NOSUID | EEZE_DISK_MOUNTOPT_NODEV | EEZE_DISK_MOUNTOPT_NOEXEC;
 
-   /* here we arbitrarily mount everything to /media regardless of fstab */
-   eina_stringshare_del(v->mount_point);
-   v->mount_point = eina_stringshare_printf("/media/%s", v->uuid);
-   eeze_disk_mount_point_set(v->disk, v->mount_point);
+   _e_fm_main_eeze_mount_point_set(v);
+   if (!v->mount_point) goto error;
+   INF("mount %s %s [fs type = %s]", v->udi, v->mount_point, v->fstype);   
    eeze_disk_mountopts_set(v->disk, opts);
    if (!eeze_disk_mount_wrapper_get(v->disk))
      {
-        char buf[PATH_MAX];
+        char buf2[PATH_MAX];
 
-        snprintf(buf, sizeof(buf), "%s/enlightenment/utils/enlightenment_sys", eina_prefix_lib_get(pfx));
-        eeze_disk_mount_wrapper_set(v->disk, buf);
+        snprintf(buf2, sizeof(buf2), "%s/enlightenment/utils/enlightenment_sys", eina_prefix_lib_get(pfx));
+        eeze_disk_mount_wrapper_set(v->disk, buf2);
      }
    v->guard = ecore_timer_add(E_FM_MOUNT_TIMEOUT, (Ecore_Task_Cb)_e_fm_main_eeze_vol_mount_timeout, v);
-   eeze_disk_mount(v->disk);
+   INF("MOUNT: %s", v->udi);
+   if (!eeze_disk_mount(v->disk)) goto error;
+   return;
+error:
+   size = _e_fm_main_eeze_format_error_msg(&buf, v, "org.enlightenment.fm2.MountError", "Critical error occurred during mounting!");
+   ecore_ipc_server_send(_e_fm_ipc_server, 6 /*E_IPC_DOMAIN_FM*/, E_FM_OP_MOUNT_ERROR,
+                         0, 0, 0, buf, size);
+   free(buf);
+   CRI("ERROR WHEN ATTEMPTING TO MOUNT!");
 }
 
 static void
@@ -523,32 +592,12 @@ eet_setup(void)
    es_edd = eet_data_descriptor_stream_new(&eddc);
    EEZE_SCANNER_EDD_SETUP(es_edd);
 }
-
-static Eina_Bool
-_scanner_delay(void *data __UNUSED__)
-{
-   INF("Attempting scanner connection");
-   svr = ecore_con_server_connect(ECORE_CON_LOCAL_SYSTEM, "eeze_scanner", 0, NULL);
-   return EINA_FALSE;
-}
-
 static Eina_Bool
 _scanner_poll(void *data __UNUSED__)
 {
-   const char *tmp;
-   struct stat st;
-   char buf[1024];
-
    if (svr) return EINA_FALSE;
-   tmp = getenv("TMPDIR");
-   if ((!tmp) || (!tmp[0])) tmp = "/tmp";
-
-   snprintf(buf, sizeof(buf), "%s/.ecore_service|eeze_scanner|0", tmp);
-   if (!stat(buf, &st))
-     {
-        ecore_timer_add(1.0, _scanner_delay, NULL);
-        return EINA_FALSE;
-     }
+   svr = ecore_con_server_connect(ECORE_CON_LOCAL_SYSTEM, "eeze_scanner", 0, NULL);
+   if (!svr) return EINA_FALSE;
    return EINA_TRUE;
 }
 
@@ -558,7 +607,7 @@ _scanner_add(void *data, int type __UNUSED__, Ecore_Exe_Event_Add *ev)
    if (data != ecore_exe_data_get(ev->exe)) return ECORE_CALLBACK_PASS_ON;
    INF("Scanner started");
    if (_scanner_poll(NULL))
-     ecore_poller_add(ECORE_POLLER_CORE, 32, (Ecore_Task_Cb)_scanner_poll, NULL);
+     ecore_poller_add(ECORE_POLLER_CORE, 8, (Ecore_Task_Cb)_scanner_poll, NULL);
    return ECORE_CALLBACK_RENEW;
 }
 
@@ -612,17 +661,7 @@ _scanner_write(const void *eet_data __UNUSED__, size_t size __UNUSED__, void *us
 static void
 _scanner_run(void)
 {
-   char buf[1024];
-   struct stat st;
-   snprintf(buf, sizeof(buf),
-            "%s/enlightenment/utils/eeze_scanner", eina_prefix_lib_get(pfx));
-
-   if (stat(buf, &st))
-     {
-        CRI("Could not locate scanner at '%s'! EFM exiting.", buf);
-        exit(1);
-     }
-   scanner = ecore_exe_pipe_run(buf, ECORE_EXE_NOT_LEADER, pfx);
+   scanner = ecore_exe_pipe_run("eeze_scanner", ECORE_EXE_NOT_LEADER, pfx);
 }
 
 
@@ -660,60 +699,57 @@ _scanner_data(void *data __UNUSED__, int type __UNUSED__, Ecore_Con_Event_Server
 void
 _e_fm_main_eeze_init(void)
 {
-   const char *tmp;
-   char **argv, buf[1024];
-   struct stat st;
+   char **argv;
    int argc;
 
+   if (_e_fm_eeze_init) return;
    ecore_app_args_get(&argc, &argv);
    pfx = eina_prefix_new(argv[0], e_storage_find,
-                    "E", "enlightenment", "AUTHORS",
-                    PACKAGE_BIN_DIR,
-                    PACKAGE_LIB_DIR,
-                    PACKAGE_DATA_DIR,
-                    LOCALE_DIR);
+                         "E", "enlightenment", "AUTHORS",
+                         PACKAGE_BIN_DIR, PACKAGE_LIB_DIR,
+                         PACKAGE_DATA_DIR, LOCALE_DIR);
    if (!pfx)
      {
         ERR("Could not determine prefix!");
         exit(1);
      }
-   if (_e_fm_eeze_init) return;
    _e_fm_eeze_init = EINA_TRUE;
    ecore_con_init();
    eeze_init();
    eina_log_domain_level_set("eeze_disk", EINA_LOG_LEVEL_DBG);
    eeze_mount_tabs_watch();
-   ecore_event_handler_add(EEZE_EVENT_DISK_MOUNT, (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_mounted, NULL);
-   ecore_event_handler_add(EEZE_EVENT_DISK_UNMOUNT, (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_unmounted, NULL);
-   ecore_event_handler_add(EEZE_EVENT_DISK_EJECT, (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_ejected, NULL);
-   ecore_event_handler_add(EEZE_EVENT_DISK_ERROR, (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_error, NULL);
+   ecore_event_handler_add(EEZE_EVENT_DISK_MOUNT, 
+                           (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_mounted, NULL);
+   ecore_event_handler_add(EEZE_EVENT_DISK_UNMOUNT, 
+                           (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_unmounted, NULL);
+   ecore_event_handler_add(EEZE_EVENT_DISK_EJECT, 
+                           (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_ejected, NULL);
+   ecore_event_handler_add(EEZE_EVENT_DISK_ERROR, 
+                           (Ecore_Event_Handler_Cb)_e_fm_main_eeze_cb_vol_error, NULL);
 
-   ecore_event_handler_add(ECORE_EXE_EVENT_ADD, (Ecore_Event_Handler_Cb)_scanner_add, pfx);
-   ecore_event_handler_add(ECORE_EXE_EVENT_DEL, (Ecore_Event_Handler_Cb)_scanner_del, pfx);
+   ecore_event_handler_add(ECORE_EXE_EVENT_ADD, 
+                           (Ecore_Event_Handler_Cb)_scanner_add, pfx);
+   ecore_event_handler_add(ECORE_EXE_EVENT_DEL, 
+                           (Ecore_Event_Handler_Cb)_scanner_del, pfx);
 
-   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_ADD, (Ecore_Event_Handler_Cb)_scanner_con, NULL);
-   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_DEL, (Ecore_Event_Handler_Cb)_scanner_disc, NULL);
-   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_DATA, (Ecore_Event_Handler_Cb)_scanner_data, NULL);
-   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_ERROR, (Ecore_Event_Handler_Cb)_scanner_err, NULL);
+   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_ADD, 
+                           (Ecore_Event_Handler_Cb)_scanner_con, NULL);
+   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_DEL, 
+                           (Ecore_Event_Handler_Cb)_scanner_disc, NULL);
+   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_DATA, 
+                           (Ecore_Event_Handler_Cb)_scanner_data, NULL);
+   ecore_event_handler_add(ECORE_CON_EVENT_SERVER_ERROR, 
+                           (Ecore_Event_Handler_Cb)_scanner_err, NULL);
 
    eet_setup();
-
-   tmp = getenv("TMPDIR");
-   if ((!tmp) || (!tmp[0])) tmp = "/tmp";
-
-   snprintf(buf, sizeof(buf), "%s/.ecore_service|eeze_scanner|0", tmp);
-   if (stat(buf, &st))
-     {
-        INF("Socket file '%s' for eeze_scanner does not exist, attempting to start...", buf);
-        _scanner_run();
-        return;
-     }
-   svr = ecore_con_server_connect(ECORE_CON_LOCAL_SYSTEM, "eeze_scanner", 0, NULL);
+   if (!_scanner_poll(NULL))
+     _scanner_run();
 }
 
 void
 _e_fm_main_eeze_shutdown(void)
 {
+   if (scanner) ecore_exe_free(scanner);
    eeze_mount_tabs_unwatch();
    eeze_shutdown();
    ecore_con_shutdown();
@@ -726,8 +762,8 @@ _e_fm_main_eeze_storage_rescan(const char *syspath)
    E_Storage *s;
 
    s = _e_fm_main_eeze_storage_find_fast(syspath);
-   if (!s) return;
-   DBG("%s changed, nothing to see here", s->udi);
+   if (s) _e_fm_main_eeze_storage_del(syspath);
+   _e_fm_main_eeze_storage_add(syspath);
 }
 
 static void
@@ -736,8 +772,8 @@ _e_fm_main_eeze_volume_rescan(const char *syspath)
    E_Volume *v;
 
    v = _e_fm_main_eeze_volume_find_fast(syspath);
-   if (!v) return;
-   DBG("%s changed, nothing to see here", v->udi);
+   if (v) _e_fm_main_eeze_volume_del(syspath);
+   _e_fm_main_eeze_volume_add(syspath, EINA_FALSE);
 }
 
 E_Storage *
@@ -778,22 +814,23 @@ _e_fm_main_eeze_storage_add(const char *syspath)
         s->drive_type = eina_stringshare_add("cdrom");
         break;
       case EEZE_DISK_TYPE_USB:
-        s->drive_type = eina_stringshare_add("usb");
-        break;
       case EEZE_DISK_TYPE_INTERNAL:
-        s->drive_type = eina_stringshare_add("ata");
+        s->drive_type = eina_stringshare_add("disk");
         break;
       case EEZE_DISK_TYPE_FLASH:
-        s->drive_type = eina_stringshare_add("sd_mmc");
+        s->drive_type = eina_stringshare_add("compact_flash");
         break;
       default:
-        s->drive_type = eina_stringshare_add("unknown");
+        s->drive_type = eina_stringshare_add("floppy");
         break;
      }
+   /* FIXME: this may not be congruent with the return types of other mounters,
+    * but we don't use it anyway, so it's probably fine
+    */
+   s->bus = eeze_disk_udev_get_property(s->disk, "ID_BUS");
    s->model = eina_stringshare_add(eeze_disk_model_get(s->disk));
    s->vendor = eina_stringshare_add(eeze_disk_vendor_get(s->disk));
    s->serial = eina_stringshare_add(eeze_disk_serial_get(s->disk));
-   if (!s->serial) ERR("Error getting serial for %s", s->udi);
    s->removable = !!eeze_disk_removable_get(s->disk);
 
    if (s->removable)
@@ -820,11 +857,7 @@ _e_fm_main_eeze_storage_add(const char *syspath)
    if (eeze_disk_type_get(s->disk) == EEZE_DISK_TYPE_CDROM)
      s->requires_eject = EINA_TRUE; /* only true on cdroms */
    s->media_check_enabled = s->removable;
-#if 0
-FIXME
-   s->icon.drive =
-   s->icon.volume =
-#endif
+
    INF("++STO:\n  syspath: %s\n  bus: %s\n  drive_type: %s\n  model: %s\n  vendor: %s\n  serial: %s\n  icon.drive: %s\n  icon.volume: %s",
        s->udi, s->bus, s->drive_type, s->model, s->vendor, s->serial, s->icon.drive, s->icon.volume);
    s->validated = EINA_TRUE;
