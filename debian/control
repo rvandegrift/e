@@ -4,7 +4,8 @@ Priority: optional
 Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
  Jan Lübbe <jluebbe@debian.org>
-Build-Depends: debhelper (>= 6), cdbs, libeet-dev (>= 1.7.4),
+Build-Depends: debhelper (>= 6), cdbs,
+ libeet-dev (>= 1.7.4), libeio-dev (>= 1.7.4),
  libedje-dev (>= 1.7.4), libefreet-dev (>= 1.7.4),
  libecore-dev (>= 1.7.4), libedbus-dev (>= 1.7.4),
  libevas-dev (>= 1.7.4), libeina-dev (>= 1.0.0~beta3),
@@ -46,8 +47,8 @@ Description: Enlightenment Window Manager Run Time Data Files
 Package: e17-dev
 Architecture: any
 Section: devel
-Depends: ${misc:Depends},
- e17 (= ${binary:Version}), libeet-dev (>= 1.7.4),
+Depends: ${misc:Depends}, e17 (= ${binary:Version}),
+ libeet-dev (>= 1.7.4), libeio-dev (>= 1.7.4),
  libedje-dev (>= 1.7.4), libefreet-dev (>= 1.7.4),
  libecore-dev (>= 1.7.4), libedbus-dev (>= 1.7.4),
  libevas-dev (>= 1.7.4), libeina-dev (>= 1.7.4)
