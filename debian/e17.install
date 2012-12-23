@@ -1,4 +1,6 @@
 debian/tmp/usr/bin/enlightenment
+debian/tmp/usr/bin/enlightenment_open
+debian/tmp/usr/bin/enlightenment_filemanager
 debian/tmp/usr/bin/enlightenment_remote
 debian/tmp/usr/bin/enlightenment_start
 debian/tmp/usr/bin/enlightenment_imc

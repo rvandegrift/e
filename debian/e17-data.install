@@ -1,4 +1,5 @@
 debian/tmp/etc/xdg/menus/enlightenment.menu
+debian/tmp/usr/share/applications/enlightenment_filemanager.desktop
 debian/tmp/usr/share/enlightenment/data
 debian/tmp/usr/share/locale
 debian/tmp/usr/share/xsessions
