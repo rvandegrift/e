@@ -20,9 +20,9 @@ _fetch(Evry_Plugin *plugin, const char *input)
    Plugin *p = (Plugin *)plugin;
    Evry_Plugin *pp;
    Eina_List *l, *ll, *lp = NULL;
-   Evry_Item *it, *it2;
+   Evry_Item *it, *it2 = NULL;
    int top_level = 0, subj_sel = 0, cnt = 0;
-   size_t inp_len;
+   size_t inp_len = 0;
    Eina_List *items = NULL;
    const char *context = NULL;
    char buf[128];
@@ -77,7 +77,7 @@ _fetch(Evry_Plugin *plugin, const char *input)
      {
         EINA_LIST_FOREACH (s->plugins, l, pp)
           {
-             int min_fuzz = 0;
+             int min_fuzz = 0, n;
              double max_usage = 0.0;
 
              if (pp->config->top_level)
@@ -106,22 +106,23 @@ _fetch(Evry_Plugin *plugin, const char *input)
                     min_fuzz = it->fuzzy_match;
                }
 
-             GET_ITEM(it, pp);
+             GET_ITEM(itp, pp);
 
-             it->hi = NULL;
+             itp->hi = NULL;
              /* TODO get better usage estimate */
-             evry_history_item_usage_set(it, NULL, NULL);
-             it->usage /= 100.0;
+             evry_history_item_usage_set(itp, NULL, NULL);
+             itp->usage /= 100.0;
 
-             if ((it->usage && max_usage) && (it->usage < max_usage))
-               it->usage = max_usage;
-             it->fuzzy_match = min_fuzz;
+             if ((itp->usage && max_usage) && (itp->usage < max_usage))
+               itp->usage = max_usage;
+             itp->fuzzy_match = min_fuzz;
 
-             IF_RELEASE(it->detail);
-             snprintf(buf, sizeof(buf), "%d %s", eina_list_count(pp->items), _("Items"));
-             it->detail = eina_stringshare_add(buf);
+             IF_RELEASE(itp->detail);
+             n = eina_list_count(pp->items);
+             snprintf(buf, sizeof(buf), P_("%d item", "%d items", n), n);
+             itp->detail = eina_stringshare_add(buf);
 
-             items = eina_list_append(items, it);
+             items = eina_list_append(items, itp);
           }
 
         /* only one plugin: show items */
@@ -194,7 +195,7 @@ _fetch(Evry_Plugin *plugin, const char *input)
                     evry_history_item_usage_set(it, input, context);
 
                   if ((subj_sel) && (top_level) &&
-                      (!it->usage) && (inp_len < plugin->config->min_query))
+                      (!it->usage) && ((int) inp_len < plugin->config->min_query))
                     continue;
 
                   items = eina_list_append(items, it);
@@ -206,7 +207,7 @@ _fetch(Evry_Plugin *plugin, const char *input)
      {
         EINA_LIST_FOREACH (lp, l, pp)
           {
-             int cnt = 1;
+             cnt = 1;
              EINA_LIST_FOREACH (pp->items, ll, it)
                {
                   if ((!subj_sel) || (it->usage < 0) ||
@@ -295,7 +296,7 @@ _begin(Evry_Plugin *plugin, const Evry_Item *it __UNUSED__)
 {
    Plugin *p;
 
-   GET_PLUGIN(base, plugin);
+   /* GET_PLUGIN(base, plugin); */
    EVRY_PLUGIN_INSTANCE(p, plugin);
 
    p->warning = evry_item_new(NULL, EVRY_PLUGIN(p), N_("No plugins loaded"), NULL, NULL);

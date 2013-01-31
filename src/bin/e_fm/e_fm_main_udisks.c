@@ -48,15 +48,18 @@ void *alloca(size_t);
 #include <E_DBus.h>
 #include <E_Ukit.h>
 
-#include "e_fm_main.h"
-#include "e_fm_main_udisks.h"
-
-#include "e_fm_shared_codec.h"
 #include "e_fm_shared_device.h"
+#include "e_fm_shared_codec.h"
 #include "e_fm_ipc.h"
 #include "e_fm_device.h"
 
+#include "e_fm_main_udisks.h"
+#include "e_fm_main.h"
+
 static E_DBus_Signal_Handler *_udisks_poll = NULL;
+static E_DBus_Signal_Handler *_udisks_add = NULL;
+static E_DBus_Signal_Handler *_udisks_del = NULL;
+static E_DBus_Signal_Handler *_udisks_chg = NULL;
 static E_DBus_Connection *_e_fm_main_udisks_conn = NULL;
 static Eina_List *_e_stores = NULL;
 static Eina_List *_e_vols = NULL;
@@ -124,7 +127,7 @@ _e_fm_main_udisks_poll(void *data   __UNUSED__,
                               DBUS_TYPE_INVALID))
      dbus_error_free(&err);
 
-   //printf("name: %s\nfrom: %s\nto: %s\n", name, from, to);
+   //INF("name: %s\nfrom: %s\nto: %s", name, from, to);
    if ((name) && !strcmp(name, E_UDISKS_BUS))
      _e_fm_main_udisks_test(NULL, NULL, NULL);
 }
@@ -145,18 +148,21 @@ _e_fm_main_udisks_test(void *data       __UNUSED__,
 
    e_udisks_get_all_devices(_e_fm_main_udisks_conn, (E_DBus_Callback_Func)_e_fm_main_udisks_cb_dev_all, NULL);
 
-   e_dbus_signal_handler_add(_e_fm_main_udisks_conn, E_UDISKS_BUS,
-                             E_UDISKS_PATH,
-                             E_UDISKS_BUS,
-                             "DeviceAdded", (E_DBus_Signal_Cb)_e_fm_main_udisks_cb_dev_add, NULL);
-   e_dbus_signal_handler_add(_e_fm_main_udisks_conn, E_UDISKS_BUS,
-                             E_UDISKS_PATH,
-                             E_UDISKS_BUS,
-                             "DeviceRemoved", (E_DBus_Signal_Cb)_e_fm_main_udisks_cb_dev_del, NULL);
-   e_dbus_signal_handler_add(_e_fm_main_udisks_conn, E_UDISKS_BUS,
-                             E_UDISKS_PATH,
-                             E_UDISKS_BUS,
-                             "DeviceChanged", (E_DBus_Signal_Cb)_e_fm_main_udisks_cb_dev_chg, NULL);
+   if (!_udisks_add)
+     _udisks_add = e_dbus_signal_handler_add(_e_fm_main_udisks_conn, E_UDISKS_BUS,
+                               E_UDISKS_PATH,
+                               E_UDISKS_BUS,
+                               "DeviceAdded", (E_DBus_Signal_Cb)_e_fm_main_udisks_cb_dev_add, NULL);
+   if (!_udisks_del)
+     _udisks_del = e_dbus_signal_handler_add(_e_fm_main_udisks_conn, E_UDISKS_BUS,
+                               E_UDISKS_PATH,
+                               E_UDISKS_BUS,
+                               "DeviceRemoved", (E_DBus_Signal_Cb)_e_fm_main_udisks_cb_dev_del, NULL);
+   if (!_udisks_chg)
+     _udisks_chg = e_dbus_signal_handler_add(_e_fm_main_udisks_conn, E_UDISKS_BUS,
+                               E_UDISKS_PATH,
+                               E_UDISKS_BUS,
+                               "DeviceChanged", (E_DBus_Signal_Cb)_e_fm_main_udisks_cb_dev_chg, NULL);
    _e_fm_main_udisks_catch(EINA_TRUE); /* signal usage of udisks for mounting */
 }
 
@@ -178,7 +184,7 @@ _e_fm_main_udisks_cb_dev_all(void *user_data __UNUSED__,
 
    EINA_LIST_FOREACH(ret->strings, l, udi)
      {
-	printf("DB INIT DEV+: %s\n", udi);
+	         INF("DB INIT DEV+: %s", udi);
           e_udisks_get_property(_e_fm_main_udisks_conn, udi, "IdUsage",
                                 (E_DBus_Callback_Func)_e_fm_main_udisks_cb_dev_verify, (void*)eina_stringshare_add(udi));
      }
@@ -202,10 +208,11 @@ _e_fm_main_udisks_cb_dev_verify(const char *udi,
      _e_fm_main_udisks_storage_add(udi);
    else if (!strcmp(ret->val.s, "filesystem"))
      {
-	printf("DB VOL+: %s\n", udi);
+	INF("DB VOL+: %s", udi);
           _e_fm_main_udisks_volume_add(udi, EINA_TRUE);
      }
-   //eina_stringshare_del(udi);
+   else
+     eina_stringshare_del(udi);
 }
 
 static void
@@ -225,10 +232,11 @@ _e_fm_main_udisks_cb_dev_add_verify(const char *udi,
      _e_fm_main_udisks_storage_add(udi);
    else if (!strcmp(ret->val.s, "filesystem"))
      {
-	printf("DB VOL+: %s\n", udi);
+          INF("DB VOL+: %s", udi);
           _e_fm_main_udisks_volume_add(udi, EINA_FALSE);
      }
-   //eina_stringshare_del(udi);
+   else
+     eina_stringshare_del(udi);
 }
 
 static void
@@ -258,7 +266,7 @@ _e_fm_main_udisks_cb_dev_del(void *data   __UNUSED__,
    dbus_message_get_args(msg,
                          &err, DBUS_TYPE_OBJECT_PATH,
                          &udi, DBUS_TYPE_INVALID);
-   printf("DB DEV-: %s\n", udi);
+   INF("DB DEV-: %s", udi);
    if ((v = _e_fm_main_udisks_volume_find(udi)))
      {
         if (v->optype == E_VOLUME_OP_TYPE_EJECT)
@@ -280,8 +288,7 @@ _e_fm_main_udisks_cb_dev_chg(void *data   __UNUSED__,
    dbus_message_get_args(msg, &err,
                          DBUS_TYPE_OBJECT_PATH, &udi,
                          DBUS_TYPE_INVALID);
-
-        printf("DB STORE CAP+: %s\n", udi);
+   INF("DB STORE CAP+: %s", udi);
    e_udisks_get_property(_e_fm_main_udisks_conn, udi, "IdUsage",
                          (E_DBus_Callback_Func)_e_fm_main_udisks_cb_dev_add_verify, (void*)eina_stringshare_add(udi));
 }
@@ -294,7 +301,7 @@ _e_fm_main_udisks_cb_prop_modified(E_Volume    *v,
 
    if (dbus_message_get_error_name(msg))
      {
-        printf("DBUS ERROR: %s\n", dbus_message_get_error_name(msg));
+        ERR("DBUS ERROR: %s", dbus_message_get_error_name(msg));
         return;
      }
    e_udisks_get_all_properties(_e_fm_main_udisks_conn, v->udi,
@@ -335,15 +342,15 @@ _e_fm_main_udisks_cb_store_prop(E_Storage *s,
    s->vendor = eina_stringshare_add(s->vendor);
    s->serial = e_ukit_property_string_get(ret, "DriveSerial", &err);
 //   if (err) goto error;
-   if (err) printf("Error getting serial for %s\n", s->udi);
+   if (err) ERR("Error getting serial for %s", s->udi);
    s->serial = eina_stringshare_add(s->serial);
 
-   s->removable = e_ukit_property_bool_get(ret, "DeviceIsRemovable", &err);
+   //s->removable = e_ukit_property_bool_get(ret, "DeviceIsRemovable", &err);
    s->system_internal = e_ukit_property_bool_get(ret, "DeviceIsSystemInternal", &err);
    if (s->system_internal) goto error; /* only track non internal */
    str = e_ukit_property_string_get(ret, "IdUsage", &err);
-   /* if not of filesystem usage type - skip it  - testing on ubuntu 10.04 */
-   //if (!((str) && (!strcmp(str, "filesystem")))) goto error;
+   if (str && (!strcmp(str, "filesystem")))
+     _e_fm_main_udisks_volume_add(s->udi, EINA_TRUE);
    /* force it to be removable if it passed the above tests */
    s->removable = EINA_TRUE;
 
@@ -364,7 +371,7 @@ _e_fm_main_udisks_cb_store_prop(E_Storage *s,
    if (s->icon.volume && s->icon.volume[0]) s->icon.volume = eina_stringshare_add(s->icon.volume);
    else s->icon.volume = NULL;
 
-//   printf("++STO:\n  udi: %s\n  bus: %s\n  drive_type: %s\n  model: %s\n  vendor: %s\n  serial: %s\n  icon.drive: %s\n  icon.volume: %s\n\n", s->udi, s->bus, s->drive_type, s->model, s->vendor, s->serial, s->icon.drive, s->icon.volume);
+   INF("++STO:\n  udi: %s\n  bus: %s\n  drive_type: %s\n  model: %s\n  vendor: %s\n  serial: %s\n  icon.drive: %s\n  icon.volume: %s\n", s->udi, s->bus, s->drive_type, s->model, s->vendor, s->serial, s->icon.drive, s->icon.volume);
    s->validated = EINA_TRUE;
    {
       void *msg_data;
@@ -383,7 +390,7 @@ _e_fm_main_udisks_cb_store_prop(E_Storage *s,
    return;
 
 error:
-//   printf("ERR %s\n", s->udi);
+//   ERR("ERR %s", s->udi);
    _e_fm_main_udisks_storage_del(s->udi);
 }
 
@@ -401,64 +408,65 @@ _e_fm_main_udisks_cb_vol_prop(E_Volume      *v,
    if (dbus_error_is_set(error))
      {
         dbus_error_free(error);
-        goto error;
+        ERR("err");
      }
 
-   if (e_ukit_property_bool_get(ret, "DeviceIsSystemInternal", &err) || err) goto error;
+   if (e_ukit_property_bool_get(ret, "DeviceIsSystemInternal", &err)) goto error;
+   EINA_SAFETY_ON_TRUE_GOTO(err, error);
 
    /* skip volumes with volume.ignore set */
-   if (e_ukit_property_bool_get(ret, "DeviceIsMediaChangeDetectionInhibited", &err) || err)
-     goto error;
-
+   if (e_ukit_property_bool_get(ret, "DeviceIsMediaChangeDetectionInhibited", &err)) goto error;
+   EINA_SAFETY_ON_TRUE_GOTO(err, error);
    /* skip volumes that aren't filesystems */
    str = e_ukit_property_string_get(ret, "IdUsage", &err);
-   if (err || !str) goto error;
+   EINA_SAFETY_ON_TRUE_GOTO(err || (!str), error);
+   if (!str[0]) goto error; /* probably removal event */
    if (strcmp(str, "filesystem"))
      {
         if (strcmp(str, "crypto"))
           v->encrypted = e_ukit_property_bool_get(ret, "DeviceIsLuks", &err);
 
         if (!v->encrypted)
-          goto error;
+          {
+             ERR("I don't know what's going on here but I don't like it.");
+             goto error;
+          }
      }
    str = NULL;
 
-   v->uuid = e_ukit_property_string_get(ret, "IdUuid", &err);
-   if (err) goto error;
-   v->uuid = eina_stringshare_add(v->uuid);
+   eina_stringshare_replace(&v->uuid, e_ukit_property_string_get(ret, "IdUuid", &err));
+   EINA_SAFETY_ON_TRUE_GOTO(err, error);
 
-   v->label = e_ukit_property_string_get(ret, "IdLabel", &err);
-   if (!v->label) v->label = e_ukit_property_string_get(ret, "DeviceFile", &err); /* avoid having blank labels */
-   if (!v->label) v->label = v->uuid; /* last resort */
-   v->label = eina_stringshare_add(v->label);
-
+   eina_stringshare_replace(&v->label, e_ukit_property_string_get(ret, "IdLabel", &err));
+   if (!v->label) eina_stringshare_replace(&v->label, v->uuid);
+   if (!v->label) eina_stringshare_replace(&v->label, e_ukit_property_string_get(ret, "DeviceFile", &err)); /* avoid having blank labels */
+   EINA_SAFETY_ON_TRUE_GOTO(err, error);
    if (!v->encrypted)
      {
         const Eina_List *l;
 
         l = e_ukit_property_strlist_get(ret, "DeviceMountPaths", &err);
-        if (err) goto error;
-        if (l) v->mount_point = eina_stringshare_add(l->data);
+        EINA_SAFETY_ON_TRUE_GOTO(err, error);
+        if (l) eina_stringshare_replace(&v->mount_point, eina_stringshare_add(l->data));
 
-        v->fstype = e_ukit_property_string_get(ret, "IdType", &err);
-        v->fstype = eina_stringshare_add(v->fstype);
-
+        eina_stringshare_replace(&v->fstype, e_ukit_property_string_get(ret, "IdType", &err));
+        EINA_SAFETY_ON_TRUE_GOTO(err, error);
         v->size = e_ukit_property_uint64_get(ret, "DeviceSize", &err);
-
+        EINA_SAFETY_ON_TRUE_GOTO(err, error);
         v->mounted = e_ukit_property_bool_get(ret, "DeviceIsMounted", &err);
-        if (err) goto error;
+        EINA_SAFETY_ON_TRUE_GOTO(err, error);
      }
    else
      v->unlocked = e_ukit_property_bool_get(ret, "DeviceIsLuksCleartext", &err);
 
+   EINA_SAFETY_ON_TRUE_GOTO(err, error);
    v->partition = e_ukit_property_bool_get(ret, "DeviceIsPartition", &err);
-   if (err) goto error;
+   EINA_SAFETY_ON_TRUE_GOTO(err, error);
 
    if (v->partition)
      {
         v->partition_number = e_ukit_property_int_get(ret, "PartitionNumber", NULL);
-        v->partition_label = e_ukit_property_string_get(ret, "PartitionLabel", NULL);
-        v->partition_label = eina_stringshare_add(v->partition_label);
+        eina_stringshare_replace(&v->partition_label, e_ukit_property_string_get(ret, "PartitionLabel", NULL));
      }
 
    if (v->unlocked)
@@ -468,13 +476,13 @@ _e_fm_main_udisks_cb_vol_prop(E_Volume      *v,
 
         enc = e_ukit_property_string_get(ret, "LuksCleartextSlave", &err);
         venc = _e_fm_main_udisks_volume_find(enc);
-        v->parent = venc->parent;
+        eina_stringshare_replace(&v->parent, venc->parent);
         v->storage = venc->storage;
         v->storage->volumes = eina_list_append(v->storage->volumes, v);
      }
    else
      {
-        v->parent = e_ukit_property_string_get(ret, "PartitionSlave", &err);
+        eina_stringshare_replace(&v->parent, e_ukit_property_string_get(ret, "PartitionSlave", &err));
 
         if (!err)
           {
@@ -490,10 +498,8 @@ _e_fm_main_udisks_cb_vol_prop(E_Volume      *v,
                }
              else
                {
-                  if (v->parent)
-                     eina_stringshare_del(v->parent);
-                  v->parent = eina_stringshare_add(v->udi);
-		  s = e_storage_find(v->udi);
+                  eina_stringshare_replace(&v->parent, v->udi);
+		                s = e_storage_find(v->udi);
                   if (s)
                     {
                        v->storage = s;
@@ -502,13 +508,12 @@ _e_fm_main_udisks_cb_vol_prop(E_Volume      *v,
                     }
                   else
                     {
-                  v->storage = _e_fm_main_udisks_storage_add(v->udi); /* disk is both storage and volume */
-                  if (v->storage) v->storage->volumes = eina_list_append(v->storage->volumes, v);
+                       v->storage = _e_fm_main_udisks_storage_add(v->udi); /* disk is both storage and volume */
+                       if (v->storage) v->storage->volumes = eina_list_append(v->storage->volumes, v);
                     }
                }
           }
      }
-   v->parent = eina_stringshare_add(v->parent);
 
    switch (v->optype)
      {
@@ -525,24 +530,11 @@ _e_fm_main_udisks_cb_vol_prop(E_Volume      *v,
         break;
      }
 
-//   printf("++VOL:\n  udi: %s\n  uuid: %s\n  fstype: %s\n  size: %llu\n label: %s\n  partition: %d\n  partition_number: %d\n partition_label: %s\n  mounted: %d\n  mount_point: %s\n", v->udi, v->uuid, v->fstype, v->size, v->label, v->partition, v->partition_number, v->partition ? v->partition_label : "(not a partition)", v->mounted, v->mount_point);
-//   if (s) printf("  for storage: %s\n", s->udi);
-//   else printf("  storage unknown\n");
+//   printf("++VOL:\n  udi: %s\n  uuid: %s\n  fstype: %s\n  size: %llu\n label: %s\n  partition: %d\n  partition_number: %d\n partition_label: %s\n  mounted: %d\n  mount_point: %s", v->udi, v->uuid, v->fstype, v->size, v->label, v->partition, v->partition_number, v->partition ? v->partition_label : "(not a partition)", v->mounted, v->mount_point);
+//   if (s) printf("  for storage: %s", s->udi);
+//   else printf("  storage unknown");
    v->validated = EINA_TRUE;
-   {
-      void *msg_data;
-      int msg_size;
-
-      msg_data = _e_fm_shared_codec_volume_encode(v, &msg_size);
-      if (msg_data)
-        {
-           ecore_ipc_server_send(_e_fm_ipc_server,
-                                 6 /*E_IPC_DOMAIN_FM*/,
-                                 E_FM_OP_VOLUME_ADD,
-                                 0, 0, 0, msg_data, msg_size);
-           free(msg_data);
-        }
-   }
+   e_fm_ipc_volume_add(v);
    return;
 
 error:
@@ -583,7 +575,8 @@ _e_fm_main_udisks_vol_mount_timeout(E_Volume *v)
    int size;
 
    v->guard = NULL;
-   dbus_pending_call_cancel(v->op);
+   if (!dbus_pending_call_get_completed(v->op))
+     dbus_pending_call_cancel(v->op);
    v->op = NULL;
    v->optype = E_VOLUME_OP_TYPE_NONE;
    error.name = "org.enlightenment.fm2.MountTimeout";
@@ -624,7 +617,7 @@ _e_fm_main_udisks_cb_vol_mounted(E_Volume               *v,
    v->optype = E_VOLUME_OP_TYPE_NONE;
    v->op = NULL;
    v->mounted = EINA_TRUE;
-//   printf("MOUNT: %s from %s\n", v->udi, v->mount_point);
+   INF("MOUNT: %s from %s", v->udi, v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
    buf = alloca(size);
    strcpy(buf, v->udi);
@@ -643,7 +636,8 @@ _e_fm_main_udisks_vol_unmount_timeout(E_Volume *v)
    int size;
 
    v->guard = NULL;
-   dbus_pending_call_cancel(v->op);
+   if (!dbus_pending_call_get_completed(v->op))
+     dbus_pending_call_cancel(v->op);
    v->op = NULL;
    v->optype = E_VOLUME_OP_TYPE_NONE;
    error.name = "org.enlightenment.fm2.UnmountTimeout";
@@ -685,7 +679,7 @@ _e_fm_main_udisks_cb_vol_unmounted(E_Volume               *v,
      }
 
    v->mounted = EINA_FALSE;
-//   printf("UNMOUNT: %s from %s\n", v->udi, v->mount_point);
+   INF("UNMOUNT: %s from %s", v->udi, v->mount_point);
    size = strlen(v->udi) + 1 + strlen(v->mount_point) + 1;
    buf = alloca(size);
    strcpy(buf, v->udi);
@@ -704,7 +698,8 @@ _e_fm_main_udisks_vol_eject_timeout(E_Volume *v)
    int size;
 
    v->guard = NULL;
-   dbus_pending_call_cancel(v->op);
+   if (!dbus_pending_call_get_completed(v->op))
+     dbus_pending_call_cancel(v->op);
    v->op = NULL;
    v->optype = E_VOLUME_OP_TYPE_NONE;
    error.name = "org.enlightenment.fm2.EjectTimeout";
@@ -786,7 +781,7 @@ _e_fm_main_udisks_volume_add(const char *udi,
    if (e_volume_find(udi)) return NULL;
    v = calloc(1, sizeof(E_Volume));
    if (!v) return NULL;
-//   printf("VOL+ %s\n", udi);
+   INF("VOL+ %s", udi);
    v->efm_mode = EFM_MODE_USING_UDISKS_MOUNT;
    v->udi = eina_stringshare_add(udi);
    v->icon = NULL;
@@ -817,16 +812,20 @@ _e_fm_main_udisks_volume_del(const char *udi)
         ecore_timer_del(v->guard);
         v->guard = NULL;
      }
-   if (v->prop_handler) e_dbus_signal_handler_del(_e_fm_main_udisks_conn, v->prop_handler);
    if (v->validated)
      {
-        //	printf("--VOL %s\n", v->udi);
+        INF("--VOL %s", v->udi);
         /* FIXME: send event of storage volume (disk) removed */
            ecore_ipc_server_send(_e_fm_ipc_server,
                                  6 /*E_IPC_DOMAIN_FM*/,
                                  E_FM_OP_VOLUME_DEL,
                                  0, 0, 0, v->udi, eina_stringshare_strlen(v->udi) + 1);
      }
+   v->optype = E_VOLUME_OP_TYPE_NONE;
+   if (v->storage && v->storage->requires_eject) return; /* udisks is stupid about ejectable media, so we have to keep stuff
+                                   * around for all eternity instead of deleting it constantly. oh noes.
+                                   */
+   if (v->prop_handler) e_dbus_signal_handler_del(_e_fm_main_udisks_conn, v->prop_handler);
    _e_vols = eina_list_remove(_e_vols, v);
    _e_fm_shared_device_volume_free(v);
 }
@@ -866,8 +865,8 @@ _e_fm_main_udisks_volume_eject(E_Volume *v)
 void
 _e_fm_main_udisks_volume_unmount(E_Volume *v)
 {
-//   printf("unmount %s %s\n", v->udi, v->mount_point);
      if (!v || v->guard) return;
+     INF("unmount %s %s", v->udi, v->mount_point);
 
      v->guard = ecore_timer_add(E_FM_UNMOUNT_TIMEOUT, (Ecore_Task_Cb)_e_fm_main_udisks_vol_unmount_timeout, v);
      v->op = e_udisks_volume_unmount(_e_fm_main_udisks_conn, v->udi, NULL);
@@ -884,11 +883,14 @@ _e_fm_main_udisks_volume_mount(E_Volume *v)
    if ((!v) || (v->guard))
      return;
 
-//   printf("mount %s %s [fs type = %s]\n", v->udi, v->mount_point, v->fstype);
+   INF("mount %s %s [fs type = %s]", v->udi, v->mount_point, v->fstype);
 
-   // for vfat and ntfs we want the uid mapped to the user mounting, if we can
+   // Map uid to current user if possible
+   // Possible filesystems found in udisks source (src/udiskslinuxfilesystem.c) as of 2012-07-11
    if ((!strcmp(v->fstype, "vfat")) ||
-       (!strcmp(v->fstype, "ntfs"))
+       (!strcmp(v->fstype, "ntfs")) ||
+       (!strcmp(v->fstype, "iso9660")) ||
+       (!strcmp(v->fstype, "udf"))
        )
      {
         snprintf(buf, sizeof(buf), "uid=%i", (int)getuid());
@@ -897,17 +899,17 @@ _e_fm_main_udisks_volume_mount(E_Volume *v)
 
    // force utf8 as the encoding - e only likes/handles utf8. its the
    // pseudo-standard these days anyway for "linux" for intl text to work
-   // everywhere. problem is some fs's use differing options
-   if ((!strcmp(v->fstype, "vfat")) ||
-       (!strcmp(v->fstype, "ntfs")) ||
-       (!strcmp(v->fstype, "iso9660"))
-       )
+   // everywhere. problem is some fs's use differing options and udisks
+   // doesn't allow some options with certain filesystems.
+   // Valid options found in udisks (src/udiskslinuxfilesystem.c) as of 2012-07-11
+   // Note that these options are default with the latest udisks, kept here to
+   // avoid breakage in the future (hopefully).
+   if (!strcmp(v->fstype, "vfat"))
      {
-        snprintf(buf2, sizeof(buf2), "utf8");
+        snprintf(buf2, sizeof(buf2), "utf8=1");
         opt = eina_list_append(opt, buf2);
      }
-   else if ((!strcmp(v->fstype, "fat")) ||
-            (!strcmp(v->fstype, "jfs")) ||
+   else if ((!strcmp(v->fstype, "iso9660")) ||
             (!strcmp(v->fstype, "udf"))
             )
      {
@@ -916,13 +918,14 @@ _e_fm_main_udisks_volume_mount(E_Volume *v)
      }
 
    v->guard = ecore_timer_add(E_FM_MOUNT_TIMEOUT, (Ecore_Task_Cb)_e_fm_main_udisks_vol_mount_timeout, v);
-// on ubuntu 10.04 if we request mount with opt - it fails. unknown why right
-// now, but lets try without and maybe we need to try 2 mounts - one with
-// opts and one without?
-//   v->op = e_udisks_volume_mount(_e_fm_main_udisks_conn, v->udi,
-//                                        v->fstype, opt);
+
+   // It was previously noted here that ubuntu 10.04 failed to mount if opt was passed to
+   // e_udisks_volume_mount.  The reason at the time was unknown and apparently never found.
+   // I theorize that this was due to improper mount options being passed (namely the utf8 options).
+   // If this still fails on Ubuntu 10.04 then an actual fix should be found.
    v->op = e_udisks_volume_mount(_e_fm_main_udisks_conn, v->udi,
-                                        v->fstype, NULL);
+                                        v->fstype, opt);
+
    eina_list_free(opt);
    v->optype = E_VOLUME_OP_TYPE_MOUNT;
 }
@@ -982,7 +985,7 @@ _e_fm_main_udisks_storage_del(const char *udi)
    if (!s) return;
    if (s->validated)
      {
-//        printf("--STO %s\n", s->udi);
+        INF("--STO %s", s->udi);
           ecore_ipc_server_send(_e_fm_ipc_server,
                                 6 /*E_IPC_DOMAIN_FM*/,
                                 E_FM_OP_STORAGE_DEL,

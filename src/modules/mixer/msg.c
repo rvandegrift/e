@@ -30,7 +30,11 @@ msg_recv_creds(Pulse *conn, Pulse_Tag *tag)
    if ((!r) || (r == sizeof(tag->header))) tag->auth = EINA_TRUE;
    else if (r < 0)
      {
-        if (errno != EAGAIN) ecore_main_fd_handler_del(conn->fdh);
+        if (errno != EAGAIN)
+          {
+             ERR("%d: %s", errno, strerror(errno));
+             pulse_disconnect(conn);
+          }
      }
    else
      {
@@ -76,7 +80,11 @@ msg_recv(Pulse *conn, Pulse_Tag *tag)
      }
    else if (r < 0)
      {
-        if (errno != EAGAIN) ecore_main_fd_handler_del(conn->fdh);
+        if (errno != EAGAIN)
+          {
+             ERR("%d: %s", errno, strerror(errno));
+             pulse_disconnect(conn);
+          }
      }
    else
      tag->pos += r;
@@ -125,7 +133,11 @@ msg_sendmsg_creds(Pulse *conn, Pulse_Tag *tag)
    if ((!r) || (r == (int)sizeof(tag->header))) tag->auth = EINA_TRUE;
    else if (r < 0)
      {
-        if (errno != EAGAIN) ecore_main_fd_handler_del(conn->fdh);
+        if (errno != EAGAIN)
+          {
+             ERR("%d: %s", errno, strerror(errno));
+             pulse_disconnect(conn);
+          }
      }
    else
      tag->pos += r;
@@ -142,12 +154,16 @@ msg_send_creds(Pulse *conn, Pulse_Tag *tag)
    int r;
 
    INF("trying to send 20 byte auth header");
-   r = send(ecore_main_fd_handler_fd_get(conn->fdh), &tag->header[tag->pos], sizeof(tag->header) - tag->pos, MSG_NOSIGNAL);
+   r = send(ecore_main_fd_handler_fd_get(conn->fdh), &tag->header[tag->pos], sizeof(tag->header) - (tag->pos * sizeof(tag->header[0])), MSG_NOSIGNAL);
    INF("%i bytes sent!", r);
    if ((!r) || (r == (int)sizeof(tag->header))) tag->auth = EINA_TRUE;
    else if (r < 0)
      {
-        if (errno != EAGAIN) ecore_main_fd_handler_del(conn->fdh);
+        if (errno != EAGAIN)
+          {
+             ERR("%d: %s", errno, strerror(errno));
+             pulse_disconnect(conn);
+          }
      }
    else
      tag->pos += r;
@@ -175,7 +191,11 @@ msg_send(Pulse *conn, Pulse_Tag *tag)
      }
    if (r < 0)
      {
-        if (errno != EAGAIN) ecore_main_fd_handler_del(conn->fdh);
+        if (errno != EAGAIN)
+          {
+             ERR("%d: %s", errno, strerror(errno));
+             pulse_disconnect(conn);
+          }
      }
    else
      tag->pos += r;

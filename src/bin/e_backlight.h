@@ -18,6 +18,8 @@ typedef enum _E_Backlight_Mode
 #ifndef E_BACKLIGHT_H
 #define E_BACKLIGHT_H
 
+extern EAPI int E_EVENT_BACKLIGHT_CHANGE;
+
 //struct _E_Screen
 //{
 //   int screen, escreen;
@@ -32,6 +34,7 @@ EAPI void                e_backlight_level_set(E_Zone *zone, double val, double 
 EAPI double              e_backlight_level_get(E_Zone *zone);
 EAPI void                e_backlight_mode_set(E_Zone *zone, E_Backlight_Mode mode);
 EAPI E_Backlight_Mode    e_backlight_mode_get(E_Zone *zone);
+EAPI const Eina_List    *e_backlight_devices_get(void);
 
 #endif
 #endif

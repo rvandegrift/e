@@ -15,12 +15,12 @@ extern Eina_List *device_batteries;
 extern Eina_List *device_ac_adapters;
 extern double init_time;
 
-int 
+int
 _battery_udev_start(void)
 {
    Eina_List *devices;
    const char *dev;
-   
+
    devices = eeze_udev_find_by_type(EEZE_UDEV_TYPE_POWER_BAT, NULL);
    EINA_LIST_FREE(devices, dev)
      _battery_udev_battery_add(dev);
@@ -38,7 +38,7 @@ _battery_udev_start(void)
    return 1;
 }
 
-void 
+void
 _battery_udev_stop(void)
 {
    Ac_Adapter *ac;
@@ -64,8 +64,7 @@ _battery_udev_stop(void)
      }
 }
 
-
-static void 
+static void
 _battery_udev_event_battery(const char *syspath, Eeze_Udev_Event event, void *data, Eeze_Udev_Watch *watch __UNUSED__)
 {
    if ((event & EEZE_UDEV_EVENT_ADD) ||
@@ -78,7 +77,7 @@ _battery_udev_event_battery(const char *syspath, Eeze_Udev_Event event, void *da
      _battery_udev_battery_update(syspath, data);
 }
 
-static void 
+static void
 _battery_udev_event_ac(const char *syspath, Eeze_Udev_Event event, void *data, Eeze_Udev_Watch *watch __UNUSED__)
 {
    if ((event & EEZE_UDEV_EVENT_ADD) ||
@@ -91,7 +90,7 @@ _battery_udev_event_ac(const char *syspath, Eeze_Udev_Event event, void *data, E
      _battery_udev_ac_update(syspath, data);
 }
 
-static void 
+static void
 _battery_udev_battery_add(const char *syspath)
 {
    Battery *bat;
@@ -117,7 +116,7 @@ _battery_udev_battery_add(const char *syspath)
    _battery_udev_battery_update(syspath, bat);
 }
 
-static void 
+static void
 _battery_udev_ac_add(const char *syspath)
 {
    Ac_Adapter *ac;
@@ -139,7 +138,7 @@ _battery_udev_ac_add(const char *syspath)
    _battery_udev_ac_update(syspath, ac);
 }
 
-static void 
+static void
 _battery_udev_battery_del(const char *syspath)
 {
    Battery *bat;
@@ -160,7 +159,7 @@ _battery_udev_battery_del(const char *syspath)
    free(bat);
 }
 
-static void 
+static void
 _battery_udev_ac_del(const char *syspath)
 {
    Ac_Adapter *ac;
@@ -185,33 +184,40 @@ _battery_udev_battery_update_poll(void *data)
    return EINA_TRUE;
 }
 
-#define GET_NUM(TYPE, VALUE, PROP) test = eeze_udev_syspath_get_property(TYPE->udi, #PROP); \
-  do \
-    if (test) \
-      { \
-         TYPE->VALUE = strtod(test, NULL); \
-      } \
+#define GET_NUM(TYPE, VALUE, PROP) \
+  do                                                                                        \
+    {                                                                                       \
+      test = eeze_udev_syspath_get_property(TYPE->udi, #PROP);                              \
+      if (test)                                                                             \
+        {                                                                                   \
+           TYPE->VALUE = strtod(test, NULL);                                                \
+           eina_stringshare_del(test);                                                      \
+        }                                                                                   \
+    }                                                                                       \
   while (0)
 
 #define GET_STR(TYPE, VALUE, PROP) TYPE->VALUE = eeze_udev_syspath_get_property(TYPE->udi, #PROP)
-  
-static void 
+
+static void
 _battery_udev_battery_update(const char *syspath, Battery *bat)
 {
    const char *test;
-   double time, charge;
-   
+   double t, charge;
+
    if (!bat)
      {
         if (!(bat = _battery_battery_find(syspath)))
-          return _battery_udev_battery_add(syspath);
+          {
+             _battery_udev_battery_add(syspath);
+             return;
+          }
      }
    /* update the poller interval */
    ecore_poller_poller_interval_set(bat->poll, battery_config->poll_interval);
-   
+
    GET_NUM(bat, present, POWER_SUPPLY_PRESENT);
-   if (!bat->got_prop)
-     {/* only need to get these once */
+   if (!bat->got_prop) /* only need to get these once */
+     {
         GET_STR(bat, technology, POWER_SUPPLY_TECHNOLOGY);
         GET_STR(bat, model, POWER_SUPPLY_MODEL_NAME);
         GET_STR(bat, vendor, POWER_SUPPLY_MANUFACTURER);
@@ -224,20 +230,22 @@ _battery_udev_battery_update(const char *syspath, Battery *bat)
      GET_NUM(bat, last_full_charge, POWER_SUPPLY_CHARGE_FULL);
    test = eeze_udev_syspath_get_property(bat->udi, "POWER_SUPPLY_ENERGY_NOW");
    if (!test)
-     {
-	eina_stringshare_del(test);
-        test = eeze_udev_syspath_get_property(bat->udi, "POWER_SUPPLY_CHARGE_NOW");
-     }
+     test = eeze_udev_syspath_get_property(bat->udi, "POWER_SUPPLY_CHARGE_NOW");
    if (test)
      {
+        double charge_rate = 0;
 
         charge = strtod(test, NULL);
         eina_stringshare_del(test);
-        time = ecore_time_get();
-        if ((bat->got_prop) && (charge != bat->current_charge))
-          bat->charge_rate = ((charge - bat->current_charge) / (time - bat->last_update));
-        bat->last_update = time;
-        bat->current_charge = charge;
+        t = ecore_time_get();
+        if ((bat->got_prop) && (charge != bat->current_charge) && bat->current_charge != 0)
+          charge_rate = ((charge - bat->current_charge) / (t - bat->last_update));
+        if (charge_rate != 0 || bat->last_update == 0 || bat->current_charge == 0)
+	  {
+	    bat->last_update = t;
+	    bat->current_charge = charge;
+	    bat->charge_rate = charge_rate;
+	  }
         bat->percent = 100 * (bat->current_charge / bat->last_full_charge);
         if (bat->got_prop)
           {
@@ -270,8 +278,8 @@ _battery_udev_battery_update(const char *syspath, Battery *bat)
      {
         if (!strcmp(test, "Charging"))
           bat->charging = 1;
-        else if ((!strcmp(test, "Unknown")) && (bat->charge_rate >= 0))
-            bat->charging = 1;
+        else if ((!strcmp(test, "Unknown")) && (bat->charge_rate > 0))
+          bat->charging = 1;
         else
           bat->charging = 0;
         eina_stringshare_del(test);
@@ -283,15 +291,18 @@ _battery_udev_battery_update(const char *syspath, Battery *bat)
    bat->got_prop = 1;
 }
 
-static void 
+static void
 _battery_udev_ac_update(const char *syspath, Ac_Adapter *ac)
 {
    const char *test;
-   
+
    if (!ac)
      {
         if (!(ac = _battery_ac_adapter_find(syspath)))
-          return _battery_udev_ac_add(syspath);
+          {
+             _battery_udev_ac_add(syspath);
+             return;
+          }
      }
 
    GET_NUM(ac, present, POWER_SUPPLY_ONLINE);
@@ -299,3 +310,4 @@ _battery_udev_ac_update(const char *syspath, Ac_Adapter *ac)
 
    _battery_device_update();
 }
+

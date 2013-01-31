@@ -13,13 +13,14 @@ static void _e_border_menu_cb_maximize_pre(void *data, E_Menu *m, E_Menu_Item *m
 static void _e_border_menu_cb_maximize(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_maximize_vertically(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_maximize_horizontally(void *data, E_Menu *m, E_Menu_Item *mi);
+static void _e_border_menu_cb_maximize_left(void *data, E_Menu *m, E_Menu_Item *mi);
+static void _e_border_menu_cb_maximize_right(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_unmaximize(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_shade(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_resistance(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_icon_edit(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_application_pre(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_window_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi);
-static void _e_border_menu_cb_placement_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi);
 static void _e_border_menu_cb_prop(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_stick(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_stacking_pre(void *data, E_Menu *m, E_Menu_Item *mi);
@@ -49,11 +50,55 @@ static void _e_border_menu_cb_iconpref_user(void *data, E_Menu *m, E_Menu_Item *
 static void _e_border_menu_cb_default_icon(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_border_menu_cb_netwm_icon(void *data, E_Menu *m, E_Menu_Item *mi);
 
+static Eina_List *menu_hooks = NULL;
+
+EAPI E_Border_Menu_Hook *
+e_int_border_menu_hook_add(E_Border_Menu_Hook_Cb cb, const void *data)
+{
+   E_Border_Menu_Hook *h;
+
+   if (!cb) return NULL;
+   h = E_NEW(E_Border_Menu_Hook, 1);
+   if (!h) return NULL;
+
+   h->cb = cb;
+   h->data = (void*)data;
+   menu_hooks = eina_list_append(menu_hooks, h);
+   return h;
+}
+
+EAPI void
+e_int_border_menu_hook_del(E_Border_Menu_Hook *hook)
+{
+   E_Border_Menu_Hook *h;
+   Eina_List *l;
+
+   if (!hook) return;
+
+   EINA_LIST_FOREACH(menu_hooks, l, h)
+     if (h == hook)
+       {
+          menu_hooks = eina_list_remove_list(menu_hooks, l);
+          free(h);
+          return;
+       }
+}
+
+EAPI void
+e_int_border_menu_hooks_clear(void)
+{
+   E_Border_Menu_Hook *h;
+   EINA_LIST_FREE(menu_hooks, h)
+     free(h);
+}
+
 EAPI void
 e_int_border_menu_create(E_Border *bd)
 {
    E_Menu *m;
    E_Menu_Item *mi;
+   Eina_List *l;
+   E_Border_Menu_Hook *h;
    char buf[128];
 
    if (bd->border_menu) return;
@@ -84,12 +129,12 @@ e_int_border_menu_create(E_Border *bd)
    e_menu_item_icon_edje_set(mi,
                              e_theme_edje_file_get("base/theme/borders",
                                                    "e/widgets/border/default/window"),
-                                                   "e/widgets/border/default/window");
+                             "e/widgets/border/default/window");
 
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
 
-   if ((!bd->sticky) && ((bd->zone->desk_x_count > 1) || (bd->zone->desk_y_count > 1))) 
+   if ((!bd->sticky) && ((bd->zone->desk_x_count > 1) || (bd->zone->desk_y_count > 1)))
      {
         mi = e_menu_item_new(m);
         e_menu_item_label_set(mi, _("Move to"));
@@ -97,7 +142,7 @@ e_int_border_menu_create(E_Border *bd)
         e_menu_item_icon_edje_set(mi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/sendto"),
-                                                        "e/widgets/border/default/sendto");
+                                  "e/widgets/border/default/sendto");
      }
 
    mi = e_menu_item_new(m);
@@ -109,9 +154,9 @@ e_int_border_menu_create(E_Border *bd)
    else
      e_menu_item_callback_set(mi, _e_border_menu_cb_on_top, bd);
    e_menu_item_icon_edje_set(mi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/stack_on_top"),
-                                                   "e/widgets/border/default/stack_on_top");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/stack_on_top"),
+                             "e/widgets/border/default/stack_on_top");
 
    if (!bd->lock_user_sticky)
      {
@@ -123,7 +168,21 @@ e_int_border_menu_create(E_Border *bd)
         e_menu_item_icon_edje_set(mi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/stick"),
-                                                        "e/widgets/border/default/stick");
+                                  "e/widgets/border/default/stick");
+     }
+
+   if ((!bd->lock_user_shade) && (!bd->fullscreen) && (!bd->maximized) &&
+       ((!bd->client.border.name) || (strcmp("borderless", bd->client.border.name))))
+     {
+        mi = e_menu_item_new(m);
+        e_menu_item_label_set(mi, _("Shade"));
+        e_menu_item_check_set(mi, 1);
+        e_menu_item_toggle_set(mi, (bd->shaded ? 1 : 0));
+        e_menu_item_callback_set(mi, _e_border_menu_cb_shade, bd);
+        e_menu_item_icon_edje_set(mi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/shade"),
+                                  "e/widgets/border/default/shade");
      }
 
    if (!bd->lock_close)
@@ -131,14 +190,16 @@ e_int_border_menu_create(E_Border *bd)
         mi = e_menu_item_new(m);
         e_menu_item_separator_set(mi, 1);
 
-	mi = e_menu_item_new(m);
-	e_menu_item_label_set(mi, _("Close"));
-	e_menu_item_callback_set(mi, _e_border_menu_cb_close, bd);
-	e_menu_item_icon_edje_set(mi,
-				  e_theme_edje_file_get("base/theme/borders",
-							"e/widgets/border/default/close"),
-							"e/widgets/border/default/close");
+        mi = e_menu_item_new(m);
+        e_menu_item_label_set(mi, _("Close"));
+        e_menu_item_callback_set(mi, _e_border_menu_cb_close, bd);
+        e_menu_item_icon_edje_set(mi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/close"),
+                                  "e/widgets/border/default/close");
      }
+   EINA_LIST_FOREACH(menu_hooks, l, h)
+     h->cb(h->data, bd);
 }
 
 EAPI void
@@ -146,11 +207,11 @@ e_int_border_menu_show(E_Border *bd, Evas_Coord x, Evas_Coord y, int key, Ecore_
 {
    e_int_border_menu_create(bd);
    if (key)
-     e_menu_activate_key(bd->border_menu, bd->zone, x, y, 1, 1, 
+     e_menu_activate_key(bd->border_menu, bd->zone, x, y, 1, 1,
                          E_MENU_POP_DIRECTION_DOWN);
    else
      e_menu_activate_mouse(bd->border_menu, bd->zone, x, y, 1, 1,
-			   E_MENU_POP_DIRECTION_DOWN, timestamp);
+                           E_MENU_POP_DIRECTION_DOWN, timestamp);
 }
 
 EAPI void
@@ -158,8 +219,8 @@ e_int_border_menu_del(E_Border *bd)
 {
    if (bd->border_menu)
      {
-	e_object_del(E_OBJECT(bd->border_menu));
-	bd->border_menu = NULL;
+        e_object_del(E_OBJECT(bd->border_menu));
+        bd->border_menu = NULL;
      }
 }
 
@@ -171,13 +232,13 @@ _e_border_cb_border_menu_end(void *data __UNUSED__, E_Menu *m)
    bd = e_object_data_get(E_OBJECT(m));
    if (bd)
      {
-	/* If the border exists, delete all associated menus */
-	e_int_border_menu_del(bd);
+        /* If the border exists, delete all associated menus */
+        e_int_border_menu_del(bd);
      }
    else
      {
-	/* Just delete this menu */
-	e_object_del(E_OBJECT(m));
+        /* Just delete this menu */
+        e_object_del(E_OBJECT(m));
      }
 }
 
@@ -187,7 +248,13 @@ _e_border_menu_cb_locks(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
    E_Border *bd;
 
    bd = data;
-   if (bd->border_locks_dialog) return;
+   if (bd->border_locks_dialog)
+     {
+        e_border_desk_set(bd->border_locks_dialog->dia->win->border, bd->desk);
+        e_win_raise(bd->border_locks_dialog->dia->win);
+        e_border_focus_set(bd->border_locks_dialog->dia->win->border, 1, 1);
+        return;
+     }
    e_int_border_locks(bd);
 }
 
@@ -197,7 +264,13 @@ _e_border_menu_cb_remember(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __U
    E_Border *bd;
 
    bd = data;
-   if (bd->border_remember_dialog) return;
+   if (bd->border_remember_dialog)
+     {
+        e_border_desk_set(bd->border_remember_dialog->dia->win->border, bd->desk);
+        e_win_raise(bd->border_remember_dialog->dia->win);
+        e_border_focus_set(bd->border_remember_dialog->dia->win->border, 1, 1);
+        return;
+     }
    e_int_border_remember(bd);
 }
 
@@ -208,7 +281,13 @@ _e_border_menu_cb_border(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
    char buf[256];
 
    bd = data;
-   if (bd->border_border_dialog) return;
+   if (bd->border_border_dialog)
+     {
+        e_border_desk_set(bd->border_border_dialog->dia->win->border, bd->desk);
+        e_win_raise(bd->border_border_dialog->dia->win);
+        e_border_focus_set(bd->border_border_dialog->dia->win->border, 1, 1);
+        return;
+     }
    snprintf(buf, sizeof(buf), "%p", bd);
    e_configure_registry_call("internal/borders_border", bd->zone->container, buf);
 }
@@ -230,10 +309,10 @@ _e_border_menu_cb_iconify(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UN
    bd = data;
    if (!bd->lock_user_iconify)
      {
-	if (bd->iconic)
-	  e_border_uniconify(bd);
-	else
-	  e_border_iconify(bd);
+        if (bd->iconic)
+          e_border_uniconify(bd);
+        else
+          e_border_iconify(bd);
      }
 }
 
@@ -247,7 +326,7 @@ _e_border_menu_cb_kill(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSE
    if ((bd->lock_close) || (bd->internal)) return;
 
    a = e_action_find("window_kill");
-   if ((a) && (a->func.go)) a->func.go(NULL, NULL);
+   if ((a) && (a->func.go)) a->func.go(E_OBJECT(bd), NULL);
 }
 
 static void
@@ -284,6 +363,7 @@ _e_border_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), bd);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 
    if ((!bd->lock_user_fullscreen) && (!bd->shaded))
      {
@@ -295,7 +375,7 @@ _e_border_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/fullscreen"),
-                                                        "e/widgets/border/default/fullscreen");
+                                  "e/widgets/border/default/fullscreen");
      }
 
    if (!bd->fullscreen)
@@ -309,10 +389,10 @@ _e_border_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/maximize"),
-                                                        "e/widgets/border/default/maximize");
+                                  "e/widgets/border/default/maximize");
 
         submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Maximize vertically"));
+        e_menu_item_label_set(submi, _("Maximize Vertically"));
         e_menu_item_radio_set(submi, 1);
         e_menu_item_radio_group_set(submi, 3);
         e_menu_item_toggle_set(submi, (bd->maximized & E_MAXIMIZE_DIRECTION) == E_MAXIMIZE_VERTICAL);
@@ -320,10 +400,10 @@ _e_border_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/maximize"),
-                                                        "e/widgets/border/default/maximize");
+                                  "e/widgets/border/default/maximize");
 
         submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Maximize horizontally"));
+        e_menu_item_label_set(submi, _("Maximize Horizontally"));
         e_menu_item_radio_set(submi, 1);
         e_menu_item_radio_group_set(submi, 3);
         e_menu_item_toggle_set(submi, (bd->maximized & E_MAXIMIZE_DIRECTION) == E_MAXIMIZE_HORIZONTAL);
@@ -331,7 +411,29 @@ _e_border_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/maximize"),
-                                                        "e/widgets/border/default/maximize");
+                                  "e/widgets/border/default/maximize");
+
+        submi = e_menu_item_new(subm);
+        e_menu_item_label_set(submi, _("Maximize Left"));
+        e_menu_item_radio_set(submi, 1);
+        e_menu_item_radio_group_set(submi, 3);
+        e_menu_item_toggle_set(submi, (bd->maximized & E_MAXIMIZE_DIRECTION) == E_MAXIMIZE_LEFT);
+        e_menu_item_callback_set(submi, _e_border_menu_cb_maximize_left, bd);
+        e_menu_item_icon_edje_set(submi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/maximize"),
+                                  "e/widgets/border/default/maximize");
+
+        submi = e_menu_item_new(subm);
+        e_menu_item_label_set(submi, _("Maximize Right"));
+        e_menu_item_radio_set(submi, 1);
+        e_menu_item_radio_group_set(submi, 3);
+        e_menu_item_toggle_set(submi, (bd->maximized & E_MAXIMIZE_DIRECTION) == E_MAXIMIZE_RIGHT);
+        e_menu_item_callback_set(submi, _e_border_menu_cb_maximize_right, bd);
+        e_menu_item_icon_edje_set(submi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/maximize"),
+                                  "e/widgets/border/default/maximize");
 
         submi = e_menu_item_new(subm);
         e_menu_item_label_set(submi, _("Unmaximize"));
@@ -342,7 +444,7 @@ _e_border_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/maximize"),
-                                                        "e/widgets/border/default/maximize");
+                                  "e/widgets/border/default/maximize");
      }
 }
 
@@ -354,7 +456,7 @@ _e_border_menu_cb_maximize(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __U
    bd = data;
    if (!bd->lock_user_maximize)
      e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
-		       E_MAXIMIZE_BOTH);
+                       E_MAXIMIZE_BOTH);
 }
 
 static void
@@ -365,10 +467,10 @@ _e_border_menu_cb_maximize_vertically(void *data, E_Menu *m __UNUSED__, E_Menu_I
    bd = data;
    if (!bd->lock_user_maximize)
      {
-	if ((bd->maximized & E_MAXIMIZE_HORIZONTAL))
-	  e_border_unmaximize(bd, E_MAXIMIZE_HORIZONTAL);
-	e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
-			  E_MAXIMIZE_VERTICAL);
+        if ((bd->maximized & E_MAXIMIZE_HORIZONTAL))
+          e_border_unmaximize(bd, E_MAXIMIZE_HORIZONTAL);
+        e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
+                          E_MAXIMIZE_VERTICAL);
      }
 }
 
@@ -380,10 +482,40 @@ _e_border_menu_cb_maximize_horizontally(void *data, E_Menu *m __UNUSED__, E_Menu
    bd = data;
    if (!bd->lock_user_maximize)
      {
-	if ((bd->maximized & E_MAXIMIZE_VERTICAL))
-	  e_border_unmaximize(bd, E_MAXIMIZE_VERTICAL);
-	e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
-			  E_MAXIMIZE_HORIZONTAL);
+        if ((bd->maximized & E_MAXIMIZE_VERTICAL))
+          e_border_unmaximize(bd, E_MAXIMIZE_VERTICAL);
+        e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
+                          E_MAXIMIZE_HORIZONTAL);
+     }
+}
+
+static void
+_e_border_menu_cb_maximize_left(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+{
+   E_Border *bd;
+
+   bd = data;
+   if (!bd->lock_user_maximize)
+     {
+        if ((bd->maximized & E_MAXIMIZE_DIRECTION))
+          e_border_unmaximize(bd, bd->maximized & E_MAXIMIZE_DIRECTION);
+        e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
+                          E_MAXIMIZE_LEFT);
+     }
+}
+
+static void
+_e_border_menu_cb_maximize_right(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+{
+   E_Border *bd;
+
+   bd = data;
+   if (!bd->lock_user_maximize)
+     {
+        if ((bd->maximized & E_MAXIMIZE_DIRECTION))
+          e_border_unmaximize(bd, bd->maximized & E_MAXIMIZE_DIRECTION);
+        e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
+                          E_MAXIMIZE_RIGHT);
      }
 }
 
@@ -404,10 +536,10 @@ _e_border_menu_cb_shade(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
    bd = data;
    if (!bd->lock_user_shade)
      {
-	if (bd->shaded)
-	  e_border_unshade(bd, E_DIRECTION_UP);
-	else
-	  e_border_shade(bd, E_DIRECTION_UP);
+        if (bd->shaded)
+          e_border_unshade(bd, bd->shade.dir);
+        else
+          e_border_shade(bd, E_DIRECTION_UP);
      }
 }
 
@@ -441,6 +573,7 @@ _e_border_menu_cb_application_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item 
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), bd);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 
    if (bd->desktop)
      {
@@ -449,7 +582,7 @@ _e_border_menu_cb_application_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item 
         e_menu_item_callback_set(submi, _e_border_menu_cb_icon_edit, bd);
         e_util_desktop_menu_item_icon_add(bd->desktop, 16, submi);
      }
-   else if (bd->client.icccm.class) 
+   else if (bd->client.icccm.class)
      {
         /* icons with no class useless to borders */
         submi = e_menu_item_new(subm);
@@ -467,16 +600,16 @@ _e_border_menu_cb_application_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item 
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("Add to IBar"));
-   e_menu_item_submenu_pre_callback_set(submi, 
+   e_menu_item_submenu_pre_callback_set(submi,
                                         _e_border_menu_cb_ibar_add_pre, bd);
    e_util_menu_item_theme_icon_set(submi, "preferences-applications-ibar");
 
    if (e_configure_registry_exists("keyboard_and_mouse/key_bindings"))
      {
-	submi = e_menu_item_new(subm);
-	e_menu_item_label_set(submi, _("Create Keyboard Shortcut"));
-	e_menu_item_callback_set(submi, _e_border_menu_cb_kbdshrtct_add, bd);
-	e_util_menu_item_theme_icon_set(submi, "preferences-desktop-keyboard");
+        submi = e_menu_item_new(subm);
+        e_menu_item_label_set(submi, _("Create Keyboard Shortcut"));
+        e_menu_item_callback_set(submi, _e_border_menu_cb_kbdshrtct_add, bd);
+        e_util_menu_item_theme_icon_set(submi, "preferences-desktop-keyboard");
      }
 }
 
@@ -486,137 +619,19 @@ _e_border_menu_cb_window_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    E_Menu *subm;
    E_Menu_Item *submi;
    E_Border *bd;
+   Eina_Bool resize = EINA_FALSE;
 
    if (!(bd = data)) return;
 
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), bd);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 
-   submi = e_menu_item_new(subm);
-   e_menu_item_label_set(submi, _("Placement"));
-   e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_placement_pre, bd);
-   e_menu_item_icon_edje_set(submi,
-                             e_theme_edje_file_get("base/theme/borders",
-                                                   "e/widgets/border/default/placement"),
-                                                   "e/widgets/border/default/placement");
-
-   if ((!bd->lock_user_stacking) && (!bd->fullscreen))
-     {
-        submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Stacking"));
-        e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_stacking_pre, bd);
-        e_menu_item_icon_edje_set(submi,
-                                  e_theme_edje_file_get("base/theme/borders",
-                                                        "e/widgets/border/default/stacking"),
-                                                        "e/widgets/border/default/stacking");
-     }
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_separator_set(submi, 1);
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_label_set(submi, _("Skip"));
-   e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_skip_pre, bd);
-   e_menu_item_icon_edje_set(submi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/skip"),
-                                                   "e/widgets/border/default/skip");
-
-   if (!bd->lock_border)
-     {
-        submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Border"));
-        e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_border_pre, bd);
-        e_menu_item_icon_edje_set(submi,
-                                  e_theme_edje_file_get("base/theme/borders",
-                                                        "e/widgets/border/default/borderless"),
-                                                        "e/widgets/border/default/borderless");
-     }
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_separator_set(submi, 1);
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_label_set(submi, _("Locks"));
-   e_menu_item_callback_set(submi, _e_border_menu_cb_locks, bd);
-   e_menu_item_icon_edje_set(submi,
-                             e_theme_edje_file_get("base/theme/borders",
-                                                   "e/widgets/border/default/locks"),
-                                                   "e/widgets/border/default/locks");
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_label_set(submi, _("Remember"));
-   e_menu_item_callback_set(submi, _e_border_menu_cb_remember, bd);
-   e_menu_item_icon_edje_set(submi,
-                             e_theme_edje_file_get("base/theme/borders",
-                                                   "e/widgets/border/default/remember"),
-                                                   "e/widgets/border/default/remember");
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_separator_set(submi, 1);
-
-   if ((!bd->internal) && (!bd->lock_close))
-     {
-        submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Kill"));
-        e_menu_item_callback_set(submi, _e_border_menu_cb_kill, bd);
-        e_menu_item_icon_edje_set(submi,
-                                  e_theme_edje_file_get("base/theme/borders",
-                                                        "e/widgets/border/default/kill"),
-                                                        "e/widgets/border/default/kill");
-     }
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_label_set(submi, _("ICCCM/NetWM"));
-   e_menu_item_callback_set(submi, _e_border_menu_cb_prop, bd);
-   e_menu_item_icon_edje_set(submi,
-                             e_theme_edje_file_get("base/theme/borders",
-                                                   "e/widgets/border/default/properties"),
-                                                   "e/widgets/border/default/properties");
-}
-
-static void
-_e_border_menu_cb_placement_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
-{
-   E_Menu *subm;
-   E_Menu_Item *submi;
-   E_Border *bd;
-
-   if (!(bd = data)) return;
-
-   subm = e_menu_new();
-   e_object_data_set(E_OBJECT(subm), bd);
-   e_menu_item_submenu_set(mi, subm);
-
-   if ((!bd->sticky) && ((bd->zone->desk_x_count > 1) || (bd->zone->desk_y_count > 1))) 
-     {
-        submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Move to"));
-        e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_sendto_pre, bd);
-        e_menu_item_icon_edje_set(submi,
-                                  e_theme_edje_file_get("base/theme/borders",
-                                                        "e/widgets/border/default/sendto"),
-                                                        "e/widgets/border/default/sendto");
-     }
-
-   if (!bd->lock_user_sticky)
-     {
-        submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Sticky"));
-        e_menu_item_check_set(submi, 1);
-        e_menu_item_toggle_set(submi, (bd->sticky ? 1 : 0));
-        e_menu_item_callback_set(submi, _e_border_menu_cb_stick, bd);
-        e_menu_item_icon_edje_set(submi,
-                                  e_theme_edje_file_get("base/theme/borders",
-                                                        "e/widgets/border/default/stick"),
-                                                        "e/widgets/border/default/stick");
-     }
-
-   submi = e_menu_item_new(subm);
-   e_menu_item_separator_set(submi, 1);
-
-   if ((bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL) ||
+   /* internal dialog which is resizable */
+   if (bd->internal && (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_DIALOG))
+     resize = (bd->client.icccm.max_w != bd->client.icccm.min_w);
+   if (resize || (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL) ||
        (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UNKNOWN))
      {
         if (!(((bd->client.icccm.min_w == bd->client.icccm.max_w) &&
@@ -631,7 +646,7 @@ _e_border_menu_cb_placement_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *m
                   e_menu_item_icon_edje_set(submi,
                                             e_theme_edje_file_get("base/theme/borders",
                                                                   "e/widgets/border/default/maximize"),
-                                                                  "e/widgets/border/default/maximize");
+                                            "e/widgets/border/default/maximize");
                }
           }
 
@@ -643,7 +658,7 @@ _e_border_menu_cb_placement_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *m
              e_menu_item_icon_edje_set(submi,
                                        e_theme_edje_file_get("base/theme/borders",
                                                              "e/widgets/border/default/minimize"),
-                                                             "e/widgets/border/default/minimize");
+                                       "e/widgets/border/default/minimize");
           }
      }
 
@@ -656,11 +671,11 @@ _e_border_menu_cb_placement_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *m
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/move_icon"),
-                                                        "e/widgets/border/default/move_icon");
+                                  "e/widgets/border/default/move_icon");
      }
 
    if (((!bd->lock_user_size) && (!bd->fullscreen) &&
-       (((bd->maximized & E_MAXIMIZE_DIRECTION) != E_MAXIMIZE_BOTH) || e_config->allow_manip)) &&
+        (((bd->maximized & E_MAXIMIZE_DIRECTION) != E_MAXIMIZE_BOTH) || e_config->allow_manip)) &&
        ((bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL) ||
         (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UNKNOWN)))
      {
@@ -670,22 +685,82 @@ _e_border_menu_cb_placement_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *m
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/resize_icon"),
-                                                        "e/widgets/border/default/resize_icon");
+                                  "e/widgets/border/default/resize_icon");
      }
 
-   if ((!bd->lock_user_shade) && (!bd->fullscreen) && (!bd->maximized) &&
-       ((!bd->client.border.name) || (strcmp("borderless", bd->client.border.name))))
+   submi = e_menu_item_new(subm);
+   e_menu_item_separator_set(submi, 1);
+
+   if ((!bd->lock_user_stacking) && (!bd->fullscreen))
      {
         submi = e_menu_item_new(subm);
-        e_menu_item_label_set(submi, _("Shade"));
-        e_menu_item_check_set(submi, 1);
-        e_menu_item_toggle_set(submi, (bd->shaded ? 1 : 0));
-        e_menu_item_callback_set(submi, _e_border_menu_cb_shade, bd);
+        e_menu_item_label_set(submi, _("Stacking"));
+        e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_stacking_pre, bd);
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
-                                                        "e/widgets/border/default/shade"),
-                                                        "e/widgets/border/default/shade");
+                                                        "e/widgets/border/default/stacking"),
+                                  "e/widgets/border/default/stacking");
      }
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Skip"));
+   e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_skip_pre, bd);
+   e_menu_item_icon_edje_set(submi,
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/skip"),
+                             "e/widgets/border/default/skip");
+
+   if (!bd->lock_border)
+     {
+        submi = e_menu_item_new(subm);
+        e_menu_item_label_set(submi, _("Border"));
+        e_menu_item_submenu_pre_callback_set(submi, _e_border_menu_cb_border_pre, bd);
+        e_menu_item_icon_edje_set(submi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/borderless"),
+                                  "e/widgets/border/default/borderless");
+     }
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_separator_set(submi, 1);
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Locks"));
+   e_menu_item_callback_set(submi, _e_border_menu_cb_locks, bd);
+   e_menu_item_icon_edje_set(submi,
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/locks"),
+                             "e/widgets/border/default/locks");
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Remember"));
+   e_menu_item_callback_set(submi, _e_border_menu_cb_remember, bd);
+   e_menu_item_icon_edje_set(submi,
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/remember"),
+                             "e/widgets/border/default/remember");
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_separator_set(submi, 1);
+
+   if ((!bd->internal) && (!bd->lock_close))
+     {
+        submi = e_menu_item_new(subm);
+        e_menu_item_label_set(submi, _("Kill"));
+        e_menu_item_callback_set(submi, _e_border_menu_cb_kill, bd);
+        e_menu_item_icon_edje_set(submi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/kill"),
+                                  "e/widgets/border/default/kill");
+     }
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("ICCCM/NetWM"));
+   e_menu_item_callback_set(submi, _e_border_menu_cb_prop, bd);
+   e_menu_item_icon_edje_set(submi,
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/properties"),
+                             "e/widgets/border/default/properties");
 }
 
 static void
@@ -705,10 +780,10 @@ _e_border_menu_cb_stick(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
    bd = data;
    if (!bd->lock_user_sticky)
      {
-	if (bd->sticky)
-	  e_border_unstick(bd);
-	else
-	  e_border_stick(bd);
+        if (bd->sticky)
+          e_border_unstick(bd);
+        else
+          e_border_stick(bd);
      }
 }
 
@@ -718,11 +793,8 @@ _e_border_menu_cb_on_top(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
    E_Border *bd;
 
    bd = data;
-   if (bd->layer != 150)
-     {
-	e_border_layer_set(bd, 150);
-	e_hints_window_stacking_set(bd, E_STACKING_ABOVE);
-     }
+   if (bd->layer != E_LAYER_ABOVE)
+     e_border_layer_set(bd, E_LAYER_ABOVE);
 }
 
 static void
@@ -731,11 +803,8 @@ _e_border_menu_cb_below(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
    E_Border *bd;
 
    bd = data;
-   if (bd->layer != 50)
-     {
-	e_border_layer_set(bd, 50);
-	e_hints_window_stacking_set(bd, E_STACKING_BELOW);
-     }
+   if (bd->layer != E_LAYER_BELOW)
+     e_border_layer_set(bd, E_LAYER_BELOW);
 }
 
 static void
@@ -744,11 +813,8 @@ _e_border_menu_cb_normal(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
    E_Border *bd;
 
    bd = data;
-   if (bd->layer != 100)
-     {
-	e_border_layer_set(bd, 100);
-	e_hints_window_stacking_set(bd, E_STACKING_NONE);
-     }
+   if (bd->layer != E_LAYER_NORMAL)
+     e_border_layer_set(bd, E_LAYER_NORMAL);
 }
 
 static void
@@ -761,11 +827,11 @@ _e_border_menu_cb_fullscreen(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 
    if (!bd->lock_user_fullscreen)
      {
-	toggle = e_menu_item_toggle_get(mi);
-	if (toggle)
-	  e_border_fullscreen(bd, e_config->fullscreen_policy);
-	else
-	  e_border_unfullscreen(bd);
+        toggle = e_menu_item_toggle_get(mi);
+        if (toggle)
+          e_border_fullscreen(bd, e_config->fullscreen_policy);
+        else
+          e_border_unfullscreen(bd);
      }
 }
 
@@ -815,8 +881,8 @@ _e_border_menu_cb_skip_taskbar(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
    e_remember_update(bd);
 }
 
-static void 
-_e_border_menu_cb_sendto_icon_pre(void *data, E_Menu *m, E_Menu_Item *mi) 
+static void
+_e_border_menu_cb_sendto_icon_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 {
    E_Desk *desk = NULL;
    Evas_Object *o = NULL;
@@ -828,10 +894,11 @@ _e_border_menu_cb_sendto_icon_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 
    tw = 50;
    th = (tw * desk->zone->h) / desk->zone->w;
-   bgfile = e_bg_file_get(desk->zone->container->num, desk->zone->num, 
+   bgfile = e_bg_file_get(desk->zone->container->num, desk->zone->num,
                           desk->x, desk->y);
    o = e_thumb_icon_add(m->evas);
    e_thumb_icon_file_set(o, bgfile, "e/desktop/background");
+   eina_stringshare_del(bgfile);
    e_thumb_icon_size_set(o, tw, th);
    e_thumb_icon_begin(o);
    mi->icon_object = o;
@@ -856,17 +923,18 @@ _e_border_menu_cb_sendto_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), bd);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 
    EINA_LIST_FOREACH(bd->zone->container->zones, l, zone)
      {
         if (zones > 1)
           {
-             snprintf (buf, sizeof(buf), _("Screen %d"), zone->num);
+             snprintf(buf, sizeof(buf), _("Screen %d"), zone->num);
              submi = e_menu_item_new(subm);
              e_menu_item_label_set(submi, buf);
              e_menu_item_disabled_set(submi, EINA_TRUE);
           }
-		  
+
 // FIXME: Remove labels and add deskpreview to menu.
 // Evas_Object *o = e_widget_deskpreview_add(m->evas, 4, 2);
 
@@ -883,7 +951,7 @@ _e_border_menu_cb_sendto_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
                e_menu_item_toggle_set(submi, 1);
              else
                e_menu_item_callback_set(submi, _e_border_menu_cb_sendto, desk);
-             e_menu_item_realize_callback_set(submi, _e_border_menu_cb_sendto_icon_pre, 
+             e_menu_item_realize_callback_set(submi, _e_border_menu_cb_sendto_icon_pre,
                                               desk);
           }
      }
@@ -934,10 +1002,11 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), bd);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 
    /* Only allow to change layer for windows in "normal" layers */
-   e_menu_category_set(subm,"border/stacking");
-   e_menu_category_data_set("border/stacking",bd);
+   e_menu_category_set(subm, "border/stacking");
+   e_menu_category_data_set("border/stacking", bd);
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("Always on Top"));
@@ -946,9 +1015,9 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
    e_menu_item_toggle_set(submi, (bd->layer == 150 ? 1 : 0));
    e_menu_item_callback_set(submi, _e_border_menu_cb_on_top, bd);
    e_menu_item_icon_edje_set(submi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/stack_on_top"),
-			     "e/widgets/border/default/stack_on_top");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/stack_on_top"),
+                             "e/widgets/border/default/stack_on_top");
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("Normal"));
@@ -957,9 +1026,9 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
    e_menu_item_toggle_set(submi, (bd->layer == 100 ? 1 : 0));
    e_menu_item_callback_set(submi, _e_border_menu_cb_normal, bd);
    e_menu_item_icon_edje_set(submi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/stack_normal"),
-			     "e/widgets/border/default/stack_normal");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/stack_normal"),
+                             "e/widgets/border/default/stack_normal");
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("Always Below"));
@@ -968,14 +1037,14 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
    e_menu_item_toggle_set(submi, (bd->layer == 50 ? 1 : 0));
    e_menu_item_callback_set(submi, _e_border_menu_cb_below, bd);
    e_menu_item_icon_edje_set(submi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/stack_below"),
-			     "e/widgets/border/default/stack_below");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/stack_below"),
+                             "e/widgets/border/default/stack_below");
 
    submi = e_menu_item_new(subm);
    e_menu_item_separator_set(submi, 1);
 
-   // Only allow to change layer for windows in "normal" layers 
+   // Only allow to change layer for windows in "normal" layers
    if ((!bd->lock_user_stacking) &&
        ((bd->layer == 50) || (bd->layer == 100) || (bd->layer == 150)))
      {
@@ -985,7 +1054,7 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/stack_on_top"),
-                                                        "e/widgets/border/default/stack_on_top");
+                                  "e/widgets/border/default/stack_on_top");
 
         submi = e_menu_item_new(subm);
         e_menu_item_label_set(submi, _("Lower"));
@@ -993,7 +1062,7 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
         e_menu_item_icon_edje_set(submi,
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/stack_below"),
-                                                        "e/widgets/border/default/stack_below");
+                                  "e/widgets/border/default/stack_below");
      }
 
    submi = e_menu_item_new(subm);
@@ -1011,7 +1080,7 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
              e_menu_item_icon_edje_set(submi,
                                        e_theme_edje_file_get("base/theme/borders",
                                                              "e/widgets/border/default/stick"),
-                                                             "e/widgets/border/default/stick");
+                                       "e/widgets/border/default/stick");
           }
         if ((bd->client.netwm.state.stacking == E_STACKING_BELOW) &&
             (bd->user_skip_winlist) && (bd->borderless))
@@ -1022,7 +1091,7 @@ _e_border_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
              e_menu_item_icon_edje_set(submi,
                                        e_theme_edje_file_get("base/theme/borders",
                                                              "e/widgets/border/default/stick"),
-                                                             "e/widgets/border/default/stick");
+                                       "e/widgets/border/default/stick");
           }
      }
 }
@@ -1036,7 +1105,7 @@ _e_border_menu_cb_raise(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
    if ((!bd->lock_user_stacking) && (!bd->internal) &&
        ((bd->layer == 50) || (bd->layer == 100) || (bd->layer == 150)))
      {
-	e_border_raise(bd);
+        e_border_raise(bd);
      }
 }
 
@@ -1049,7 +1118,7 @@ _e_border_menu_cb_lower(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
    if ((!bd->lock_user_stacking) && (!bd->internal) &&
        ((bd->layer == 50) || (bd->layer == 100) || (bd->layer == 150)))
      {
-	e_border_lower(bd);
+        e_border_lower(bd);
      }
 }
 
@@ -1063,10 +1132,9 @@ _e_border_menu_cb_default_icon(void *data, E_Menu *m, E_Menu_Item *mi)
    bd = data;
    E_OBJECT_CHECK(bd);
 
-   o = e_icon_add(m->evas);
    prev_icon_pref = bd->icon_preference;
    bd->icon_preference = E_ICON_PREF_E_DEFAULT;
-   e_icon_object_set(o, e_border_icon_add(bd, m->evas));
+   o = e_border_icon_add(bd, m->evas);
    bd->icon_preference = prev_icon_pref;
    mi->icon_object = o;
 }
@@ -1082,12 +1150,12 @@ _e_border_menu_cb_netwm_icon(void *data, E_Menu *m, E_Menu_Item *mi)
 
    if (bd->client.netwm.icons)
      {
-	o = e_icon_add(m->evas);
-	e_icon_data_set(o, bd->client.netwm.icons[0].data,
-			bd->client.netwm.icons[0].width,
-			bd->client.netwm.icons[0].height);
-	e_icon_alpha_set(o, 1);
-	mi->icon_object = o;
+        o = e_icon_add(m->evas);
+        e_icon_data_set(o, bd->client.netwm.icons[0].data,
+                        bd->client.netwm.icons[0].width,
+                        bd->client.netwm.icons[0].height);
+        e_icon_alpha_set(o, 1);
+        mi->icon_object = o;
      }
 }
 
@@ -1103,23 +1171,24 @@ _e_border_menu_cb_border_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), bd);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 
    if (e_configure_registry_exists("internal/borders_border"))
      {
-	submi = e_menu_item_new(subm);
-	e_menu_item_label_set(submi, _("Select Border Style"));
-	e_menu_item_callback_set(submi, _e_border_menu_cb_border, bd);
-	e_menu_item_icon_edje_set(submi,
-				  e_theme_edje_file_get("base/theme/borders",
-							"e/widgets/border/default/borderless"),
-				  "e/widgets/border/default/borderless");
+        submi = e_menu_item_new(subm);
+        e_menu_item_label_set(submi, _("Select Border Style"));
+        e_menu_item_callback_set(submi, _e_border_menu_cb_border, bd);
+        e_menu_item_icon_edje_set(submi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/borderless"),
+                                  "e/widgets/border/default/borderless");
 
-	submi = e_menu_item_new(subm);
-	e_menu_item_separator_set(submi, 1);
+        submi = e_menu_item_new(subm);
+        e_menu_item_separator_set(submi, 1);
      }
 
    submi = e_menu_item_new(subm);
-   e_menu_item_label_set(submi, _("Use E17 Default Icon Preference"));
+   e_menu_item_label_set(submi, _("Use Enlightenment Default Icon Preference"));
    e_menu_item_radio_set(submi, 1);
    e_menu_item_radio_group_set(submi, 2);
    e_menu_item_toggle_set(submi, (bd->icon_preference == E_ICON_PREF_E_DEFAULT ? 1 : 0));
@@ -1127,7 +1196,7 @@ _e_border_menu_cb_border_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    e_menu_item_callback_set(submi, _e_border_menu_cb_iconpref_e, bd);
 
    submi = e_menu_item_new(subm);
-   e_menu_item_label_set(submi, _("Use Application Provided Icon "));
+   e_menu_item_label_set(submi, _("Use Application Provided Icon"));
    e_menu_item_radio_set(submi, 1);
    e_menu_item_radio_group_set(submi, 2);
    e_menu_item_toggle_set(submi, (bd->icon_preference == E_ICON_PREF_NETWM ? 1 : 0));
@@ -1149,9 +1218,9 @@ _e_border_menu_cb_border_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    e_menu_item_toggle_set(submi, (bd->offer_resistance ? 1 : 0));
    e_menu_item_callback_set(submi, _e_border_menu_cb_resistance, bd);
    e_menu_item_icon_edje_set(submi,
-   e_theme_edje_file_get("base/theme/borders",
-				"e/widgets/border/default/borderless"),
-				"e/widgets/border/default/borderless");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/borderless"),
+                             "e/widgets/border/default/borderless");
 }
 
 static void
@@ -1202,6 +1271,7 @@ _e_border_menu_cb_skip_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), bd);
    e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("Window List"));
@@ -1209,9 +1279,9 @@ _e_border_menu_cb_skip_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    e_menu_item_toggle_set(submi, bd->user_skip_winlist);
    e_menu_item_callback_set(submi, _e_border_menu_cb_skip_winlist, bd);
    e_menu_item_icon_edje_set(submi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/skip_winlist"),
-			     "e/widgets/border/default/skip_winlist");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/skip_winlist"),
+                             "e/widgets/border/default/skip_winlist");
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("Pager"));
@@ -1219,9 +1289,9 @@ _e_border_menu_cb_skip_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    e_menu_item_toggle_set(submi, bd->client.netwm.state.skip_pager);
    e_menu_item_callback_set(submi, _e_border_menu_cb_skip_pager, bd);
    e_menu_item_icon_edje_set(submi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/skip_pager"),
-			     "e/widgets/border/default/skip_pager");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/skip_pager"),
+                             "e/widgets/border/default/skip_pager");
 
    submi = e_menu_item_new(subm);
    e_menu_item_label_set(submi, _("Taskbar"));
@@ -1229,9 +1299,9 @@ _e_border_menu_cb_skip_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    e_menu_item_toggle_set(submi, bd->client.netwm.state.skip_taskbar);
    e_menu_item_callback_set(submi, _e_border_menu_cb_skip_taskbar, bd);
    e_menu_item_icon_edje_set(submi,
-			     e_theme_edje_file_get("base/theme/borders",
-						   "e/widgets/border/default/skip_taskbar"),
-			     "e/widgets/border/default/skip_taskbar");
+                             e_theme_edje_file_get("base/theme/borders",
+                                                   "e/widgets/border/default/skip_taskbar"),
+                             "e/widgets/border/default/skip_taskbar");
 }
 
 static void
@@ -1245,7 +1315,7 @@ _e_border_menu_cb_fav_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UN
    e_user_dir_concat_static(buf, "applications/menu/favorite.menu");
    menu = efreet_menu_parse(buf);
    if (!menu)
-      menu = efreet_menu_new("Favorites");
+     menu = efreet_menu_new("Favorites");
    if (!menu) return;
    efreet_menu_desktop_insert(menu, bd->desktop, -1);
    efreet_menu_save(menu, buf);
@@ -1262,7 +1332,7 @@ _e_border_menu_cb_kbdshrtct_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *m
    zone = e_util_zone_current_get(e_manager_current_get());
    if (!zone) return;
    e_configure_registry_call("keyboard_and_mouse/key_bindings",
-			     zone->container, bd->desktop->exec);
+                             zone->container, bd->desktop->exec);
 }
 
 static void
@@ -1287,20 +1357,21 @@ _e_border_menu_cb_ibar_add_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
    sm = e_menu_new();
    EINA_LIST_FOREACH(dirs, l, file)
      {
-	E_Menu_Item *smi;
+        E_Menu_Item *smi;
 
-	if (file[0] == '.') continue;
+        if (file[0] == '.') continue;
 
-	eina_strlcpy(buf + len, file, sizeof(buf) - len);
-	if (ecore_file_is_dir(buf))
-	  {
-	     smi = e_menu_item_new(sm);
-	     e_menu_item_label_set(smi, file);
-	     e_menu_item_callback_set(smi, _e_border_menu_cb_ibar_add, file);
-	  }
+        eina_strlcpy(buf + len, file, sizeof(buf) - len);
+        if (ecore_file_is_dir(buf))
+          {
+             smi = e_menu_item_new(sm);
+             e_menu_item_label_set(smi, file);
+             e_menu_item_callback_set(smi, _e_border_menu_cb_ibar_add, file);
+          }
      }
    e_object_data_set(E_OBJECT(sm), bd);
    e_menu_item_submenu_set(mi, sm);
+   e_object_unref(E_OBJECT(sm));
 }
 
 static void
@@ -1314,10 +1385,11 @@ _e_border_menu_cb_ibar_add(void *data, E_Menu *m, E_Menu_Item *mi __UNUSED__)
    if ((!bd) || (!bd->desktop)) return;
 
    e_user_dir_snprintf(buf, sizeof(buf), "applications/bar/%s/.order",
-		       (const char *)data);
+                       (const char *)data);
    od = e_order_new(buf);
    if (!od) return;
    e_order_append(od, bd->desktop);
    e_object_del(E_OBJECT(od));
 }
+
 /*vim:ts=8 sw=3 sts=3 expandtab cino=>5n-3f0^-2{2(0W1st0*/

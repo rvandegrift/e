@@ -1,7 +1,6 @@
+#include "e_mod_system.h"
 #include <alsa/asoundlib.h>
 #include <poll.h>
-#include "e_mod_system.h"
-#include "e.h"
 
 struct e_mixer_callback_desc
 {
@@ -16,7 +15,7 @@ struct e_mixer_callback_desc
 static int _mixer_callback_add(E_Mixer_System *self,
                                int (*func)(void *data, E_Mixer_System *self),
                                void *data);
-static int _mixer_callback_del(E_Mixer_System               *self,
+static int _mixer_callback_del(E_Mixer_System *self,
                                struct e_mixer_callback_desc *desc);
 
 static Eina_Bool
@@ -37,7 +36,7 @@ _cb_dispatch(void *data)
 }
 
 static Eina_Bool
-_cb_fd_handler(void             *data,
+_cb_fd_handler(void *data,
                Ecore_Fd_Handler *fd_handler)
 {
    struct e_mixer_callback_desc *desc;
@@ -115,7 +114,7 @@ _mixer_callback_add(E_Mixer_System *self,
 }
 
 static int
-_mixer_callback_del(E_Mixer_System               *self,
+_mixer_callback_del(E_Mixer_System *self,
                     struct e_mixer_callback_desc *desc)
 {
    Ecore_Fd_Handler *handler;
@@ -125,6 +124,7 @@ _mixer_callback_del(E_Mixer_System               *self,
 
    snd_mixer_set_callback_private(self, NULL);
 
+   memset(desc, 0, sizeof(*desc));
    free(desc);
 
    return 1;
@@ -402,7 +402,7 @@ e_mixer_system_get_default_channel_name(E_Mixer_System *self)
 
 E_Mixer_Channel *
 e_mixer_system_get_channel_by_name(E_Mixer_System *self,
-                                   const char     *name)
+                                   const char *name)
 {
    snd_mixer_elem_t *elem;
    snd_mixer_selem_id_t *sid;
@@ -435,7 +435,7 @@ e_mixer_system_channel_del(E_Mixer_Channel *channel __UNUSED__)
 }
 
 const char *
-e_mixer_system_get_channel_name(E_Mixer_System  *self,
+e_mixer_system_get_channel_name(E_Mixer_System *self,
                                 E_Mixer_Channel *channel)
 {
    snd_mixer_selem_id_t *sid;
@@ -452,10 +452,10 @@ e_mixer_system_get_channel_name(E_Mixer_System  *self,
 }
 
 int
-e_mixer_system_get_volume(E_Mixer_System  *self,
+e_mixer_system_get_volume(E_Mixer_System *self,
                           E_Mixer_Channel *channel,
-                          int             *left,
-                          int             *right)
+                          int *left,
+                          int *right)
 {
    long lvol, rvol, range, min, max;
 
@@ -489,12 +489,12 @@ e_mixer_system_get_volume(E_Mixer_System  *self,
 }
 
 int
-e_mixer_system_set_volume(E_Mixer_System  *self,
+e_mixer_system_set_volume(E_Mixer_System *self,
                           E_Mixer_Channel *channel,
-                          int              left,
-                          int              right)
+                          int left,
+                          int right)
 {
-   long range, min, max, div;
+   long range, min, max, divide;
    int mode;
 
    if ((!self) || (!channel))
@@ -502,10 +502,10 @@ e_mixer_system_set_volume(E_Mixer_System  *self,
 
    snd_mixer_handle_events(self);
    snd_mixer_selem_get_playback_volume_range(channel, &min, &max);
-   div = 100 + min;
-   if (div == 0)
+   divide = 100 + min;
+   if (divide == 0)
      {
-        div = 1; /* no zero-division */
+        divide = 1; /* no zero-division */
         min++;
      }
 
@@ -516,13 +516,13 @@ e_mixer_system_set_volume(E_Mixer_System  *self,
    mode = 0;
    if (left >= 0)
      {
-        left = (((range * left) + (range / 2)) / div) - min;
+        left = (((range * left) + (range / 2)) / divide) - min;
         mode |= 1;
      }
 
    if (right >= 0)
      {
-        right = (((range * right) + (range / 2)) / div) - min;
+        right = (((range * right) + (range / 2)) / divide) - min;
         mode |= 2;
      }
 
@@ -541,7 +541,7 @@ e_mixer_system_set_volume(E_Mixer_System  *self,
 }
 
 int
-e_mixer_system_can_mute(E_Mixer_System  *self,
+e_mixer_system_can_mute(E_Mixer_System *self,
                         E_Mixer_Channel *channel)
 {
    if ((!self) || (!channel))
@@ -553,9 +553,9 @@ e_mixer_system_can_mute(E_Mixer_System  *self,
 }
 
 int
-e_mixer_system_get_mute(E_Mixer_System  *self,
+e_mixer_system_get_mute(E_Mixer_System *self,
                         E_Mixer_Channel *channel,
-                        int             *mute)
+                        int *mute)
 {
    if ((!self) || (!channel) || (!mute))
      return 0;
@@ -579,9 +579,9 @@ e_mixer_system_get_mute(E_Mixer_System  *self,
 }
 
 int
-e_mixer_system_set_mute(E_Mixer_System  *self,
+e_mixer_system_set_mute(E_Mixer_System *self,
                         E_Mixer_Channel *channel,
-                        int              mute)
+                        int mute)
 {
    if ((!self) || (!channel))
      return 0;
@@ -595,8 +595,8 @@ e_mixer_system_set_mute(E_Mixer_System  *self,
 }
 
 int
-e_mixer_system_get_state(E_Mixer_System        *self,
-                         E_Mixer_Channel       *channel,
+e_mixer_system_get_state(E_Mixer_System *self,
+                         E_Mixer_Channel *channel,
                          E_Mixer_Channel_State *state)
 {
    int r;
@@ -610,8 +610,8 @@ e_mixer_system_get_state(E_Mixer_System        *self,
 }
 
 int
-e_mixer_system_set_state(E_Mixer_System              *self,
-                         E_Mixer_Channel             *channel,
+e_mixer_system_set_state(E_Mixer_System *self,
+                         E_Mixer_Channel *channel,
                          const E_Mixer_Channel_State *state)
 {
    int r;
@@ -625,7 +625,7 @@ e_mixer_system_set_state(E_Mixer_System              *self,
 }
 
 int
-e_mixer_system_has_capture(E_Mixer_System  *self,
+e_mixer_system_has_capture(E_Mixer_System *self,
                            E_Mixer_Channel *channel)
 {
    if ((!self) || (!channel))

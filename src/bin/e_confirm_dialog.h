@@ -11,24 +11,25 @@ typedef struct _E_Confirm_Dialog E_Confirm_Dialog;
 struct _E_Confirm_Dialog
 {
    E_Object  e_obj_inherit;
-   
+
    E_Dialog *dia;
 
-   struct 
-     {
-	void *data;
-	void (*func)(void *data);
-     } yes;
    struct
-     {
-	void *data;
-	void (*func)(void *data);
-     } no;
+   {
+      void *data;
+      void  (*func)(void *data);
+   } yes;
    struct
-     {
-	void *data;
-	void (*func)(void *data);
-     } del;
+   {
+      void *data;
+      void  (*func)(void *data);
+   } no;
+   struct
+   {
+      void *data;
+      void  (*func)(void *data);
+   } del;
+   Eina_Bool no_run : 1;
 };
 
 /*
@@ -44,7 +45,7 @@ struct _E_Confirm_Dialog
  * del_func - the function to call before dialog is deleted
  * del_data - the pointer passer to del_func
  */
-EAPI E_Confirm_Dialog *e_confirm_dialog_show(const char *title, const char *icon, const char *text, const char *button_text, const char *button2_text, void (*func)(void *data), void (*func2)(void *data), void *data, void *data2, void (*del_func)(void *data), void * del_data);
+EAPI E_Confirm_Dialog *e_confirm_dialog_show(const char *title, const char *icon, const char *text, const char *button_text, const char *button2_text, void (*func)(void *data), void (*func2)(void *data), void *data, void *data2, void (*del_func)(void *data), void *del_data);
 
 #endif
 #endif

@@ -48,7 +48,7 @@ il_kbd_config_init(E_Module *m)
         il_kbd_cfg->version = 0;
         il_kbd_cfg->use_internal = 1;
         il_kbd_cfg->run_keyboard = NULL;
-        il_kbd_cfg->dict = eina_stringshare_add("English_(US).dic");
+        il_kbd_cfg->dict = eina_stringshare_add("English_US.dic");
         il_kbd_cfg->zoom_level = 4;
         il_kbd_cfg->slide_dim = 4;
         il_kbd_cfg->hold_timer = 0.25;
@@ -128,7 +128,6 @@ il_kbd_config_show(E_Container *con, const char *params __UNUSED__)
    cfd = e_config_dialog_new(con, _("Keyboard Settings"), "E", 
                              "_config_illume_keyboard_settings", 
                              "enlightenment/keyboard_settings", 0, v, NULL);
-   e_dialog_resizable_set(cfd->dia, 1);
    il_kbd_cfg->cfd = cfd;
 }
 

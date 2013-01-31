@@ -27,8 +27,8 @@ e_widget_preview_add(Evas *evas, int minw, int minh)
    wd->obj = obj;
 
    wd->o_frame = edje_object_add(evas);
-   e_theme_edje_object_set(wd->o_frame, "base/theme/widgets", 
-			   "e/widgets/preview");
+   e_theme_edje_object_set(wd->o_frame, "base/theme/widgets",
+                           "e/widgets/preview");
    evas_object_show(wd->o_frame);
    e_widget_sub_object_add(obj, wd->o_frame);
    e_widget_resize_object_set(obj, wd->o_frame);
@@ -42,7 +42,7 @@ e_widget_preview_add(Evas *evas, int minw, int minh)
    edje_object_part_swallow(wd->o_frame, "e.swallow.content", wd->img);
    e_widget_sub_object_add(obj, wd->img);
 
-   e_widget_data_set(obj, wd);   
+   e_widget_data_set(obj, wd);
    e_widget_can_focus_set(obj, 0);
    edje_object_size_min_calc(wd->o_frame, &mw, &mh);
    e_widget_size_min_set(obj, mw, mh);
@@ -67,6 +67,8 @@ e_widget_preview_extern_object_set(Evas_Object *obj, Evas_Object *eobj)
    wd = e_widget_data_get(obj);
    wd->o_extern = eobj;
    e_livethumb_thumb_set(wd->img, wd->o_extern);
+
+   e_widget_change(obj);
 }
 
 EAPI int
@@ -83,32 +85,37 @@ e_widget_preview_file_set(Evas_Object *obj, const char *file, const char *key)
    evas_object_show(wd->o_thumb);
    e_livethumb_thumb_set(wd->img, wd->o_thumb);
 
+   e_widget_change(obj);
+
    return 1;
 }
 
 EAPI int
-e_widget_preview_thumb_set(Evas_Object *obj, const char *file, const char *key __UNUSED__, int w, int h)
+e_widget_preview_thumb_set(Evas_Object *obj, const char *file, const char *key, int w, int h)
 {
    E_Widget_Data *wd;
 
    wd = e_widget_data_get(obj);
    if (wd->img)
      {
-	e_widget_sub_object_del(obj, wd->img);
-	evas_object_del(wd->img);
+        e_widget_sub_object_del(obj, wd->img);
+        evas_object_del(wd->img);
      }
 
    wd->img = e_thumb_icon_add(evas_object_evas_get(obj));
    e_widget_sub_object_add(obj, wd->img);
-   if (e_util_glob_case_match(file, "*.edj"))
+   if (eina_str_has_extension(file, "edj"))
      {
-	/* FIXME: There is probably a quicker way of doing this. */
-	if (edje_file_group_exists(file, "icon"))
-	  e_thumb_icon_file_set(wd->img, file, "icon");
-	else if (edje_file_group_exists(file, "e/desktop/background"))
-	  e_thumb_icon_file_set(wd->img, file, "e/desktop/background");
-	else if (edje_file_group_exists(file, "e/init/splash"))
-	  e_thumb_icon_file_set(wd->img, file, "e/init/splash");
+        if (key)
+          e_thumb_icon_file_set(wd->img, file, key);
+        else
+        /* FIXME: There is probably a quicker way of doing this. */
+        if (edje_file_group_exists(file, "icon"))
+          e_thumb_icon_file_set(wd->img, file, "icon");
+        else if (edje_file_group_exists(file, "e/desktop/background"))
+          e_thumb_icon_file_set(wd->img, file, "e/desktop/background");
+        else if (edje_file_group_exists(file, "e/init/splash"))
+          e_thumb_icon_file_set(wd->img, file, "e/init/splash");
      }
    else
      e_thumb_icon_file_set(wd->img, file, NULL);
@@ -118,6 +125,8 @@ e_widget_preview_thumb_set(Evas_Object *obj, const char *file, const char *key _
 
    edje_object_part_swallow(wd->o_frame, "e.swallow.content", wd->img);
    evas_object_show(wd->img);
+
+   e_widget_change(obj);
 
    return 1;
 }
@@ -149,6 +158,15 @@ _e_wid_preview_thumb_gen(void *data, Evas_Object *obj __UNUSED__, void *event_in
    evas_object_smart_callback_call(wd->obj, "preview_update", NULL);
 }
 
+EAPI void
+e_widget_preview_file_get(Evas_Object *obj, const char **file, const char **group)
+{
+   E_Widget_Data *wd;
+
+   wd = e_widget_data_get(obj);
+   edje_object_file_get(wd->o_thumb, file, group);
+}
+
 EAPI int
 e_widget_preview_edje_set(Evas_Object *obj, const char *file, const char *group)
 {
@@ -161,6 +179,9 @@ e_widget_preview_edje_set(Evas_Object *obj, const char *file, const char *group)
    ret = edje_object_file_set(wd->o_thumb, file, group);
    evas_object_show(wd->o_thumb);
    e_livethumb_thumb_set(wd->img, wd->o_thumb);
+
+   e_widget_change(obj);
+
    return ret;
 }
 
@@ -172,3 +193,4 @@ _e_wid_del_hook(Evas_Object *obj)
    wd = e_widget_data_get(obj);
    E_FREE(wd);
 }
+

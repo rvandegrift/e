@@ -14,7 +14,6 @@ struct _Instance
    Evry_Window     *win;
    Gadget_Config   *cfg;
    E_Config_Dialog *cfd;
-   E_Menu          *menu;
 
    int              mouse_down;
 
@@ -36,9 +35,9 @@ static Eina_Bool        _cb_focus_out(void *data, int type __UNUSED__, void *eve
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
 static void             _gc_shutdown(E_Gadcon_Client *gcc);
 static void             _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient);
-static const char      *_gc_label(E_Gadcon_Client_Class *client_class);
-static Evas_Object     *_gc_icon(E_Gadcon_Client_Class *client_class, Evas *evas);
-static const char      *_gc_id_new(E_Gadcon_Client_Class *client_class);
+static const char      *_gc_label(const E_Gadcon_Client_Class *client_class);
+static Evas_Object     *_gc_icon(const E_Gadcon_Client_Class *client_class, Evas *evas);
+static const char      *_gc_id_new(const E_Gadcon_Client_Class *client_class);
 static Gadget_Config   *_conf_item_get(const char *id);
 
 static void             _conf_dialog(Instance *inst);
@@ -165,13 +164,13 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
 }
 
 static const char *
-_gc_label(E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_label(const E_Gadcon_Client_Class *client_class __UNUSED__)
 {
    return _("Everything Starter");
 }
 
 static Evas_Object *
-_gc_icon(E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas __UNUSED__)
+_gc_icon(const E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas __UNUSED__)
 {
    Evas_Object *o;
    char buf[PATH_MAX];
@@ -201,10 +200,12 @@ _conf_item_get(const char *id)
 }
 
 static const char *
-_gc_id_new(E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_id_new(const E_Gadcon_Client_Class *client_class __UNUSED__)
 {
-   Gadget_Config *gc = _conf_item_get(NULL);
-   return gc->id;
+   Gadget_Config *ci = NULL;
+
+   ci = _conf_item_get(NULL);
+   return ci->id;
 }
 
 /***************************************************************************/
@@ -221,16 +222,6 @@ _del_func(void *data, void *obj __UNUSED__)
    inst->del_fn = NULL;
    inst->win = NULL;
    edje_object_signal_emit(inst->o_button, "e,state,unfocused", "e");
-}
-
-static void
-_cb_menu_post(void *data, E_Menu *m __UNUSED__)
-{
-   Instance *inst = data;
-
-   if (!inst->menu) return;
-   /* e_object_del(E_OBJECT(inst->menu)); */
-   inst->menu = NULL;
 }
 
 static void
@@ -509,7 +500,7 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
 
         edje_object_signal_emit(inst->o_button, "e,state,focused", "e");
      }
-   else if ((ev->button == 3) && (!inst->menu))
+   else if (ev->button == 3)
      {
         E_Menu *m;
         E_Menu_Item *mi;
@@ -522,8 +513,6 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
         e_menu_item_callback_set(mi, _cb_menu_configure, inst);
 
         m = e_gadcon_client_util_menu_items_append(inst->gcc, m, 0);
-        e_menu_post_deactivate_callback_set(m, _cb_menu_post, inst);
-        inst->menu = m;
 
         e_gadcon_canvas_zone_geometry_get(inst->gcc->gadcon, &cx, &cy,
                                           NULL, NULL);
@@ -531,6 +520,8 @@ _button_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED_
                               e_util_zone_current_get(e_manager_current_get()),
                               cx + ev->output.x, cy + ev->output.y, 1, 1,
                               E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
+        evas_event_feed_mouse_up(inst->gcc->gadcon->evas, ev->button,
+                                 EVAS_BUTTON_NONE, ev->timestamp, NULL);
      }
 }
 
@@ -596,7 +587,6 @@ _conf_dialog(Instance *inst)
    inst->cfd = e_config_dialog_new(con, _("Everything Gadgets"), "everything-gadgets",
                                    "launcher/everything-gadgets", NULL, 0, v, inst);
 
-   e_dialog_resizable_set(inst->cfd->dia, 0);
    /* _conf->cfd = cfd; */
 }
 

@@ -19,6 +19,7 @@
 #define DBG(...)
 #endif
 
+static Eina_Bool     _evry_cb_desklock(Evry_Window *win, int type __UNUSED__, E_Event_Desklock *ev);
 static void           _evry_matches_update(Evry_Selector *sel, int async);
 static void           _evry_plugin_action(Evry_Selector *sel, int finished);
 static void           _evry_plugin_select(Evry_State *s, Evry_Plugin *p);
@@ -66,6 +67,8 @@ static void           _evry_item_sel(Evry_State *s, Evry_Item *it);
 static Eina_Bool      _evry_cb_key_down(void *data, int type, void *event);
 static Eina_Bool      _evry_cb_selection_notify(void *data, int type, void *event);
 static Eina_Bool      _evry_cb_mouse(void *data, int type, void *event);
+
+static Eina_Bool      _evry_delay_hide_timer(void *data);
 
 static Eina_List *windows = NULL;
 
@@ -160,12 +163,21 @@ evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params, Eina_Bool popup)
    E_OBJECT_CHECK_RETURN(zone, 0);
    E_OBJECT_TYPE_CHECK_RETURN(zone, E_ZONE_TYPE, 0);
 
+   if (popup)
+     {
+        // only one popup please
+        Eina_List *l;
+        EINA_LIST_FOREACH(windows, l, win)
+          if (win->grab)
+            return NULL;
+     }
+   
    if (!(win = _evry_window_new(zone, edge)))
      return NULL;
 
    if (popup)
      {
-        e_win_layer_set(win->ewin, 255);
+        e_win_layer_set(win->ewin, E_WIN_LAYER_ABOVE);
         ecore_x_netwm_window_type_set(win->ewin->evas_win,
                                       ECORE_X_WINDOW_TYPE_UTILITY);
 
@@ -215,6 +227,7 @@ evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params, Eina_Bool popup)
        (win->handlers, ecore_event_handler_add
          (ECORE_EVENT_MOUSE_BUTTON_UP,
          _evry_cb_mouse, win));
+   E_LIST_HANDLER_APPEND(win->handlers, E_EVENT_DESKLOCK, _evry_cb_desklock, win);
 #if 0
    win->handlers = eina_list_append
        (win->handlers, ecore_event_handler_add
@@ -263,7 +276,18 @@ evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params, Eina_Bool popup)
 
    win->func.hide = &_evry_hide_func;
 
+   win->delay_hide_action = ecore_timer_add(0.2, _evry_delay_hide_timer, win);
+
    return win;
+}
+
+static Eina_Bool
+_evry_delay_hide_timer(void *data)
+{
+   Evry_Window *win = data;
+   win->delay_hide_action = NULL;
+
+   return ECORE_CALLBACK_CANCEL;   
 }
 
 static void
@@ -281,6 +305,7 @@ evry_hide(Evry_Window *win, int clear)
 
    if (!win) return;
 
+   e_win_hide(win->ewin);
    _evry_state_clear(win);
 
    if ((clear && CUR_SEL) &&
@@ -340,6 +365,9 @@ evry_hide(Evry_Window *win, int clear)
 
    EINA_LIST_FREE (win->handlers, ev)
      ecore_event_handler_del(ev);
+
+   if (win->delay_hide_action)
+     ecore_timer_del(win->delay_hide_action);
 
    if (win->grab)
      e_grabinput_release(win->ewin->evas_win,
@@ -762,6 +790,7 @@ _evry_window_new(E_Zone *zone, E_Zone_Edge edge)
    e_win_borderless_set(win->ewin, 1);
    e_win_no_remember_set(win->ewin, 1);
    e_win_placed_set(win->ewin, 1);
+   e_object_delay_del_set(E_OBJECT(win->ewin), NULL); //prevent deferred delete
    ecore_evas_override_set(win->ewin->ecore_evas, 1);
    win->evas = e_win_evas_get(win->ewin);
    win->zone = zone;
@@ -892,6 +921,13 @@ _evry_cb_drag_finished(E_Drag *drag, int dropped)
 #endif
 
 static Eina_Bool
+_evry_cb_desklock(Evry_Window *win, int type __UNUSED__, E_Event_Desklock *ev)
+{
+   if (ev->on) evry_hide(win, 0);
+   return ECORE_CALLBACK_RENEW;
+}
+
+static Eina_Bool
 _evry_cb_mouse(void *data, int type, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
@@ -998,7 +1034,8 @@ _evry_window_free(Evry_Window *win)
 
    evas_event_freeze(win->evas);
    evas_object_del(win->o_main);
-   e_object_del(E_OBJECT(win->ewin));
+   if (!e_object_is_del(E_OBJECT(win->ewin)))
+     e_object_del(E_OBJECT(win->ewin));
    E_FREE(win);
 }
 
@@ -1939,17 +1976,15 @@ _evry_cb_key_down(void *data, int type __UNUSED__, void *event)
         return ECORE_CALLBACK_PASS_ON;
      }
 #endif
-   else if (ev->modifiers)
+   else if ((ev->modifiers) && (!win->delay_hide_action))
      {
         Eina_List *l;
-        E_Config_Binding_Key *bind;
+        E_Config_Binding_Key *binding;
         E_Binding_Modifier mod;
 
-        for (l = e_config->key_bindings; l; l = l->next)
+	EINA_LIST_FOREACH(e_config->key_bindings, l, binding)
           {
-             bind = l->data;
-
-             if (bind->action && strcmp(bind->action, "everything")) continue;
+             if (binding->action && strcmp(binding->action, "everything")) continue;
 
              mod = 0;
 
@@ -1962,14 +1997,14 @@ _evry_cb_key_down(void *data, int type __UNUSED__, void *event)
              if (ev->modifiers & ECORE_EVENT_MODIFIER_WIN)
                mod |= E_BINDING_MODIFIER_WIN;
 
-             if (!(bind->key && (!strcmp(bind->key, ev->keyname)) &&
-                   (((unsigned int)bind->modifiers == mod) || (bind->any_mod))))
+             if (!(binding->key && (!strcmp(binding->key, ev->keyname)) &&
+                   (((unsigned int)binding->modifiers == mod) || (binding->any_mod))))
                continue;
 
              if (win->level > 0)
                return ECORE_CALLBACK_PASS_ON;
 
-             if (!(bind->params) && (CUR_SEL == OBJ_SEL) &&
+             if (!(binding->params) && (CUR_SEL == OBJ_SEL) &&
                  ((CUR_SEL)->state && (CUR_SEL)->state->cur_item))
                {
                   _evry_selectors_shift(win, 1);
@@ -1979,13 +2014,13 @@ _evry_cb_key_down(void *data, int type __UNUSED__, void *event)
              evry_hide(win, 1);
 
 #if 0 /* FIXME this causes segv when triggering a plugin keybinding twice */
-             if (win && CUR_SEL && bind->params)
+             if (win && CUR_SEL && binding->params)
                {
                   Eina_List *ll;
                   Evry_Plugin *p;
 
                   EINA_LIST_FOREACH ((SUBJ_SEL)->plugins, ll, p)
-                    if (!strcmp(bind->params, p->name)) break;
+                    if (!strcmp(binding->params, p->name)) break;
 
                   if (p)
                     {
@@ -2584,15 +2619,9 @@ _evry_state_clear(Evry_Window *win)
 static void
 _evry_view_hide(Evry_Window *win, Evry_View *v, int slide)
 {
-   if (v->state->delete_me)
-     {
-        _evry_state_clear(win);
-        return;
-     }
-
    _evry_state_clear(win);
 
-   if (!v) return;
+   if (!v || v->state->delete_me) return;
 
    if (slide && v->o_list)
      {
@@ -2815,12 +2844,14 @@ _evry_matches_update(Evry_Selector *sel, int async)
    /* check if input matches plugin trigger */
    if (input)
      {
-        int len_trigger = 0;
+        size_t len_trigger = 0;
 
         EINA_LIST_FOREACH (s->plugins, l, p)
           {
+             size_t len;
+
              if (!p->config->trigger) continue;
-             int len = strlen(p->config->trigger);
+             len = strlen(p->config->trigger);
 
              if (len_trigger && len != len_trigger)
                continue;
@@ -2884,7 +2915,7 @@ _evry_matches_update(Evry_Selector *sel, int async)
 
              /* skip non-toplevel plugins when input < min_query */
              if ((!p->config->top_level) &&
-                 (p->config->min_query > len_inp))
+                 ((size_t) p->config->min_query > len_inp))
                goto next;
           }
 

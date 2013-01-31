@@ -12,7 +12,7 @@ EAPI void
 e_canvas_add(Ecore_Evas *ee)
 {
    Evas *e;
-   
+
    _e_canvases = eina_list_prepend(_e_canvases, ee);
    e = ecore_evas_get(ee);
    evas_image_cache_set(e, e_config->image_cache * 1024);
@@ -20,19 +20,19 @@ e_canvas_add(Ecore_Evas *ee)
    e_path_evas_append(path_fonts, e);
    if (e_config->font_hinting == 0)
      {
-	if (evas_font_hinting_can_hint(e, EVAS_FONT_HINTING_BYTECODE))
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_BYTECODE);
-	else if (evas_font_hinting_can_hint(e, EVAS_FONT_HINTING_AUTO))
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_AUTO);
-	else
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_NONE);
+        if (evas_font_hinting_can_hint(e, EVAS_FONT_HINTING_BYTECODE))
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_BYTECODE);
+        else if (evas_font_hinting_can_hint(e, EVAS_FONT_HINTING_AUTO))
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_AUTO);
+        else
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_NONE);
      }
    else if (e_config->font_hinting == 1)
      {
-	if (evas_font_hinting_can_hint(e, EVAS_FONT_HINTING_AUTO))
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_AUTO);
-	else
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_NONE);
+        if (evas_font_hinting_can_hint(e, EVAS_FONT_HINTING_AUTO))
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_AUTO);
+        else
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_NONE);
      }
    else if (e_config->font_hinting == 2)
      evas_font_hinting_set(e, EVAS_FONT_HINTING_NONE);
@@ -50,27 +50,27 @@ e_canvas_recache(void)
    Eina_List *l;
    Ecore_Evas *ee;
 
-   EINA_LIST_FOREACH(_e_canvases, l, ee)   
+   EINA_LIST_FOREACH(_e_canvases, l, ee)
      {
-	Evas *e;
-	
-	e = ecore_evas_get(ee);
-	evas_image_cache_set(e, e_config->image_cache * 1024);
-	evas_font_cache_set(e, e_config->font_cache * 1024);
+        Evas *e;
+
+        e = ecore_evas_get(ee);
+        evas_image_cache_set(e, e_config->image_cache * 1024);
+        evas_font_cache_set(e, e_config->font_cache * 1024);
      }
    edje_file_cache_set(e_config->edje_cache);
    edje_collection_cache_set(e_config->edje_collection_cache);
    if (_e_canvas_cache_flush_poller)
      {
-	ecore_poller_del(_e_canvas_cache_flush_poller);
-	_e_canvas_cache_flush_poller = NULL;
+        ecore_poller_del(_e_canvas_cache_flush_poller);
+        _e_canvas_cache_flush_poller = NULL;
      }
    if (e_config->cache_flush_poll_interval > 0)
      {
-	_e_canvas_cache_flush_poller = 
-	  ecore_poller_add(ECORE_POLLER_CORE,
-			   e_config->cache_flush_poll_interval,
-			   _e_canvas_cb_flush, NULL);
+        _e_canvas_cache_flush_poller =
+          ecore_poller_add(ECORE_POLLER_CORE,
+                           e_config->cache_flush_poll_interval,
+                           _e_canvas_cb_flush, NULL);
      }
 }
 
@@ -80,13 +80,13 @@ e_canvas_cache_flush(void)
    Eina_List *l;
    Ecore_Evas *ee;
 
-   EINA_LIST_FOREACH(_e_canvases, l, ee)   
+   EINA_LIST_FOREACH(_e_canvases, l, ee)
      {
-	Evas *e;
-	
-	e = ecore_evas_get(ee);
-	evas_image_cache_flush(e);
-	evas_font_cache_flush(e);
+        Evas *e;
+
+        e = ecore_evas_get(ee);
+        evas_image_cache_flush(e);
+        evas_font_cache_flush(e);
      }
    edje_file_cache_flush();
    edje_collection_cache_flush();
@@ -98,12 +98,12 @@ e_canvas_cache_reload(void)
    Eina_List *l;
    Ecore_Evas *ee;
 
-   EINA_LIST_FOREACH(_e_canvases, l, ee)   
+   EINA_LIST_FOREACH(_e_canvases, l, ee)
      {
-	Evas *e;
-	
-	e = ecore_evas_get(ee);
-	evas_image_cache_reload(e);
+        Evas *e;
+
+        e = ecore_evas_get(ee);
+        evas_image_cache_reload(e);
      }
 }
 
@@ -113,12 +113,12 @@ e_canvas_idle_flush(void)
    Eina_List *l;
    Ecore_Evas *ee;
 
-   EINA_LIST_FOREACH(_e_canvases, l, ee)   
+   EINA_LIST_FOREACH(_e_canvases, l, ee)
      {
-	Evas *e;
-	
-	e = ecore_evas_get(ee);
-	evas_render_idle_flush(e);
+        Evas *e;
+
+        e = ecore_evas_get(ee);
+        evas_render_idle_flush(e);
      }
 }
 
@@ -128,26 +128,26 @@ e_canvas_rehint(void)
    Eina_List *l;
    Ecore_Evas *ee;
 
-   EINA_LIST_FOREACH(_e_canvases, l, ee)   
+   EINA_LIST_FOREACH(_e_canvases, l, ee)
      {
-	Evas *e;
-	
-	e = ecore_evas_get(ee);
-	if (e_config->font_hinting == 0)
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_BYTECODE);
-	else if (e_config->font_hinting == 1)
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_AUTO);
-	else if (e_config->font_hinting == 2)
-	  evas_font_hinting_set(e, EVAS_FONT_HINTING_NONE);
+        Evas *e;
+
+        e = ecore_evas_get(ee);
+        if (e_config->font_hinting == 0)
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_BYTECODE);
+        else if (e_config->font_hinting == 1)
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_AUTO);
+        else if (e_config->font_hinting == 2)
+          evas_font_hinting_set(e, EVAS_FONT_HINTING_NONE);
      }
 }
 
 EAPI Ecore_Evas *
 e_canvas_new(Ecore_X_Window win, int x, int y, int w, int h,
-	     int direct_resize, int override, Ecore_X_Window *win_ret)
+             int direct_resize, int override, Ecore_X_Window *win_ret)
 {
    Ecore_Evas *ee;
-   
+
    ee = ecore_evas_software_x11_new(NULL, win, x, y, w, h);
    if (ee)
      {

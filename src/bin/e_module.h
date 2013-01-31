@@ -1,6 +1,6 @@
 #ifdef E_TYPEDEFS
 
-#define E_MODULE_API_VERSION 9
+#define E_MODULE_API_VERSION 11
 
 typedef struct _E_Module     E_Module;
 typedef struct _E_Module_Api E_Module_Api;
@@ -18,8 +18,8 @@ extern EAPI int E_EVENT_MODULE_INIT_END;
 
 struct _E_Event_Module_Update
 {
-   char *name;
-   unsigned char enabled : 1;
+   const char *name;
+   Eina_Bool enabled : 1;
 };
 
 struct _E_Module
@@ -27,20 +27,20 @@ struct _E_Module
    E_Object             e_obj_inherit;
 
    E_Module_Api        *api;
-   
+
    const char          *name;
    const char          *dir;
    void                *handle;
-   
+
    struct {
       void * (*init)        (E_Module *m);
       int    (*shutdown)    (E_Module *m);
       int    (*save)        (E_Module *m);
    } func;
-   
+
    unsigned char        enabled : 1;
    unsigned char        error : 1;
-   
+
    /* the module is allowed to modify these */
    void                *data;
 };
@@ -67,6 +67,6 @@ EAPI Eina_List   *e_module_list(void);
 EAPI void         e_module_dialog_show(E_Module *m, const char *title, const char *body);
 EAPI void         e_module_delayed_set(E_Module *m, int delayed);
 EAPI void         e_module_priority_set(E_Module *m, int priority);
-    
+EAPI Eina_Bool   e_module_loading_get(void);
 #endif
 #endif

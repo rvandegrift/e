@@ -178,7 +178,7 @@ _notification_popup_merge(E_Notification *n)
 
    len = strlen(body_old);
    len += strlen(body_new);
-   len += 4; /* \xE2\x80\xA9 or <PS> */
+   len += 5; /* \xE2\x80\xA9 or <PS/> */
    if (len < 65536) body_final = alloca(len + 1);
    else body_final = malloc(len + 1);
    /* Hack to allow e to include markup */
@@ -288,6 +288,7 @@ _notification_popup_new(E_Notification *n)
 
    /* Create the popup window */
    popup->win = e_popup_new(zone, 0, 0, 0, 0);
+   e_popup_name_set(popup->win, "_e_popup_notification");
    popup->e = popup->win->evas;
 
    /* Setup the theme */
@@ -297,8 +298,11 @@ _notification_popup_new(E_Notification *n)
 
    if (!e_theme_edje_object_set(popup->theme,
                                 "base/theme/modules/notification",
-                                "modules/notification/main"))
-     edje_object_file_set(popup->theme, buf, "modules/notification/main");
+                                "e/modules/notification/main"))
+     if (!e_theme_edje_object_set(popup->theme,
+                                  "base/theme/modules/notification",
+                                  "modules/notification/main"))
+       edje_object_file_set(popup->theme, buf, "modules/notification/main");
 
    e_popup_edje_bg_object_set(popup->win, popup->theme);
 
@@ -316,7 +320,7 @@ _notification_popup_new(E_Notification *n)
    _notification_popup_refresh(popup);
    next_pos = _notification_popup_place(popup, next_pos);
    e_popup_show(popup->win);
-   e_popup_layer_set(popup->win, 999);
+   e_popup_layer_set(popup->win, E_LAYER_POPUP);
    popups_displayed++;
 
    return popup;
@@ -368,7 +372,7 @@ _notification_popup_place(Popup_Data *popup,
 }
 
 static void
-_notification_popups_place()
+_notification_popups_place(void)
 {
    Popup_Data *popup;
    Eina_List *l;
@@ -488,9 +492,12 @@ _notification_popup_refresh(Popup_Data *popup)
         popup->app_icon = edje_object_add(popup->e);
         if (!e_theme_edje_object_set(popup->app_icon, 
                                      "base/theme/modules/notification",
-                                     "modules/notification/logo"))
-          edje_object_file_set(popup->app_icon, buf, 
-                               "modules/notification/logo");
+                                     "e/modules/notification/logo"))
+          if (!e_theme_edje_object_set(popup->app_icon, 
+                                       "base/theme/modules/notification",
+                                       "modules/notification/logo"))
+            edje_object_file_set(popup->app_icon, buf, 
+                                 "modules/notification/logo");
         w = width;
         h = height;
      }
@@ -516,6 +523,8 @@ _notification_popup_refresh(Popup_Data *popup)
    /* Compute the new size of the popup */
    edje_object_calc_force(popup->theme);
    edje_object_size_min_calc(popup->theme, &w, &h);
+   w = MIN(w, popup->zone->w / 2);
+   h = MIN(h, popup->zone->h / 2);
    e_popup_resize(popup->win, w, h);
    evas_object_resize(popup->theme, w, h);
 

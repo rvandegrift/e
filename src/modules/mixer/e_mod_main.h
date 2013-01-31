@@ -1,14 +1,14 @@
 #ifndef E_MOD_MAIN_H
 #define E_MOD_MAIN_H
 
-#include "config.h"
+#include "e.h"
 #include "e_mod_system.h"
-#include <e.h>
 
-#define MOD_CONFIG_FILE_EPOCH 0x0000
-#define MOD_CONFIG_FILE_GENERATION 0x0003
-#define MOD_CONFIG_FILE_VERSION                                 \
-  ((MOD_CONFIG_FILE_EPOCH << 16) | MOD_CONFIG_FILE_GENERATION)
+/* Increment for Major Changes */
+#define MOD_CONFIG_FILE_EPOCH      1
+/* Increment for Minor Changes (ie: user doesn't need a new config) */
+#define MOD_CONFIG_FILE_GENERATION 0
+#define MOD_CONFIG_FILE_VERSION    ((MOD_CONFIG_FILE_EPOCH * 1000000) + MOD_CONFIG_FILE_GENERATION)
 
 typedef struct E_Mixer_Gadget_Config
 {
@@ -18,6 +18,8 @@ typedef struct E_Mixer_Gadget_Config
    const char *card;
    const char *channel_name;
    const char *id;
+   E_Mixer_Channel_State state;
+   Eina_Bool using_default;
    E_Config_Dialog *dialog;
    struct E_Mixer_Instance *instance;
 } E_Mixer_Gadget_Config;
@@ -35,7 +37,6 @@ typedef struct E_Mixer_Instance
    E_Gadcon_Client *gcc;
    E_Gadcon_Popup *popup;
    Ecore_Timer *popup_timer;
-   E_Menu *menu;
 
    struct
    {

@@ -4,7 +4,7 @@ typedef enum _E_Binding_Context
 {
    E_BINDING_CONTEXT_NONE,
    E_BINDING_CONTEXT_UNKNOWN,
-   E_BINDING_CONTEXT_BORDER,
+   E_BINDING_CONTEXT_WINDOW,
    E_BINDING_CONTEXT_ZONE,
    E_BINDING_CONTEXT_CONTAINER,
    E_BINDING_CONTEXT_MANAGER,
@@ -93,7 +93,7 @@ struct _E_Binding_Wheel
    const char *params;
 };
 
-struct _E_Binding_Acpi 
+struct _E_Binding_Acpi
 {
    E_Binding_Context ctxt;
    int type, status;
@@ -102,6 +102,13 @@ struct _E_Binding_Acpi
 
 EINTERN int         e_bindings_init(void);
 EINTERN int         e_bindings_shutdown(void);
+
+EAPI void        e_bindings_mouse_reset(void);
+EAPI void        e_bindings_key_reset(void);
+EAPI void        e_bindings_wheel_reset(void);
+EAPI void        e_bindings_edge_reset(void);
+EAPI void        e_bindings_signal_reset(void);
+EAPI void        e_bindings_reset(void);
 
 EAPI void        e_bindings_mouse_add(E_Binding_Context ctxt, int button, E_Binding_Modifier mod, int any_mod, const char *action, const char *params);
 EAPI void        e_bindings_mouse_del(E_Binding_Context ctxt, int button, E_Binding_Modifier mod, int any_mod, const char *action, const char *params);
@@ -125,7 +132,8 @@ EAPI E_Action   *e_bindings_key_up_event_find(E_Binding_Context ctxt, Ecore_Even
 
 EAPI void        e_bindings_edge_add(E_Binding_Context ctxt, E_Zone_Edge edge, E_Binding_Modifier mod, int any_mod, const char *action, const char *params, float delay);
 EAPI Eina_Bool   e_bindings_edge_flippable_get(E_Zone_Edge edge);
-EAPI E_Binding_Edge *e_bindings_edge_get(const char *action, E_Zone_Edge edge, Eina_Bool click);
+EAPI Eina_Bool   e_bindings_edge_non_flippable_get(E_Zone_Edge edge);
+EAPI E_Binding_Edge *e_bindings_edge_get(const char *action, E_Zone_Edge edge, int click);
 EAPI void        e_bindings_edge_del(E_Binding_Context ctxt, E_Zone_Edge edge, E_Binding_Modifier mod, int any_mod, const char *action, const char *params, float delay);
 EAPI E_Action   *e_bindings_edge_in_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Zone_Edge *ev);
 EAPI E_Action   *e_bindings_edge_out_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Zone_Edge *ev);
@@ -136,7 +144,7 @@ EAPI void        e_bindings_signal_add(E_Binding_Context ctxt, const char *sig, 
 EAPI void        e_bindings_signal_del(E_Binding_Context ctxt, const char *sig, const char *src, E_Binding_Modifier mod, int any_mod, const char *action, const char *params);
 EAPI E_Action   *e_bindings_signal_find(E_Binding_Context ctxt, E_Object *obj, const char *sig, const char *src, E_Binding_Signal **bind_ret);
 EAPI E_Action   *e_bindings_signal_handle(E_Binding_Context ctxt, E_Object *obj, const char *sig, const char *src);
-					 
+
 EAPI void        e_bindings_wheel_add(E_Binding_Context ctxt, int direction, int z, E_Binding_Modifier mod, int any_mod, const char *action, const char *params);
 EAPI void        e_bindings_wheel_del(E_Binding_Context ctxt, int direction, int z, E_Binding_Modifier mod, int any_mod, const char *action, const char *params);
 EAPI void        e_bindings_wheel_grab(E_Binding_Context ctxt, Ecore_X_Window win);
@@ -148,6 +156,7 @@ EAPI void e_bindings_acpi_add(E_Binding_Context ctxt, int type, int status, cons
 EAPI void e_bindings_acpi_del(E_Binding_Context ctxt, int type, int status, const char *action, const char *params);
 EAPI E_Action *e_bindings_acpi_find(E_Binding_Context ctxt, E_Object *obj, E_Event_Acpi *ev, E_Binding_Acpi **bind_ret);
 EAPI E_Action *e_bindings_acpi_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Acpi *ev);
+EAPI void e_bindings_mapping_change_enable(Eina_Bool enable);
 
 #endif
 #endif

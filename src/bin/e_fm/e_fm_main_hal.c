@@ -48,16 +48,17 @@ void *alloca(size_t);
 #include <E_DBus.h>
 #include <E_Hal.h>
 
-#include "e_fm_main.h"
+#include "e_fm_shared_device.h"
+#include "e_fm_shared_codec.h"
+#include "e_fm_ipc.h"
+#include "e_fm_device.h"
+
 #include "e_fm_main_hal.h"
 #ifdef HAVE_UDISKS_MOUNT
 # include "e_fm_main_udisks.h"
 #endif
 
-#include "e_fm_shared_codec.h"
-#include "e_fm_shared_device.h"
-#include "e_fm_ipc.h"
-#include "e_fm_device.h"
+#include "e_fm_main.h"
 
 static E_DBus_Signal_Handler *_hal_poll = NULL;
 static E_DBus_Connection *_e_fm_main_hal_conn = NULL;
@@ -561,20 +562,7 @@ _e_fm_main_hal_cb_vol_prop(void      *data,
 //   if (s) printf("  for storage: %s\n", s->udi);
 //   else printf("  storage unknown\n");
    v->validated = EINA_TRUE;
-   {
-      void *msg_data;
-      int msg_size;
-
-      msg_data = _e_fm_shared_codec_volume_encode(v, &msg_size);
-      if (msg_data)
-        {
-           ecore_ipc_server_send(_e_fm_ipc_server,
-                                 6 /*E_IPC_DOMAIN_FM*/,
-                                 E_FM_OP_VOLUME_ADD,
-                                 0, 0, 0, msg_data, msg_size);
-           free(msg_data);
-        }
-   }
+   e_fm_ipc_volume_add(v);
    return;
 
 error:
@@ -674,7 +662,8 @@ _e_fm_main_hal_vol_mount_timeout(void *data)
    int size;
 
    v->guard = NULL;
-   dbus_pending_call_cancel(v->op);
+   if (!dbus_pending_call_get_completed(v->op))
+     dbus_pending_call_cancel(v->op);
    error.name = "org.enlightenment.fm2.MountTimeout";
    error.message = "Unable to mount the volume with specified time-out.";
    size = _e_fm_main_hal_format_error_msg(&buf, v, &error);
@@ -733,7 +722,8 @@ _e_fm_main_hal_vol_unmount_timeout(void *data)
    int size;
 
    v->guard = NULL;
-   dbus_pending_call_cancel(v->op);
+   if (!dbus_pending_call_get_completed(v->op))
+     dbus_pending_call_cancel(v->op);
    error.name = "org.enlightenment.fm2.UnmountTimeout";
    error.message = "Unable to unmount the volume with specified time-out.";
    size = _e_fm_main_hal_format_error_msg(&buf, v, &error);
@@ -792,7 +782,8 @@ _e_fm_main_hal_vol_eject_timeout(void *data)
    int size;
 
    v->guard = NULL;
-   dbus_pending_call_cancel(v->op);
+   if (!dbus_pending_call_get_completed(v->op))
+     dbus_pending_call_cancel(v->op);
    error.name = "org.enlightenment.fm2.EjectTimeout";
    error.message = "Unable to eject the media with specified time-out.";
    size = _e_fm_main_hal_format_error_msg(&buf, v, &error);

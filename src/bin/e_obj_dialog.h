@@ -11,7 +11,7 @@ typedef struct _E_Obj_Dialog E_Obj_Dialog;
 struct _E_Obj_Dialog
 {
    E_Object             e_obj_inherit;
-   
+
    E_Win               *win;
    Evas_Object         *bg_object;
    void                *data;
@@ -21,9 +21,9 @@ struct _E_Obj_Dialog
 EAPI E_Obj_Dialog   *e_obj_dialog_new(E_Container *con, char *title, char *class_name, char *class_class);
 EAPI void            e_obj_dialog_icon_set(E_Obj_Dialog *od, char *icon);
 EAPI void            e_obj_dialog_show(E_Obj_Dialog *od);
-EAPI void            e_obj_dialog_obj_part_text_set(E_Obj_Dialog *od, char *part, char *text);
+EAPI void            e_obj_dialog_obj_part_text_set(E_Obj_Dialog *od, const char *part, const char *text);
 EAPI void            e_obj_dialog_obj_theme_set(E_Obj_Dialog *od, char *theme_cat, char *theme_obj);
 EAPI void	     e_obj_dialog_cb_delete_set(E_Obj_Dialog *od, void (*func)(E_Obj_Dialog *od));
-    
+
 #endif
 #endif

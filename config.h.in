@@ -36,8 +36,11 @@
 /* Define if the ALSA output plugin should be built */
 #undef HAVE_ALSA
 
-/* Package BATTERY ( ecore >= 1.2.0 ecore-file >= 1.2.0 ecore-con >= 1.2.0
-   eina >= 1.2.0 ) found. */
+/* Define to 1 if you have the <arpa/inet.h> header file. */
+#undef HAVE_ARPA_INET_H
+
+/* Package BATTERY ( ecore >= $efl_version ecore-file >= $efl_version
+   ecore-con >= $efl_version eina >= $efl_version ) found. */
 #undef HAVE_BATTERY
 
 /* Define to 1 if you have the <CFBase.h> header file. */
@@ -58,13 +61,11 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Package EBLUEZ ( edbus >= 1.2.0 ebluez >= 1.2.0 ) found. */
-#undef HAVE_EBLUEZ
-
-/* Package ECONNMAN ( edbus >= 1.2.0 econnman-0.7x >= 1.2.0 ) found. */
+/* Package ECONNMAN ( edbus >= $efl_version ) found. */
 #undef HAVE_ECONNMAN
 
-/* Package ECORE_IMF ( ecore-imf >= 1.2.0 ecore-imf-evas >= 1.2.0 ) found. */
+/* Package ECORE_IMF ( ecore-imf >= ${efl_version} ecore-imf-evas >=
+   ${efl_version} ) found. */
 #undef HAVE_ECORE_IMF
 
 /* enable udev support */
@@ -73,14 +74,17 @@
 /* enable eeze mounting */
 #undef HAVE_EEZE_MOUNT
 
-/* Package ENOTIFY ( edbus >= 1.2.0 enotify >= 1.2.0 ) found. */
+/* "Have Elementary support" */
+#undef HAVE_ELEMENTARY
+
+/* "Have emotion support" */
+#undef HAVE_EMOTION
+
+/* Package ENOTIFY ( edbus >= $efl_version enotify >= $efl_version ) found. */
 #undef HAVE_ENOTIFY
 
-/* Package EOFONO ( edbus >= 1.2.0 eofono >= 1.2.0 ) found. */
-#undef HAVE_EOFONO
-
-/* Package EXCHANGE (exchange) found. */
-#undef HAVE_EXCHANGE
+/* Package EPHYSICS ( ephysics ) found. */
+#undef HAVE_EPHYSICS
 
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
@@ -109,6 +113,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have the <netinet/in.h> header file. */
+#undef HAVE_NETINET_IN_H
+
 /* PAM Authentication Support */
 #undef HAVE_PAM
 
@@ -130,14 +137,20 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the <sys/ptrace.h> header file. */
+#undef HAVE_SYS_PTRACE_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/timerfd.h> header file. */
+#undef HAVE_SYS_TIMERFD_H
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
-/* Package TEMPERATURE ( ecore >= 1.2.0 ecore-file >= 1.2.0 eina >= 1.2.0 )
-   found. */
+/* Package TEMPERATURE ( ecore >= $efl_version ecore-file >= $efl_version eina
+   >= $efl_version ) found. */
 #undef HAVE_TEMPERATURE
 
 /* enable Udisks mounting */
@@ -200,14 +213,14 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Use module access */
+#undef USE_MODULE_ACCESS
+
 /* Use module backlight */
 #undef USE_MODULE_BACKLIGHT
 
 /* Use module battery */
 #undef USE_MODULE_BATTERY
-
-/* Use module bluez */
-#undef USE_MODULE_BLUEZ
 
 /* Use module clock */
 #undef USE_MODULE_CLOCK
@@ -305,11 +318,14 @@
 /* Use module notification */
 #undef USE_MODULE_NOTIFICATION
 
-/* Use module ofono */
-#undef USE_MODULE_OFONO
-
 /* Use module pager */
 #undef USE_MODULE_PAGER
+
+/* Use module physics */
+#undef USE_MODULE_PHYSICS
+
+/* Use module quickaccess */
+#undef USE_MODULE_QUICKACCESS
 
 /* Use module shot */
 #undef USE_MODULE_SHOT
@@ -329,11 +345,17 @@
 /* Use module temperature */
 #undef USE_MODULE_TEMPERATURE
 
+/* Use module tiling */
+#undef USE_MODULE_TILING
+
 /* Use module winlist */
 #undef USE_MODULE_WINLIST
 
 /* Use module wizard */
 #undef USE_MODULE_WIZARD
+
+/* Use module xkbswitch */
+#undef USE_MODULE_XKBSWITCH
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
@@ -399,6 +421,9 @@
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#undef size_t
 
 
 #endif /* EFL_CONFIG_H__ */

@@ -8,8 +8,6 @@ struct _E_Widget_Data
    Evas_Object *o_grad;
    Evas_Object *o_event;
 
-   Eina_List *o_hgrad;
-
    Evas_Coord x, y, w, h;
 
    int vertical;
@@ -33,9 +31,13 @@ static void _e_wid_update_fixed(E_Widget_Data *wd);
 
 static void _e_wid_move(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _e_wid_resize(void *data, Evas *e, Evas_Object *obj, void *event_info);
+static void _e_wid_cb_drag_start(void *data, Evas_Object *obj, const char *emission, const char *source);
+static void _e_wid_cb_drag_stop(void *data, Evas_Object *obj, const char *emission, const char *source);
+static void _e_wid_cb_drag(void *data, Evas_Object *obj, const char *emission, const char *source);
+
 static void _e_wid_cb_down(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _e_wid_cb_move(void *data, Evas *e, Evas_Object *obj, void *event_info);
-static void _e_wid_cb_up(void *data, Evas *e, Evas_Object *obj, void *event_info);
+ static void _e_wid_cb_up(void *data, Evas *e, Evas_Object *obj, void *event_info);
 
 Evas_Object *
 e_widget_cslider_add(Evas *evas, E_Color_Component mode, E_Color *color, int vertical, int fixed)
@@ -43,22 +45,23 @@ e_widget_cslider_add(Evas *evas, E_Color_Component mode, E_Color *color, int ver
    Evas_Object *obj, *o;
    E_Widget_Data *wd;
    Evas_Coord mw, mh;
-   
+
    obj = e_widget_add(evas);
-   
+
    e_widget_del_hook_set(obj, _e_wid_del_hook);
    e_widget_focus_hook_set(obj, _e_wid_focus_hook);
    e_widget_disable_hook_set(obj, _e_wid_disable_hook);
    wd = calloc(1, sizeof(E_Widget_Data));
    e_widget_data_set(obj, wd);
 
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_RESIZE, _e_wid_resize, wd);
+
    wd->vertical = vertical;
    wd->fixed = fixed;
    wd->mode = mode;
    wd->color = color;
    wd->prev = calloc(1, sizeof (E_Color));
-   wd->o_hgrad = NULL;
-   
+
    o = edje_object_add(evas);
    wd->o_cslider = o;
    e_theme_edje_object_set(o, "base/theme/widgets",
@@ -70,30 +73,34 @@ e_widget_cslider_add(Evas *evas, E_Color_Component mode, E_Color *color, int ver
    evas_object_show(o);
    edje_object_size_min_calc(o, &mw, &mh);
    e_widget_size_min_set(obj, mw, mh);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_MOVE, _e_wid_move, wd);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_RESIZE, _e_wid_resize, wd);
+
+   edje_object_signal_callback_add(wd->o_cslider, "drag,start", "*", _e_wid_cb_drag_start, obj);
+   edje_object_signal_callback_add(wd->o_cslider, "drag", "*", _e_wid_cb_drag, obj);
+   edje_object_signal_callback_add(wd->o_cslider, "drag,stop", "*", _e_wid_cb_drag_stop, obj);
 
    e_widget_sub_object_add(obj, o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN, _e_wid_focus_steal, obj);
    e_widget_resize_object_set(obj, o);
 
    /* add gradient obj */
-   o = evas_object_rectangle_add(evas);
-   e_widget_sub_object_add(obj, o);
-   evas_object_event_callback_add(o, EVAS_CALLBACK_MOVE, _e_wid_move, wd);
-   evas_object_event_callback_add(o, EVAS_CALLBACK_RESIZE, _e_wid_resize, wd);
-   evas_object_show(o);
-   evas_object_color_set(o, 0, 0, 0, 0);
-   wd->o_event = o;
-
-   edje_object_part_swallow(wd->o_cslider, "e.swallow.content", o);
-
-   o = evas_object_rectangle_add(evas);
+   o = evas_object_image_filled_add(evas);
    e_widget_sub_object_add(obj, o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN, _e_wid_cb_down, obj);
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_MOVE, _e_wid_cb_move, obj);
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_UP, _e_wid_cb_up, obj);
-   evas_object_show(o);
    evas_object_color_set(o, 255, 255, 255, 255);
    wd->o_grad = o;
+
+   edje_object_part_swallow(wd->o_cslider, "e.swallow.content", o);
+
+   o = evas_object_rectangle_add(evas);
+   evas_object_repeat_events_set(o, EINA_TRUE);
+   e_widget_sub_object_add(obj, o);
+   evas_object_show(o);
+   evas_object_color_set(o, 0, 0, 0, 0);
+   wd->o_event = o;
 
    _e_wid_update(wd);
 
@@ -101,26 +108,26 @@ e_widget_cslider_add(Evas *evas, E_Color_Component mode, E_Color *color, int ver
 }
 
 static void
-_e_wid_move(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_e_wid_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Widget_Data *wd;
    Evas_Coord x, y;
 
    wd = data;
    evas_object_geometry_get(obj, &x, &y, NULL, NULL);
-   evas_object_move(wd->o_grad, x, y);
+   evas_object_move(wd->o_event, x, y);
    _e_wid_update(wd);
 }
 
 static void
-_e_wid_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_e_wid_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    E_Widget_Data *wd;
    Evas_Coord w, h;
-
+   
    wd = data;
    evas_object_geometry_get(obj, NULL, NULL, &w, &h);
-   evas_object_resize(wd->o_grad, w, h);
+   evas_object_resize(wd->o_event, w, h);
    _e_wid_update(wd);
 }
 
@@ -168,7 +175,7 @@ void
 e_widget_cslider_color_value_set(Evas_Object *obj, E_Color *val)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    wd->color = val;
    _e_wid_update(wd);
@@ -209,8 +216,6 @@ _e_wid_update(E_Widget_Data *wd)
 
    if (changed)
      {
-	Evas_Object *o;
-
 	if (wd->fixed)
 	  _e_wid_update_fixed(wd);
 	else
@@ -219,17 +224,6 @@ _e_wid_update(E_Widget_Data *wd)
 	wd->x = x; wd->y = y;
 	wd->w = w; wd->h = h;
 	memcpy(wd->prev, wd->color, sizeof (E_Color));
-
-	if (wd->mode != E_COLOR_COMPONENT_H)
-	  {
-	     EINA_LIST_FREE(wd->o_hgrad, o)
-	       evas_object_del(o);
-	     evas_object_show(wd->o_grad);
-	  }
-	else
-	  {
-	     evas_object_hide(wd->o_grad);
-	  }
      }
 }
 
@@ -238,38 +232,70 @@ _e_wid_gradient_set(Evas_Object *o, Eina_Bool orientation,
 		    int rf, int gf, int bf,
 		    int rt, int gt, int bt)
 {
-   Evas_Map *m;
-
-   m = evas_map_new(4);
-   evas_map_util_points_populate_from_object(m, o);
-
-   if (orientation)
-     {
-	evas_map_point_color_set(m, 0, rf, gf, bf, 255);
-	evas_map_point_color_set(m, 1, rf, gf, bf, 255);
-	evas_map_point_color_set(m, 2, rt, gt, bt, 255);
-	evas_map_point_color_set(m, 3, rt, gt, bt, 255);
-     }
+   unsigned int *pixels, *p;
+   int x, r, g, b;
+   
+   if (!orientation)
+     evas_object_image_size_set(o, 256, 1);
    else
+     evas_object_image_size_set(o, 1, 256);
+   pixels = evas_object_image_data_get(o, EINA_TRUE);
+   if (pixels)
      {
-	/* Rotate by 270° */
-	evas_map_point_color_set(m, 0, rf, gf, bf, 255);
-	evas_map_point_color_set(m, 1, rt, gt, bt, 255);
-	evas_map_point_color_set(m, 2, rt, gt, bt, 255);
-	evas_map_point_color_set(m, 3, rf, gf, bf, 255);
+        p = pixels;
+        for (x = 0; x < 256; x++)
+          {
+             r = ((rf * (255 - x)) + (rt * x)) / 255;
+             g = ((gf * (255 - x)) + (gt * x)) / 255;
+             b = ((bf * (255 - x)) + (bt * x)) / 255;
+             *p = 0xff000000 | (r << 16) | (g << 8) | (b);
+             p++;
+          }
+        evas_object_image_data_set(o, pixels);
+        evas_object_image_data_update_add(o, 0, 0, 256, 256);
      }
+}
 
-   evas_object_map_enable_set(o, 1);
-   evas_object_map_set(o, m);
-   evas_map_free(m);
+static void
+_e_wid_gradient_range_set(Evas_Object *o, Eina_Bool orientation,
+                          int rf, int gf, int bf,
+                          int rt, int gt, int bt,
+                          int from, int to)
+{
+   unsigned int *pixels, *p;
+   int x, r, g, b, v, t;
+
+   if (from < 0) from = 0;
+   if (from > 255) from = 255;
+   if (to < 0) to = 0;
+   if (to > 256) to = 256;
+   if (to <= from) return;
+   if (!orientation)
+     evas_object_image_size_set(o, 256, 1);
+   else
+     evas_object_image_size_set(o, 1, 256);
+   pixels = evas_object_image_data_get(o, EINA_TRUE);
+   if (pixels)
+     {
+        t = to - from;
+        p = pixels + from;
+        for (x = from; x < to; x++)
+          {
+             v = x - from;
+             r = ((rf * (t - v)) + (rt * v)) / t;
+             g = ((gf * (t - v)) + (gt * v)) / t;
+             b = ((bf * (t - v)) + (bt * v)) / t;
+             *p = 0xff000000 | (r << 16) | (g << 8) | (b);
+             p++;
+          }
+        evas_object_image_data_set(o, pixels);
+        evas_object_image_data_update_add(o, 0, 0, 256, 256);
+     }
 }
 
 static void
 _e_wid_update_standard(E_Widget_Data *wd)
 {
-   Evas_Object *o;
-   Eina_List *l;
-   Evas_Coord x, y, w, h;
    int r, g, b;
    int rd, gd, bd;
    int max, min;
@@ -309,40 +335,12 @@ _e_wid_update_standard(E_Widget_Data *wd)
 	 break;
       case E_COLOR_COMPONENT_H:
 	 evas_color_hsv_to_rgb(0, wd->color->s, wd->color->v, &max, &min, NULL);
-
-	 if (!wd->o_hgrad)
-	   {
-	      Evas *e;
-
-	      e = evas_object_evas_get(wd->o_grad);
-	      for (i = 0; i < 6; ++i)
-		wd->o_hgrad = eina_list_append(wd->o_hgrad,
-					       evas_object_rectangle_add(e));
-	   }
-
-	 evas_object_geometry_get(wd->o_grad, &x, &y, &w, &h);
-	 evas_object_hide(wd->o_grad);
-
-	 i = 0;
-	 EINA_LIST_FOREACH(wd->o_hgrad, l, o)
-	   {
-	      if (wd->vertical)
-		{
-		   evas_object_move(o, x, y + (i * h) / 6);
-		   evas_object_resize(o, w, h / 6);
-		}
-	      else
-		{
-		   evas_object_move(o, x + (i * w) / 6, y);
-		   evas_object_resize(o, w / 6, h);
-		}
-
-	      _e_wid_gradient_set(o, wd->vertical,
-				  *grad[i][0], *grad[i][1], *grad[i][2],
-				  *grad[i + 1][0], *grad[i + 1][1], *grad[i + 1][2]);
-	      evas_object_show(o);
-	      i++;
-	   }
+        for (i = 0; i < 6; i++)
+          _e_wid_gradient_range_set(wd->o_grad, wd->vertical,
+                                    *grad[i][0], *grad[i][1], *grad[i][2],
+                                    *grad[i + 1][0], *grad[i + 1][1], *grad[i + 1][2],
+                                    ((i + 0) * 256) / 6,
+                                    ((i + 1) * 256) / 6);
 	 vx = wd->color->h / 360.0;
 	 break;
       case E_COLOR_COMPONENT_S:
@@ -363,11 +361,12 @@ _e_wid_update_standard(E_Widget_Data *wd)
 			     rd, gd, bd);
 	 vx = wd->color->v;
 	 break;
-      case E_COLOR_COMPONENT_MAX:
+      default:
 	 break;
      }
 
    edje_object_part_drag_value_set(wd->o_cslider, "e.dragable.cursor", vx, vx);
+   edje_object_message_signal_process(wd->o_cslider); /* really needed or go in infinite loop */
 }
 
 void
@@ -375,10 +374,6 @@ _e_wid_update_fixed(E_Widget_Data *wd)
 {
 #define GMAX 255
 #define GMIN 0
-
-   Evas_Object *o;
-   Eina_List *l;
-   Evas_Coord x, y, w, h;
    unsigned int i;
    float vx = 0;
    int grad[7][3] = {
@@ -424,40 +419,12 @@ _e_wid_update_fixed(E_Widget_Data *wd)
 	 * 300 x n x
 	 * 360 x n n
 	 */
-
-	if (!wd->o_hgrad)
-	  {
-	     Evas *e;
-
-	     e = evas_object_evas_get(wd->o_grad);
-	     for (i = 0; i < 6; ++i)
-	       wd->o_hgrad = eina_list_append(wd->o_hgrad,
-					      evas_object_rectangle_add(e));
-	  }
-
-	evas_object_geometry_get(wd->o_grad, &x, &y, &w, &h);
-	evas_object_hide(wd->o_grad);
-
-	i = 0;
-	EINA_LIST_FOREACH(wd->o_hgrad, l, o)
-	  {
-	     if (wd->vertical)
-	       {
-		  evas_object_move(o, x, y + (i * h) / 6);
-		  evas_object_resize(o, w, h / 6);
-	       }
-	     else
-	       {
-		  evas_object_move(o, x + (i * w) / 6, y);
-		  evas_object_resize(o, w / 6, h);
-	       }
-
-	     _e_wid_gradient_set(o, wd->vertical,
-				 grad[i][0], grad[i][1], grad[i][2],
-				 grad[i + 1][0], grad[i + 1][1], grad[i + 1][2]);
-	     evas_object_show(o);
-	     i++;
-	  }
+        for (i = 0; i < 6; i++)
+          _e_wid_gradient_range_set(wd->o_grad, wd->vertical,
+                                    grad[i][0], grad[i][1], grad[i][2],
+                                    grad[i + 1][0], grad[i + 1][1], grad[i + 1][2],
+                                    ((i + 0) * 256) / 6,
+                                    ((i + 1) * 256) / 6);
 	vx = wd->color->h / 360.0;
 	break;
      case E_COLOR_COMPONENT_S:
@@ -472,7 +439,7 @@ _e_wid_update_fixed(E_Widget_Data *wd)
 			    0, 0, 0);
 	vx = wd->color->v;
 	break;
-     case E_COLOR_COMPONENT_MAX:
+     default:
 	break;
     }
 
@@ -486,7 +453,7 @@ static void
 _e_wid_del_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    free(wd);
 }
@@ -495,7 +462,7 @@ static void
 _e_wid_focus_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    if (e_widget_focus_get(obj))
      {
@@ -513,7 +480,7 @@ static void
 _e_wid_disable_hook(Evas_Object *obj)
 {
    E_Widget_Data *wd;
-   
+
    wd = e_widget_data_get(obj);
    if (e_widget_disabled_get(obj))
      edje_object_signal_emit(wd->o_cslider, "e,state,disabled", "e");
@@ -528,29 +495,104 @@ _e_wid_focus_steal(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, 
 }
 
 static void
-_e_wid_cb_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_e_wid_cb_drag_start(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
-   Evas_Event_Mouse_Down *ev;
    Evas_Object *o_wid;
    E_Widget_Data *wd;
-   Evas_Coord ox, oy, ow, oh;
-   double val;
-
-   ev = event_info;
+   double val, valx, valy;
 
    o_wid = data;
    wd = e_widget_data_get(o_wid);
    wd->dragging = 1;
 
-   evas_object_geometry_get(wd->o_grad, &ox, &oy, &ow, &oh);
-
-   if (wd->vertical) 
-     val = 1 - ((ev->canvas.y - oy) / (double)oh);
-   else
-     val = (ev->canvas.x - ox) / (double)ow;
+   edje_object_part_drag_value_get(wd->o_cslider, "e.dragable.cursor",
+                                   &valx, &valy);
+   if (wd->vertical) val = valy;
+   else val = valx;
    if (val > 1) val = 1;
    if (val < 0) val = 0;
    _e_wid_value_set(o_wid, val);
+}
+
+static void
+_e_wid_cb_drag_stop(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+{
+   Evas_Object *o_wid;
+   E_Widget_Data *wd;
+
+   o_wid = data;
+   wd = e_widget_data_get(o_wid);
+   wd->dragging = 0;
+}
+
+static void
+_e_wid_cb_drag(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+{
+   Evas_Object *o_wid;
+   E_Widget_Data *wd;
+
+   o_wid = data;
+   wd = e_widget_data_get(o_wid);
+
+   if (wd->dragging == 1)
+     {
+	double val, valx, valy;
+
+        edje_object_part_drag_value_get(wd->o_cslider, "e.dragable.cursor",
+                                        &valx, &valy);
+	if (wd->vertical) val = valy;
+	else val = valx;
+	if (val > 1) val = 1;
+	if (val < 0) val = 0;
+	_e_wid_value_set(o_wid, val);
+     }
+}
+
+static void
+_e_wid_mouse_handle(Evas_Object *obj, int mx, int my)
+{
+   E_Widget_Data *wd;
+   Evas_Coord x, y, w, h;
+   double vx = 0.0, vy = 0.0;
+   
+   wd = e_widget_data_get(obj);
+   
+   evas_object_geometry_get(wd->o_grad, &x, &y, &w, &h);
+   if (w > 1) vx = (mx - x) / (double)(w - 1);
+   if (h > 1) vy = (my - y) / (double)(h - 1);
+   if (vx > 1) vx = 1;
+   if (vx < 0) vx = 0;
+   if (vy > 1) vy = 1;
+   if (vy < 0) vy = 0;
+   
+
+   if (wd->vertical)
+     {
+        _e_wid_value_set(obj, 1.0 - vy);
+        edje_object_part_drag_value_set(wd->o_cslider, "e.dragable.cursor", 0.5, 1.0 - vy);
+     }
+   else
+     {
+        _e_wid_value_set(obj, vx);
+        edje_object_part_drag_value_set(wd->o_cslider, "e.dragable.cursor", vx, 0.5);
+     }
+   e_widget_change(obj);
+}
+
+
+static void
+_e_wid_cb_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+{
+   Evas_Event_Mouse_Down *ev;
+   Evas_Object *o_wid;
+   E_Widget_Data *wd;
+   
+   o_wid = data;
+   wd = e_widget_data_get(o_wid);
+   ev = event_info;
+   
+   wd->dragging = 1;
+   _e_wid_mouse_handle(o_wid, ev->canvas.x, ev->canvas.y);
 }
 
 static void
@@ -574,19 +616,9 @@ _e_wid_cb_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void
    o_wid = data;
    wd = e_widget_data_get(o_wid);
    ev = event_info;
-  
+   
    if (wd->dragging == 1)
      {
-	Evas_Coord ox, oy, ow, oh;
-	double val;
-	evas_object_geometry_get(wd->o_grad, &ox, &oy, &ow, &oh);
-
-	if (wd->vertical) 
-	  val = 1 - ((ev->cur.canvas.y - oy) / (double)oh);
-	else
-	  val = (ev->cur.canvas.x - ox) / (double)ow;
-	if (val > 1) val = 1;
-	if (val < 0) val = 0;
-	_e_wid_value_set(o_wid, val);
+        _e_wid_mouse_handle(o_wid, ev->cur.canvas.x, ev->cur.canvas.y);
      }
 }

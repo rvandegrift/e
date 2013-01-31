@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "pa.h"
 
@@ -173,12 +174,13 @@ login_setup(Pulse *conn)
    return tag;
 }
 
-static Pulse_Tag *
-pulse_recv(Pulse *conn, Ecore_Fd_Handler *fdh)
+static Eina_Bool
+pulse_recv(Pulse *conn, Ecore_Fd_Handler *fdh, Pulse_Tag **ret_tag)
 {
    Pulse_Tag *tag;
    uint32_t x;
 
+   if (ret_tag) *ret_tag = NULL;
    tag = eina_list_data_get(conn->iq);
    if (!tag)
      {
@@ -188,7 +190,7 @@ pulse_recv(Pulse *conn, Ecore_Fd_Handler *fdh)
    if (!tag->auth)
      {
         msg_recv_creds(conn, tag);
-        if (!tag->auth) return NULL;
+        if (!tag->auth) return EINA_FALSE;
      }
    if (!tag->data)
      {
@@ -196,18 +198,15 @@ pulse_recv(Pulse *conn, Ecore_Fd_Handler *fdh)
         if (!tag->dsize)
           {
              ERR("Kicked!");
-             conn->state = PA_STATE_INIT;
-             ecore_main_fd_handler_del(conn->fdh);
-             close(conn->fd);
-             ecore_event_add(PULSE_EVENT_DISCONNECTED, conn, pulse_fake_free, NULL);
-             return NULL;
+             pulse_disconnect(conn);
+             return EINA_FALSE;
           }
         tag->data = malloc(tag->dsize);
      }
    if (tag->pos < tag->dsize)
      {
         if (!msg_recv(conn, tag))
-          return NULL;
+          return EINA_FALSE;
      }
    untag_uint32(tag, &x);
    EINA_SAFETY_ON_TRUE_GOTO((x != PA_COMMAND_REPLY) && (x != PA_COMMAND_SUBSCRIBE_EVENT), error);
@@ -221,11 +220,13 @@ pulse_recv(Pulse *conn, Ecore_Fd_Handler *fdh)
         ecore_main_fd_handler_active_set(fdh, ECORE_FD_WRITE);
         pulse_tag_free(tag);
      }
-   return tag;
+   else if (ret_tag)
+     *ret_tag = tag;
+   return EINA_TRUE;
 error:
    ERR("Received error command %"PRIu32"!", x);
    pulse_tag_free(tag);
-   return NULL;
+   return EINA_FALSE;
 }
 
 static void
@@ -253,12 +254,12 @@ static Eina_Bool
 fdh_func(Pulse *conn, Ecore_Fd_Handler *fdh)
 {
    Pulse_Tag *rprev, *wprev;
-   int read, write;
+   int pa_read, pa_write;
 
-   if (conn->watching) read = ECORE_FD_READ;
+   if (conn->watching) pa_read = ECORE_FD_READ;
    else
-     read = !!ecore_main_fd_handler_active_get(fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   write = !!ecore_main_fd_handler_active_get(fdh, ECORE_FD_WRITE) * ECORE_FD_WRITE;
+     pa_read = !!ecore_main_fd_handler_active_get(fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   pa_write = !!ecore_main_fd_handler_active_get(fdh, ECORE_FD_WRITE) * ECORE_FD_WRITE;
    rprev = eina_list_data_get(conn->iq);
    wprev = eina_list_data_get(conn->oq);
    
@@ -273,6 +274,7 @@ fdh_func(Pulse *conn, Ecore_Fd_Handler *fdh)
 
         if (!wprev->auth)
           msg_sendmsg_creds(conn, wprev);
+          
 
         if (wprev->auth && msg_send(conn, wprev))
           {
@@ -281,17 +283,17 @@ fdh_func(Pulse *conn, Ecore_Fd_Handler *fdh)
           }
         break;
       case PA_STATE_AUTH:
-        if (pulse_recv(conn, fdh))
+        if (pulse_recv(conn, fdh, NULL))
           login_finish(conn, fdh);
         break;
       case PA_STATE_MOREAUTH:
-        if (write)
+        if (pa_write)
           {
              if (msg_send(conn, wprev))
                ecore_main_fd_handler_active_set(fdh, ECORE_FD_READ);
              break;
           }
-        if (pulse_recv(conn, fdh))
+        if (pulse_recv(conn, fdh, NULL))
           {
              conn->state++;
              INF("Login complete!");
@@ -300,7 +302,7 @@ fdh_func(Pulse *conn, Ecore_Fd_Handler *fdh)
           }
         break;
       case PA_STATE_CONNECTED:
-        if (write)
+        if (pa_write)
           {
              if (wprev)
                {
@@ -316,21 +318,20 @@ fdh_func(Pulse *conn, Ecore_Fd_Handler *fdh)
              else
                ecore_main_fd_handler_active_set(conn->fdh, ECORE_FD_READ);
           }
-        if (read)
+        if (pa_read)
           {
              DBG("read");
              if ((!rprev) || (!rprev->auth) || (rprev->pos < rprev->dsize))
                {
                   Pulse_Tag *tag;
                   PA_Commands command;
-                  tag = pulse_recv(conn, fdh);
-                  if (!tag) break;
+                  if (!pulse_recv(conn, fdh, &tag)) break;
                        
                   command = (uintptr_t)eina_hash_find(conn->tag_handlers, &tag->tag_count);
                   eina_hash_del_by_key(conn->tag_handlers, &tag->tag_count);
                   deserialize_tag(conn, command, tag);
                   if (!eina_list_count(conn->oq))
-                    ecore_main_fd_handler_active_set(conn->fdh, write | conn->watching * ECORE_FD_READ);
+                    ecore_main_fd_handler_active_set(conn->fdh, pa_write | conn->watching * ECORE_FD_READ);
                   pulse_tag_free(tag);
                }
           }
@@ -345,16 +346,29 @@ static Eina_Bool
 con(Pulse *conn, int type __UNUSED__, Ecore_Con_Event_Server_Add *ev)
 {
    int on = 1;
+   int fd;
+   int flags;
 
    if (conn != ecore_con_server_data_get(ev->server)) return ECORE_CALLBACK_PASS_ON;
    INF("connected to %s", ecore_con_server_name_get(ev->server));
 
-   conn->fd = dup(ecore_con_server_fd_get(ev->server));
+   fd = ecore_con_server_fd_get(ev->server);
+   if (fd == -1)
+     {
+        pulse_disconnect(conn);
+        return ECORE_CALLBACK_RENEW;
+     }
+   conn->fd = dup(fd);
 #ifdef SO_PASSCRED
    setsockopt(conn->fd, SOL_SOCKET, SO_PASSCRED, &on, sizeof(on));
 #endif
    setsockopt(conn->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-   fcntl(conn->fd, F_SETFL, O_NONBLOCK | FD_CLOEXEC);
+   fcntl(conn->fd, F_SETFL, O_NONBLOCK);
+
+   flags = fcntl(conn->fd, F_GETFD);
+   flags |= FD_CLOEXEC;
+   fcntl(conn->fd, F_SETFD, flags);
+
    conn->fdh = ecore_main_fd_handler_add(conn->fd, ECORE_FD_WRITE, (Ecore_Fd_Cb)fdh_func, conn, NULL, NULL);
    ecore_con_server_del(conn->svr);
    conn->svr = NULL;
@@ -365,7 +379,7 @@ uint32_t
 pulse_cards_get(Pulse *conn)
 {
    Pulse_Tag *tag;
-   int read;
+   int pa_read;
    uint32_t type = PA_COMMAND_GET_CARD_INFO_LIST;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(conn, 0);
@@ -376,8 +390,8 @@ pulse_cards_get(Pulse *conn)
    tag->tag_count = conn->tag_count;
    tag_simple_init(conn, tag, type, PA_TAG_U32);
    tag_finish(tag);
-   read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   ecore_main_fd_handler_active_set(conn->fdh, read | ECORE_FD_WRITE);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
    conn->oq = eina_list_append(conn->oq, tag);
    eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
    return tag->tag_count;
@@ -396,7 +410,7 @@ uint32_t
 pulse_type_get(Pulse *conn, uint32_t idx, Eina_Bool source)
 {
    Pulse_Tag *tag;
-   int read;
+   int pa_read;
    uint32_t type = source ? PA_COMMAND_GET_SOURCE_INFO : PA_COMMAND_GET_SINK_INFO;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(conn, 0);
@@ -409,8 +423,8 @@ pulse_type_get(Pulse *conn, uint32_t idx, Eina_Bool source)
    tag_uint32(tag, idx);
    tag_string(tag, NULL);
    tag_finish(tag);
-   read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   ecore_main_fd_handler_active_set(conn->fdh, read | ECORE_FD_WRITE);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
    conn->oq = eina_list_append(conn->oq, tag);
    eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
    return tag->tag_count;
@@ -420,7 +434,7 @@ uint32_t
 pulse_types_get(Pulse *conn, Eina_Bool source)
 {
    Pulse_Tag *tag;
-   int read;
+   int pa_read;
    uint32_t type = source ? PA_COMMAND_GET_SOURCE_INFO_LIST : PA_COMMAND_GET_SINK_INFO_LIST;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(conn, 0);
@@ -431,8 +445,8 @@ pulse_types_get(Pulse *conn, Eina_Bool source)
    tag->tag_count = conn->tag_count;
    tag_simple_init(conn, tag, type, PA_TAG_U32);
    tag_finish(tag);
-   read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   ecore_main_fd_handler_active_set(conn->fdh, read | ECORE_FD_WRITE);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
    conn->oq = eina_list_append(conn->oq, tag);
    eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
    return tag->tag_count;
@@ -442,7 +456,7 @@ uint32_t
 pulse_type_mute_set(Pulse *conn, uint32_t sink_num, Eina_Bool mute, Eina_Bool source)
 {
    Pulse_Tag *tag;
-   int read;
+   int pa_read;
    uint32_t type = source ? PA_COMMAND_SET_SOURCE_MUTE : PA_COMMAND_SET_SINK_MUTE;
    Eina_Hash *h;
 
@@ -457,8 +471,8 @@ pulse_type_mute_set(Pulse *conn, uint32_t sink_num, Eina_Bool mute, Eina_Bool so
    tag_string(tag, NULL);
    tag_bool(tag, !!mute);
    tag_finish(tag);
-   read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   ecore_main_fd_handler_active_set(conn->fdh, read | ECORE_FD_WRITE);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
    conn->oq = eina_list_append(conn->oq, tag);
    eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
    h = (source) ? pulse_sources : pulse_sinks;
@@ -476,7 +490,7 @@ uint32_t
 pulse_type_volume_set(Pulse *conn, uint32_t sink_num, uint8_t channels, double vol, Eina_Bool source)
 {
    Pulse_Tag *tag;
-   int read;
+   int pa_read;
    uint32_t type = source ? PA_COMMAND_SET_SOURCE_MUTE : PA_COMMAND_SET_SINK_VOLUME;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(conn, 0);
@@ -490,8 +504,30 @@ pulse_type_volume_set(Pulse *conn, uint32_t sink_num, uint8_t channels, double v
    tag_string(tag, NULL);
    tag_volume(tag, channels, vol);
    tag_finish(tag);
-   read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   ecore_main_fd_handler_active_set(conn->fdh, read | ECORE_FD_WRITE);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
+   conn->oq = eina_list_append(conn->oq, tag);
+   eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
+   return tag->tag_count;
+}
+
+uint32_t
+pulse_server_info_get(Pulse *conn)
+{
+   Pulse_Tag *tag;
+   int pa_read;
+   uint32_t type = PA_COMMAND_GET_SERVER_INFO;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(conn, 0);
+   tag = calloc(1, sizeof(Pulse_Tag));
+   EINA_SAFETY_ON_NULL_RETURN_VAL(tag, 0);
+   tag->dsize = 2 * PA_TAG_SIZE_U32;
+   tag->data = malloc(tag->dsize);
+   tag->tag_count = conn->tag_count;
+   tag_simple_init(conn, tag, type, PA_TAG_U32);
+   tag_finish(tag);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
    conn->oq = eina_list_append(conn->oq, tag);
    eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
    return tag->tag_count;
@@ -501,7 +537,7 @@ uint32_t
 pulse_sink_channel_volume_set(Pulse *conn, Pulse_Sink *sink, uint32_t id, double vol)
 {
    Pulse_Tag *tag;
-   int read;
+   int pa_read;
    uint32_t type;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(conn, 0);
@@ -513,14 +549,14 @@ pulse_sink_channel_volume_set(Pulse *conn, Pulse_Sink *sink, uint32_t id, double
    tag->data = malloc(tag->dsize);
    tag->tag_count = conn->tag_count;
    if (vol <= 0.0) sink->volume.values[id] = PA_VOLUME_MUTED;
-   else sink->volume.values[id] = ((vol * PA_VOLUME_NORM) - (PA_VOLUME_NORM / 2)) / 100;
+   else sink->volume.values[id] = (vol * PA_VOLUME_NORM) / 100;
    tag_simple_init(conn, tag, type, PA_TAG_U32);
    tag_uint32(tag, sink->index);
    tag_string(tag, NULL);
    tag_cvol(tag, &sink->volume);
    tag_finish(tag);
-   read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   ecore_main_fd_handler_active_set(conn->fdh, read | ECORE_FD_WRITE);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
    conn->oq = eina_list_append(conn->oq, tag);
    eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
    return tag->tag_count;
@@ -530,7 +566,7 @@ uint32_t
 pulse_sink_port_set(Pulse *conn, Pulse_Sink *sink, const char *port)
 {
    Pulse_Tag *tag;
-   int read;
+   int pa_read;
    uint32_t type;
    Eina_List *l;
    const char *p;
@@ -555,8 +591,8 @@ pulse_sink_port_set(Pulse *conn, Pulse_Sink *sink, const char *port)
    tag_string(tag, sink->name);
    tag_string(tag, port);
    tag_finish(tag);
-   read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
-   ecore_main_fd_handler_active_set(conn->fdh, read | ECORE_FD_WRITE);
+   pa_read = !!ecore_main_fd_handler_active_get(conn->fdh, ECORE_FD_READ) * ECORE_FD_READ;
+   ecore_main_fd_handler_active_set(conn->fdh, pa_read | ECORE_FD_WRITE);
    conn->oq = eina_list_append(conn->oq, tag);
    eina_hash_add(conn->tag_handlers, &tag->tag_count, (uintptr_t*)((uintptr_t)type));
    return tag->tag_count;
@@ -619,8 +655,8 @@ pulse_new(void)
 {
    Pulse *conn;
    Eina_Iterator *it;
-   const char *prev = NULL, *buf = NULL;;
-   time_t time = 0;
+   const char *prev = NULL, *buf = NULL;
+   time_t t = 0;
    char *home, h[4096];
    const Eina_File_Direct_Info *info;
 
@@ -653,14 +689,14 @@ pulse_new(void)
                        buf = NULL;
                        continue;
                     }
-                  if (!time)
+                  if (!t)
                     {
-                       time = st.st_atime;
+                       t = st.st_atime;
                        prev = buf;
                        buf = NULL;
                        continue;
                     }
-                  if (time > st.st_atime)
+                  if (t > st.st_atime)
                     {
                        eina_stringshare_del(buf);
                        buf = NULL;
@@ -668,7 +704,7 @@ pulse_new(void)
                     }
                   eina_stringshare_del(prev);
                   prev = buf;
-                  time = st.st_atime;
+                  t = st.st_atime;
                   buf = NULL;
                }
           }
@@ -700,7 +736,7 @@ pulse_free(Pulse *conn)
    if (!conn) return;
    if (conn->fdh) ecore_main_fd_handler_del(conn->fdh);
    else if (conn->svr) ecore_con_server_del(conn->svr);
-   ecore_event_handler_del(conn->con);
+   if (conn->con) ecore_event_handler_del(conn->con);
    eina_stringshare_del(conn->socket);
    EINA_LIST_FREE(conn->oq, tag)
      pulse_tag_free(tag);
@@ -717,4 +753,43 @@ pulse_connect(Pulse *conn)
    EINA_SAFETY_ON_NULL_RETURN_VAL(conn, EINA_FALSE);
    conn->svr = ecore_con_server_connect(ECORE_CON_LOCAL_SYSTEM, conn->socket, -1, conn);
    return !!conn->svr;
+}
+
+void
+pulse_disconnect(Pulse *conn)
+{
+   Eina_Bool event = EINA_FALSE;
+   EINA_SAFETY_ON_NULL_RETURN(conn);
+
+   conn->state = PA_STATE_INIT;
+   if (conn->fdh)
+     {
+        ecore_main_fd_handler_del(conn->fdh);
+        conn->fdh = NULL;
+        close(conn->fd);
+        conn->fd = -1;
+        event = EINA_TRUE;
+     }
+   else if (conn->svr)
+     {
+        ecore_con_server_del(conn->svr);
+        conn->svr = NULL;
+        event = EINA_TRUE;
+     }
+   if (event)
+     ecore_event_add(PULSE_EVENT_DISCONNECTED, conn, pulse_fake_free, NULL);
+}
+
+void
+pulse_server_info_free(Pulse_Server_Info *ev)
+{
+   if (!ev) return;
+
+   eina_stringshare_del(ev->name);
+   eina_stringshare_del(ev->version);
+   eina_stringshare_del(ev->username);
+   eina_stringshare_del(ev->hostname);
+   eina_stringshare_del(ev->default_sink);
+   eina_stringshare_del(ev->default_source);
+   free(ev);
 }

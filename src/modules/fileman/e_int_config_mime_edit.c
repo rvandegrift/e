@@ -1,5 +1,4 @@
-#include "e.h"
-#include "e_int_config_mime.h"
+#include "e_mod_main.h"
 
 static void        *_create_data    (E_Config_Dialog *cfd);
 static void         _fill_data      (E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
@@ -53,12 +52,11 @@ e_int_config_mime_edit(E_Config_Mime_Icon *data, void *data2)
    E_Container *con;
    E_Config_Dialog_Data *cfdata;
    
+   if (e_config_dialog_find("E", "fileman/mime_edit_dialog")) return NULL;
+
    cfdata = E_NEW(E_Config_Dialog_Data, 1);
    cfdata->data = data;
    cfdata->data2 = data2;
-   
-   if (e_config_dialog_find("E", "fileman/mime_edit_dialog")) return NULL;
-
    con = e_container_current_get(e_manager_current_get());
    
    v = E_NEW(E_Config_Dialog_View, 1);
@@ -268,6 +266,17 @@ _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
    return 1;
 }
 
+static void
+_dia_del(void *data)
+{
+   E_Dialog *dia = data;
+   E_Config_Dialog_Data *cfdata;
+
+   cfdata = dia->data;
+   if (!cfdata) return;
+   cfdata->gui.fsel = NULL;
+}
+
 static void 
 _cb_icon_sel(void *data, void *data2) 
 {
@@ -290,8 +299,11 @@ _cb_icon_sel(void *data, void *data2)
      e_dialog_title_set(dia, _("Select an Edje file"));
    else if (cfdata->type == IMG)
      e_dialog_title_set(dia, _("Select an image"));
+
+   e_dialog_resizable_set(dia, 1);
      
    dia->data = cfdata;
+   e_object_del_attach_func_set(E_OBJECT(dia), _dia_del);
    o = e_widget_fsel_add(dia->win->evas, "~/", "/", NULL, NULL,
 			 _cb_fsel_sel, cfdata, NULL, cfdata, 1);
 
@@ -302,7 +314,6 @@ _cb_icon_sel(void *data, void *data2)
    
    e_dialog_button_add(dia, _("OK"), NULL, _cb_fsel_ok, cfdata);
    e_dialog_button_add(dia, _("Cancel"), NULL, _cb_fsel_cancel, cfdata);
-   e_dialog_resizable_set(dia, 1);
    e_win_centered_set(dia->win, 1);
    e_dialog_show(dia);
    e_dialog_border_icon_set(dia, "enlightenment/file_icons");

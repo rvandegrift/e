@@ -1,11 +1,10 @@
 /* Ask about focus mode */
-#include "e.h"
-#include "e_mod_main.h"
+#include "e_wizard.h"
 
 static int focus_mode = 1;
-
+/*
 EAPI int
-wizard_page_init(E_Wizard_Page *pg __UNUSED__)
+wizard_page_init(E_Wizard_Page *pg __UNUSED__, Eina_Bool *need_xdg_desktops __UNUSED__, Eina_Bool *need_xdg_icons __UNUSED__)
 {
    return 1;
 }
@@ -15,7 +14,7 @@ wizard_page_shutdown(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
-
+*/
 EAPI int
 wizard_page_show(E_Wizard_Page *pg)
 {
@@ -23,21 +22,21 @@ wizard_page_show(E_Wizard_Page *pg)
    E_Radio_Group *rg;
 
    if (e_config->focus_policy == E_FOCUS_CLICK) focus_mode = 0;
-   
+
    o = e_widget_list_add(pg->evas, 1, 0);
    e_wizard_title_set(_("Window Focus"));
-   
+
    of = e_widget_framelist_add(pg->evas, _("Focus by ..."), 0);
 
    rg = e_widget_radio_group_new(&focus_mode);
-   
+
    ob = e_widget_radio_add(pg->evas, _("Click"), 0, rg);
    e_widget_framelist_object_append(of, ob);
    evas_object_show(ob);
    ob = e_widget_radio_add(pg->evas, _("Mouse Over"), 1, rg);
    e_widget_framelist_object_append(of, ob);
    evas_object_show(ob);
-   
+
    e_widget_list_object_append(o, of, 0, 0, 0.5);
    evas_object_show(of);
 
@@ -58,6 +57,8 @@ wizard_page_hide(E_Wizard_Page *pg __UNUSED__)
         e_config->always_click_to_focus = 0;
         e_config->focus_last_focused_per_desktop = 1;
         e_config->pointer_slide = 0;
+        e_config->winlist_warp_while_selecting = 0;
+        e_config->winlist_warp_at_end = 0;
      }
    else
      {
@@ -72,9 +73,10 @@ wizard_page_hide(E_Wizard_Page *pg __UNUSED__)
 //   evas_object_del(pg->data);
    return 1;
 }
-
+/*
 EAPI int
 wizard_page_apply(E_Wizard_Page *pg __UNUSED__)
 {
    return 1;
 }
+*/

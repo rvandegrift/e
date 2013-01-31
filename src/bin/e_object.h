@@ -37,10 +37,10 @@
 #  define E_OBJECT_TYPE_CHECK_RETURN(x, tp, ret)  do {if ((E_OBJECT(x)->type) != (tp)) { fprintf(stderr, "Object type check failed in %s\n", __FUNCTION__); return ret;} } while (0)
 # define E_OBJECT_IF_NOT_TYPE(x, type)            if (E_OBJECT(x)->type != (type))
 # else
-#  define E_OBJECT_CHECK(x)               
-#  define E_OBJECT_CHECK_RETURN(x, ret)   
-#  define E_OBJECT_TYPE_CHECK(x, type)               
-#  define E_OBJECT_TYPE_CHECK_RETURN(x, type, ret)   
+#  define E_OBJECT_CHECK(x)
+#  define E_OBJECT_CHECK_RETURN(x, ret)
+#  define E_OBJECT_TYPE_CHECK(x, type)
+#  define E_OBJECT_TYPE_CHECK_RETURN(x, type, ret)
 # define E_OBJECT_IF_NOT_TYPE(x, type)
 # endif
 #endif
@@ -63,8 +63,10 @@ struct _E_Object
    E_Object_Cleanup_Func    cleanup_func;
    E_Object_Cleanup_Func    free_att_func;
    E_Object_Cleanup_Func    del_att_func;
+   E_Object_Cleanup_Func    del_delay_func;
    Eina_Inlist             *del_fn_list;
    void                    *data;
+   Ecore_Job               *delay_del_job;
    int                      walking_list;
    Eina_Bool                deleted : 1;
 };
@@ -72,7 +74,7 @@ struct _E_Object
 struct _E_Object_Delfn
 {
    EINA_INLIST;
-   
+
    void (*func) (void *data, void *obj);
    void  *data;
    Eina_Bool delete_me : 1;
@@ -80,6 +82,7 @@ struct _E_Object_Delfn
 
 EAPI void *e_object_alloc               (int size, int type, E_Object_Cleanup_Func cleanup_func);
 EAPI void  e_object_del                 (E_Object *obj);
+EAPI void  e_object_delay_del_set       (E_Object *obj, void *func);
 EAPI int   e_object_is_del              (E_Object *obj);
 EAPI void  e_object_del_func_set        (E_Object *obj, E_Object_Cleanup_Func del_func);
 EAPI void  e_object_type_set            (E_Object *obj, int type);
@@ -88,13 +91,14 @@ EAPI int   e_object_ref                 (E_Object *obj);
 EAPI int   e_object_unref               (E_Object *obj);
 EAPI int   e_object_ref_get             (E_Object *obj);
 EAPI int   e_object_error               (E_Object *obj);
-EAPI void  e_object_data_set            (E_Object *obj, void *data);
+EAPI void  e_object_data_set            (E_Object *obj, const void *data);
 EAPI void *e_object_data_get            (E_Object *obj);
 EAPI void  e_object_free_attach_func_set(E_Object *obj, E_Object_Cleanup_Func func);
 EAPI void  e_object_del_attach_func_set (E_Object *obj, E_Object_Cleanup_Func func);
 
 EAPI E_Object_Delfn *e_object_delfn_add (E_Object *obj, void (*func) (void *data, void *obj), void *data);
 EAPI void            e_object_delfn_del (E_Object *obj, E_Object_Delfn *dfn);
+EAPI void            e_object_delfn_clear(E_Object *obj);
 
 /*
 EAPI void  e_object_breadcrumb_add      (E_Object *obj, char *crumb);

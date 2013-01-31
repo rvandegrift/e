@@ -33,7 +33,7 @@ e_int_config_env(E_Container *con, const char *params __UNUSED__)
    v->basic.create_widgets    = _basic_create_widgets;
    v->basic.apply_cfdata      = _basic_apply_data;
    
-   cfd = e_config_dialog_new(con, _("Environment-variables"),
+   cfd = e_config_dialog_new(con, _("Environment Variables"),
 			     "E", "advanced/environment_variables",
 			     "preferences-system", 0, v, NULL);
    return cfd;
@@ -77,8 +77,8 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
         if (evr->val) eina_stringshare_del(evr->val);
         E_FREE(evr);
      }
-   if (cfdata->var_str) free(cfdata->var_str);
-   if (cfdata->val_str) free(cfdata->val_str);
+   free(cfdata->var_str);
+   free(cfdata->val_str);
    E_FREE(cfdata);
 }
 
@@ -126,7 +126,7 @@ _basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
         else
            e_env_set(evr->var, evr->val);
      }
-   
+   efreet_lang_reset();
    e_config_save_queue();
    return 1;
 }
@@ -273,11 +273,13 @@ _unset_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *ol, *oe, *ob, *oc;
    Eina_List *l;
    E_Config_Env_Var *evr;
+   
+   e_dialog_resizable_set(cfd->dia, 1);
    
    o = e_widget_table_add(evas, 0);
    
@@ -312,9 +314,8 @@ _basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cf
    ob = e_widget_button_add(evas, _("Modify"), NULL, _mod_cb, cfdata, NULL);
    e_widget_table_object_append(o, ob, 1, 2, 1, 1, 1, 1, 0, 0);
 
-   ob = e_widget_button_add(evas, _("Del"), "list-remove", _del_cb, cfdata, NULL);
+   ob = e_widget_button_add(evas, _("Delete"), "list-remove", _del_cb, cfdata, NULL);
    e_widget_table_object_append(o, ob, 2, 2, 1, 1, 1, 1, 0, 0);
    
-   e_dialog_resizable_set(cfd->dia, 1);
    return o;
 }

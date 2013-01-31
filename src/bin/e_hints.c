@@ -430,15 +430,15 @@ e_hints_window_init(E_Border *bd)
         if (!bd->lock_client_stacking)
           {
              if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_DESKTOP)
-               e_border_layer_set(bd, 0);
+               e_border_layer_set(bd, E_LAYER_DESKTOP);
              else if (bd->client.netwm.state.stacking == E_STACKING_BELOW)
-               e_border_layer_set(bd, 50);
+               e_border_layer_set(bd, E_LAYER_BELOW);
              else if (bd->client.netwm.state.stacking == E_STACKING_ABOVE)
-               e_border_layer_set(bd, 150);
+               e_border_layer_set(bd, E_LAYER_ABOVE);
              else if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_DOCK)
-               e_border_layer_set(bd, 150);
+               e_border_layer_set(bd, E_LAYER_ABOVE);
              else
-               e_border_layer_set(bd, 100);
+               e_border_layer_set(bd, E_LAYER_NORMAL);
           }
         else
           e_border_raise(bd);
@@ -515,7 +515,23 @@ e_hints_window_init(E_Border *bd)
         if (!bd->lock_client_maximize)
           {
              e_hints_window_size_get(bd);
-             e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) | E_MAXIMIZE_VERTICAL);
+             do
+               {
+                  if (bd->client.initial_attributes.w == (bd->zone->w / 2))
+                    {
+                       if (!bd->client.initial_attributes.x)
+                         {
+                            e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) | E_MAXIMIZE_LEFT);
+                            break;
+                         }
+                       else if (bd->client.initial_attributes.x == bd->zone->w / 2)
+                         {
+                            e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) | E_MAXIMIZE_RIGHT);
+                            break;
+                         }
+                    }
+                  e_border_maximize(bd, (e_config->maximize_policy & E_MAXIMIZE_TYPE) | E_MAXIMIZE_VERTICAL);
+               } while (0);
           }
         else
           e_hints_window_maximized_set(bd, 0, 0);
@@ -865,7 +881,7 @@ e_hints_window_state_update(E_Border                   *bd,
         break;
 
       case ECORE_X_WINDOW_STATE_HIDDEN:
-        /* Ignore */
+        /* XXX: fixme */
         break;
 
       case ECORE_X_WINDOW_STATE_FULLSCREEN:
@@ -896,26 +912,18 @@ e_hints_window_state_update(E_Border                   *bd,
         switch (action)
           {
            case ECORE_X_WINDOW_STATE_ACTION_REMOVE:
-             e_border_layer_set(bd, 100);
-             e_hints_window_stacking_set(bd, E_STACKING_NONE);
+             e_border_layer_set(bd, E_LAYER_NORMAL);
              break;
 
            case ECORE_X_WINDOW_STATE_ACTION_ADD:
-             e_hints_window_stacking_set(bd, E_STACKING_ABOVE);
-             e_border_layer_set(bd, 150);
+             e_border_layer_set(bd, E_LAYER_ABOVE);
              break;
 
            case ECORE_X_WINDOW_STATE_ACTION_TOGGLE:
-             if (bd->layer == 150)
-               {
-                  e_hints_window_stacking_set(bd, E_STACKING_NONE);
-                  e_border_layer_set(bd, 100);
-               }
+             if (bd->layer == E_LAYER_ABOVE)
+               e_border_layer_set(bd, E_LAYER_NORMAL);
              else
-               {
-                  e_hints_window_stacking_set(bd, E_STACKING_ABOVE);
-                  e_border_layer_set(bd, 150);
-               }
+               e_border_layer_set(bd, E_LAYER_ABOVE);
              break;
           }
         break;
@@ -927,26 +935,18 @@ e_hints_window_state_update(E_Border                   *bd,
         switch (action)
           {
            case ECORE_X_WINDOW_STATE_ACTION_REMOVE:
-             e_hints_window_stacking_set(bd, E_STACKING_NONE);
-             e_border_layer_set(bd, 100);
+             e_border_layer_set(bd, E_LAYER_NORMAL);
              break;
 
            case ECORE_X_WINDOW_STATE_ACTION_ADD:
-             e_hints_window_stacking_set(bd, E_STACKING_BELOW);
-             e_border_layer_set(bd, 50);
+             e_border_layer_set(bd, E_LAYER_BELOW);
              break;
 
            case ECORE_X_WINDOW_STATE_ACTION_TOGGLE:
-             if (bd->layer == 50)
-               {
-                  e_hints_window_stacking_set(bd, E_STACKING_NONE);
-                  e_border_layer_set(bd, 100);
-               }
+             if (bd->layer == E_LAYER_BELOW)
+               e_border_layer_set(bd, E_LAYER_NORMAL);
              else
-               {
-                  e_hints_window_stacking_set(bd, E_STACKING_BELOW);
-                  e_border_layer_set(bd, 50);
-               }
+               e_border_layer_set(bd, E_LAYER_BELOW);
              break;
           }
         break;
@@ -986,7 +986,7 @@ e_hints_window_state_get(E_Border *bd)
              switch (state[i])
                {
                 case ECORE_X_WINDOW_STATE_ICONIFIED:
-     /* Ignore */
+                  /* Ignore */
                   break;
 
                 case ECORE_X_WINDOW_STATE_MODAL:
@@ -1034,11 +1034,11 @@ e_hints_window_state_get(E_Border *bd)
                   break;
 
                 case ECORE_X_WINDOW_STATE_DEMANDS_ATTENTION:
-     /* FIXME */
+                  /* FIXME */
                   break;
 
                 case ECORE_X_WINDOW_STATE_UNKNOWN:
-     /* Ignore */
+                  /* Ignore */
                   break;
                }
           }
@@ -1166,6 +1166,18 @@ e_hints_allowed_action_get(E_Border *bd)
      }
 }
 
+static void
+_e_hints_process_wakeup(E_Border *bd)
+{
+   // check for e vkbd state property - if its there, it's efl, so sending a
+   // a fake sigchild to wake things up os just fine
+   if (!bd->client.vkbd.have_property) return;
+   if (bd->client.netwm.pid <= 0) return;
+#ifdef SIGCHLD
+   kill(bd->client.netwm.pid, SIGCHLD);
+#endif             
+}
+
 EAPI void
 e_hints_window_visible_set(E_Border *bd)
 {
@@ -1180,6 +1192,7 @@ e_hints_window_visible_set(E_Border *bd)
         bd->client.netwm.state.hidden = 0;
         bd->changed = 1;
      }
+   _e_hints_process_wakeup(bd);
 }
 
 EAPI void
@@ -1196,6 +1209,7 @@ e_hints_window_iconic_set(E_Border *bd)
         bd->client.netwm.state.hidden = 1;
         bd->changed = 1;
      }
+   _e_hints_process_wakeup(bd);
 }
 
 EAPI void
@@ -1212,6 +1226,7 @@ e_hints_window_hidden_set(E_Border *bd)
         bd->client.netwm.state.hidden = 0;
         bd->changed = 1;
      }
+   _e_hints_process_wakeup(bd);
 }
 
 EAPI void
@@ -1230,6 +1245,7 @@ e_hints_window_shaded_set(E_Border *bd,
         bd->client.netwm.state.shaded = 0;
         bd->changed = 1;
      }
+   _e_hints_process_wakeup(bd);
 }
 
 EAPI void
@@ -1405,7 +1421,7 @@ e_hints_window_e_state_get(E_Border *bd)
    /* ugly, but avoids possible future overflow if more states are added */
    size = (sizeof(state) / sizeof(state[0]));
 
-   num = 
+   num =
      ecore_x_window_prop_card32_get(bd->client.win, E_ATOM_WINDOW_STATE,
                                     state, size);
    if (!num) return;
@@ -1448,7 +1464,14 @@ e_hints_window_qtopia_soft_menus_get(E_Border *bd)
 EAPI void
 e_hints_window_virtual_keyboard_state_get(E_Border *bd)
 {
+   Ecore_X_Atom atom = 0;
    bd->client.vkbd.state = ecore_x_e_virtual_keyboard_state_get(bd->client.win);
+   if (ecore_x_window_prop_atom_get(bd->client.win, 
+                                    ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE,
+                                    &atom, 1))
+     bd->client.vkbd.have_property = 1;
+   else
+     bd->client.vkbd.have_property = 0;
 }
 
 EAPI void
@@ -1491,4 +1514,3 @@ e_hints_scale_update(void)
         free(roots);
      }
 }
-

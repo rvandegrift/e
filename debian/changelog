@@ -1,3 +1,9 @@
+e17 (0.17.1-1) UNRELEASED; urgency=low
+
+  * New upstream release
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 02 Feb 2013 12:28:23 +0100
+
 e17 (0.16.999.70492-2) unstable; urgency=low
 
   * debian/control: bump Standards-Version to 3.9.3

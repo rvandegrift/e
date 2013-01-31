@@ -1,10 +1,11 @@
 #include "e.h"
 #include "evry_api.h"
 
-#define MOD_CONFIG_FILE_EPOCH      0x0001
-#define MOD_CONFIG_FILE_GENERATION 0x009d
-#define MOD_CONFIG_FILE_VERSION \
-  ((MOD_CONFIG_FILE_EPOCH << 16) | MOD_CONFIG_FILE_GENERATION)
+/* Increment for Major Changes */
+#define MOD_CONFIG_FILE_EPOCH      1
+/* Increment for Minor Changes (ie: user doesn't need a new config) */
+#define MOD_CONFIG_FILE_GENERATION 0
+#define MOD_CONFIG_FILE_VERSION    ((MOD_CONFIG_FILE_EPOCH * 1000000) + MOD_CONFIG_FILE_GENERATION)
 
 // FIXME clear cache on .desktop chage event
 
@@ -12,6 +13,9 @@
  * #define DBG(...) ERR(__VA_ARGS__) */
 
 #define MAX_ITEMS 200
+#define MAX_EXE 50
+#define DEFAULT_MATCH_PRIORITY 15
+#define PREFIX_MATCH_PRIORITY 11
 
 typedef struct _Plugin        Plugin;
 typedef struct _Module_Config Module_Config;
@@ -37,7 +41,8 @@ struct _Plugin
 
 struct _E_Exe
 {
-   const char *path;
+  unsigned int len;
+  const char *path;
 };
 
 struct _E_Exe_List
@@ -58,7 +63,6 @@ struct _Module_Config
 struct _Item_Menu
 {
    Evry_Item    base;
-
    Efreet_Menu *menu;
 };
 
@@ -71,14 +75,21 @@ static char _module_icon[] = "system-run";
 static Eina_List *_plugins = NULL;
 static Eina_List *_actions = NULL;
 static Evry_Item *_act_open_with = NULL;
+
+static Eina_List *exe_list = NULL;
+static Eina_List *apps_cache = NULL;
+
+static char _exebuf_cache_file[] = "evry_exebuf_cache";
+static Eina_Bool update_path;
+static char *current_path = NULL;
+static Eina_List *dir_monitors = NULL;
 static Eina_List *exe_path = NULL;
 static Ecore_Idler *exe_scan_idler = NULL;
 static E_Config_DD *exelist_exe_edd = NULL;
 static E_Config_DD *exelist_edd = NULL;
-static DIR *exe_dir = NULL;
-static Eina_List *exe_list = NULL;
-static Eina_List *exe_list2 = NULL;
-static Eina_List *apps_cache = NULL;
+static Eina_Iterator *exe_dir = NULL;
+static Eina_List *exe_files = NULL;
+
 static void _scan_executables();
 
 #define GET_MENU(_m, _it) Item_Menu * _m = (Item_Menu *)_it
@@ -231,13 +242,12 @@ _fetch_exe(Evry_Plugin *plugin, const char *input)
 {
    GET_PLUGIN(p, plugin);
    Eina_List *l;
-   Evry_Item *it;
+   Evry_Item *eit;
    History_Types *ht;
-   unsigned int len = (input ? strlen(input) : 0);
+   unsigned int input_len = (input ? strlen(input) : 0);
    double max = 0.0;
-   const char *tmp, *file = NULL;
-   unsigned int min = 0, cnt = 0, end = len, tmp_len;
-   unsigned int query = (len >= (unsigned int)plugin->config->min_query);
+   unsigned int cnt = 0, end = input_len;
+   Eina_Bool query = (input_len >= (unsigned int)plugin->config->min_query);
    EVRY_PLUGIN_ITEMS_CLEAR(p);
 
    p->input = input;
@@ -247,55 +257,56 @@ _fetch_exe(Evry_Plugin *plugin, const char *input)
 
    if (input)
      {
+        const char *tmp;
+        const E_Exe *ee, *match = NULL;
+        // begin of arguments (end of executable part)
         if ((tmp = strchr(input, ' ')))
           end = tmp - input;
 
         if ((!exe_list) && (!exe_scan_idler))
           _scan_executables();
-
-        EINA_LIST_FOREACH (exe_list, l, tmp)
+        EINA_LIST_FOREACH (exe_list, l, ee)
           {
-             tmp_len = strlen(tmp);
-
-             if ((end < len) && (tmp_len > end))
+             if ((end < input_len) && (ee->len > end))
                continue;
-
-             if (!strncmp(input, tmp, end))
+             if (!strncmp(input, ee->path, end))
                {
-                  if (query && (cnt++ < 50) && (len != tmp_len))
-                    _item_exe_add(p, tmp, 15);
+                  if (query && (cnt++ < MAX_EXE) && (input_len != ee->len))
+                    _item_exe_add(p, ee->path, DEFAULT_MATCH_PRIORITY);
 
-                  if ((!min) || (tmp_len < min))
-                    {
-                       min = tmp_len;
-                       file = tmp;
-                    }
-                  if ((!query) && (tmp_len == len))
+                  if ((!match) || (ee->len < match->len))
+                    match = ee;
+
+                  if ((!query) && (ee->len == input_len))
                     break;
                }
           }
 
-        if (file)
+        if (match)
           {
              GET_ITEM(it, p->command);
+             const char *cmd;
 
-             if (strlen(file) < len)
-               file = input;
+             if (match->len < input_len)
+               cmd = input;
+             else
+               cmd = match->path;
 
-             EVRY_ITEM_LABEL_SET(it, file);
+             EVRY_ITEM_LABEL_SET(it, cmd);
+
              IF_RELEASE(p->command->file);
              p->command->file = eina_stringshare_ref(it->label);
-             it->fuzzy_match = 11; // prefix match
+             it->fuzzy_match = PREFIX_MATCH_PRIORITY;
              EVRY_PLUGIN_ITEM_APPEND(p, it);
              evry->item_changed(it, 0, 0);
           }
      }
 
-   EINA_LIST_FOREACH (plugin->items, l, it)
+   EINA_LIST_FOREACH (plugin->items, l, eit)
      {
-        evry->history_item_usage_set(it, input, NULL);
-        if (input && (it->usage > max) && !strncmp(input, it->label, len))
-          max = it->usage;
+        evry->history_item_usage_set(eit, input, NULL);
+        if (input && (eit->usage > max) && !strncmp(input, eit->label, input_len))
+          max = eit->usage;
      }
    EVRY_ITEM(p->command)->usage = (max * 2.0);
 
@@ -331,6 +342,7 @@ _finish_exe(Evry_Plugin *plugin)
 {
    GET_PLUGIN(p, plugin);
    char *str;
+   E_Exe *ee;
 
    EVRY_PLUGIN_ITEMS_CLEAR(p);
    EVRY_ITEM_FREE(p->command);
@@ -340,7 +352,7 @@ _finish_exe(Evry_Plugin *plugin)
 
    if (exe_dir)
      {
-        closedir(exe_dir);
+        eina_iterator_free(exe_dir);
         exe_dir = NULL;
      }
    EINA_LIST_FREE (exe_path, str)
@@ -351,10 +363,15 @@ _finish_exe(Evry_Plugin *plugin)
         ecore_idler_del(exe_scan_idler);
         exe_scan_idler = NULL;
      }
-   EINA_LIST_FREE (exe_list, str)
-     free(str);
-   EINA_LIST_FREE (exe_list2, str)
-     free(str);
+
+   EINA_LIST_FREE (exe_list, ee)
+     {
+        eina_stringshare_del(ee->path);
+        free(ee);
+     }
+
+   EINA_LIST_FREE (exe_files, str)
+     eina_stringshare_del(str);
 
    E_FREE(p);
 }
@@ -451,7 +468,7 @@ _desktop_list_get(void)
              efreet_desktop_free(d);
              apps = eina_list_remove_list(apps, ll);
           }
-        printf("%d %s\n", d->ref, d->name);
+        //printf("%d %s\n", d->ref, d->name);
 
         efreet_desktop_free(d);
      }
@@ -840,7 +857,7 @@ _exec_term_action(Evry_Action *act)
    char *escaped = ecore_file_escape_name(app->file);
 
    tmp = E_NEW(Evry_Item_App, 1);
-   snprintf(buf, sizeof(buf), "%s -hold -e %s",
+   snprintf(buf, sizeof(buf), "%s %s",
             _conf->cmd_terminal,
             (escaped ? escaped : app->file));
 
@@ -983,8 +1000,6 @@ _new_app_action(Evry_Action *act)
           desktop->comment = strdup(app->desktop->comment);
         if (app->desktop->generic_name)
           desktop->generic_name = strdup(app->desktop->generic_name);
-        if (app->desktop->generic_name)
-          desktop->generic_name = strdup(app->desktop->generic_name);
         if (app->desktop->exec)
           desktop->exec = strdup(app->desktop->exec);
         if (app->desktop->icon)
@@ -1017,17 +1032,18 @@ _open_term_action(Evry_Action *act)
 
    if (dir)
      {
-        if (!getcwd(cwd, sizeof(cwd)))
-          return 0;
-        if (chdir(dir))
-          return 0;
+        if ((!getcwd(cwd, sizeof(cwd))) || (chdir(dir)))
+          {
+             free(dir);
+             return 0;
+          }
 
         tmp = E_NEW(Evry_Item_App, 1);
         tmp->file = _conf->cmd_terminal;
 
         ret = evry->util_exec_app(EVRY_ITEM(tmp), NULL);
-        E_FREE(tmp);
-        E_FREE(dir);
+        free(tmp);
+        free(dir);
         if (chdir(cwd))
           return 0;
      }
@@ -1063,6 +1079,46 @@ _desktop_cache_update(void *data __UNUSED__, int type __UNUSED__, void *event __
      efreet_desktop_unref(d);
 
    return EINA_TRUE;
+}
+static void
+_dir_watcher(void *data  __UNUSED__, Ecore_File_Monitor *em, Ecore_File_Event event, const char *path  __UNUSED__)
+{
+   //printf("exebuf path changed\n");
+   switch (event)
+     {
+      case ECORE_FILE_EVENT_DELETED_SELF:
+         ecore_file_monitor_del(em);
+         dir_monitors = eina_list_remove(dir_monitors, em);
+         break;
+
+      default:
+         break;
+     }
+   update_path = EINA_TRUE;
+}
+
+static void
+_dir_monitor_add()
+{
+   Eina_List *l;
+   const char *dir;
+
+   EINA_LIST_FOREACH(exe_path, l, dir)
+     {
+        Ecore_File_Monitor *dir_mon;
+        dir_mon = ecore_file_monitor_add(dir, _dir_watcher, NULL);
+        if (dir_mon)
+          dir_monitors = eina_list_append(dir_monitors, dir_mon);
+     }
+}
+
+static void
+_dir_monitor_free()
+{
+   Ecore_File_Monitor *dir_mon;
+
+   EINA_LIST_FREE (dir_monitors, dir_mon)
+     ecore_file_monitor_del(dir_mon);
 }
 
 static int
@@ -1104,7 +1160,7 @@ _plugins_init(const Evry_API *api)
    evry->plugin_register(p, EVRY_PLUGIN_OBJECT, 1);
    _plugins = eina_list_append(_plugins, p);
 
-   p = EVRY_PLUGIN_BASE("Open With...", _module_icon, EVRY_TYPE_APP,
+   p = EVRY_PLUGIN_BASE("Open with...", _module_icon, EVRY_TYPE_APP,
                         _begin_mime, _finish_mime, _fetch_mime);
    p->config_path = eina_stringshare_ref(config_path);
    evry->plugin_register(p, EVRY_PLUGIN_ACTION, 1);
@@ -1179,6 +1235,9 @@ _plugins_init(const Evry_API *api)
          (EFREET_EVENT_DESKTOP_CACHE_UPDATE, _desktop_cache_update, NULL));
 
    eina_stringshare_del(config_path);
+
+   update_path = EINA_TRUE;
+
    return EINA_TRUE;
 }
 
@@ -1201,6 +1260,10 @@ _plugins_shutdown(void)
 
    EINA_LIST_FREE (handlers, h)
      ecore_event_handler_del(h);
+
+   _dir_monitor_free();
+
+   E_FREE(current_path);
 }
 
 /***************************************************************************/
@@ -1238,7 +1301,6 @@ _conf_dialog(E_Container *con, const char *params __UNUSED__)
    cfd = e_config_dialog_new(con, _("Everything Applications"), "everything-apps",
                              "launcher/everything-apps", _module_icon, 0, v, NULL);
 
-   /* e_dialog_resizable_set(cfd->dia, 1); */
    _conf->cfd = cfd;
    return cfd;
 }
@@ -1298,9 +1360,7 @@ static int
 _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 {
 #define CP(_name)                        \
-  if (_conf->_name)                      \
-    eina_stringshare_del(_conf->_name);  \
-  _conf->_name = eina_stringshare_add(cfdata->_name);
+   eina_stringshare_replace(&(_conf->_name), cfdata->_name)
 #define C(_name) _conf->_name = cfdata->_name;
    CP(cmd_terminal);
    CP(cmd_sudo);
@@ -1309,7 +1369,9 @@ _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 
    e_config_domain_save("module.everything-apps", conf_edd, _conf);
 
-   /* e_config_save_queue(); */
+   /* backwards compatible with exebuf */
+   eina_stringshare_replace(&(e_config->exebuf_term_cmd), _conf->cmd_terminal);
+   e_config_save_queue();
    return 1;
 }
 
@@ -1319,17 +1381,10 @@ _conf_new(void)
    if (!_conf)
      {
         _conf = E_NEW(Module_Config, 1);
-        _conf->version = (MOD_CONFIG_FILE_EPOCH << 16);
+        /* setup defaults */
+        _conf->cmd_terminal = eina_stringshare_add("/usr/bin/xterm -hold -e");
+        _conf->cmd_sudo = eina_stringshare_add("/usr/bin/gksudo --preserve-env");
      }
-
-#define IFMODCFG(v) if ((_conf->version & 0xffff) < v) {
-#define IFMODCFGEND }
-
-    /* setup defaults */
-    IFMODCFG(0x009d);
-    _conf->cmd_terminal = eina_stringshare_add("/usr/bin/xterm");
-    _conf->cmd_sudo = eina_stringshare_add("/usr/bin/gksudo --preserve-env");
-    IFMODCFGEND;
 
     _conf->version = MOD_CONFIG_FILE_VERSION;
 
@@ -1398,14 +1453,13 @@ evry_plug_apps_init(E_Module *m)
 
    EVRY_MODULE_NEW(evry_module, evry, _plugins_init, _plugins_shutdown);
 
-   /* taken from e_exebuf.c */
    exelist_exe_edd = E_CONFIG_DD_NEW("E_Exe", E_Exe);
 #undef T
 #undef D
 #define T E_Exe
 #define D exelist_exe_edd
    E_CONFIG_VAL(D, T, path, STR);
-
+   E_CONFIG_VAL(D, T, len, UINT);
    exelist_edd = E_CONFIG_DD_NEW("E_Exe_List", E_Exe_List);
 #undef T
 #undef D
@@ -1439,65 +1493,74 @@ evry_plug_apps_save(void)
 static Eina_Bool
 _scan_idler(void *data __UNUSED__)
 {
-   struct stat st;
-   struct dirent *dp;
    char *dir;
-   char buf[4096];
 
    /* no more path items left - stop scanning */
    if (!exe_path)
      {
-        Eina_List *l, *l2;
-        E_Exe_List *el;
-        E_Exe *ee;
-        int different = 0;
+        Eina_Bool different = EINA_FALSE;
 
-        /* FIXME: check wheter they match or not */
-        for (l = exe_list, l2 = exe_list2; l && l2; l = l->next, l2 = l2->next)
+        if (eina_list_count(exe_list) == eina_list_count(exe_files))
           {
-             if (strcmp(l->data, l2->data))
+             E_Exe *ee;
+             Eina_List *l, *l2 = exe_files;
+             
+             EINA_LIST_FOREACH(exe_list, l ,ee)
                {
-                  different = 1;
-                  break;
+                  if (ee->path != l2->data)
+                    {
+                       different = EINA_TRUE;
+                       break;
+                    }
+                  l2 = l2->next;
                }
           }
-        if ((l) || (l2)) different = 1;
-        if (exe_list2)
+        else
           {
-             while (exe_list)
-               {
-                  free(eina_list_data_get(exe_list));
-                  exe_list = eina_list_remove_list(exe_list, exe_list);
-               }
-             exe_list = exe_list2;
-             exe_list2 = NULL;
+             different = EINA_TRUE;
           }
+
         if (different)
           {
-             el = calloc(1, sizeof(E_Exe_List));
-             if (el)
+             E_Exe *ee;
+
+             EINA_LIST_FREE (exe_list, ee)
                {
-                  el->list = NULL;
-                  for (l = exe_list; l; l = l->next)
-                    {
-                       ee = malloc(sizeof(E_Exe));
-                       if (ee)
-                         {
-                            ee->path = eina_stringshare_add(l->data);
-                            el->list = eina_list_append(el->list, ee);
-                         }
-                    }
-                  e_config_domain_save("exebuf_exelist_cache", exelist_edd, el);
-                  while (el->list)
-                    {
-                       ee = eina_list_data_get(el->list);
-                       eina_stringshare_del(ee->path);
-                       free(ee);
-                       el->list = eina_list_remove_list(el->list, el->list);
-                    }
-                  free(el);
+                  eina_stringshare_del(ee->path);
+                  free(ee);
                }
+
+             const char *s;
+             E_Exe_List *el;
+
+             el = calloc(1, sizeof(E_Exe_List));
+             if (!el) return ECORE_CALLBACK_CANCEL;
+
+             el->list = NULL;
+
+             EINA_LIST_FREE(exe_files, s)
+               {
+                  ee = malloc(sizeof(E_Exe));
+                  if (!ee) continue ;
+
+                  ee->path = s;
+                  ee->len = strlen(s);
+                  el->list = eina_list_append(el->list, ee);
+               }
+
+             e_config_domain_save(_exebuf_cache_file, exelist_edd, el);
+             INF("plugin exebuf save: %s, %d", _exebuf_cache_file, eina_list_count(el->list));
+             
+             exe_list = el->list;
+             free(el);
           }
+        else
+          {
+             const char *str;
+              EINA_LIST_FREE(exe_files, str)
+                eina_stringshare_del(str);
+          }
+
         exe_scan_idler = NULL;
         return ECORE_CALLBACK_CANCEL;
      }
@@ -1505,29 +1568,24 @@ _scan_idler(void *data __UNUSED__)
    if (!exe_dir)
      {
         dir = exe_path->data;
-        exe_dir = opendir(dir);
+        exe_dir = eina_file_direct_ls(dir);
+        INF("scan dir: %s", dir);
+        
      }
    /* if we have an opened dir - scan the next item */
    if (exe_dir)
      {
-        dir = exe_path->data;
+        Eina_File_Direct_Info *info;
 
-        dp = readdir(exe_dir);
-        if (dp)
+        if (eina_iterator_next(exe_dir, (void**) &info))
           {
-             if ((strcmp(dp->d_name, ".")) && (strcmp(dp->d_name, "..")))
-               {
-                  snprintf(buf, sizeof(buf), "%s/%s", dir, dp->d_name);
-                  if ((stat(buf, &st) == 0) &&
-                      ((!S_ISDIR(st.st_mode)) &&
-                       (!access(buf, X_OK))))
-                    {
-                       if (!exe_list)
-                         exe_list = eina_list_append(exe_list, strdup(dp->d_name));
-                       else
-                         exe_list2 = eina_list_append(exe_list2, strdup(dp->d_name));
-                    }
-               }
+             Eina_Stat st;
+
+             if (!eina_file_statat(eina_iterator_container_get(exe_dir), info, &st) &&
+                 (!S_ISDIR(st.mode)) &&
+                 (!access(info->path, X_OK)))
+               exe_files = eina_list_append(exe_files,
+                                            eina_stringshare_add(info->path + info->name_start));
           }
         else
           {
@@ -1535,9 +1593,12 @@ _scan_idler(void *data __UNUSED__)
               * of the path list so we advance and next loop we will pick up
               * the next item, or if null- abort
               */
-             closedir(exe_dir);
+             dir = exe_path->data;
+             free(dir);
+
+             eina_iterator_free(exe_dir);
              exe_dir = NULL;
-             free(eina_list_data_get(exe_path));
+
              exe_path = eina_list_remove_list(exe_path, exe_path);
           }
      }
@@ -1551,30 +1612,32 @@ _scan_idler(void *data __UNUSED__)
    return ECORE_CALLBACK_RENEW;
 }
 
-static void
-_scan_executables()
+
+static Eina_Bool
+_exe_path_list()
 {
-   /* taken from exebuf module */
    char *path, *pp, *last;
-   E_Exe_List *el;
+   Eina_Bool changed;
 
-   el = e_config_domain_load("exebuf_exelist_cache", exelist_edd);
-   if (el)
-     {
-        E_Exe *ee;
-
-        EINA_LIST_FREE (el->list, ee)
-          {
-             exe_list = eina_list_append(exe_list, strdup(ee->path));
-             eina_stringshare_del(ee->path);
-             free(ee);
-          }
-        free(el);
-     }
    path = getenv("PATH");
+
+   // nothing changed
+   if (!update_path && (current_path && path) && !strcmp(current_path, path))
+     return EINA_FALSE;
+
+   changed = (path && (!current_path || !strcmp(current_path, path)));
+
+   if (current_path)
+     {
+        free(current_path);
+        current_path = NULL;
+     }
+
    if (path)
      {
         path = strdup(path);
+        current_path = strdup(path);
+
         last = path;
         for (pp = path; pp[0]; pp++)
           {
@@ -1587,9 +1650,36 @@ _scan_executables()
           }
         if (pp > last)
           exe_path = eina_list_append(exe_path, strdup(last));
+        
         free(path);
      }
 
-   exe_scan_idler = ecore_idler_add(_scan_idler, NULL);
+   if (changed)
+     {
+        _dir_monitor_free();
+        _dir_monitor_add();
+     }
+
+   return EINA_TRUE;
 }
 
+static void
+_scan_executables()
+{
+   E_Exe_List *el;
+
+   el = e_config_domain_load(_exebuf_cache_file, exelist_edd);
+   if (el)
+     {
+        exe_list = el->list;
+        INF("plugin exebuf load: %s, %d", _exebuf_cache_file, eina_list_count(el->list));
+             
+        free(el);
+     }
+
+   if (_exe_path_list())
+     {
+        exe_scan_idler = ecore_idler_add(_scan_idler, NULL);
+        update_path = EINA_FALSE;
+     }
+}

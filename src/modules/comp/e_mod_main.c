@@ -45,10 +45,18 @@ e_modapi_init(E_Module *m)
 
    e_mod_comp_cfdata_edd_init(&(mod->conf_edd),
                               &(mod->conf_match_edd));
-                              
 
    mod->conf = e_config_domain_load("module.comp", mod->conf_edd);
-   if (!mod->conf) _e_mod_config_new(m);
+   if (mod->conf)
+     {
+        mod->conf->max_unmapped_pixels = 32 * 1024;
+        mod->conf->keep_unmapped = 1;
+     }
+   else _e_mod_config_new(m);
+   
+   /* force some config vals off */
+   mod->conf->lock_fps = 0;
+   mod->conf->indirect = 0;
 
    if (!e_config->use_composite)
      {
@@ -58,13 +66,17 @@ e_modapi_init(E_Module *m)
 
    /* XXX: disabled dropshadow module when comp is running */
    {
-      Eina_List *l;
       E_Module *m2;
-      EINA_LIST_FOREACH(e_module_list(), l, m2)
-	{
-	   if (m2->enabled && (!strcmp(m2->name, "dropshadow")))
-	     e_module_disable(m2);
-	}
+
+      m2 = e_module_find("dropshadow");
+      if (m2 && m2->enabled)
+        {
+           e_util_dialog_internal(_("Composite"),
+                                  _("Dropshadow module is incompatible<br>"
+                                    "with compositing. Disabling the<br>"
+                                    "Dropshadow module."));
+           e_module_disable(m2);
+        }
    }
 
    /* XXX: update old configs. add config versioning */
