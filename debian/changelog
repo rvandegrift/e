@@ -1,8 +1,18 @@
-e17 (0.17.1-1) UNRELEASED; urgency=low
+e17 (0.17.1-1) experimental; urgency=low
 
   * New upstream release
+  * Update build-deps to use the latest version of EFL
+  * Add new necessary Build-Dep on libeio
+  * Add B-D on libxcb-keysyms1-dev for the alert module
+  * Use the upstream-provided menu file instead of our own
+  * drop patches/02_e_alert_path_max, merged upstream
+  * Refresh patches/04_evry_fix_default_path_for_terminal
+  * debian/rules: stop using configure options removed upstream
+  * Stop trying to install files that were removed upstream
+  * Install new binaries enlightenment_open and enlightenment_filemanager
+  * debian/rules: update rule to extract the module path from configure.ac
 
- -- Albin Tonnerre <lutin@debian.org>  Sat, 02 Feb 2013 12:28:23 +0100
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 02 Feb 2013 12:29:24 +0100
 
 e17 (0.16.999.70492-2) unstable; urgency=low
 
