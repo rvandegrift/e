@@ -1,3 +1,11 @@
+e17 (0.17.1-2) unstable; urgency=low
+
+  * debian/NEWS: document the release configuration file format change
+  * debian/control: add missing dependency on libedje-bin
+  * Upload to unstable
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 11 May 2013 14:26:39 +0200
+
 e17 (0.17.1-1) experimental; urgency=low
 
   * New upstream release
