@@ -1,3 +1,9 @@
+e17 (0.17.3-1) UNRELEASED; urgency=low
+
+  * New upstream release
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 27 Jul 2013 17:36:17 +0200
+
 e17 (0.17.1-2) unstable; urgency=low
 
   * debian/NEWS: document the release configuration file format change
