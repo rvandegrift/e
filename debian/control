@@ -12,8 +12,8 @@ Build-Depends: debhelper (>= 6), cdbs,
  libasound2-dev [linux-any], libxext-dev, libeet-bin, libpam0g-dev,
  libxcb-shape0-dev, libxcb-keysyms1-dev, libedje-bin (>= 1.7.7)
 Standards-Version: 3.9.3
-Vcs-Git: git://git.debian.org/pkg-e/apps/e.git
-Vcs-Browser: http://git.debian.org/?p=pkg-e/apps/e.git
+Vcs-Git: git://anonscm.debian.org/pkg-e/apps/e.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-e/apps/e.git
 Homepage: http://www.enlightenment.org
 
 Package: e17
