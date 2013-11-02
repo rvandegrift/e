@@ -1,3 +1,11 @@
+e17 (0.17.3-2) unstable; urgency=low
+
+  * patches/02_kfreebsd_no_ptrace: fix FTBFS on KFreeBSD (Closes: #712931)
+  * patches/03_test_pt_getsiginfo: test for PT_GETSIGINFO, fixes FTBFS on Hurd
+  * debian/rules: avoid timestamps in gzipped documentation (Closes: #724340)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 02 Nov 2013 14:41:07 +0100
+
 e17 (0.17.3-1) unstable; urgency=low
 
   * New upstream release
