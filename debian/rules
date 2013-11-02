@@ -9,7 +9,7 @@ SVN_RELEASE=$(shell grep '^release=' configure | cut -d'=' -f2-)
 ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
 
 install/e17-data::
-	gzip -9 debian/tmp/usr/share/enlightenment/doc/*.txt
+	gzip -9n debian/tmp/usr/share/enlightenment/doc/*.txt
 	rm debian/tmp/usr/share/enlightenment/COPYING
 
 install/e17::
