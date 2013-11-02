@@ -1,2 +1,3 @@
 01_sysaction_pm_utils.diff
+02_kfreebsd_no_ptrace.diff
 04_evry_fix_default_path_for_terminal.diff

@@ -1,0 +1,28 @@
+--- a/src/bin/e_start_main.c
++++ b/src/bin/e_start_main.c
+@@ -244,7 +244,7 @@
+    const char *valgrind_log = NULL;
+    Eina_Bool really_know = EINA_FALSE;
+    struct sigaction action;
+-#if !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__FreeBSD__) && \
++#if !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__) && \
+    !(defined (__MACH__) && defined (__APPLE__))
+    Eina_Bool restart = EINA_TRUE;
+ #endif
+@@ -407,14 +407,14 @@
+    if (valgrind_tool || valgrind_mode)
+      really_know = EINA_TRUE;
+
+-#if defined(__OpenBSD__) || defined(__NetBSD__) || defined(__FreeBSD__) || \
++#if defined(__OpenBSD__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || \
+    (defined (__MACH__) && defined (__APPLE__))
+    execv(args[0], args);
+ #endif
+
+    /* not run at the moment !! */
+
+-#if !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__FreeBSD__) && \
++#if !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__) && \
+    !(defined (__MACH__) && defined (__APPLE__))
+    /* Now looping until */
+    while (restart)
