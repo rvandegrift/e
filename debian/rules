@@ -1,26 +1,32 @@
 #!/usr/bin/make -f
 
-include /usr/share/cdbs/1/class/autotools.mk
-include /usr/share/cdbs/1/rules/debhelper.mk
-
 DEB_HOST_GNU_SYSTEM=$(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
 DEB_HOST_GNU_CPU=$(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
 SVN_RELEASE=$(shell grep '^release=' configure | cut -d'=' -f2-)
 ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
 
-install/e17-data::
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+	--disable-rpath \
+	--disable-connman
+
+override_dh_lintian:
+	sed "s/ARCH_PATH/$(ARCH_PATH)/" debian/e17.lintian-overrides.in > debian/e17.lintian-overrides
+	dh_lintian
+
+override_dh_install:
 	gzip -9n debian/tmp/usr/share/enlightenment/doc/*.txt
 	rm debian/tmp/usr/share/enlightenment/COPYING
+	dh_install
 
-install/e17::
-	sed "s/ARCH_PATH/$(ARCH_PATH)/" debian/e17.lintian-overrides.in > debian/e17.lintian-overrides
-
-binary-predeb/e17::
+override_dh_fixperms:
+	dh_fixperms
 	chmod 4755 debian/e17/usr/lib/enlightenment/utils/enlightenment_sys
 	chmod 4755 debian/e17/usr/lib/enlightenment/modules/cpufreq/*/freqset
 
-clean/e17::
+override_dh_clean:
+	dh_clean
 	rm -f debian/e17.lintian-overrides
-
-DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath \
-                             --disable-connman
