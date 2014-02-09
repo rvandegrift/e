@@ -4,7 +4,7 @@ Priority: optional
 Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
  Jan Lübbe <jluebbe@debian.org>
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper (>= 9), dh-autoreconf,
  libeet-dev (>= 1.7.7), libeio-dev (>= 1.7.7),
  libedje-dev (>= 1.7.7), libefreet-dev (>= 1.7.7),
  libecore-dev (>= 1.7.7), libedbus-dev (>= 1.7.7),
