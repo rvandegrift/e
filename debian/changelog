@@ -1,3 +1,13 @@
+e17 (0.17.3-3) unstable; urgency=medium
+
+  * debian: switch to a .manpages file to install manpages instead of using CDBS
+  * debian: switch from CDBS to dh
+  * debian: use dh-autoreconf to get recent autotools version (Closes: #738272)
+  * debian/rules: make sure we build using the hardening flags
+  * patches/00_e_sys_env_cleanup: backport security fixes (Closes: #737705)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 09 Feb 2014 16:35:48 +0100
+
 e17 (0.17.3-2) unstable; urgency=low
 
   * patches/02_kfreebsd_no_ptrace: fix FTBFS on KFreeBSD (Closes: #712931)
