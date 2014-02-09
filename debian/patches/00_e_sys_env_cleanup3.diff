@@ -1,0 +1,25 @@
+From ea605237bb64ee09341121461b3d2c0f5dbe832d Mon Sep 17 00:00:00 2001
+From: "Carsten Haitzler (Rasterman)" <raster@rasterman.com>
+Date: Fri, 6 Dec 2013 09:19:08 +0900
+Subject: [PATCH] e_sys - fix busy spin problem with security clamp-down
+
+---
+ src/bin/e_sys_main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/bin/e_sys_main.c b/src/bin/e_sys_main.c
+index da40590..a3f1c07 100644
+--- a/src/bin/e_sys_main.c
++++ b/src/bin/e_sys_main.c
+@@ -233,7 +233,7 @@ main(int argc,
+                        p = strchr(tmp, '=');
+                        if (!p) abort();
+                        *p = 0;
+-                       NOENV(p);
++                       NOENV(tmp);
+                        free(tmp);
+                        /* and mark our do to try again from the start in case
+                         * unsetenv changes environ ptr */
+-- 
+1.9.rc1
+

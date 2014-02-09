@@ -1,0 +1,159 @@
+From 8cabf2708520539cf25ca0a876f9c044f6d56a77 Mon Sep 17 00:00:00 2001
+From: "Carsten Haitzler (Rasterman)" <raster@rasterman.com>
+Date: Sat, 30 Nov 2013 22:26:30 +0900
+Subject: [PATCH] e_sys - address security concerns with environment and gdb
+
+1. clear out environment as best is possible before executing
+anything. especially PATH and IFS are set to minimal base defaults.
+also use clearenv() if available and unsetenv()
+
+2. remove gdb method as it's just too dangerous. run it as normal as
+the user and if the kernel / distro dny that - then sorry. too bad.
+
+Conflicts:
+	data/etc/sysactions.conf.in
+	src/bin/e_sys_main.c
+---
+ configure.ac                |  2 ++
+ data/etc/sysactions.conf.in |  1 -
+ src/bin/e_start_main.c      |  3 +--
+ src/bin/e_sys_main.c        | 61 ++++++++++++++++++---------------------------
+ 4 files changed, 27 insertions(+), 40 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 174e567..1a10ae5 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -74,6 +74,8 @@ EFL_CHECK_PATH_MAX
+ 
+ AC_CHECK_FUNCS(setenv)
+ AC_CHECK_FUNCS(unsetenv)
++AC_CHECK_FUNCS(clearenv)
++AC_CHECK_HEADERS([features.h])
+ 
+ efl_version="1.7.6"
+ AC_SUBST(efl_version)
+diff --git a/data/etc/sysactions.conf.in b/data/etc/sysactions.conf.in
+index 6054a04..4e1c725 100644
+--- a/data/etc/sysactions.conf.in
++++ b/data/etc/sysactions.conf.in
+@@ -50,7 +50,6 @@ action:   hibernate @HIBERNATE@
+ action:   /bin/mount /bin/mount
+ action:   /bin/umount /bin/umount
+ action:   /usr/bin/eject /usr/bin/eject
+-action:   gdb       gdb
+ 
+ # on FreeBSD use this instead of the above.
+ #action suspend  /usr/sbin/zzz 
+diff --git a/src/bin/e_start_main.c b/src/bin/e_start_main.c
+index 0afa0e0..65f3efc 100644
+--- a/src/bin/e_start_main.c
++++ b/src/bin/e_start_main.c
+@@ -517,8 +517,7 @@ main(int argc, char **argv)
+                               {
+                                  /* call e_sys gdb */
+                                  snprintf(buffer, 4096,
+-                                          "%s/enlightenment/utils/enlightenment_sys gdb %i %s/.e-crashdump.txt",
+-                                          eina_prefix_lib_get(pfx),
++                                          "gdb %i %s/.e-crashdump.txt",
+                                           child,
+                                           home);
+                                  r = system(buffer);
+diff --git a/src/bin/e_sys_main.c b/src/bin/e_sys_main.c
+index 2364496..16aa14a 100644
+--- a/src/bin/e_sys_main.c
++++ b/src/bin/e_sys_main.c
+@@ -1,5 +1,11 @@
+ #include "config.h"
+ 
++#define __USE_MISC
++#define _SVID_SOURCE
++#ifdef HAVE_FEATURES_H
++# include <features.h>
++#endif
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
+@@ -51,7 +57,6 @@ main(int argc,
+    const char *act;
+ #endif
+    gid_t gid, gl[65536], egid;
+-   int pid = 0;
+ 
+    for (i = 1; i < argc; i++)
+      {
+@@ -73,21 +78,6 @@ main(int argc,
+              test = 1;
+              action = argv[2];
+           }
+-   else if (!strcmp(argv[1], "gdb"))
+-     {
+-        if (argc != 4) exit(1);
+-        char *end = NULL;
+-
+-        action = argv[1];
+-        pid = strtoul(argv[2], &end, 10);
+-        if (end == NULL || *end != '\0')
+-          {
+-             printf("Invalid pid for '%s'.\n", argv[3]);
+-             exit(0);
+-          }
+-
+-        output = argv[3];
+-     }
+ #ifdef HAVE_EEZE_MOUNT
+         else
+           {
+@@ -154,30 +144,28 @@ main(int argc,
+         exit(20);
+      }
+ 
+-   if (!strcmp(action, "gdb"))
+-     {
+-        char buffer[4096];
+-        int r;
+-
+-	snprintf(buffer, 4096,
+-                 "%s --pid=%i "
+-		 "-ex 'set logging file %s' "
+-		 "-ex 'set logging on' "
+-		 "-ex 'thread apply all backtrace full' "
+-		 "-ex detach -ex quit > /dev/null 2> /dev/null",
+-                 cmd,
+-		 pid,
+-		 output ?: "e-output.txt");
+-
+-        r = system(buffer);
+-
+-        exit(WEXITSTATUS(r));
+-     }
++   /* sanitize environment */
++#ifdef HAVE_UNSETENV
++# define NOENV(x) unsetenv(x)
++#else
++# define NOENV(x)
++#endif
++   NOENV("IFS");
++   NOENV("LD_PRELOAD");
++   NOENV("PYTHONPATH");
++   NOENV("LD_LIBRARY_PATH");
++#ifdef HAVE_CLEARENV
++     clearenv();
++#endif
++   /* set path and ifs to minimal defaults */
++   putenv("PATH=/bin:/usr/bin");
++   putenv("IFS= \t\n");
++
+    if ((!test)
+ #ifdef HAVE_EEZE_MOUNT
+     && (!mnt)
+ #endif
+-      )
++       )
+      return system(cmd);
+ #ifdef HAVE_EEZE_MOUNT
+    if (mnt)
+-- 
+1.9.rc1
+

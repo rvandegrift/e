@@ -1,3 +1,6 @@
+00_e_sys_env_cleanup1.diff
+00_e_sys_env_cleanup2.diff
+00_e_sys_env_cleanup3.diff
 01_sysaction_pm_utils.diff
 02_kfreebsd_no_ptrace.diff
 03_test_pt_getsiginfo.diff
