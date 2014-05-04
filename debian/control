@@ -5,12 +5,17 @@ Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
  Jan Lübbe <jluebbe@debian.org>
 Build-Depends: debhelper (>= 9), dh-autoreconf,
- libeet-dev (>= 1.7.7), libeio-dev (>= 1.7.7),
- libedje-dev (>= 1.7.7), libefreet-dev (>= 1.7.7),
- libecore-dev (>= 1.7.7), libedbus-dev (>= 1.7.7),
- libevas-dev (>= 1.7.7), libeina-dev (>= 1.0.0~beta3),
+ libeina-dev   (>= 1.0.0~beta3),
+ libeet-dev    (>= 1.7.7),
+ libevas-dev   (>= 1.7.7),
+ libecore-dev  (>= 1.7.7),
+ libefreet-dev (>= 1.7.7),
+ libedje-dev   (>= 1.7.7),
+ libedbus-dev  (>= 1.7.7),
+ libeio-dev    (>= 1.7.7),
+ libedje-bin   (>= 1.7.7),
  libasound2-dev [linux-any], libxext-dev, libeet-bin, libpam0g-dev,
- libxcb-shape0-dev, libxcb-keysyms1-dev, libedje-bin (>= 1.7.7)
+ libxcb-shape0-dev, libxcb-keysyms1-dev
 Standards-Version: 3.9.3
 Vcs-Git: git://anonscm.debian.org/pkg-e/apps/e.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-e/apps/e.git
@@ -49,10 +54,14 @@ Package: e17-dev
 Architecture: any
 Section: devel
 Depends: ${misc:Depends}, e17 (= ${binary:Version}),
- libeet-dev (>= 1.7.7), libeio-dev (>= 1.7.7),
- libedje-dev (>= 1.7.7), libefreet-dev (>= 1.7.7),
- libecore-dev (>= 1.7.7), libedbus-dev (>= 1.7.7),
- libevas-dev (>= 1.7.7), libeina-dev (>= 1.7.7)
+ libeina-dev    (>= 1.7.7),
+ libeet-dev     (>= 1.7.7),
+ libevas-dev    (>= 1.7.7),
+ libecore-dev   (>= 1.7.7),
+ libefreet-dev  (>= 1.7.7),
+ libedje-dev    (>= 1.7.7),
+ libedbus-dev   (>= 1.7.7),
+ libeio-dev     (>= 1.7.7)
 Description: Enlightenment headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
