@@ -1,3 +1,10 @@
+e17 (0.17.3-4) unstable; urgency=medium
+
+  * debian/control: refactor the list of deps/builddeps to make it more readable
+  * debian/control: add Build-Depends on libeeze-dev, now provided by EFL 1.8
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 04 May 2014 20:20:13 +0200
+
 e17 (0.17.3-3) unstable; urgency=medium
 
   * debian: switch to a .manpages file to install manpages instead of using CDBS
