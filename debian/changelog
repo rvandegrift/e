@@ -1,3 +1,10 @@
+e17 (0.17.3-4~bpo70+1) wheezy-backports; urgency=low
+
+  * Rebuild for wheezy-backports.
+  * debian/control: Build-Dep on autopoint
+
+ -- Ross Vandegrift <ross@kallisti.us>  Thu, 03 Jul 2014 20:03:00 -0400
+
 e17 (0.17.3-4) unstable; urgency=medium
 
   * debian/control: refactor the list of deps/builddeps to make it more readable
