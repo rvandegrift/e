@@ -1,0 +1,98 @@
+Source: e18
+Section: x11
+Priority: optional
+Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
+Uploaders: Albin Tonnerre <lutin@debian.org>,
+ Jan Lübbe <jluebbe@debian.org>
+Build-Depends: debhelper (>= 9), dh-autoreconf,
+ libeina-dev   (>= 1.8.0),
+ libeet-dev    (>= 1.8.0),
+ libevas-dev   (>= 1.8.0),
+ libecore-dev  (>= 1.8.0),
+ libefreet-dev (>= 1.8.0),
+ libedje-dev   (>= 1.8.0),
+ libeeze-dev   (>= 1.8.0) [linux-any],
+ libeio-dev    (>= 1.8.0),
+ libedje-bin   (>= 1.8.0),
+ libemotion-dev (>=1.8.0),
+ libelementary-dev (>= 1.8.0),
+ libasound2-dev [linux-any], libxext-dev, libeet-bin, libpam0g-dev,
+ libxcb-shape0-dev, libxcb-keysyms1-dev, autopoint, libbluetooth-dev
+Standards-Version: 3.9.3
+Vcs-Git: git://anonscm.debian.org/pkg-e/apps/e.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-e/apps/e.git
+Homepage: http://www.enlightenment.org
+
+Package: e18
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, e18-data (= ${source:Version}),
+ libevas1-engine-software-x11, libedje-bin, dbus-x11
+Recommends: pm-utils
+Conflicts: enlightenment
+Replaces: e17
+Breaks: e17
+Provides: x-window-manager
+Description: Enlightenment DR18 Window Manager
+ Enlightenment is an advanced window manager for X11. Unique
+ features include: a fully animated background, nice drop shadows
+ around windows, backed by an extremely clean and optimized
+ foundation of APIs.
+ .
+ This package contains the core files for Enlightenment DR18.
+
+Package: e18-data
+Architecture: all
+Depends: ${misc:Depends}
+Enhances: e18
+Conflicts: enlightenment-data
+Replaces: e17-data
+Breaks: e17-data
+Description: Enlightenment Window Manager Run Time Data Files
+ Enlightenment is an advanced window manager for X11. Unique
+ features include: a fully animated background, nice drop shadows
+ around windows, backed by an extremely clean and optimized
+ foundation of APIs.
+ .
+ These are the architecture independent runtime support files for the
+ Enlightenment DR18 Window Manager.
+
+Package: e18-dev
+Architecture: any
+Section: devel
+Depends: ${misc:Depends}, e18 (= ${binary:Version}),
+ libeina-dev    (>= 1.8.0),
+ libeet-dev     (>= 1.8.0),
+ libevas-dev    (>= 1.8.0),
+ libecore-dev   (>= 1.8.0),
+ libefreet-dev  (>= 1.8.0),
+ libedje-dev    (>= 1.8.0),
+ libeeze-dev    (>= 1.8.0) [linux-any],
+ libeio-dev     (>= 1.8.0)
+Replaces: e17-dev
+Breaks: e17-dev
+Description: Enlightenment headers, static libraries and documentation
+ Enlightenment is an advanced window manager for X11. Unique
+ features include: a fully animated background, nice drop shadows
+ around windows, backed by an extremely clean and optimized
+ foundation of APIs.
+ .
+ This package contains headers, static libraries and documentation for
+ enlightenment.
+
+Package: e18-dbg
+Architecture: any
+Section: debug
+Depends: ${misc:Depends}, e18 (= ${binary:Version})
+Priority: extra
+Replaces: e17-dbg
+Breaks: e17-dbg
+Description: Enlightenment DR18 Window Manager - debugging symbols
+ Enlightenment is an advanced window manager for X11. Unique
+ features include: a fully animated background, nice drop shadows
+ around windows, backed by an extremely clean and optimized
+ foundation of APIs
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat
+ easier to interpret core dumps. The libraries are installed in
+ /usr/lib/debug and are automatically used by gdb.
