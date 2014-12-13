@@ -1,0 +1,15 @@
+diff --git a/data/etc/sysactions.conf.in b/data/etc/sysactions.conf.in
+index 49b0322..4151232 100644
+--- a/data/etc/sysactions.conf.in
++++ b/data/etc/sysactions.conf.in
+@@ -45,8 +45,8 @@
+ 
+ action:   halt      /sbin/shutdown -h now
+ action:   reboot    /sbin/shutdown -r now
+-action:   suspend   @SUSPEND@
+-action:   hibernate @HIBERNATE@
++action:   suspend   /usr/sbin/pm-suspend
++action:   hibernate /usr/sbin/pm-hibernate
+ action:   /bin/mount /bin/mount
+ action:   /bin/umount /bin/umount
+ action:   /usr/bin/eject /usr/bin/eject
