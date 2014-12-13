@@ -1,0 +1,19 @@
+e17 (0.17.1-2) unstable; urgency=low
+
+  The e17 release (0.17 and above) introduces incompatible changes to the
+  configuration files used by Enlightenment. When restarting after an upgrade
+  from 0.16.999.x to 0.17, e17 will discard its previous configuration files.
+  If you want to keep your previous configuration files, please make sure to
+  make a backup of the ~/.e/e/config directory.
+
+  It is not possible to copy the old files back in place and have e17 use
+  them, however it is possible to extract previous and current configuration
+  settings to try and merge previous settings:
+
+  	eet -d input_config_file.cfg config output_file.txt
+
+  and recreate them using:
+
+  	eet -e output_config_file.cfg config input_file.txt 1
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 11 May 2013 14:02:44 +0200
