@@ -1,0 +1,8 @@
+debian/tmp/etc/xdg/menus/enlightenment.menu
+debian/tmp/usr/share/applications/enlightenment_filemanager.desktop
+debian/tmp/usr/share/enlightenment/data
+debian/tmp/usr/share/locale
+debian/tmp/usr/share/xsessions
+debian/tmp/usr/share/enlightenment/doc/documentation.html usr/share/doc/enlightenment/html
+debian/tmp/usr/share/enlightenment/doc/enlightenment.png usr/share/doc/enlightenment/html
+debian/tmp/usr/share/enlightenment/doc/*.txt.gz usr/share/doc/enlightenment
