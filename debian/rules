@@ -5,6 +5,7 @@ DEB_HOST_GNU_SYSTEM=$(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
 DEB_HOST_GNU_CPU=$(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
 SVN_RELEASE=$(shell grep '^release=' configure | cut -d'=' -f2-)
 ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
+MULTIARCH := $(shell dpkg-architecture -qDEB_TARGET_MULTIARCH)
 
 %:
 	dh $@ --with autoreconf
@@ -16,7 +17,9 @@ override_dh_auto_configure:
 	--disable-silent-rules
 
 override_dh_lintian:
-	sed "s/ARCH_PATH/$(ARCH_PATH)/" debian/e17.lintian-overrides.in > debian/e17.lintian-overrides
+	sed -e "s/ARCH_PATH/$(ARCH_PATH)/" \
+		-e "s/MULTIARCH/$(MULTIARCH)/" \
+		debian/e17.lintian-overrides.in > debian/e17.lintian-overrides
 	dh_lintian
 
 override_dh_install:
