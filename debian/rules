@@ -35,3 +35,6 @@ override_dh_fixperms:
 override_dh_clean:
 	dh_clean
 	rm -f debian/e17.lintian-overrides
+
+override_dh_strip:
+	dh_strip --dbg-package=e17-dbg
