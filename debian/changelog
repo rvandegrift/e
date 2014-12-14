@@ -4,6 +4,7 @@ e17 (0.19.1-0.1) UNRELEASED; urgency=medium
   * Update URL in watch file.
   * New upstream version.
     + Bump version of efl (build-)deps to 1.11, drop libedbus-dev (build-)dep.
+    + Add (build-)dependencies on libelementary-dev and libemotion-dev.
 
  -- Andreas Metzler <ametzler@debian.org>  Sat, 13 Dec 2014 15:31:26 +0100
 

@@ -14,6 +14,8 @@ Build-Depends: debhelper (>= 9), dh-autoreconf,
  libeeze-dev   (>= 1.11) [linux-any],
  libeio-dev    (>= 1.11),
  libedje-bin   (>= 1.11),
+ libelementary-dev (>= 1.11),
+ libemotion-dev (>= 1.11),
  libasound2-dev [linux-any], libxext-dev, libeet-bin, libpam0g-dev,
  libxcb-shape0-dev, libxcb-keysyms1-dev
 Standards-Version: 3.9.3
@@ -61,7 +63,9 @@ Depends: ${misc:Depends}, e17 (= ${binary:Version}),
  libefreet-dev  (>= 1.11),
  libedje-dev    (>= 1.11),
  libeeze-dev    (>= 1.11) [linux-any],
- libeio-dev     (>= 1.11)
+ libeio-dev     (>= 1.11),
+ libelementary-dev (>= 1.11),
+ libemotion-dev (>= 1.11)
 Description: Enlightenment headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
