@@ -17,9 +17,10 @@ ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
 	dh $@ --with autoreconf
 
 override_dh_auto_configure:
-	dh_auto_configure -- \
+	dh_auto_configure --verbose -- \
 	--disable-rpath \
-	--disable-connman
+	--disable-connman \
+	--disable-silent-rules
 
 override_dh_lintian:
 	sed "s/ARCH_PATH/$(ARCH_PATH)/" debian/e17.lintian-overrides.in > debian/e17.lintian-overrides
