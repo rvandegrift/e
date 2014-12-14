@@ -15,4 +15,3 @@ debian/tmp/usr/lib/enlightenment/modules/temperature/*/tempget
 debian/tmp/usr/lib/enlightenment/modules/wizard/*/page*.so
 debian/tmp/usr/lib/enlightenment/modules/wizard/def-ibar.txt
 debian/tmp/usr/lib/enlightenment/modules/wizard/desktop
-debian/tmp/usr/lib/enlightenment/modules/wizard/extra_desktops
