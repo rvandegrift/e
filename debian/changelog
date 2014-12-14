@@ -10,6 +10,7 @@ e17 (0.19.1-0.1) UNRELEASED; urgency=medium
   * Menu file renamed to e-applications.menu.
   * Ship usr/include/enlightenment/e_client.x.
   * configure with --disable-silent-rules.
+  * Use debhelper v9 compat.
 
  -- Andreas Metzler <ametzler@debian.org>  Sat, 13 Dec 2014 15:31:26 +0100
 
