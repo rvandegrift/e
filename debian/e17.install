@@ -13,10 +13,6 @@ debian/tmp/usr/lib/enlightenment/modules/battery/*/batget
 debian/tmp/usr/lib/enlightenment/modules/cpufreq/*/freqset
 debian/tmp/usr/lib/enlightenment/modules/temperature/*/tempget
 debian/tmp/usr/lib/enlightenment/modules/wizard/*/page*.so
-debian/tmp/usr/lib/enlightenment/modules/illume-keyboard/dicts
-debian/tmp/usr/lib/enlightenment/modules/illume-keyboard/keyboards
-debian/tmp/usr/lib/enlightenment/modules/illume2/keyboards
-debian/tmp/usr/lib/enlightenment/modules/illume2/policies/*.so
 debian/tmp/usr/lib/enlightenment/modules/wizard/def-ibar.txt
 debian/tmp/usr/lib/enlightenment/modules/wizard/desktop
 debian/tmp/usr/lib/enlightenment/modules/wizard/extra_desktops
