@@ -7,6 +7,7 @@ e17 (0.19.1-0.1) UNRELEASED; urgency=medium
     + Add (build-)dependencies on libelementary-dev and libemotion-dev.
     + The illume and wizard/extra_desktops modules are no more.
   * Invoke dh_install with "--list-missing" option.
+  * Menu file renamed to e-applications.menu.
 
  -- Andreas Metzler <ametzler@debian.org>  Sat, 13 Dec 2014 15:31:26 +0100
 
