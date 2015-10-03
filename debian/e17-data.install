@@ -6,3 +6,4 @@ usr/share/xsessions
 usr/share/enlightenment/doc/documentation.html usr/share/doc/enlightenment/html
 usr/share/enlightenment/doc/enlightenment.png usr/share/doc/enlightenment/html
 usr/share/enlightenment/doc/*.txt.gz usr/share/doc/enlightenment
+usr/lib/systemd/user/enlightenment.service
