@@ -1,0 +1,306 @@
+e17 (0.19.2-0.1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * Update URL in watch file.
+  * New upstream version.
+    + Bump version of efl (build-)deps to 1.11, drop libedbus-dev (build-)dep.
+    + Add (build-)dependencies on libelementary-dev and libemotion-dev.
+    + The illume and wizard/extra_desktops modules are no more.
+  * Invoke dh_install with "--list-missing" option.
+  * Menu file renamed to e-applications.menu.
+  * Ship usr/include/enlightenment/e_client.x.
+  * configure with --disable-silent-rules.
+  * Use debhelper v9 compat, build with -Wl,--as-needed.
+  * e17-dbg was empty, fix this by overriding dh_strip in debian/rules.
+
+ -- Andreas Metzler <ametzler@debian.org>  Sat, 13 Dec 2014 15:31:26 +0100
+
+e17 (0.17.6-1) unstable; urgency=medium
+
+  * New upstream version
+  * debian/control: update Build-Depends to use EFL 1.7.10
+  * debian/control: eeze only exists on Linux architectures (Closes: #748058)
+  * debian/patches: drop e_sys_env_cleanup+kfreebsd_no_ptrace, applied upstream
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 01 Jun 2014 20:28:41 +0200
+
+e17 (0.17.3-4) unstable; urgency=medium
+
+  * debian/control: refactor the list of deps/builddeps to make it more readable
+  * debian/control: add Build-Depends on libeeze-dev, now provided by EFL 1.8
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 04 May 2014 20:20:13 +0200
+
+e17 (0.17.3-3) unstable; urgency=medium
+
+  * debian: switch to a .manpages file to install manpages instead of using CDBS
+  * debian: switch from CDBS to dh
+  * debian: use dh-autoreconf to get recent autotools version (Closes: #738272)
+  * debian/rules: make sure we build using the hardening flags
+  * patches/00_e_sys_env_cleanup: backport security fixes (Closes: #737705)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 09 Feb 2014 16:35:48 +0100
+
+e17 (0.17.3-2) unstable; urgency=low
+
+  * patches/02_kfreebsd_no_ptrace: fix FTBFS on KFreeBSD (Closes: #712931)
+  * patches/03_test_pt_getsiginfo: test for PT_GETSIGINFO, fixes FTBFS on Hurd
+  * debian/rules: avoid timestamps in gzipped documentation (Closes: #724340)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 02 Nov 2013 14:41:07 +0100
+
+e17 (0.17.3-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/control: update Build-Depends to use EFL 1.7.7
+  * debian/control: update URI in the VCS-* fields
+  * debian/watch: track releases instead of snapshots (Closes: #717507)
+  * debian/control: add Recommends: pm-utils to get suspend support
+  * patches/01_sysaction_pm_utils: use pm-utils for suspend (Closes: #538091)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 03 Aug 2013 12:14:52 +0200
+
+e17 (0.17.1-2) unstable; urgency=low
+
+  * debian/NEWS: document the release configuration file format change
+  * debian/control: add missing dependency on libedje-bin
+  * Upload to unstable
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 11 May 2013 14:26:39 +0200
+
+e17 (0.17.1-1) experimental; urgency=low
+
+  * New upstream release
+  * Update build-deps to use the latest version of EFL
+  * Add new necessary Build-Dep on libeio
+  * Add B-D on libxcb-keysyms1-dev for the alert module
+  * Use the upstream-provided menu file instead of our own
+  * drop patches/02_e_alert_path_max, merged upstream
+  * Refresh patches/04_evry_fix_default_path_for_terminal
+  * debian/rules: stop using configure options removed upstream
+  * Stop trying to install files that were removed upstream
+  * Install new binaries enlightenment_open and enlightenment_filemanager
+  * debian/rules: update rule to extract the module path from configure.ac
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 02 Feb 2013 12:29:24 +0100
+
+e17 (0.16.999.70492-2) unstable; urgency=low
+
+  * debian/control: bump Standards-Version to 3.9.3
+  * debian/control: reword e17{,-dbg} short description to make lintian happy
+  * debian/e17.lintian-overrides: remove override for files that no longer exist
+  * Add debian/patches/02_e_alert_path_max.
+      - Fix FTBFS on Hurd: include config.h to get PATH_MAX (Closes: #535775)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 26 May 2012 17:40:36 +0200
+
+e17 (0.16.999.70492-1) unstable; urgency=low
+
+  * New upstream snapshot
+  * drop patches/02_upgrade_notice: it should no longer be needed
+  * drop patches/03_bind_XF86PowerOff_instead_of_Execute: applied upstream
+  * patches/04_evry_fix_default_path_for_terminal: follow upstream changes
+  * debian/control: add Build-Dep on libxcb-shape0-dev for the alert module
+  * debian/e17.install: update following upstream removals/additions
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 13 May 2012 20:43:33 +0200
+
+e17 (0.16.999.55225-1) unstable; urgency=low
+
+  * New upstream snapshot
+    - Closes: #600323
+  * debian/control: use architecture wildcards instead of listing architectures
+  * debian/rules: fix the configure.ac version matching regexp
+  * debian/control: remove useless virtual package efl-dev
+  * Add patches/02_upgrade_notice.diff:
+    - The binary format used by e17 for themes and background has changed.
+      Display a notice when e17 starts to warn users that they may need to
+      convert their theme and background files
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 03 Apr 2011 18:34:21 +0200
+
+e17 (0.16.999.49898-1) unstable; urgency=low
+
+  * New upstream snapshot
+    - Should fix FTBFS on Hurd (Closes: #535775)
+  * Explicitly disable the connman module to work around autofoo bugs
+  * Switch to '3.0 (quilt)' source format
+  * Drop patches/02_fix_default_config_for_upgrades.diff, no longer
+    relevant
+  * Refresh patches/04_evry_fix_default_path_for_terminal.diff
+  * debian/rules: update svn snapshot version extraction from
+    configure.ac
+  * Remove enlightenment_fm_open from e17, the binary no longer exists
+  * Update e17.install with new modules
+  * Bump Standards-Version, no change required
+  * Remove Xavier Oswald from uploaders, he is no longer active
+  * e17: add Depends: dbus-x11 so that enlightenment_remote works
+    properly
+  * upload makes e17 installable again (Closes: #590309)
+
+ -- Albin Tonnerre <lutin@debian.org>  Tue, 27 Jul 2010 19:51:26 +0200
+
+e17 (0.16.999.063-1) unstable; urgency=low
+
+  * New upstream snapshot
+  * Add new modules to the install files
+  * Add debian/patches/04_evry_fix_default_path_for_terminal.diff:
+    - Use /usr/bin/x-terminal-emulator instead of hardcoding xterm
+  * Update my email address
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 05 Dec 2009 12:56:10 +0100
+
+e17 (0.16.999.062-1) unstable; urgency=low
+
+  * New upstream snapshot
+  * Remove the 'System tools' entry in enlightenment-applications.menu, it's a
+    duplicate of the 'Settings' entry
+  * New patch 03_bind_XF86PowerOff_instead_of_Execute_in_illume.diff
+    - In illume, the poweroff action is bound to the Execute key. As there's
+      no such key in Debian, use XF86PowerOff instead (Closes: #538186)
+  * Update Standards-Version to 3.8.3
+  * Fix the short description for e17-dbg
+  * remove DEB_DH_STRIP_ARGS from debian/rules, since CDBS computes the name
+    of the debug package automatically
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 29 Aug 2009 21:41:31 +0200
+
+e17 (0.16.999.061-2) unstable; urgency=low
+
+  * Don't Build-Depend on libasound2-dev on non-linux architectures, fixing an
+    FTBFS. Thanks to Cyril Brulebois. (Closes: #536103)
+  * Move e17-dbg to the debug section
+  * Remove ununsed override: possible-gpl-code-linked-with-openssl
+  * Adjust the freqset binary path for the setuid-binary override
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Tue, 14 Jul 2009 21:16:57 +0200
+
+e17 (0.16.999.061-1) unstable; urgency=low
+
+  * New upstream snapshot
+  * Drop 03_config_panel_category_list_is_not_an_ilist.diff, applied upstream
+  * Add 01_menu_extra_path.patch:
+    - Previously patched in efreet. Allows the use of an e17-provided fallback
+      menu in case efreet doesn't find any.
+  * Update to Standards-Version 3.8.2, no change required
+  * Improve the e17-provided menu file, thanks Luca Capello (Closes: #532214)
+  * Update e17 deps following the evas engines rename
+  * Upload to unstable
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Wed, 24 Jun 2009 22:41:41 +0200
+
+e17 (0.16.999.060-1) experimental; urgency=low
+
+  * New upstream release
+    - update e17.install to add wifiget, provided with the illume module
+  * Bump Standards-Version, no change required.
+  * Remove build-dep on libedje-bin, now useless as libedje-dev depends on it
+  * Add debian/patches/03_config_panel_category_list_is_not_an_ilist.diff
+    - Cherry-pick from SVN r40508, fixes a potential issue due to
+      e_widget_ilist-related functions being called with an e_widget_toolbar as
+      argument
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Thu, 07 May 2009 13:54:43 +0200
+
+e17 (0.16.999.050+svn20090203-1) experimental; urgency=low
+
+  [Albin Tonnerre]
+  * New SVN snapshot
+    - Remove some patches, applied upstream:
+      + 01_install_internal-use_binaries_in_usr_lib_enlightenment.diff
+      + 03_fix_src-bin-makefile.diff
+      + 04_fix_e_fm_main_svn38418.diff
+    - control: tighten builddeps and depends of efl-dev
+    - Update dependency on libevas-engines
+    - e17.install: install binaries located in usr/lib/enlightenment/utils
+  * e17.install: Add missing illume dicts and keyboards (Closes: #513854)
+
+  [Luca Capello]
+  * debian/e17-data.install:
+    - do not install documentation duplicates (Closes: #513850)
+  * debian/e17.lintian-overrides.in:
+    - Add override for 'image-file-in-usr-lib' for illume keyboard images
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Sat, 07 Feb 2009 10:29:53 +0100
+
+e17 (0.16.999.050+svn20081207-2) experimental; urgency=low
+
+  * Update dependencies for new packages names
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Tue, 06 Jan 2009 21:08:29 +0100
+
+e17 (0.16.999.050+svn20081207-1) experimental; urgency=low
+
+  * Upstream SVN snapshot
+    - build-depend and make efl-dev depend on libeina-0.0.1a-dev
+  * Update {build,}dependencies to match the new EFL packages name
+  * Ship enlightenment.pc instead of enlightenment-config, as the latter is
+    now deprecated (Closes: #504293)
+  * Build-Depend on libasound2-dev to get the mixer module working
+    - Closes: #506847
+  * Make e17 depend on libedje-bin as this is necessary for e.g. changing the
+    background.
+  * No longer remove the wizard module from the package, as it is now usable
+  * Add debian/patches/02_fix_default_config_for_upgrades.diff:
+    - Add buttons for halt/shutdown/etc to the syscon module for the default
+      profile. Without that, users upgrading from older versions would have an
+      empty 'system' menu
+  * debian/patches/{03_fix_src-bin-makefile,04_fix_e_fm_main_svn38418}.diff:
+    - Cherry-pick patches from SVN to fix the file manager operations when it
+     is installed in /usr/lib/enlightenment
+  * debian/patches/01_install_internal-use_binaries_in_usr_lib_enlightenment.diff:
+    - update, as a new binary going in /usr/lib/enlightenment was introduced
+  * lintian fixes:
+    - add ${misc:Depends} to dependencies
+    - remove e17-data.lintian-overrides, no longer needed
+    - Add overrides about setuid root programs to e17.lintian-overrides.in
+  * As there is an arch-dependant lintian override, use an overrides.in and
+    handle that in debian/rules.
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Fri, 02 Jan 2009 18:46:31 +0100
+
+e17 (0.16.999.050-1) experimental; urgency=low
+
+  * New upstream version (Closes: #504057)
+    - Version B-D on libecore, libevas, libedje and libeet as e17 is using
+      symbols from the new versions.
+    - Build-Depend on libeet-bin, now necessary
+  * Bump Standards-Version to 3.8.0
+  * patch 01_install_internal-use_binaries_in_usr_lib_enlightenment.diff :
+    - actually introduced in the initial revision, installs some binaries which
+     are only for internal use in usr/lib/enligthenment instead of /usr/bin
+  * Bump B-D on debhelper to 6.0.7 to be sure to get dh_lintian
+  * Fix typo in README.Debian. (Closes: #495185)
+
+ -- Albin Tonnerre <albin.tonnerre@gmail.com>  Mon, 10 Nov 2008 01:00:41 +0100
+
+e17 (0.16.999.043-1) experimental; urgency=low
+
+  [ Jan Lübbe ]
+  * New upstream release
+  * Add watch file
+
+  [ Albin Tonnerre ]
+  * Install the batget binary, as it actually exists in this version
+  * debian/control: Add Vcs-* and Homepage fields
+  * debian/rules:
+    - No longer remove the layout module, as it's not installed anymore
+    - No need for the tempget binary to be chmod 4755 - 755 is enough
+
+ -- Jan Lübbe <jluebbe@debian.org>  Sat, 07 Jun 2008 18:35:29 +0200
+
+e17 (0.16.999.042-2) experimental; urgency=low
+
+  [ Albin Tonnerre ]
+  * Install setuid binaries correctly
+
+ -- Jan Lübbe <jluebbe@debian.org>  Mon, 05 May 2008 01:01:19 +0200
+
+e17 (0.16.999.042-1) experimental; urgency=low
+
+  [ Albin Tonnerre ]
+  * Initial Release (Closes: #405860)
+  * Override linian tag possible-gpl-code-linked-with-openssl
+    - Only the Debian packaging is GPL
+
+ -- Jan Lübbe <jluebbe@debian.org>  Sun, 04 May 2008 22:55:33 +0200

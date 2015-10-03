@@ -1,0 +1,8 @@
+etc/xdg/menus/e-applications.menu
+usr/share/applications/enlightenment_filemanager.desktop
+usr/share/enlightenment/data
+usr/share/locale
+usr/share/xsessions
+usr/share/enlightenment/doc/documentation.html usr/share/doc/enlightenment/html
+usr/share/enlightenment/doc/enlightenment.png usr/share/doc/enlightenment/html
+usr/share/enlightenment/doc/*.txt.gz usr/share/doc/enlightenment
