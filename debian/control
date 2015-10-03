@@ -5,18 +5,7 @@ Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
  Jan Lübbe <jluebbe@debian.org>
 Build-Depends: debhelper (>= 9), dh-autoreconf,
- libeina-dev   (>= 1.11),
- libeet-dev    (>= 1.11),
- libevas-dev   (>= 1.11),
- libecore-dev  (>= 1.11),
- libefreet-dev (>= 1.11),
- libedje-dev   (>= 1.11),
- libeeze-dev   (>= 1.11) [linux-any],
- libeio-dev    (>= 1.11),
- libedje-bin   (>= 1.11),
- libelementary-dev (>= 1.11),
- libemotion-dev (>= 1.11),
- libasound2-dev [linux-any], libxext-dev, libeet-bin, libpam0g-dev,
+ libefl-all-dev (>= 1.15), libxext-dev, libeet-bin, libpam0g-dev,
  libxcb-shape0-dev, libxcb-keysyms1-dev
 Standards-Version: 3.9.3
 Vcs-Git: git://anonscm.debian.org/pkg-e/apps/e.git
@@ -26,7 +15,7 @@ Homepage: http://www.enlightenment.org
 Package: e17
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, e17-data (= ${source:Version}),
- libevas1-engine-software-x11, libedje-bin, dbus-x11
+ libevas1.15-engines-x, libedje-bin, dbus-x11
 Recommends: pm-utils
 Conflicts: enlightenment
 Provides: x-window-manager
@@ -56,16 +45,7 @@ Package: e17-dev
 Architecture: any
 Section: devel
 Depends: ${misc:Depends}, e17 (= ${binary:Version}),
- libeina-dev    (>= 1.11),
- libeet-dev     (>= 1.11),
- libevas-dev    (>= 1.11),
- libecore-dev   (>= 1.11),
- libefreet-dev  (>= 1.11),
- libedje-dev    (>= 1.11),
- libeeze-dev    (>= 1.11) [linux-any],
- libeio-dev     (>= 1.11),
- libelementary-dev (>= 1.11),
- libemotion-dev (>= 1.11)
+ libefl-all-dev (>= 1.15)
 Description: Enlightenment headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
