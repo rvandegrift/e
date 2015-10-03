@@ -8,7 +8,7 @@ ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
 MULTIARCH := $(shell dpkg-architecture -qDEB_TARGET_MULTIARCH)
 
 %:
-	dh $@ --with autoreconf
+	dh $@ --with autoreconf --parallel
 
 override_dh_auto_configure:
 	dh_auto_configure --verbose -- \
