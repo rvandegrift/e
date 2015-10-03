@@ -15,3 +15,4 @@ usr/lib/*/enlightenment/modules/wizard/def-ibar.txt
 usr/lib/*/enlightenment/modules/wizard/desktop
 usr/lib/*/enlightenment/modules/wizard/*/page*.so
 usr/lib/*/enlightenment/utils/enlightenment_*
+usr/share/applications/enlightenment_filemanager.desktop
