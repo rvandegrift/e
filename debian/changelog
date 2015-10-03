@@ -1,5 +1,6 @@
-e17 (0.19.2-0.1) UNRELEASED; urgency=medium
+e17 (0.19.11-0.1) UNRELEASED; urgency=medium
 
+  [ Andreas Metzler ]
   * Non-maintainer upload.
   * Update URL in watch file.
   * New upstream version.
@@ -13,7 +14,15 @@ e17 (0.19.2-0.1) UNRELEASED; urgency=medium
   * Use debhelper v9 compat, build with -Wl,--as-needed.
   * e17-dbg was empty, fix this by overriding dh_strip in debian/rules.
 
- -- Andreas Metzler <ametzler@debian.org>  Sat, 13 Dec 2014 15:31:26 +0100
+  [ Ross Vandegrift ]
+  * build-dep on libefl-all-dev
+  * Enable parallel build
+  * Bump Standards-Version to 3.9.6
+  * Add systemd service file
+  * Move efm desktop file to e17
+  * patches/01_sysaction_pm_utils: drop for systemd support
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 03 Oct 2015 17:58:25 -0400
 
 e17 (0.17.6-1) unstable; urgency=medium
 
