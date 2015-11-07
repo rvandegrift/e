@@ -21,8 +21,9 @@ e17 (0.19.11-0.1) UNRELEASED; urgency=medium
   * Add systemd service file
   * Move efm desktop file to e17
   * patches/01_sysaction_pm_utils: drop for systemd support
+  * Add build-depend on systemd
 
- -- Ross Vandegrift <ross@kallisti.us>  Sat, 03 Oct 2015 17:58:25 -0400
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 07 Nov 2015 17:42:48 -0500
 
 e17 (0.17.6-1) unstable; urgency=medium
 
