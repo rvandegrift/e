@@ -15,7 +15,7 @@ Homepage: http://www.enlightenment.org
 Package: e17
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, e17-data (= ${source:Version}),
- libevas1.15-engines-x, libedje-bin, dbus-x11
+ libevas1-engines-x, libedje-bin, dbus-x11
 Recommends: pm-utils
 Conflicts: enlightenment
 Provides: x-window-manager
