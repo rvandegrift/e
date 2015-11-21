@@ -6,7 +6,7 @@ Uploaders: Albin Tonnerre <lutin@debian.org>,
  Jan Lübbe <jluebbe@debian.org>
 Build-Depends: debhelper (>= 9), dh-autoreconf, libxext-dev, libeet-bin,
  libpam0g-dev, libxcb-shape0-dev, libxcb-keysyms1-dev, systemd,
- libefl-all-dev (>= 1.15.1)
+ libefl-all-dev (>= 1.15.1), libelementary-dev (>= 1.15.1)
 Standards-Version: 3.9.6
 Vcs-Git: git://anonscm.debian.org/pkg-e/apps/e.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-e/apps/e.git
@@ -45,7 +45,7 @@ Package: e17-dev
 Architecture: any
 Section: devel
 Depends: ${misc:Depends}, e17 (= ${binary:Version}),
- libefl-all-dev (>= 1.15.1)
+ libefl-all-dev (>= 1.15.1), libelementary-dev (>= 1.15.1)
 Description: Enlightenment headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
