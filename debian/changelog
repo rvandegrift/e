@@ -1,4 +1,4 @@
-e (0.19.11-1) UNRELEASED; urgency=medium
+e17 (0.19.11-1) UNRELEASED; urgency=medium
 
   [ Andreas Metzler ]
   * Non-maintainer upload.
@@ -22,10 +22,6 @@ e (0.19.11-1) UNRELEASED; urgency=medium
   * Move efm desktop file to e17
   * patches/01_sysaction_pm_utils: drop for systemd support
   * Add build-depend on systemd
-  * Adjust dependencies to help ensure strict version sync with EFL
-  * Fix Depends after unrenaming in EFL
-  * Update version number
-  * Fix package versioning in names (src:e, binary:e19)
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 07 Nov 2015 17:42:48 -0500
 
