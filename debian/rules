@@ -19,7 +19,7 @@ override_dh_auto_configure:
 override_dh_lintian:
 	sed -e "s/ARCH_PATH/$(ARCH_PATH)/" \
 		-e "s/MULTIARCH/$(MULTIARCH)/" \
-		debian/e17.lintian-overrides.in > debian/e17.lintian-overrides
+		debian/enlightenment.lintian-overrides.in > debian/enlightenment.lintian-overrides
 	dh_lintian
 
 override_dh_install:
@@ -29,12 +29,12 @@ override_dh_install:
 
 override_dh_fixperms:
 	dh_fixperms
-	chmod 4755 debian/e17/usr/lib/*/enlightenment/utils/enlightenment_sys
-	chmod 4755 debian/e17/usr/lib/*/enlightenment/modules/cpufreq/*/freqset
+	chmod 4755 debian/enlightenment/usr/lib/*/enlightenment/utils/enlightenment_sys
+	chmod 4755 debian/enlightenment/usr/lib/*/enlightenment/modules/cpufreq/*/freqset
 
 override_dh_clean:
 	dh_clean
-	rm -f debian/e17.lintian-overrides
+	rm -f debian/enlightenment.lintian-overrides
 
 override_dh_strip:
-	dh_strip --dbg-package=e17-dbg
+	dh_strip --dbg-package=enlightenment-dbg
