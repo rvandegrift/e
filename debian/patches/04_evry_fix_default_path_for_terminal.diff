@@ -1,8 +1,6 @@
-diff --git a/src/modules/everything/evry_plug_apps.c b/src/modules/everything/evry_plug_apps.c
-index 62ec632..87cb915 100644
 --- a/src/modules/everything/evry_plug_apps.c
 +++ b/src/modules/everything/evry_plug_apps.c
-@@ -1382,7 +1382,7 @@ _conf_new(void)
+@@ -1384,7 +1384,7 @@
       {
          _conf = E_NEW(Module_Config, 1);
          /* setup defaults */
