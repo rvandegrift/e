@@ -97,6 +97,7 @@ typedef struct _E_Comp_Object
 
    unsigned int         animating;  // it's busy animating
    unsigned int         failures; //number of consecutive e_pixmap_image_draw() failures
+   unsigned int         force_visible; //number of visible obj_mirror objects
    Eina_Bool            delete_pending : 1;  // delete pendig
    Eina_Bool            defer_hide : 1;  // flag to get hide to work on deferred hide
    Eina_Bool            visible : 1;  // is visible
@@ -712,7 +713,11 @@ _e_comp_object_pixels_get(void *data, Evas_Object *obj EINA_UNUSED)
    if (!e_pixmap_size_get(ec->pixmap, &pw, &ph)) return;
    //INF("PIXEL GET %p: %dx%d || %dx%d", ec, ec->w, ec->h, pw, ph);
    if (cw->native)
-     E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
+     {
+        E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
+        cw->comp->post_updates = eina_list_append(cw->comp->post_updates, cw->ec);
+        e_object_ref(E_OBJECT(cw->ec));
+     }
    else if (e_comp_object_render(ec->frame))
      {
         /* apply shape mask if necessary */
@@ -760,9 +765,15 @@ static void
 _e_comp_intercept_move(void *data, Evas_Object *obj, int x, int y)
 {
    E_Comp_Object *cw = data;
-   int ix, iy;
+   int ix, iy, fx, fy;
 
-   if ((cw->x == x) && (cw->y == y))
+   /* if frame_object does not exist, client_inset indicates CSD.
+    * this means that ec->client matches cw->x/y, the opposite
+    * of SSD.
+    */
+   fx = (!cw->frame_object) * cw->client_inset.l;
+   fy = (!cw->frame_object) * cw->client_inset.t;
+   if ((cw->x == x + fx) && (cw->y == y + fy))
      {
         if ((cw->ec->x != x) || (cw->ec->y != y))
           {
@@ -802,9 +813,9 @@ _e_comp_intercept_move(void *data, Evas_Object *obj, int x, int y)
           }
         return;
      }
-   cw->ec->x = x, cw->ec->y = y;
    /* only update during resize if triggered by resize */
    if (e_client_util_resizing_get(cw->ec) && (!cw->force_move)) return;
+   cw->ec->x = x, cw->ec->y = y;
    if (cw->ec->new_client)
      {
         /* don't actually do anything until first client idler loop */
@@ -821,6 +832,9 @@ _e_comp_intercept_move(void *data, Evas_Object *obj, int x, int y)
              cw->ec->client.x = ix;
              cw->ec->client.y = iy;
           }
+        /* flip SSD->CSD */
+        if (!cw->frame_object)
+          x = ix, y = iy;
         evas_object_move(obj, x, y);
      }
 }
@@ -829,9 +843,15 @@ static void
 _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
 {
    E_Comp_Object *cw = data;
-   int pw, ph, fw, fh, iw, ih, prev_w, prev_h;
+   int pw = 0, ph = 0, fw, fh, iw, ih, prev_w, prev_h, x, y;
 
-   if ((cw->w == w) && (cw->h == h))
+   /* if frame_object does not exist, client_inset indicates CSD.
+    * this means that ec->client matches cw->w/h, the opposite
+    * of SSD.
+    */
+   fw = (!cw->frame_object) * (-cw->client_inset.l - cw->client_inset.r);
+   fh = (!cw->frame_object) * (-cw->client_inset.t - cw->client_inset.b);
+   if ((cw->w == w + fw) && (cw->h == h + fh))
      {
         if (cw->ec->shading || cw->ec->shaded) return;
         if (((cw->ec->w != w) || (cw->ec->h != h)) ||
@@ -858,13 +878,30 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
         if ((!e_config->allow_manip) && ((cw->ec->maximized & E_MAXIMIZE_DIRECTION) == E_MAXIMIZE_BOTH)) return;
         if ((!cw->ec->shading) && (!cw->ec->shaded))
           {
-             cw->ec->changes.need_unmaximize = 1;
-             cw->ec->saved.w = iw;
-             cw->ec->saved.h = ih;
-             cw->ec->saved.x = cw->ec->client.x - cw->ec->zone->x;
-             cw->ec->saved.y = cw->ec->client.y - cw->ec->zone->y;
-             EC_CHANGED(cw->ec);
-             return;
+             Eina_Bool reject = EINA_FALSE;
+             if (cw->ec->maximized & E_MAXIMIZE_VERTICAL)
+               {
+                  if (cw->ec->client.h != ih)
+                    {
+                       cw->ec->saved.h = ih;
+                       cw->ec->saved.y = cw->ec->client.y - cw->ec->zone->y;
+                       reject = cw->ec->changes.need_unmaximize = 1;
+                    }
+               }
+             if (cw->ec->maximized & E_MAXIMIZE_HORIZONTAL)
+               {
+                  if (cw->ec->client.w != iw)
+                    {
+                       cw->ec->saved.w = iw;
+                       cw->ec->saved.x = cw->ec->client.x - cw->ec->zone->x;
+                       reject = cw->ec->changes.need_unmaximize = 1;
+                    }
+               }
+             if (reject)
+               {
+                  EC_CHANGED(cw->ec);
+                  return;
+               }
           }
      }
    if (cw->ec->new_client)
@@ -895,7 +932,8 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
         cw->ec->client.h = ih;
         if ((cw->ec->client.w < 0) || (cw->ec->client.h < 0)) CRI("WTF");
      }
-   if ((!cw->ec->input_only) && cw->redirected && (!e_pixmap_size_get(cw->ec->pixmap, &pw, &ph)))
+   if ((!cw->ec->input_only) && cw->redirected && (e_pixmap_dirty_get(cw->ec->pixmap) ||
+       (!e_pixmap_size_get(cw->ec->pixmap, &pw, &ph))))
      {
         /* client can't be resized if its pixmap isn't usable, try again */
         e_pixmap_dirty(cw->ec->pixmap);
@@ -913,7 +951,11 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
      {
         //INF("CALLBACK: REQ(%dx%d) != CUR(%dx%d)", w - fw, h - fh, pw, ph);
         evas_object_smart_callback_call(obj, "client_resize", NULL);
-        e_comp_object_frame_wh_adjust(obj, pw, ph, &w, &h);
+        /* flip for CSD */
+        if (cw->frame_object || cw->ec->input_only)
+          e_comp_object_frame_wh_adjust(obj, pw, ph, &w, &h);
+        else
+          w = pw, h = ph;
         if ((cw->w == w) && (cw->h == h))
           {
              /* going to be a noop resize which won't trigger smart resize */
@@ -924,6 +966,9 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
      }
    else
      {
+        /* flip for CSD */
+        if ((!cw->frame_object) && (!cw->ec->input_only))
+          w = pw, h = ph;
         /* "just do it" for overrides */
         //INF("INTERCEPT %dx%d", w, h);
         evas_object_resize(obj, w, h);
@@ -941,18 +986,22 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
     * which also changes the client's position
     */
    cw->force_move = 1;
+   if (cw->frame_object)
+     x = cw->x, y = cw->y;
+   else
+     x = cw->ec->x, y = cw->ec->y;
    switch (cw->ec->resize_mode)
      {
       case E_POINTER_RESIZE_BL:
       case E_POINTER_RESIZE_L:
-        evas_object_move(obj, cw->x + prev_w - cw->w, cw->y);
+        evas_object_move(obj, x + prev_w - cw->w, y);
         break;
       case E_POINTER_RESIZE_TL:
-        evas_object_move(obj, cw->x + prev_w - cw->w, cw->y + prev_h - cw->h);
+        evas_object_move(obj, x + prev_w - cw->w, y + prev_h - cw->h);
         break;
       case E_POINTER_RESIZE_T:
       case E_POINTER_RESIZE_TR:
-        evas_object_move(obj, cw->x, cw->y + prev_h - cw->h);
+        evas_object_move(obj, x, y + prev_h - cw->h);
         break;
       default:
         break;
@@ -1270,11 +1319,8 @@ _e_comp_intercept_hide(void *data, Evas_Object *obj)
    if (!cw->defer_hide)
      {
         if ((!cw->ec->iconic) && (!cw->ec->override))
-          {
-             /* unset delete requested so the client doesn't break */
-             cw->ec->delete_requested = 0;
-             e_hints_window_hidden_set(cw->ec);
-          }
+          /* unset delete requested so the client doesn't break */
+          cw->ec->delete_requested = 0;
         if ((!cw->animating) || (cw->ec->iconic))
           {
              if (cw->ec->iconic)
@@ -1541,7 +1587,7 @@ _e_comp_object_frame_recalc(E_Comp_Object *cw)
         cw->client_inset.t = 0;
         cw->client_inset.b = 0;
      }
-   cw->client_inset.calc = 1;
+   cw->client_inset.calc = !!cw->frame_object;
 }
 
 static void
@@ -1569,6 +1615,7 @@ _e_comp_smart_cb_frame_recalc(void *data, Evas_Object *obj, void *event_info EIN
      evas_object_resize(cw->ec->frame, cw->ec->zone->w, cw->ec->zone->h);
    else if (cw->ec->new_client)
      {
+        if ((cw->ec->w < 1) || (cw->ec->h < 1)) return;
         e_comp_object_frame_wh_adjust(obj, pw, ph, &w, &h);
         evas_object_resize(cw->ec->frame, w, h);
      }
@@ -2012,6 +2059,26 @@ _e_comp_object_cb_mirror_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, 
 }
 
 static void
+_e_comp_object_cb_mirror_show(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Comp_Object *cw = data;
+
+   if ((!cw->force_visible) && (!e_object_is_del(E_OBJECT(cw->ec))))
+     evas_object_smart_callback_call(cw->smart_obj, "visibility_force", cw->ec);
+   cw->force_visible++;
+}
+
+static void
+_e_comp_object_cb_mirror_hide(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Comp_Object *cw = data;
+
+   cw->force_visible--;
+   if ((!cw->force_visible) && (!e_object_is_del(E_OBJECT(cw->ec))))
+     evas_object_smart_callback_call(cw->smart_obj, "visibility_normal", cw->ec);
+}
+
+static void
 _e_comp_smart_del(Evas_Object *obj)
 {
    Eina_List *l;
@@ -2086,7 +2153,11 @@ _e_comp_smart_resize(Evas_Object *obj, int w, int h)
    if ((!cw->ec->shading) && (!cw->ec->shaded))
      {
         int ww, hh, pw, ph;
-        e_comp_object_frame_wh_unadjust(obj, w, h, &ww, &hh);
+
+        if (cw->frame_object)
+          e_comp_object_frame_wh_unadjust(obj, w, h, &ww, &hh);
+        else
+          ww = w, hh = h;
         /* verify pixmap:object size */
         if (e_pixmap_size_get(cw->ec->pixmap, &pw, &ph) && (!cw->ec->override))
           {
@@ -2185,6 +2256,12 @@ e_comp_object_zoomap_set(Evas_Object *obj, Eina_Bool enabled)
    cw->zoomap_disabled = enabled;
 }
 
+E_API Eina_Bool
+e_comp_object_mirror_visibility_check(Evas_Object *obj)
+{
+   API_ENTRY EINA_FALSE;
+   return !!cw->force_visible;
+}
 /////////////////////////////////////////////////////////
 
 static void
@@ -2739,6 +2816,51 @@ e_comp_object_frame_geometry_get(Evas_Object *obj, int *l, int *r, int *t, int *
    if (r) *r = cw->client_inset.r;
    if (t) *t = cw->client_inset.t;
    if (b) *b = cw->client_inset.b;
+}
+
+/* set geometry for CSD */
+E_API void
+e_comp_object_frame_geometry_set(Evas_Object *obj, int l, int r, int t, int b)
+{
+   Eina_Bool calc;
+
+   API_ENTRY;
+   if ((cw->client_inset.l == l) && (cw->client_inset.r == r) &&
+       (cw->client_inset.t == t) && (cw->client_inset.b == b)) return;
+   calc = cw->client_inset.calc;
+   cw->client_inset.calc = l || r || t || b;
+   eina_stringshare_replace(&cw->frame_theme, "borderless");
+   if (cw->client_inset.calc)
+     {
+        cw->ec->w += (l + r) - (cw->client_inset.l + cw->client_inset.r);
+        cw->ec->h += (t + b) - (cw->client_inset.t + cw->client_inset.b);
+     }
+   else if (cw->ec->maximized || cw->ec->fullscreen)
+     {
+        cw->ec->saved.x += l - cw->client_inset.l;
+        cw->ec->saved.y += t - cw->client_inset.t;
+     }
+   if (!cw->ec->new_client)
+     {
+        if (calc && cw->client_inset.calc)
+          {
+             cw->ec->x -= l - cw->client_inset.l;
+             cw->ec->y -= t - cw->client_inset.t;
+          }
+        cw->ec->changes.pos = cw->ec->changes.size = 1;
+        EC_CHANGED(cw->ec);
+     }
+   cw->client_inset.l = l;
+   cw->client_inset.r = r;
+   cw->client_inset.t = t;
+   cw->client_inset.b = b;
+}
+
+E_API Eina_Bool
+e_comp_object_frame_allowed(Evas_Object *obj)
+{
+   API_ENTRY EINA_FALSE;
+   return (!cw->ec->mwm.borderless) && (cw->frame_object || (!cw->client_inset.calc));
 }
 
 E_API void
@@ -3312,6 +3434,7 @@ e_comp_object_dirty(Evas_Object *obj)
    evas_object_smart_callback_call(obj, "dirty", NULL);
    if (cw->visible || (!visible) || (!cw->pending_updates)) return;
    /* force render if main object is hidden but mirrors are visible */
+   RENDER_DEBUG("FORCING RENDER %p", cw->ec);
    e_comp_object_render(obj);
 }
 
@@ -3372,14 +3495,7 @@ e_comp_object_render(Evas_Object *obj)
           }
         /* set pixel data */
         evas_object_image_data_set(cw->obj, pix);
-        EINA_LIST_FOREACH(cw->obj_mirror, l, o)
-          {
-             evas_object_image_data_set(o, pix);
-             evas_object_image_pixels_dirty_set(o, EINA_FALSE);
-          }
-        eina_iterator_free(it);
-        E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
-        return ret;
+        goto end;
      }
 
    pix = evas_object_image_data_get(cw->obj, EINA_TRUE);
@@ -3405,6 +3521,7 @@ e_comp_object_render(Evas_Object *obj)
         RENDER_DEBUG("UPDATE [%p]: %d %d %dx%d -- pix = %p", cw->ec, r->x, r->y, r->w, r->h, pix);
      }
    evas_object_image_data_set(cw->obj, pix);
+end:
    EINA_LIST_FOREACH(cw->obj_mirror, l, o)
      {
         evas_object_image_data_set(o, pix);
@@ -3413,7 +3530,12 @@ e_comp_object_render(Evas_Object *obj)
 
    eina_iterator_free(it);
    E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
-   return EINA_TRUE;
+   if (ret)
+     {
+        cw->comp->post_updates = eina_list_append(cw->comp->post_updates, cw->ec);
+        e_object_ref(E_OBJECT(cw->ec));
+     }
+   return ret;
 }
 
 /* create a duplicate of an evas object */
@@ -3423,7 +3545,6 @@ e_comp_object_util_mirror_add(Evas_Object *obj)
    Evas_Object *o;
    int w, h;
    unsigned int *pix = NULL;
-   Eina_Bool argb = EINA_FALSE;
 
    SOFT_ENTRY(NULL);
 
@@ -3439,12 +3560,13 @@ e_comp_object_util_mirror_add(Evas_Object *obj)
         return o;
      }
    if ((!cw->ec) || (!e_pixmap_size_get(cw->ec->pixmap, &w, &h))) return NULL;
-   if ((!cw->native) && (!e_pixmap_image_exists(cw->ec->pixmap))) return NULL;
    o = evas_object_image_filled_add(evas_object_evas_get(obj));
    evas_object_image_colorspace_set(o, EVAS_COLORSPACE_ARGB8888);
    evas_object_image_smooth_scale_set(o, e_comp_config_get()->smooth_windows);
    cw->obj_mirror = eina_list_append(cw->obj_mirror, o);
    evas_object_event_callback_add(o, EVAS_CALLBACK_DEL, _e_comp_object_cb_mirror_del, cw);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_SHOW, _e_comp_object_cb_mirror_show, cw);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_HIDE, _e_comp_object_cb_mirror_hide, cw);
    evas_object_data_set(o, "E_Client", cw->ec);
    evas_object_data_set(o, "comp_mirror", cw);
 
@@ -3452,10 +3574,7 @@ e_comp_object_util_mirror_add(Evas_Object *obj)
    evas_object_image_size_set(o, w, h);
 
    if (cw->ec->shaped)
-     {
-        if (!e_pixmap_image_exists(cw->ec->pixmap)) return o;
-        pix = evas_object_image_data_get(cw->obj, 0);
-     }
+     pix = evas_object_image_data_get(cw->obj, 0);
    else
      {
         if (cw->native)
@@ -3466,20 +3585,12 @@ e_comp_object_util_mirror_add(Evas_Object *obj)
              evas_object_image_native_surface_set(o, &ns);
           }
         else
-          {
-             if (!e_pixmap_image_exists(cw->ec->pixmap)) return o;
-             argb = e_pixmap_image_is_argb(cw->ec->pixmap);
-             if (argb)
-               pix = e_pixmap_image_data_get(cw->ec->pixmap);
-             else
-               pix = evas_object_image_data_get(cw->obj, EINA_FALSE);
-          }
+          pix = evas_object_image_data_get(cw->obj, EINA_FALSE);
      }
    if (pix)
      {
         evas_object_image_data_set(o, pix);
-        if (!argb)
-          evas_object_image_data_set(cw->obj, pix);
+        evas_object_image_data_set(cw->obj, pix);
      }
    evas_object_image_data_update_add(o, 0, 0, w, h);
    return o;

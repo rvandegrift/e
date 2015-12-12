@@ -36,6 +36,7 @@ struct E_Comp_Object_Frame
 extern E_API int E_EVENT_COMP_OBJECT_ADD;
 
 E_API void e_comp_object_zoomap_set(Evas_Object *obj, Eina_Bool enabled);
+E_API Eina_Bool e_comp_object_mirror_visibility_check(Evas_Object *obj);
 E_API Evas_Object *e_comp_object_client_add(E_Client *ec);
 E_API Evas_Object *e_comp_object_util_mirror_add(Evas_Object *obj);
 E_API Evas_Object *e_comp_object_util_add(Evas_Object *obj, E_Comp_Object_Type type);
@@ -53,7 +54,9 @@ E_API void e_comp_object_util_center(Evas_Object *obj);
 E_API void e_comp_object_util_center_on(Evas_Object *obj, Evas_Object *on);
 E_API void e_comp_object_util_center_pos_get(Evas_Object *obj, int *x, int *y);
 E_API void e_comp_object_util_fullscreen(Evas_Object *obj);
+E_API Eina_Bool e_comp_object_frame_allowed(Evas_Object *obj);
 E_API void e_comp_object_frame_geometry_get(Evas_Object *obj, int *l, int *r, int *t, int *b);
+E_API void e_comp_object_frame_geometry_set(Evas_Object *obj, int l, int r, int t, int b);
 E_API void e_comp_object_frame_icon_geometry_get(Evas_Object *obj, int *x, int *y, int *w, int *h);
 E_API Eina_Bool e_comp_object_frame_title_set(Evas_Object *obj, const char *name);
 E_API Eina_Bool e_comp_object_frame_exists(Evas_Object *obj);

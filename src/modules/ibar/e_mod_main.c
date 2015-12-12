@@ -69,6 +69,7 @@ struct _IBar_Icon
    IBar            *ibar;
    Evas_Object     *o_holder, *o_icon;
    Evas_Object     *o_holder2, *o_icon2;
+   Eina_List       *client_objs;
    Efreet_Desktop  *app;
    Ecore_Timer     *reset_timer;
    Ecore_Timer     *timer;
@@ -78,6 +79,7 @@ struct _IBar_Icon
    Eina_List       *exes; //all instances
    Eina_List       *menu_pending; //clients with menu items pending
    E_Gadcon_Popup  *menu;
+   const char      *hashname;
    int              mouse_down;
    struct
    {
@@ -859,7 +861,17 @@ _ibar_icon_new(IBar *b, Efreet_Desktop *desktop, Eina_Bool notinorder)
 
    _ibar_icon_fill(ic);
    b->icons = eina_inlist_append(b->icons, EINA_INLIST_GET(ic));
-   eina_hash_add(b->icon_hash, _desktop_name_get(ic->app), ic);
+   if (eina_hash_find(b->icon_hash, _desktop_name_get(ic->app)))
+     {
+        char buf[PATH_MAX];
+
+        ERR("Ibar - Unexpected: icon with same desktop path created twice");
+        snprintf(buf, sizeof(buf), "%s::%1.20f",
+                 _desktop_name_get(ic->app), ecore_time_get());
+        ic->hashname = eina_stringshare_add(buf);
+     }
+   else ic->hashname = eina_stringshare_add(_desktop_name_get(ic->app));
+   eina_hash_add(b->icon_hash, ic->hashname, ic);
    if (notinorder)
      {
         ic->not_in_order = 1;
@@ -899,7 +911,9 @@ static void
 _ibar_icon_free(IBar_Icon *ic)
 {
    E_Exec_Instance *inst;
+   Evas_Object *o;
 
+   EINA_LIST_FREE(ic->client_objs, o) evas_object_del(o);
    if (ic->ibar->menu_icon == ic) ic->ibar->menu_icon = NULL;
    if (ic->ibar->ic_drop_before == ic) ic->ibar->ic_drop_before = NULL;
    if (ic->menu) e_object_data_set(E_OBJECT(ic->menu), NULL);
@@ -908,7 +922,8 @@ _ibar_icon_free(IBar_Icon *ic)
    E_FREE_FUNC(ic->hide_timer, ecore_timer_del);
    E_FREE_FUNC(ic->show_timer, ecore_timer_del);
    ic->ibar->icons = eina_inlist_remove(ic->ibar->icons, EINA_INLIST_GET(ic));
-   eina_hash_del_by_key(ic->ibar->icon_hash, _desktop_name_get(ic->app));
+   eina_hash_del_by_key(ic->ibar->icon_hash, ic->hashname);
+   E_FREE_FUNC(ic->hashname, eina_stringshare_del);
    E_FREE_FUNC(ic->reset_timer, ecore_timer_del);
    if (ic->app) efreet_desktop_unref(ic->app);
    evas_object_event_callback_del_full(ic->o_holder, EVAS_CALLBACK_MOUSE_IN,
@@ -1231,9 +1246,11 @@ _ibar_cb_icon_menu_img_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, vo
 {
    int w, h;
    E_Client *ec;
-   IBar_Icon *ic = evas_object_data_del(data, "ibar_icon");
+   IBar_Icon *ic;
 
+   ic = evas_object_data_del(data, "ibar_icon");
    if (!ic) return; //menu is closing
+   if (ic) ic->client_objs = eina_list_remove(ic->client_objs, obj);
    if (!ic->menu) return; //who knows
    edje_object_part_box_remove(ic->menu->o_bg, "e.box", data);
    ec = evas_object_data_get(obj, "E_Client");
@@ -1296,6 +1313,8 @@ _ibar_icon_menu_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA
 static void
 _ibar_cb_icon_frame_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
+   IBar_Icon *ic = evas_object_data_del(obj, "ibar_icon");
+   if (ic) ic->client_objs = eina_list_remove(ic->client_objs, obj);
    e_comp_object_signal_callback_del_full(data, "e,state,*focused", "e", _ibar_cb_icon_menu_focus_change, obj);
    evas_object_smart_callback_del_full(data, "desk_change", _ibar_cb_icon_menu_desk_change, obj);
 }
@@ -1310,10 +1329,12 @@ _ibar_icon_menu_client_add(IBar_Icon *ic, E_Client *ec)
    if (ec->netwm.state.skip_taskbar) return EINA_FALSE;
    o = ic->menu->o_bg;
    it = edje_object_add(e_comp_get(ec)->evas);
+   ic->client_objs = eina_list_append(ic->client_objs, it);
    e_comp_object_util_del_list_append(ic->menu->comp_object, it);
    e_theme_edje_object_set(it, "base/theme/modules/ibar",
                            "e/modules/ibar/menu/item");
    img = e_comp_object_util_mirror_add(ec->frame);
+   ic->client_objs = eina_list_append(ic->client_objs, img);
    e_comp_object_signal_callback_add(ec->frame, "e,state,*focused", "e", _ibar_cb_icon_menu_focus_change, it);
    evas_object_smart_callback_add(ec->frame, "desk_change", _ibar_cb_icon_menu_desk_change, it);
    evas_object_event_callback_add(it, EVAS_CALLBACK_DEL,

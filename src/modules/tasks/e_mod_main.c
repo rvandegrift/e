@@ -82,7 +82,7 @@ static Eina_Bool    _tasks_cb_event_client_uniconify(void *data, int type, void 
 static Eina_Bool    _tasks_cb_event_client_icon_change(void *data, int type, void *event);
 static Eina_Bool    _tasks_cb_event_client_title_change(void *data, int type, void *event);
 static Eina_Bool    _tasks_cb_event_client_zone_set(void *data, int type, void *event);
-static Eina_Bool    _tasks_cb_event_client_desk_set(void *data, int type, void *event);
+static Eina_Bool    _tasks_cb_event_client_desk_set(void *data, int type, E_Event_Client *ev);
 static Eina_Bool    _tasks_cb_window_focus_in(void *data, int type, void *event);
 static Eina_Bool    _tasks_cb_window_focus_out(void *data, int type, void *event);
 static Eina_Bool    _tasks_cb_event_desk_show(void *data, int type, void *event);
@@ -90,6 +90,8 @@ static Eina_Bool    _tasks_cb_event_client_urgent_change(void *data, int type, v
 
 static E_Config_DD *conf_edd = NULL;
 static E_Config_DD *conf_item_edd = NULL;
+
+static Ecore_Timer *task_refill_timer;
 
 Config *tasks_config = NULL;
 
@@ -439,11 +441,30 @@ _tasks_refill(Tasks *tasks)
      e_gadcon_client_min_size_set(tasks->gcc, 0, 0);
 }
 
+static Eina_Bool
+_refill_timer(void *d EINA_UNUSED)
+{
+   if (e_drag_current_get()) return EINA_TRUE;
+
+   _tasks_refill_all();
+   task_refill_timer = NULL;
+   return EINA_FALSE;
+}
+
 static void
 _tasks_refill_all(void)
 {
    const Eina_List *l;
    Tasks *tasks;
+
+   if (e_drag_current_get())
+     {
+        if (task_refill_timer)
+          ecore_timer_reset(task_refill_timer);
+        else
+          task_refill_timer = ecore_timer_add(0.5, _refill_timer, NULL);
+        return;
+     }
 
    EINA_LIST_FOREACH(tasks_config->tasks, l, tasks)
      {
@@ -972,9 +993,10 @@ _tasks_cb_event_client_zone_set(void *data __UNUSED__, int type __UNUSED__, void
 }
 
 static Eina_Bool
-_tasks_cb_event_client_desk_set(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
+_tasks_cb_event_client_desk_set(void *data __UNUSED__, int type __UNUSED__, E_Event_Client *ev)
 {
-   _tasks_refill_all();
+   if (!ev->ec->sticky)
+     _tasks_refill_all();
    return EINA_TRUE;
 }
 

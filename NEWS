@@ -1,3 +1,137 @@
+Release 0.19.14:
+---------------------
+Mike Blumenkrantz (14):
+      improve x11 client focusing with mouse-based focus policies on mouse move
+      do not add new deskmirror clients on desk_set event if client already exists
+      do not refill all tasks bars when a sticky window changes desks
+      update E_Client->desk member upon focusing a sticky client
+      further improve csd calculations for x11 clients
+      always create compositor mirror objects, ignore pixmap image state
+      block task gadget refills while a drag is active
+      Revert "e deskmirror - fix loss of mirror object from deskmirror"
+      ensure that a deskmirror object does not orphan child objects
+      avoid setting incorrect geometry during new_client frame calc
+      use CSD geometry during move/resize display
+      do not apply max client geometry restriction if max geometry is not set
+      allow more client hooks to bypass delete check
+      re-swallow bg_object after wallpaper transition has completed
+
+Stafford Horne (1):
+      e/core: Fix minor mem leak when reading module paths
+
+
+Release 0.19.13:
+---------------------
+Carsten Haitzler (4):
+      e - ibar - fix clash when 2 icons of the same path get added somehow
+      e exec tracker - fix tracking to update desktop files on efreet change
+      ibar - fix shutdown if ibar client menu is up
+      e deskmirror - fix loss of mirror object from deskmirror
+
+Mike Blumenkrantz (31):
+      when removing VERTICAL maximize state, also remove LEFT and RIGHT states
+      don't crash desktop gadget systrays when adjusting image sizing
+      make wake-on-urgent apply for all cases of window urgency
+      force full damage for first frame of x11 override clients
+      subtract x11 client damage region even when forcing full override damage
+      fix typo in previous damage rect commit
+      do not return when x11 damage event returns no rects
+      trap shaped x11 clients and prevent compositor blocking with high rect count
+      reject deleted clients from x11 sync alarm event callback
+      clear x11 client pixmap when returning from iconic
+      force a software render in all cases when finalizing x11 client iconify
+      update csd using deltas of previous values
+      make comp config unresizable...again
+      remove dead modules from whitelist
+      only apply frame geometry deltas for CSD if the CSD region exists
+      reject frame theme changes for clients which have CSD
+      simplify client SMART/EXPAND maximize
+      add native surface (gl) clients to post render list
+      adjust efm multi-icon drag positioning by the current pan coords
+      break out x11 client visibility setting into util functions
+      move client iconic hint setting into x11 hide function
+      emit ibox icon signals to the internal edje object of the e_icon
+      add counter and smart callbacks for comp object visible mirrors
+      add e_comp_object_mirror_visibility_check()
+      toggle x11 client iconic/mapped state based on mirror visibility
+      Revert "force a software render in all cases when finalizing x11 client iconify"
+      disable client menu stacking functions for unstackable windows
+      enforce fullscreen client stacking during nocomp end IFF client is fullscreen
+      check client comp data existence in x11 mirror visibility callbacks
+      use unsigned int for client focus tracking freeze state
+      null efm icon eio handle in error callback
+
+Stafford Horne (2):
+      e/conf_apps: Fix resizing of "Startup Application" dialog
+      e/ilist: Fix issue with multiselect returning wrong index
+
+Thierry (1):
+      mouse_config: fix accel threshold and numerator limits.
+
+shorne (1):
+      e/win_config: allow content of some dialogs to resize with the window
+
+
+Release 0.19.12:
+---------------------
+Amitesh Singh (1):
+      md5: fix wrong sizeof argument (SIZEOF_MISMATCH)
+
+Carsten Haitzler (2):
+      efm - handle cancel of async eio if icon is freed and eio still active
+      e - efm fix. fix eio error handler that is called after eio cancel
+
+Chidambar Zinnoury (1):
+      e menus: Fix invalid comparisons.
+
+Mike Blumenkrantz (39):
+      broadcast support for _GTK_FRAME_EXTENTS
+      fully support _GTK_FRAME_EXTENTS
+      add util function for determining if a client is allowed to have a frame
+      fix e_shelf_position_calc() to not set struct members before applying them
+      block border-affecting entries from showing up in client menu with csd
+      block border-affecting client functions for csd clients
+      set comp object client_inset.calc based on frame_object existence
+      check warp_client existence during pointer warp before dereferencing it
+      fix handling of x11 ICCCM WithdrawnState
+      initialize pixmap size vars in comp resize interceptor
+      map/unmap x11 client windows when toggling iconic state
+      completely remove all wayland support from build system
+      blacklist all versions of efl affected by T2745
+      force pixmap clear when hiding an x11 window
+      set x11 broadcast atom hint array size based on array-name size
+      force adjustment of client geometry when changing csd frame size
+      remove client maximize states during unmaximize only if they are active
+      unset E_Client->changes.need_unmaximize after calling unmaximize
+      allow client resizes on axes currently unrestricted by maximize state
+      unset the requested maximize state when receiving a client unmaximize request
+      use more accurate math to determine whether to apply a client maximize change
+      do not set client window coordinates during a move until after resizing check
+      use client window coords for resize-moving without a frame_object
+      _GTK_FRAME_EXTENTS changes using a property, not a client message
+      reject identical calls to e_comp_object_frame_geometry_set()
+      reject client resize attempts for clients with dirty pixmaps
+      remove object event callback on notification popdown
+      free x11 damage region rects
+      add RENDER_DEBUG for forced renders when setting dirty flag
+      fix comp render return value for failed draws of non-argb clients
+      unify comp render returns for argb and non-argb clients
+      move client post-update adding into render function
+      fix systray to work with spec-breaking apps, eg. steam
+      move configure init after intl init has completed
+      make icon selection dialog resizable in .desktop editor
+      clear menu cache when saving a menu file
+      attempt to load default e_bindings if initial load fails
+      repopulate app list dialogs when efreet deskop cache updates
+      only use fast-path pixmap size updating after a resize for x11 clients
+
+Peter Kjellerstedt (1):
+      Add "(drag only)" to title for drag only edge bindings
+
+maxerba (1):
+      Updating spanish translation
+
+
 Release 0.19.11:
 ---------------------
 Carsten Haitzler (3):

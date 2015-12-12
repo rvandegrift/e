@@ -148,18 +148,21 @@ e_int_client_menu_create(E_Client *ec)
                                   "e/widgets/border/default/sendto");
      }
 
-   mi = e_menu_item_new(m);
-   e_menu_item_label_set(mi, _("Always on Top"));
-   e_menu_item_check_set(mi, 1);
-   e_menu_item_toggle_set(mi, (ec->layer == E_LAYER_CLIENT_ABOVE ? 1 : 0));
-   if (ec->layer == E_LAYER_CLIENT_ABOVE)
-     e_menu_item_callback_set(mi, _e_client_menu_cb_normal, ec);
-   else
-     e_menu_item_callback_set(mi, _e_client_menu_cb_on_top, ec);
-   e_menu_item_icon_edje_set(mi,
-                             e_theme_edje_file_get("base/theme/borders",
-                                                   "e/widgets/border/default/stack_on_top"),
-                             "e/widgets/border/default/stack_on_top");
+   if (ec->layer <= E_LAYER_CLIENT_ABOVE)
+     {
+        mi = e_menu_item_new(m);
+        e_menu_item_label_set(mi, _("Always on Top"));
+        e_menu_item_check_set(mi, 1);
+        e_menu_item_toggle_set(mi, (ec->layer == E_LAYER_CLIENT_ABOVE ? 1 : 0));
+        if (ec->layer == E_LAYER_CLIENT_ABOVE)
+          e_menu_item_callback_set(mi, _e_client_menu_cb_normal, ec);
+        else
+          e_menu_item_callback_set(mi, _e_client_menu_cb_on_top, ec);
+        e_menu_item_icon_edje_set(mi,
+                                  e_theme_edje_file_get("base/theme/borders",
+                                                        "e/widgets/border/default/stack_on_top"),
+                                  "e/widgets/border/default/stack_on_top");
+     }
 
    if (!ec->lock_user_sticky)
      {
@@ -175,6 +178,7 @@ e_int_client_menu_create(E_Client *ec)
      }
 
    if ((!ec->lock_user_shade) && (!ec->fullscreen) && (!ec->maximized) &&
+       e_comp_object_frame_allowed(ec->frame) &&
        ((!ec->border.name) || (!borderless)))
      {
         mi = e_menu_item_new(m);
@@ -188,7 +192,8 @@ e_int_client_menu_create(E_Client *ec)
                                   "e/widgets/border/default/shade");
      }
 
-   if ((!ec->fullscreen) && (!ec->lock_border) && (!ec->shading) && (!ec->shaded) && (!ec->mwm.borderless))
+   if ((!ec->fullscreen) && (!ec->lock_border) && (!ec->shading) &&
+       (!ec->shaded) && e_comp_object_frame_allowed(ec->frame))
      {
         mi = e_menu_item_new(m);
         e_menu_item_label_set(mi, _("Borderless"));
@@ -742,7 +747,7 @@ _e_client_menu_cb_window_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    submi = e_menu_item_new(subm);
    e_menu_item_separator_set(submi, 1);
 
-   if ((!ec->lock_user_stacking) && (!ec->fullscreen))
+   if ((!ec->lock_user_stacking) && (!ec->fullscreen) && (ec->layer <= E_LAYER_CLIENT_ABOVE))
      {
         submi = e_menu_item_new(subm);
         e_menu_item_label_set(submi, _("Stacking"));
@@ -1233,7 +1238,7 @@ _e_client_menu_cb_border_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    e_menu_item_submenu_set(mi, subm);
    e_object_unref(E_OBJECT(subm));
 
-   if (e_configure_registry_exists("internal/borders_border"))
+   if (e_comp_object_frame_allowed(ec->frame) && e_configure_registry_exists("internal/borders_border"))
      {
         submi = e_menu_item_new(subm);
         e_menu_item_label_set(submi, _("Select Border Style"));
@@ -1380,6 +1385,7 @@ _e_client_menu_cb_fav_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UN
    efreet_menu_desktop_insert(menu, ec->desktop, -1);
    efreet_menu_save(menu, buf);
    efreet_menu_free(menu);
+   e_int_menus_cache_clear();
 }
 
 static void

@@ -4774,6 +4774,11 @@ _e_fm2_icon_free(E_Fm2_Icon *ic)
 {
    if (ic->queued) abort();
    if (ic->inserted) abort();
+   if (ic->eio)
+     {
+        eio_file_cancel(ic->eio);
+        ic->eio = NULL;
+     }
    /* free icon, object data etc. etc. */
    if (ic->sd->last_placed == ic)
      {
@@ -5171,7 +5176,7 @@ _e_fm2_cb_eio_stat(void *data, Eio_File *handler __UNUSED__, const Eina_Stat *st
 }
 
 static void
-_e_fm2_cb_eio_err(void *data, Eio_File *handler __UNUSED__, int error __UNUSED__)
+_e_fm2_cb_eio_err(void *data, Eio_File *handler EINA_UNUSED, int error EINA_UNUSED)
 {
    E_Fm2_Icon *ic = data;
    ic->eio = NULL;
@@ -7685,7 +7690,7 @@ _e_fm2_cb_icon_mouse_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNU
              d = e_drag_new(c, 0, 0, drag_types, 1,
                             sel, sel_length, NULL, _e_fm2_cb_drag_finished);
              if (layout)
-               d->x = ic->sd->x, d->y = ic->sd->y;
+               d->x = ic->sd->x - ic->sd->pos.x, d->y = ic->sd->y - ic->sd->pos.y;
              else
                d->x = ic->x + ic->sd->x - ic->sd->pos.x, d->y = ic->y + ic->sd->y - ic->sd->pos.y;
 #ifndef HAVE_WAYLAND_ONLY

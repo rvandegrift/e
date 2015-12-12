@@ -303,8 +303,6 @@ _e_comp_x_client_new_helper(E_Client *ec)
                ec->icccm.fetch.client_leader = 1;
              else if (atoms[i] == ECORE_X_ATOM_WM_WINDOW_ROLE)
                ec->icccm.fetch.window_role = 1;
-             else if (atoms[i] == ECORE_X_ATOM_WM_STATE)
-               ec->icccm.fetch.state = 1;
           }
         /* netwm, loop again, netwm will ignore some icccm, so we
          * have to be sure that netwm is checked after */
@@ -398,6 +396,8 @@ _e_comp_x_client_new_helper(E_Client *ec)
              /* loop to check for window profile list atom */
              else if (atoms[i] == ECORE_X_ATOM_E_WINDOW_PROFILE_SUPPORTED)
                ec->e.fetch.profile = 1;
+             else if (atoms[i] == ATM_GTK_FRAME_EXTENTS)
+               ec->comp_data->fetch_gtk_frame_extents = 1;
           }
         if (video_position && video_parent)
           {
@@ -626,12 +626,14 @@ _e_comp_x_post_client_idler_cb(void *d EINA_UNUSED)
              /* flag gets unset in property cb to avoid fetching opacity after we just set it */
           }
         if (ec->post_resize)
-          e_pixmap_dirty(ec->pixmap);
-        e_comp_object_render_update_del(ec->frame);
-        if (!ec->internal)
           {
-             ec->comp_data->pw = ec->client.w;
-             ec->comp_data->ph = ec->client.h;
+             e_pixmap_dirty(ec->pixmap);
+             e_comp_object_render_update_del(ec->frame);
+             if (!ec->internal)
+               {
+                  ec->comp_data->pw = ec->client.w;
+                  ec->comp_data->ph = ec->client.h;
+               }
           }
         ec->post_move = 0;
         ec->post_resize = 0;
@@ -934,22 +936,32 @@ _e_comp_x_evas_resize_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_i
 }
 
 static void
-_e_comp_x_evas_hide_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+_e_comp_x_client_hide(E_Client *ec)
 {
-   E_Client *ec = data, *tmp;
    unsigned int visible = 0;
-   Eina_List *l;
 
    if (!ec->comp_data) return; // already deleted, happens with internal wins
    ecore_x_window_shadow_tree_flush();
    if ((!ec->iconic) && (!ec->override))
      ecore_x_window_prop_card32_set(e_client_util_win_get(ec), E_ATOM_MAPPED, &visible, 1);
 
+   ec->comp_data->iconic = ec->iconic && (!e_comp_object_mirror_visibility_check(ec->frame));
+   if (ec->unredirected_single || ec->comp_data->iconic)
+     ecore_x_window_hide(_e_comp_x_client_window_get(ec));
+   if (ec->comp_data->iconic)
+     e_hints_window_iconic_set(ec);
+}
+
+static void
+_e_comp_x_evas_hide_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Client *ec = data, *tmp;
+   Eina_List *l;
+
+   _e_comp_x_client_hide(ec);
+
    EINA_LIST_FOREACH(ec->e.state.video_child, l, tmp)
      evas_object_hide(tmp->frame);
-
-   if (ec->unredirected_single)
-     ecore_x_window_hide(_e_comp_x_client_window_get(ec));
 
    if (e_comp_config_get()->send_flush)
      ecore_x_e_comp_flush_send(e_client_util_win_get(ec));
@@ -958,25 +970,36 @@ _e_comp_x_evas_hide_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UN
 }
 
 static void
-_e_comp_x_evas_show_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+_e_comp_x_client_show(E_Client *ec)
 {
-   E_Client *ec = data, *tmp;
    unsigned int visible = 1;
    Ecore_X_Window win;
-   Eina_List *l;
 
    if (!ec->comp_data) return;
    win = e_client_util_win_get(ec);
    ecore_x_window_shadow_tree_flush();
    if (!ec->comp_data->need_reparent)
      ecore_x_window_show(win);
-   if (ec->unredirected_single)
-     ecore_x_window_show(_e_comp_x_client_window_get(ec));
+   if (ec->unredirected_single || ec->comp_data->iconic)
+     {
+        e_pixmap_clear(ec->pixmap);
+        ecore_x_window_show(_e_comp_x_client_window_get(ec));
+        ec->comp_data->iconic = 0;
+     }
    if (!ec->override)
      e_hints_window_visible_set(ec);
 
    ecore_x_window_prop_card32_set(win, E_ATOM_MAPPED, &visible, 1);
    ecore_x_window_prop_card32_set(win, E_ATOM_MANAGED, &visible, 1);
+}
+
+static void
+_e_comp_x_evas_show_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Client *ec = data, *tmp;
+   Eina_List *l;
+
+   _e_comp_x_client_show(ec);
 
    if (ec->comp_data->frame_update)
      {
@@ -1131,6 +1154,26 @@ _e_comp_x_resize_request(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_E
 }
 
 static void
+_e_comp_x_evas_mirror_hidden(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Client *ec = data;
+
+   if (!ec->comp_data) return;
+   if ((!ec->iconic) || (!ec->comp_data->iconic)) return;
+   _e_comp_x_client_hide(ec);
+}
+
+static void
+_e_comp_x_evas_mirror_visible(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Client *ec = data;
+
+   if (!ec->comp_data) return;
+   if ((!ec->iconic) || ec->comp_data->iconic) return;
+   _e_comp_x_client_show(ec);
+}
+
+static void
 _e_comp_x_client_evas_init(E_Client *ec)
 {
    if (ec->comp_data->evas_init) return;
@@ -1152,6 +1195,8 @@ _e_comp_x_client_evas_init(E_Client *ec)
    evas_object_smart_callback_add(ec->frame, "color_set", _e_comp_x_evas_color_set_cb, ec);
    evas_object_smart_callback_add(ec->frame, "fullscreen_zoom", _e_comp_x_evas_fullscreen_zoom_cb, ec);
    evas_object_smart_callback_add(ec->frame, "unfullscreen_zoom", _e_comp_x_evas_unfullscreen_zoom_cb, ec);
+   evas_object_smart_callback_add(ec->frame, "visibility_force", _e_comp_x_evas_mirror_visible, ec);
+   evas_object_smart_callback_add(ec->frame, "visibility_normal", _e_comp_x_evas_mirror_hidden, ec);
    /* force apply this since we haven't set up our smart cb previously */
    _e_comp_x_evas_comp_hidden_cb(ec, NULL, NULL);
 }
@@ -1246,7 +1291,7 @@ _e_comp_x_show_helper(E_Client *ec)
              evas_object_hide(ec->frame);
              e_comp_object_damage(ec->frame, 0, 0, ec->w, ec->h);
           }
-        else
+        else if (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_WITHDRAWN)
           evas_object_show(ec->frame);
         ec->comp_data->first_map = 1;
         if (ec->internal_ecore_evas)
@@ -1368,6 +1413,7 @@ _e_comp_x_hide(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Windo
      {
         hid = EINA_TRUE;
         evas_object_hide(ec->frame);
+        e_hints_window_hidden_set(ec);
         if (!ec->internal)
           {
              if (ec->exe_inst && ec->exe_inst->exe)
@@ -1749,6 +1795,8 @@ _e_comp_x_property(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_W
      {
         ec->icccm.fetch.hints = 1;
         EC_CHANGED(ec);
+        if (ec->icccm.state == ECORE_X_WINDOW_STATE_HINT_WITHDRAWN)
+          ec->ignored = 0;
      }
    else if (ev->atom == ECORE_X_ATOM_WM_NORMAL_HINTS)
      {
@@ -1912,6 +1960,11 @@ _e_comp_x_property(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_W
    else if (ev->atom == ECORE_X_ATOM_E_WINDOW_PROFILE_AVAILABLE_LIST)
      {
         ec->e.fetch.profile = 1;
+        EC_CHANGED(ec);
+     }
+   else if (ev->atom == ATM_GTK_FRAME_EXTENTS)
+     {
+        ec->comp_data->fetch_gtk_frame_extents = 1;
         EC_CHANGED(ec);
      }
 
@@ -2213,8 +2266,22 @@ _e_comp_x_mouse_move(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_M
         if ((!ec) && (ev->window != ev->event_window))
           ec = _e_comp_x_client_find_by_window(ev->event_window);
         if ((!ec) || e_client_util_ignored_get(ec)) return ECORE_CALLBACK_RENEW;
-        if ((!ec->mouse_in) && (!ec->hidden) && e_client_util_desk_visible(ec, e_desk_current_get(ec->zone)))
-          e_client_mouse_in(ec, e_comp_canvas_x_root_adjust(ec->comp, ev->root.x), e_comp_canvas_x_root_adjust(ec->comp, ev->root.y));
+        if ((!ec->mouse_in) && evas_object_visible_get(ec->frame) && (!ec->desk->animate_count))
+          {
+             E_Client *tec;
+             Ecore_Window top = e_comp_top_window_at_xy_get(ec->comp, ev->root.x, ev->root.y);
+             int x, y;
+             if (top == ec->comp->ee_win) return ECORE_CALLBACK_RENEW;
+
+             x = e_comp_canvas_x_root_adjust(ec->comp, ev->root.x);
+             y = e_comp_canvas_x_root_adjust(ec->comp, ev->root.y);
+             for (tec = e_client_above_get(ec); tec; tec = e_client_above_get(tec))
+               {
+                  if (!evas_object_visible_get(tec->frame)) continue;
+                  if (E_INSIDE(x, y, tec->x, tec->y, tec->w, tec->h)) return ECORE_CALLBACK_RENEW;
+               }
+             e_client_mouse_in(ec, x, y);
+          }
         return ECORE_CALLBACK_RENEW;
      }
    E_COMP_X_PIXMAP_CHECK ECORE_CALLBACK_RENEW;
@@ -2339,7 +2406,7 @@ _e_comp_x_sync_alarm(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event
    Eina_Bool resize = EINA_FALSE;
 
    ec = _e_comp_x_client_find_by_alarm(ev->alarm);
-   if (!ec) return ECORE_CALLBACK_RENEW;
+   if ((!ec) || e_object_is_del(E_OBJECT(ec))) return ECORE_CALLBACK_RENEW;
 
    if (ec->netwm.sync.wait)
      ec->netwm.sync.wait--;
@@ -2680,9 +2747,13 @@ _e_comp_x_damage(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Dam
    E_Client *ec;
    Ecore_X_Rectangle *rects = NULL;
    int n = 0;
+   Eina_Bool skip;
 
    ec = _e_comp_x_client_find_by_damage(ev->damage);
    if (!ec) return ECORE_CALLBACK_PASS_ON;
+   skip = ec->shape_rects_num > 50;
+   if (ec->override && (!ec->comp_data->first_damage))
+     skip = EINA_TRUE;
    if (ec->comp_data->damage)
      {
         Ecore_X_Region parts;
@@ -2690,21 +2761,24 @@ _e_comp_x_damage(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Dam
 
         parts = ecore_x_region_new(NULL, 0);
         ecore_x_damage_subtract(ec->comp_data->damage, 0, parts);
-        rects = ecore_x_region_fetch(parts, &n, &bounds);
+        if (!skip)
+          rects = ecore_x_region_fetch(parts, &n, &bounds);
         ecore_x_region_free(parts);
      }
    //WRN("DAMAGE %p: %dx%d", ec, ev->area.width, ev->area.height);
 
-   if (!n) return ECORE_CALLBACK_RENEW;
    if (ec->comp->nocomp)
      e_pixmap_dirty(ec->pixmap);
-   else
+   else if (skip)
+     e_comp_object_damage(ec->frame, 0, 0, ec->w, ec->h);
+   else if (n)
      {
         int i;
 
         for (i = 0; i < n; i++)
           e_comp_object_damage(ec->frame, rects[i].x, rects[i].y, rects[i].width, rects[i].height);
      }
+   free(rects);
    if ((!ec->re_manage) && (!ec->override) && (!ec->comp_data->first_damage))
      e_comp_object_render_update_del(ec->frame);
    else
@@ -2944,11 +3018,9 @@ _e_comp_x_hook_client_pre_frame_assign(void *d EINA_UNUSED, E_Client *ec)
              ec->comp_data->set_win_type = 0;
           }
      }
-   if (ec->re_manage || ec->visible)
-     {
-        ecore_x_window_show(win);
-        ecore_x_window_show(pwin);
-     }
+   ecore_x_window_show(win);
+   if (!ec->iconic)
+     ecore_x_window_show(pwin);
 
    _e_comp_x_focus_init(ec);
    e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, win);
@@ -2956,7 +3028,7 @@ _e_comp_x_hook_client_pre_frame_assign(void *d EINA_UNUSED, E_Client *ec)
    _e_comp_x_client_evas_init(ec);
    if (ec->netwm.ping && (!ec->ping_poller))
      e_client_ping(ec);
-   if (ec->visible) evas_object_show(ec->frame);
+   if (ec->visible && (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_WITHDRAWN))
    ec->comp_data->need_reparent = 0;
    ec->redirected = 1;
    if (ec->comp_data->change_icon)
@@ -3092,12 +3164,6 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
         eina_stringshare_del(pname);
         eina_stringshare_del(pclass);
         ec->icccm.fetch.name_class = 0;
-     }
-   if (ec->changes.prop || ec->icccm.fetch.state)
-     {
-        ec->icccm.state = ecore_x_icccm_state_get(win);
-        ec->icccm.fetch.state = 0;
-        rem_change = 1;
      }
    if (ec->changes.prop || ec->e.fetch.state)
      {
@@ -3266,19 +3332,30 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
    if (ec->changes.prop || ec->icccm.fetch.hints)
      {
         Eina_Bool accepts_focus, is_urgent;
+        Ecore_X_Window_State_Hint state = ec->icccm.state;
 
         accepts_focus = EINA_TRUE;
         is_urgent = EINA_FALSE;
-        ec->icccm.initial_state = ECORE_X_WINDOW_STATE_HINT_NORMAL;
+        ec->icccm.state = ECORE_X_WINDOW_STATE_HINT_NORMAL;
         if (ecore_x_icccm_hints_get(win,
                                     &accepts_focus,
-                                    &ec->icccm.initial_state,
+                                    &ec->icccm.state,
                                     &ec->icccm.icon_pixmap,
                                     &ec->icccm.icon_mask,
                                     (Ecore_X_Window*)&ec->icccm.icon_window,
                                     (Ecore_X_Window*)&ec->icccm.window_group,
                                     &is_urgent))
           {
+             if (ec->new_client)
+               ec->icccm.initial_state = ec->icccm.state;
+             if (state != ec->icccm.state)
+               {
+                  ecore_x_icccm_state_set(win, ec->icccm.state);
+                  if (ec->icccm.state == ECORE_X_WINDOW_STATE_HINT_WITHDRAWN)
+                    ec->ignored = 1, ec->visible = 0;
+                  else
+                    ec->changes.visible = ec->visible = 1;
+               }
              ec->icccm.accepts_focus = accepts_focus;
              ec->icccm.urgent = is_urgent;
              e_client_urgent_set(ec, is_urgent);
@@ -4199,6 +4276,29 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
         ec->e.state.profile.wait_for_done = 1;
         eina_stringshare_replace(&ec->e.state.profile.set, NULL);
      }
+   if (ec->comp_data->fetch_gtk_frame_extents)
+     {
+        unsigned char *data;
+        int count;
+
+        if (ecore_x_window_prop_property_get(win,
+                                             ATM_GTK_FRAME_EXTENTS,
+                                             ECORE_X_ATOM_CARDINAL, 32,
+                                             &data, &count))
+          {
+             unsigned int *extents = (unsigned int*)data;
+
+             /* _GTK_FRAME_EXTENTS describes a region l/r/t/b pixels
+              * from the "window" object in which shadows will be drawn.
+              * this area should not be accounted for in sizing or
+              * placement calculations.
+              */
+             e_comp_object_frame_geometry_set(ec->frame,
+               -extents[0], -extents[1], -extents[2], -extents[3]);
+             free(data);
+          }
+        ec->comp_data->fetch_gtk_frame_extents = 0;
+     }
    ec->changes.prop = 0;
    if (rem_change) e_remember_update(ec);
    if ((!ec->comp_data->reparented) && (!ec->internal)) ec->changes.border = 0;
@@ -4239,7 +4339,7 @@ _e_comp_x_hook_client_new(void *d EINA_UNUSED, E_Client *ec)
    ec->changes.shape_input = 1;
 
    ec->netwm.type = E_WINDOW_TYPE_UNKNOWN;
-   ec->icccm.state = ECORE_X_WINDOW_STATE_HINT_NONE;
+   ec->icccm.state =ec->icccm.initial_state = ECORE_X_WINDOW_STATE_HINT_NONE;
 
    if (!_e_comp_x_client_new_helper(ec)) return;
 
@@ -4945,7 +5045,8 @@ _e_comp_x_manage_windows(E_Comp *c)
                   evas_object_geometry_set(ec->frame, ec->client.x, ec->client.y, ec->client.w, ec->client.h);
                }
              ec->ignore_first_unmap = 1;
-             evas_object_show(ec->frame);
+             if (ec->override || (!ec->icccm.fetch.hints))
+               evas_object_show(ec->frame);
              _e_comp_x_client_stack(ec);
           }
      }

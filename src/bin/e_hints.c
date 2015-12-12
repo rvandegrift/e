@@ -13,6 +13,8 @@ E_API Ecore_X_Atom ATM_GNOME_SM_PROXY = 0;
 E_API Ecore_X_Atom ATM_ENLIGHTENMENT_COMMS = 0;
 E_API Ecore_X_Atom ATM_ENLIGHTENMENT_VERSION = 0;
 E_API Ecore_X_Atom ATM_ENLIGHTENMENT_SCALE = 0;
+
+E_API Ecore_X_Atom ATM_GTK_FRAME_EXTENTS = 0;
 #endif
 
 EINTERN void
@@ -26,9 +28,10 @@ e_hints_init(Ecore_Window root, Ecore_Window propwin)
       "GNOME_SM_PROXY",
       "ENLIGHTENMENT_COMMS",
       "ENLIGHTENMENT_VERSION",
-      "ENLIGHTENMENT_SCALE"
+      "ENLIGHTENMENT_SCALE",
+      "_GTK_FRAME_EXTENTS",
    };
-   Ecore_X_Atom atoms[6];
+   Ecore_X_Atom atoms[EINA_C_ARRAY_LENGTH(atom_names)];
    Ecore_X_Atom supported[43];
    int supported_num;
    Ecore_X_Window win, twin;
@@ -36,13 +39,14 @@ e_hints_init(Ecore_Window root, Ecore_Window propwin)
    char *name;
    double ts;
 
-   ecore_x_atoms_get(atom_names, 6, atoms);
+   ecore_x_atoms_get(atom_names, EINA_C_ARRAY_LENGTH(atom_names), atoms);
    ATM__QTOPIA_SOFT_MENU = atoms[0];
    ATM__QTOPIA_SOFT_MENUS = atoms[1];
    ATM_GNOME_SM_PROXY = atoms[2];
    ATM_ENLIGHTENMENT_COMMS = atoms[3];
    ATM_ENLIGHTENMENT_VERSION = atoms[4];
    ATM_ENLIGHTENMENT_SCALE = atoms[5];
+   ATM_GTK_FRAME_EXTENTS = atoms[6];
 
    supported_num = 0;
    /* Set what hints we support */
@@ -121,6 +125,7 @@ e_hints_init(Ecore_Window root, Ecore_Window propwin)
    supported[supported_num++] = ECORE_X_ATOM_E_VIDEO_PARENT;
    supported[supported_num++] = ECORE_X_ATOM_E_VIDEO_POSITION;
 
+   supported[supported_num++] = ATM_GTK_FRAME_EXTENTS;
 
 
 
@@ -409,7 +414,7 @@ e_hints_window_init(E_Client *ec)
    if (ec->remember)
      rem = ec->remember;
 
-   if (ec->icccm.state == ECORE_X_WINDOW_STATE_HINT_NONE)
+   if (ec->icccm.initial_state == ECORE_X_WINDOW_STATE_HINT_NONE)
      {
         if (ec->netwm.state.hidden)
           ec->icccm.state = ECORE_X_WINDOW_STATE_HINT_ICONIC;
@@ -558,7 +563,7 @@ e_hints_window_init(E_Client *ec)
    else if (ec->desk == e_desk_current_get(ec->zone))
      {
         /* ...but only if it's supposed to be shown */
-        if (ec->re_manage)
+        if (ec->re_manage && (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_WITHDRAWN))
           {
              ec->changes.visible = 1;
              ec->visible = 1;
@@ -803,12 +808,12 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
          switch (action)
            {
             case ECORE_X_WINDOW_STATE_ACTION_REMOVE:
-              if (ec->maximized & max[state])
-                e_client_unmaximize(ec, E_MAXIMIZE_VERTICAL);
+              if ((ec->maximized & max[state]) == max[state])
+                e_client_unmaximize(ec, max[state]);
               break;
 
             case ECORE_X_WINDOW_STATE_ACTION_ADD:
-              if (ec->maximized & max[state]) break;
+              if ((ec->maximized & max[state]) == max[state]) break;
               ec->changes.need_maximize = 1;
               ec->maximized &= ~E_MAXIMIZE_TYPE;
               ec->maximized |= (e_config->maximize_policy & E_MAXIMIZE_TYPE) | max[state];
@@ -816,7 +821,7 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
               break;
 
             case ECORE_X_WINDOW_STATE_ACTION_TOGGLE:
-              if (ec->maximized & max[state])
+              if ((ec->maximized & max[state]) == max[state])
                 {
                    e_client_unmaximize(ec, max[state]);
                    break;
@@ -1225,9 +1230,11 @@ e_hints_window_visible_set(E_Client *ec)
 #ifdef HAVE_WAYLAND_ONLY
 #else
    if (!e_pixmap_is_x(ec->pixmap)) return;
-   if (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_NORMAL)
-     ec->icccm.state = ECORE_X_WINDOW_STATE_HINT_NORMAL;
-   ecore_x_icccm_state_set(e_client_util_win_get(ec), ECORE_X_WINDOW_STATE_HINT_NORMAL);
+   if (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_WITHDRAWN)
+     {
+        ec->icccm.state = ECORE_X_WINDOW_STATE_HINT_NORMAL;
+        ecore_x_icccm_state_set(e_client_util_win_get(ec), ECORE_X_WINDOW_STATE_HINT_NORMAL);
+     }
    if (ec->netwm.state.hidden)
      {
         ec->netwm.update.state = 1;
@@ -1244,9 +1251,11 @@ e_hints_window_iconic_set(E_Client *ec)
 #ifdef HAVE_WAYLAND_ONLY
 #else
    if (!e_pixmap_is_x(ec->pixmap)) return;
-   if (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_ICONIC)
-     ec->icccm.state = ECORE_X_WINDOW_STATE_HINT_ICONIC;
-   ecore_x_icccm_state_set(e_client_util_win_get(ec), ECORE_X_WINDOW_STATE_HINT_ICONIC);
+   if (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_WITHDRAWN)
+     {
+        ec->icccm.state = ECORE_X_WINDOW_STATE_HINT_ICONIC;
+        ecore_x_icccm_state_set(e_client_util_win_get(ec), ECORE_X_WINDOW_STATE_HINT_ICONIC);
+     }
    if (!ec->netwm.state.hidden)
      {
         ec->netwm.update.state = 1;

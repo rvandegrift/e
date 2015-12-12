@@ -48,6 +48,10 @@ static void             _cb_down(void *data, void *data2 __UNUSED__);
 static void             _cb_order_del(void *data, void *data2 __UNUSED__);
 static Eina_Bool        _cb_fill_delay(void *data);
 
+static Eina_List *dialogs;
+static Ecore_Event_Handler *handler;
+static Ecore_Timer *cache_timer;
+
 E_Config_Dialog *
 e_int_config_apps_add(E_Comp *comp, const char *params __UNUSED__)
 {
@@ -190,6 +194,35 @@ _create_dialog(E_Comp *comp, E_Config_Data *data)
    return cfd;
 }
 
+static Eina_Bool
+_cache_update_timer(void *d EINA_UNUSED)
+{
+   Eina_List *l;
+   E_Config_Dialog_Data *cfdata;
+
+   EINA_LIST_FOREACH(dialogs, l, cfdata)
+     {
+        E_FREE_LIST(cfdata->apps, efreet_desktop_unref);
+        if (eina_str_has_extension(cfdata->data->filename, ".menu"))
+          cfdata->apps = _load_menu(cfdata->data->filename);
+        else if (eina_str_has_extension(cfdata->data->filename, ".order"))
+          cfdata->apps = _load_order(cfdata->data->filename);
+        _cb_fill_delay(cfdata);
+     }
+   cache_timer = NULL;
+   return EINA_FALSE;
+}
+
+static Eina_Bool
+_cache_update()
+{
+   if (cache_timer)
+     ecore_timer_reset(cache_timer);
+   else
+     cache_timer = ecore_timer_add(1.0, _cache_update_timer, NULL);
+   return ECORE_CALLBACK_RENEW;
+}
+
 static void *
 _create_data(E_Config_Dialog *cfd)
 {
@@ -210,6 +243,9 @@ _create_data(E_Config_Dialog *cfd)
    else if (!strcmp(ext, ".order"))
      cfdata->apps = _load_order(data->filename);
 
+   if (!dialogs)
+     handler = ecore_event_handler_add(EFREET_EVENT_DESKTOP_CACHE_UPDATE, _cache_update, NULL);
+   dialogs = eina_list_append(dialogs, cfdata);
    return cfdata;
 }
 
@@ -239,6 +275,12 @@ _free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
    e_widget_ilist_clear(cfdata->apps_user.o_list);
    E_FREE_LIST(cfdata->apps_user.desks, efreet_desktop_free);
    E_FREE_LIST(cfdata->apps_xdg.desks, efreet_desktop_free);
+   dialogs = eina_list_remove(dialogs, cfdata);
+   if (!dialogs)
+     {
+        E_FREE_FUNC(cache_timer, ecore_timer_del);
+        E_FREE_FUNC(handler, ecore_event_handler_del);
+     }
    free(cfdata);
 }
 
@@ -263,7 +305,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 
         cfdata->apps_xdg.o_desc = e_widget_textblock_add(evas);
         e_widget_size_min_set(cfdata->apps_xdg.o_desc, 100, (45 * e_scale));
-        e_widget_table_object_append(ot, cfdata->apps_xdg.o_desc, 0, 1, 2, 1, 1, 1, 0, 0);
+        e_widget_table_object_append(ot, cfdata->apps_xdg.o_desc, 0, 1, 2, 1, 1, 1, 1, 0);
 
         cfdata->apps_xdg.o_add = e_widget_button_add(evas, _("Add"), "list-add",
                                                      _cb_add, &cfdata->apps_xdg, NULL);
@@ -393,6 +435,7 @@ _save_menu(E_Config_Dialog_Data *cfdata)
      }
    ret = efreet_menu_save(menu, cfdata->data->filename);
    efreet_menu_free(menu);
+   e_int_menus_cache_clear();
    return ret;
 }
 
