@@ -8,3 +8,4 @@ usr/share/enlightenment/doc/illume2.png usr/share/doc/enlightenment/html
 usr/share/enlightenment/doc/illume2.html usr/share/doc/enlightenment/html
 usr/share/enlightenment/doc/*.txt.gz usr/share/doc/enlightenment
 usr/lib/systemd/user/enlightenment.service
+usr/share/pixmaps/emixer.png
