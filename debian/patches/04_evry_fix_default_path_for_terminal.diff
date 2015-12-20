@@ -1,6 +1,6 @@
 --- a/src/modules/everything/evry_plug_apps.c
 +++ b/src/modules/everything/evry_plug_apps.c
-@@ -1384,7 +1384,7 @@
+@@ -1390,7 +1390,7 @@
       {
          _conf = E_NEW(Module_Config, 1);
          /* setup defaults */
