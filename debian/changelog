@@ -1,3 +1,12 @@
+e17 (0.20.1-1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream release
+  * patches/03_test_pt_getsiginfo.diff: defuzz
+  * patches/04_evry_fix_default_path_for_terminal.diff: defuzz
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 12 Dec 2015 14:14:23 -0500
+
 e17 (0.19.14-1) UNRELEASED; urgency=medium
 
   * Non-maintainer upload.
