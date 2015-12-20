@@ -26,6 +26,7 @@ override_dh_lintian:
 override_dh_install:
 	gzip -9n debian/tmp/usr/share/enlightenment/doc/*.txt
 	rm debian/tmp/usr/share/enlightenment/COPYING
+	rm debian/tmp/usr/share/enlightenment/AUTHORS
 	dh_install --list-missing
 
 override_dh_fixperms:
