@@ -1,5 +1,6 @@
 e17 (0.20.1-1) UNRELEASED; urgency=medium
 
+  [ Ross Vandegrift ]
   * Non-maintainer upload.
   * New upstream release
   * patches/03_test_pt_getsiginfo.diff: defuzz
@@ -10,6 +11,10 @@ e17 (0.20.1-1) UNRELEASED; urgency=medium
   * Ship Illume documentation
   * Ship emixer
   * Ship additional upstream documentation
+
+  [ Andreas Metzler ]
+  * Drop Conflicts of enlightenment with itself and add transition packages
+    for e17 and e17-data to make "apt full-upgrade" work.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 20 Dec 2015 16:08:35 -0500
 
