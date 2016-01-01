@@ -56,22 +56,6 @@ Description: Enlightenment headers, static libraries and documentation
  This package contains headers, static libraries and documentation for
  enlightenment.
 
-Package: enlightenment-dbg
-Architecture: any
-Section: debug
-Depends: ${misc:Depends}, enlightenment (= ${binary:Version})
-Priority: extra
-Description: Enlightenment Window Manager - debugging symbols
- Enlightenment is an advanced window manager for X11. Unique
- features include: a fully animated background, nice drop shadows
- around windows, backed by an extremely clean and optimized
- foundation of APIs
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat
- easier to interpret core dumps. The libraries are installed in
- /usr/lib/debug and are automatically used by gdb.
-
 Package: e17
 Architecture: all
 Section: x11
