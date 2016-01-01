@@ -37,6 +37,3 @@ override_dh_fixperms:
 override_dh_clean:
 	dh_clean
 	rm -f debian/enlightenment.lintian-overrides
-
-override_dh_strip:
-	dh_strip --dbg-package=enlightenment-dbg
