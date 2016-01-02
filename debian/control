@@ -58,7 +58,7 @@ Description: Enlightenment headers, static libraries and documentation
 
 Package: e17
 Architecture: all
-Section: x11
+Section: oldlibs
 Depends: enlightenment (>= ${source:Upstream-Version}), ${misc:Depends}
 Priority: extra
 Description: transitional e17 package
@@ -67,7 +67,7 @@ Description: transitional e17 package
 
 Package: e17-data
 Architecture: all
-Section: x11
+Section: oldlibs
 Depends: enlightenment-data (>= ${source:Upstream-Version}), ${misc:Depends}
 Priority: extra
 Description: transitional e17-data package
