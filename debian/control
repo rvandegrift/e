@@ -1,7 +1,7 @@
 Source: e17
 Section: x11
 Priority: optional
-Maintainer:  Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
+Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
  Jan Lübbe <jluebbe@debian.org>
 Build-Depends: debhelper (>= 9), dh-autoreconf, libxext-dev, libeet-bin,
@@ -20,7 +20,7 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, enlightenment-data (= ${source:Vers
  libevas1-engines-x, libedje-bin, dbus-x11
 Recommends: pm-utils
 Provides: x-window-manager
-Description: Enlightenment Window Manager
+Description: X11 window manager based on EFL
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
  around windows, backed by an extremely clean and optimized
@@ -33,7 +33,7 @@ Architecture: all
 Depends: ${misc:Depends}
 Enhances: enlightenment
 Conflicts: enlightenment-data
-Description: Enlightenment Window Manager Run Time Data Files
+Description: X11 window manager based on EFL - run time data files
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
  around windows, backed by an extremely clean and optimized
