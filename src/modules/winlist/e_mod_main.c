@@ -68,7 +68,7 @@ e_modapi_init(E_Module *m)
 }
 
 E_API int
-e_modapi_shutdown(E_Module *m __UNUSED__)
+e_modapi_shutdown(E_Module *m EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
 
@@ -100,14 +100,14 @@ e_modapi_shutdown(E_Module *m __UNUSED__)
 }
 
 E_API int
-e_modapi_save(E_Module *m __UNUSED__)
+e_modapi_save(E_Module *m EINA_UNUSED)
 {
    return 1;
 }
 
 /* action callback */
 static void
-_e_mod_action_winlist_cb_helper(E_Object *obj, const char *params, int modifiers, E_Winlist_Activate_Type type)
+_e_mod_action_winlist_cb_helper(E_Object *obj EINA_UNUSED, const char *params, int modifiers, E_Winlist_Activate_Type type)
 {
    E_Zone *zone = NULL;
    E_Winlist_Filter filter = E_WINLIST_FILTER_NONE;
@@ -115,18 +115,7 @@ _e_mod_action_winlist_cb_helper(E_Object *obj, const char *params, int modifiers
    int udlr = -1; // 0 for up, 1 for down, 2 for left, 3 for right
    Eina_Bool ok = EINA_TRUE;
 
-   if (obj)
-     {
-        if (obj->type == E_MANAGER_TYPE)
-          zone = e_util_zone_current_get((E_Manager *)obj);
-        else if (obj->type == E_COMP_TYPE)
-          zone = e_util_zone_current_get(((E_Comp *)obj)->man);
-        else if (obj->type == E_ZONE_TYPE)
-          zone = e_util_zone_current_get(((E_Zone *)obj)->comp->man);
-        else
-          zone = e_util_zone_current_get(e_manager_current_get());
-     }
-   if (!zone) zone = e_util_zone_current_get(e_manager_current_get());
+   zone = e_zone_current_get();
    if (!zone) return;
    if (params)
      {
@@ -166,22 +155,8 @@ _e_mod_action_winlist_cb_helper(E_Object *obj, const char *params, int modifiers
      e_winlist_next();
    else if (direction == -1)
      e_winlist_prev();
-   if (direction) return;
-   switch (udlr)
-     {
-      case 0:
-        e_winlist_up(zone);
-        break;
-      case 1:
-        e_winlist_down(zone);
-        break;
-      case 2:
-        e_winlist_left(zone);
-        break;
-      case 3:
-        e_winlist_right(zone);
-        break;
-     }
+   else
+     e_winlist_direction_select(zone, udlr);
 }
 
 static void

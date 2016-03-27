@@ -56,6 +56,33 @@ E_API int E_EVENT_CONFIG_MODE_CHANGED = 0;
 E_API int E_EVENT_CONFIG_LOADED = 0;
 
 static E_Dialog *_e_config_error_dialog = NULL;
+static Eina_List *handlers = NULL;
+
+typedef struct _E_Color_Class
+{
+   const char	 *name; /* stringshared name */
+   int		  r, g, b, a;
+   int		  r2, g2, b2, a2;
+   int		  r3, g3, b3, a3;
+} E_Color_Class;
+
+static Eina_Bool
+_e_config_cb_efreet_cache_update(void *data EINA_UNUSED, int type EINA_UNUSED, void *ev EINA_UNUSED)
+{
+   if (e_config)
+     {
+        if (e_config->icon_theme)
+          {
+             if (!efreet_icon_theme_find(e_config->icon_theme))
+               {
+                  eina_stringshare_replace(&e_config->icon_theme, "hicolor");
+                  e_config_save_queue();
+               }
+          }
+     }
+   return ECORE_CALLBACK_RENEW;
+}
+
 
 static void
 _e_config_error_dialog_cb_delete(void *dia)
@@ -172,8 +199,6 @@ _e_config_edd_init(Eina_Bool old)
 #define D _e_config_shelf_edd
    E_CONFIG_VAL(D, T, name, STR);
    E_CONFIG_VAL(D, T, id, INT);
-   EET_DATA_DESCRIPTOR_ADD_BASIC(D, T, "container", manager, EET_T_INT);
-   E_CONFIG_VAL(D, T, manager /*container */, INT);
    E_CONFIG_VAL(D, T, zone, INT);
    E_CONFIG_VAL(D, T, layer, INT);
    E_CONFIG_VAL(D, T, popup, UCHAR);
@@ -203,8 +228,6 @@ _e_config_edd_init(Eina_Bool old)
 #undef D
 #define T E_Config_Desktop_Background
 #define D _e_config_desktop_bg_edd
-   EET_DATA_DESCRIPTOR_ADD_BASIC(D, T, "container", manager, EET_T_INT);
-   E_CONFIG_VAL(D, T, manager /*container */, INT);
    E_CONFIG_VAL(D, T, zone, INT);
    E_CONFIG_VAL(D, T, desk_x, INT);
    E_CONFIG_VAL(D, T, desk_y, INT);
@@ -215,8 +238,6 @@ _e_config_edd_init(Eina_Bool old)
 #undef D
 #define T E_Config_Desktop_Name
 #define D _e_config_desktop_name_edd
-   EET_DATA_DESCRIPTOR_ADD_BASIC(D, T, "container", manager, EET_T_INT);
-   E_CONFIG_VAL(D, T, manager /*container */, INT);
    E_CONFIG_VAL(D, T, zone, INT);
    E_CONFIG_VAL(D, T, desk_x, INT);
    E_CONFIG_VAL(D, T, desk_y, INT);
@@ -227,7 +248,6 @@ _e_config_edd_init(Eina_Bool old)
 #undef D
 #define T E_Config_Desktop_Window_Profile
 #define D _e_config_desktop_window_profile_edd
-   E_CONFIG_VAL(D, T, manager, INT);
    E_CONFIG_VAL(D, T, zone, INT);
    E_CONFIG_VAL(D, T, desk_x, INT);
    E_CONFIG_VAL(D, T, desk_y, INT);
@@ -340,7 +360,6 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, prop.desk_x, INT);
    E_CONFIG_VAL(D, T, prop.desk_y, INT);
    E_CONFIG_VAL(D, T, prop.zone, INT);
-   E_CONFIG_VAL(D, T, prop.head, INT);
    E_CONFIG_VAL(D, T, prop.command, STR);
    E_CONFIG_VAL(D, T, prop.icon_preference, UCHAR);
    E_CONFIG_VAL(D, T, prop.desktop_file, STR);
@@ -438,10 +457,6 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, border_shade_speed, DOUBLE); /**/
    E_CONFIG_VAL(D, T, framerate, DOUBLE); /**/
    E_CONFIG_VAL(D, T, priority, INT); /**/
-   E_CONFIG_VAL(D, T, image_cache, INT); /**/
-   E_CONFIG_VAL(D, T, font_cache, INT); /**/
-   E_CONFIG_VAL(D, T, edje_cache, INT); /**/
-   E_CONFIG_VAL(D, T, edje_collection_cache, INT); /**/
    E_CONFIG_VAL(D, T, zone_desks_x_count, INT); /**/
    E_CONFIG_VAL(D, T, zone_desks_y_count, INT); /**/
    E_CONFIG_VAL(D, T, show_desktop_icons, INT); /**/
@@ -621,6 +636,7 @@ _e_config_edd_init(Eina_Bool old)
 
    E_CONFIG_VAL(D, T, icon_theme, STR);
    E_CONFIG_VAL(D, T, icon_theme_overrides, UCHAR);
+   E_CONFIG_VAL(D, T, desktop_environment, STR);
 
    E_CONFIG_VAL(D, T, desk_flip_animate_mode, INT);
    E_CONFIG_VAL(D, T, desk_flip_animate_type, STR);
@@ -645,7 +661,6 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, menu_gadcon_client_toplevel, INT);
 
    E_CONFIG_VAL(D, T, ping_clients_interval, INT);
-   E_CONFIG_VAL(D, T, cache_flush_poll_interval, INT);
 
    E_CONFIG_VAL(D, T, thumbscroll_enable, INT);
    E_CONFIG_VAL(D, T, thumbscroll_threshhold, INT);
@@ -736,6 +751,9 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, xkb.only_label, INT);
    E_CONFIG_VAL(D, T, xkb.dont_touch_my_damn_keyboard, UCHAR);
    E_CONFIG_VAL(D, T, xkb.default_model, STR);
+
+   E_CONFIG_VAL(D, T, keyboard.repeat_delay, INT);
+   E_CONFIG_VAL(D, T, keyboard.repeat_rate, INT);
 
    if (old)
      {
@@ -933,12 +951,21 @@ e_config_init(void)
    e_config_load();
 
    e_config_save_queue();
+
+   E_LIST_HANDLER_APPEND(handlers, EFREET_EVENT_DESKTOP_CACHE_UPDATE,
+                         _e_config_cb_efreet_cache_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, EFREET_EVENT_ICON_CACHE_UPDATE,
+                         _e_config_cb_efreet_cache_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, E_EVENT_CONFIG_ICON_THEME,
+                         _e_config_cb_efreet_cache_update, NULL);
+
    return 1;
 }
 
 EINTERN int
 e_config_shutdown(void)
 {
+   E_FREE_LIST(handlers, ecore_event_handler_del);
    eina_stringshare_del(_e_config_profile);
    E_CONFIG_DD_FREE(_e_config_binding_edd);
    E_CONFIG_DD_FREE(_e_config_bindings_mouse_edd);
@@ -1318,6 +1345,26 @@ e_config_load(void)
                     break;
                  }
           }
+        CONFIG_VERSION_CHECK(18)
+          {
+             E_Color_Class *ecc;
+
+             CONFIG_VERSION_UPDATE_INFO(18);
+             EINA_LIST_FREE(e_config->color_classes, ecc)
+               {
+                  elm_config_color_overlay_set(ecc->name, ecc->r, ecc->g, ecc->b, ecc->a, ecc->r2, ecc->g2, ecc->b2, ecc->a2, ecc->r3, ecc->g3, ecc->b3, ecc->a3);
+                  eina_stringshare_del(ecc->name);
+                  free(ecc);
+               }
+          }
+        CONFIG_VERSION_CHECK(19)
+          {
+             CONFIG_VERSION_UPDATE_INFO(19);
+
+             /* set (400, 25) as the default values of repeat delay, rate */
+             e_config->keyboard.repeat_delay = 400;
+             e_config->keyboard.repeat_rate = 25;
+          }
      }
    if (!e_config->remember_internal_fm_windows)
      e_config->remember_internal_fm_windows = !!(e_config->remember_internal_windows & E_REMEMBER_INTERNAL_FM_WINS);
@@ -1335,11 +1382,6 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->border_shade_speed, 1.0, 20000.0);
    E_CONFIG_LIMIT(e_config->framerate, 1.0, 200.0);
    E_CONFIG_LIMIT(e_config->priority, 0, 19);
-   E_CONFIG_LIMIT(e_config->image_cache, 0, 256 * 1024);
-   E_CONFIG_LIMIT(e_config->font_cache, 0, 32 * 1024);
-   E_CONFIG_LIMIT(e_config->edje_cache, 0, 256);
-   E_CONFIG_LIMIT(e_config->edje_collection_cache, 0, 512);
-   E_CONFIG_LIMIT(e_config->cache_flush_poll_interval, 8, 32768);
    E_CONFIG_LIMIT(e_config->zone_desks_x_count, 1, 64);
    E_CONFIG_LIMIT(e_config->zone_desks_y_count, 1, 64);
    E_CONFIG_LIMIT(e_config->show_desktop_icons, 0, 1);
@@ -1497,9 +1539,12 @@ e_config_load(void)
 
    E_CONFIG_LIMIT(e_config->multiscreen_flip, 0, 1);
 
-   E_CONFIG_LIMIT(e_config->backlight.normal, 0.1, 1.0);
-   E_CONFIG_LIMIT(e_config->backlight.dim, 0.1, 1.0);
-   E_CONFIG_LIMIT(e_config->backlight.idle_dim, 0.1, 1.0);
+   E_CONFIG_LIMIT(e_config->backlight.normal, 0.05, 1.0);
+   E_CONFIG_LIMIT(e_config->backlight.dim, 0.05, 1.0);
+   E_CONFIG_LIMIT(e_config->backlight.idle_dim, 0, 1);
+
+   E_CONFIG_LIMIT(e_config->keyboard.repeat_delay, -1, 1000); // 1 second
+   E_CONFIG_LIMIT(e_config->keyboard.repeat_rate, -1, 1000); // 1 second
 
    if (!e_config->icon_theme)
      e_config->icon_theme = eina_stringshare_add("hicolor");  // FDO default
@@ -1763,7 +1808,7 @@ _e_config_mv_error(const char *from, const char *to)
    e_dialog_text_set(dia, buf);
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
    e_dialog_button_focus_num(dia, 0);
-   e_win_centered_set(dia->win, 1);
+   elm_win_center(dia->win, 1, 1);
    e_object_del_attach_func_set(E_OBJECT(dia),
                                 _e_config_error_dialog_cb_delete);
    e_dialog_show(dia);
@@ -1814,7 +1859,7 @@ e_config_profile_save(void)
                     {
                        e_user_dir_snprintf(bsrc, sizeof(bsrc), "config/profile.cfg");
                        e_user_dir_snprintf(bdst, sizeof(bdst), "config/profile.1.cfg");
-                       ret = ecore_file_mv(bsrc, bdst);
+                       ecore_file_mv(bsrc, bdst);
 //                       if (!ret)
 //                          _e_config_mv_error(bsrc, bdst);
                     }
@@ -2113,7 +2158,7 @@ e_config_bindings_free(E_Config_Bindings *ecb)
 
 /* local subsystem functions */
 static void
-_e_config_save_cb(void *data __UNUSED__)
+_e_config_save_cb(void *data EINA_UNUSED)
 {
    e_config_profile_save();
    e_module_save_all();
@@ -2250,6 +2295,7 @@ _e_config_free(E_Config *ecf)
    if (ecf->input_method) eina_stringshare_del(ecf->input_method);
    if (ecf->exebuf_term_cmd) eina_stringshare_del(ecf->exebuf_term_cmd);
    if (ecf->icon_theme) eina_stringshare_del(ecf->icon_theme);
+   if (ecf->desktop_environment) eina_stringshare_del(ecf->desktop_environment);
    if (ecf->wallpaper_import_last_dev) eina_stringshare_del(ecf->wallpaper_import_last_dev);
    if (ecf->wallpaper_import_last_path) eina_stringshare_del(ecf->wallpaper_import_last_path);
    if (ecf->theme_default_border_style) eina_stringshare_del(ecf->theme_default_border_style);
@@ -2406,7 +2452,7 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
                   e_dialog_text_set(dia, buf);
                   e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
                   e_dialog_button_focus_num(dia, 0);
-                  e_win_centered_set(dia->win, 1);
+                  elm_win_center(dia->win, 1, 1);
                   e_object_del_attach_func_set(E_OBJECT(dia),
                                                _e_config_error_dialog_cb_delete);
                   e_dialog_show(dia);

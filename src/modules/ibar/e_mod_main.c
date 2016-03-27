@@ -92,7 +92,7 @@ struct _IBar_Icon
    Eina_Bool       menu_grabbed : 1;
 };
 
-static IBar        *_ibar_new(Evas *evas, Instance *inst);
+static IBar        *_ibar_new(Evas_Object *parent, Instance *inst);
 static void         _ibar_free(IBar *b);
 static void         _ibar_cb_empty_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void         _ibar_empty_handle(IBar *b);
@@ -110,9 +110,10 @@ static void         _ibar_icon_free(IBar_Icon *ic);
 static void         _ibar_icon_fill(IBar_Icon *ic);
 static void         _ibar_icon_empty(IBar_Icon *ic);
 static void         _ibar_sep_create(IBar *b);
-static void         _ibar_icon_signal_emit(IBar_Icon *ic, char *sig, char *src);
+static void         _ibar_icon_signal_emit(IBar_Icon *ic, const char *sig, const char *src);
 static void         _ibar_cb_app_change(void *data, E_Order *eo);
 static void         _ibar_cb_obj_moveresize(void *data, Evas *e, Evas_Object *obj, void *event_info);
+static void         _ibar_cb_menu_icon_action_exec(void *data, E_Menu *m, E_Menu_Item *mi);
 static void         _ibar_cb_menu_icon_new(void *data, E_Menu *m, E_Menu_Item *mi);
 static void         _ibar_cb_menu_icon_add(void *data, E_Menu *m, E_Menu_Item *mi);
 static void         _ibar_cb_menu_icon_properties(void *data, E_Menu *m, E_Menu_Item *mi);
@@ -145,13 +146,13 @@ static E_Config_DD *conf_item_edd = NULL;
 static Eina_Hash *ibar_orders = NULL;
 static Eina_List *ibars = NULL;
 
-Config *ibar_config = NULL;
+EINTERN Config *ibar_config = NULL;
 
 static inline const char *
 _desktop_name_get(const Efreet_Desktop *desktop)
 {
    if (!desktop) return NULL;
-   return desktop->orig_path ?: desktop->name;
+   return desktop->orig_path; //allways return the orig_path
 }
 
 static IBar_Order *
@@ -267,9 +268,8 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    ci = _ibar_config_item_get(id);
    inst->ci = ci;
    if (!ci->dir) ci->dir = eina_stringshare_add("default");
-   b = _ibar_new(gc->evas, inst);
+   b = _ibar_new(gc->o_container ?: e_comp->elm, inst);
    gcc = e_gadcon_client_new(gc, name, id, style, b->o_outerbox);
-   e_gadcon_client_min_size_set(gcc, 16, 16);
    e_gadcon_client_autoscroll_toggle_disabled_set(gcc, !ci->dont_add_nonorder);
    gcc->data = inst;
 
@@ -278,7 +278,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
 
    evas_object_geometry_get(b->o_box, &x, &y, &w, &h);
    inst->drop_handler =
-     e_drop_handler_add(E_OBJECT(inst->gcc), inst,
+     e_drop_handler_add(E_OBJECT(inst->gcc), NULL, inst,
                         _ibar_inst_cb_enter, _ibar_inst_cb_move,
                         _ibar_inst_cb_leave, _ibar_inst_cb_drop,
                         drop, 3, x, y, w, h);
@@ -287,6 +287,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    evas_object_event_callback_add(b->o_outerbox, EVAS_CALLBACK_RESIZE,
                                   _ibar_cb_obj_moveresize, inst);
    ibar_config->instances = eina_list_append(ibar_config->instances, inst);
+   _ibar_resize_handle(b);
    inst->iconify_provider = e_comp_object_effect_mover_add(80, "e,action,*iconify", _ibar_cb_iconify_provider, inst);
    return gcc;
 }
@@ -304,33 +305,42 @@ _gc_shutdown(E_Gadcon_Client *gcc)
    E_FREE(inst);
 }
 
-static Eina_Bool
-_gc_vertical(Instance *inst)
+static int
+_convert_theme_ids(Instance *inst)
 {
    switch (inst->orient)
      {
       case E_GADCON_ORIENT_FLOAT:
       case E_GADCON_ORIENT_HORIZ:
-      case E_GADCON_ORIENT_TOP:
+      case E_GADCON_ORIENT_VERT:
+        return -1;
       case E_GADCON_ORIENT_BOTTOM:
-      case E_GADCON_ORIENT_CORNER_TL:
-      case E_GADCON_ORIENT_CORNER_TR:
       case E_GADCON_ORIENT_CORNER_BL:
       case E_GADCON_ORIENT_CORNER_BR:
-        return EINA_FALSE;
-        break;
-
-      case E_GADCON_ORIENT_VERT:
+        return 0;
+      case E_GADCON_ORIENT_TOP:
+      case E_GADCON_ORIENT_CORNER_TL:
+      case E_GADCON_ORIENT_CORNER_TR:
+        return 1;
       case E_GADCON_ORIENT_LEFT:
-      case E_GADCON_ORIENT_RIGHT:
       case E_GADCON_ORIENT_CORNER_LT:
-      case E_GADCON_ORIENT_CORNER_RT:
       case E_GADCON_ORIENT_CORNER_LB:
+        return 2;
+      case E_GADCON_ORIENT_RIGHT:
+      case E_GADCON_ORIENT_CORNER_RT:
       case E_GADCON_ORIENT_CORNER_RB:
+        return 3;
       default:
         break;
      }
-   return EINA_TRUE;
+   return -1;
+}
+
+static Eina_Bool
+_is_vertical(Instance *inst)
+{
+  int pos = _convert_theme_ids(inst);
+  return (pos == 3 || pos == 2);
 }
 
 static void
@@ -341,7 +351,7 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
    inst = gcc->data;
    if ((int)orient != -1) inst->orient = orient;
 
-   if (_gc_vertical(inst))
+   if (_is_vertical(inst))
      {
         _ibar_orient_set(inst->ibar, 0);
      }
@@ -352,13 +362,13 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient)
 }
 
 static const char *
-_gc_label(const E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_label(const E_Gadcon_Client_Class *client_class EINA_UNUSED)
 {
    return _("IBar");
 }
 
 static Evas_Object *
-_gc_icon(const E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
+_gc_icon(const E_Gadcon_Client_Class *client_class EINA_UNUSED, Evas *evas)
 {
    Evas_Object *o;
    char buf[PATH_MAX];
@@ -371,7 +381,7 @@ _gc_icon(const E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
 }
 
 static const char *
-_gc_id_new(const E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_id_new(const E_Gadcon_Client_Class *client_class EINA_UNUSED)
 {
    Config_Item *ci;
 
@@ -380,7 +390,7 @@ _gc_id_new(const E_Gadcon_Client_Class *client_class __UNUSED__)
 }
 
 static void
-_gc_id_del(const E_Gadcon_Client_Class *client_class __UNUSED__, const char *id __UNUSED__)
+_gc_id_del(const E_Gadcon_Client_Class *client_class EINA_UNUSED, const char *id EINA_UNUSED)
 {
 /* yes - don't do this. on shutdown gadgets are deleted and this means config
  * for them is deleted - that means empty config is saved. keep them around
@@ -398,40 +408,34 @@ _gc_id_del(const E_Gadcon_Client_Class *client_class __UNUSED__, const char *id 
 }
 
 static IBar *
-_ibar_new(Evas *evas, Instance *inst)
+_ibar_new(Evas_Object *parent, Instance *inst)
 {
    IBar *b;
    char buf[PATH_MAX];
-   int w, h;
 
    b = E_NEW(IBar, 1);
    inst->ibar = b;
    b->inst = inst;
    b->icon_hash = eina_hash_string_superfast_new(NULL);
-   b->o_outerbox = e_box_add(evas);
-   e_box_orientation_set(b->o_outerbox, 1);
-   e_box_align_set(b->o_outerbox, 0.5, 0.5);
-   b->o_box = e_box_add(evas);
-   e_box_homogenous_set(b->o_box, 1);
-   e_box_orientation_set(b->o_box, 1);
-   e_box_align_set(b->o_box, 0.5, 0.5);
+   b->o_outerbox = elm_box_add(e_win_evas_object_win_get(parent));
+   elm_box_horizontal_set(b->o_outerbox, 1);
+   elm_box_align_set(b->o_outerbox, 0.5, 0.5);
+   b->o_box = elm_box_add(e_win_evas_object_win_get(parent));
+   E_EXPAND(b->o_box);
+   E_FILL(b->o_box);
+   elm_box_homogeneous_set(b->o_box, 1);
+   elm_box_horizontal_set(b->o_box, 1);
+   elm_box_align_set(b->o_box, 0.5, 0.5);
+   elm_box_pack_end(b->o_outerbox, b->o_box);
    if (inst->ci->dir[0] != '/')
      e_user_dir_snprintf(buf, sizeof(buf), "applications/bar/%s/.order",
                          inst->ci->dir);
    else
      eina_strlcpy(buf, inst->ci->dir, sizeof(buf));
    b->io = _ibar_order_new(b, buf);
-   e_box_pack_end(b->o_outerbox, b->o_box);
    _ibar_fill(b);
-   e_box_size_min_get(b->o_box, &w, &h);
-   e_box_pack_options_set(b->o_box,
-                          1, 1, /* fill */
-                          1, 1, /* expand */
-                          0.5, 0.5, /* align */
-                          w, h, /* min */
-                          -1, -1 /* max */
-                          );
    evas_object_show(b->o_box);
+   evas_object_show(b->o_outerbox);
    ibars = eina_list_append(ibars, b);
    return b;
 }
@@ -453,7 +457,7 @@ _ibar_free(IBar *b)
 }
 
 static void
-_ibar_cb_empty_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_ibar_cb_empty_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Event_Mouse_Down *ev;
    IBar *b;
@@ -496,7 +500,7 @@ _ibar_cb_empty_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNU
    e_gadcon_canvas_zone_geometry_get(b->inst->gcc->gadcon,
                                      &cx, &cy, &cw, &ch);
    e_menu_activate_mouse(m,
-                         e_util_zone_current_get(e_manager_current_get()),
+                         e_zone_current_get(),
                          cx + ev->output.x, cy + ev->output.y, 1, 1,
                          E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
    evas_event_feed_mouse_up(b->inst->gcc->gadcon->evas, ev->button,
@@ -513,24 +517,20 @@ _ibar_empty_handle(IBar *b)
              Evas_Coord w, h;
 
              b->o_empty = evas_object_rectangle_add(evas_object_evas_get(b->o_box));
+             E_EXPAND(b->o_empty);
+             E_FILL(b->o_empty);
              evas_object_event_callback_add(b->o_empty,
                                             EVAS_CALLBACK_MOUSE_DOWN,
                                             _ibar_cb_empty_mouse_down, b);
              evas_object_color_set(b->o_empty, 0, 0, 0, 0);
              evas_object_show(b->o_empty);
-             e_box_pack_end(b->o_box, b->o_empty);
+             elm_box_pack_end(b->o_box, b->o_empty);
              evas_object_geometry_get(b->o_box, NULL, NULL, &w, &h);
-             if (e_box_orientation_get(b->o_box))
+             if (elm_box_horizontal_get(b->o_box))
                w = h;
              else
                h = w;
-             e_box_pack_options_set(b->o_empty,
-                                    1, 1, /* fill */
-                                    1, 1, /* expand */
-                                    0.5, 0.5, /* align */
-                                    w, h, /* min */
-                                    9999, 9999 /* max */
-                                    );
+             evas_object_size_hint_min_set(b->o_empty, w, h);
           }
      }
    else if (b->o_empty)
@@ -604,14 +604,8 @@ _ibar_fill(IBar *b)
    _ibar_empty_handle(b);
    _ibar_resize_handle(b);
    if (!b->inst->gcc) return;
-   e_box_size_min_get(b->o_box, &w, &h);
-   e_box_pack_options_set(b->o_box,
-                          1, 1, /* fill */
-                          1, 1, /* expand */
-                          0.5, 0.5, /* align */
-                          w, h, /* min */
-                          w, h /* max */
-                          );
+   evas_object_size_hint_min_get(b->o_box, &w, &h);
+   evas_object_size_hint_max_set(b->o_box, w, h);
 }
 
 static void
@@ -634,17 +628,9 @@ _ibar_orient_set(IBar *b, int horizontal)
    else
      e_theme_edje_object_set(b->o_sep, "base/theme/modules/ibar", "e/modules/ibar/separator/default");
    edje_object_size_min_calc(b->o_sep, &w, &h);
-   e_box_pack_options_set(b->o_sep,
-                          1, 1, /* fill */
-                          0, 0, /* expand */
-                          0.5, 0.5, /* align */
-                          w, h, /* min */
-                          -1, -1 /* max */
-                         );
-   e_box_orientation_set(b->o_box, horizontal);
-   e_box_align_set(b->o_box, 0.5, 0.5);
-   e_box_orientation_set(b->o_outerbox, horizontal);
-   e_box_align_set(b->o_outerbox, 0.5, 0.5);
+   evas_object_size_hint_min_set(b->o_sep, w, h);
+   elm_box_horizontal_set(b->o_box, horizontal);
+   elm_box_horizontal_set(b->o_outerbox, horizontal);
 }
 
 static void
@@ -653,56 +639,40 @@ _ibar_resize_handle(IBar *b)
    IBar_Icon *ic;
    Evas_Coord w, h;
 
-   evas_object_geometry_get(b->o_box, NULL, NULL, &w, &h);
-   if (b->inst->gcc)
-     {
-        if (b->inst->gcc->max.w)
-          w = MIN(w, b->inst->gcc->max.w);
-        if (b->inst->gcc->max.h)
-          h = MIN(h, b->inst->gcc->max.h);
-     }
-   if (e_box_orientation_get(b->o_box))
+   if (!b->inst->gcc) return;
+   elm_box_recalculate(b->o_box);
+   elm_box_recalculate(b->o_outerbox);
+   if (!e_gadcon_site_is_desktop(b->inst->gcc->gadcon->location->site))
+     evas_object_size_hint_min_get(b->o_outerbox, &w, &h);
+   else
+     evas_object_geometry_get(b->o_outerbox, NULL, NULL, &w, &h);
+   if (b->inst->gcc->max.w)
+     w = MIN(w, b->inst->gcc->max.w);
+   if (b->inst->gcc->max.h)
+     h = MIN(h, b->inst->gcc->max.h);
+   if (elm_box_horizontal_get(b->o_box))
      w = h;
    else
      h = w;
-   e_box_freeze(b->o_outerbox);
-   e_box_freeze(b->o_box);
    EINA_INLIST_FOREACH(b->icons, ic)
      {
-        e_box_pack_options_set(ic->o_holder,
-                               1, 1, /* fill */
-                               0, 0, /* expand */
-                               0.5, 0.5, /* align */
-                               w, h, /* min */
-                               w, h /* max */
-                               );
+        evas_object_size_hint_min_set(ic->o_holder, w, h);
+        evas_object_size_hint_max_set(ic->o_holder, w, h);
      }
    if (b->o_sep)
      {
-        if (_gc_vertical(b->inst))
+        if (_is_vertical(b->inst))
           h = 16 * e_scale;
         else
           w = 16 * e_scale;
-        e_box_pack_options_set(b->o_sep,
-                               1, 1, /* fill */
-                               0, 0, /* expand */
-                               0.5, 0.5, /* align */
-                               8, 8, /* min */
-                               w, h /* max */
-                               );
+        evas_object_size_hint_min_set(b->o_sep, 8, 8);
+        evas_object_size_hint_max_set(b->o_sep, w, h);
      }
-   e_box_thaw(b->o_box);
-   e_box_thaw(b->o_outerbox);
-   e_box_size_min_get(b->o_box, &w, &h);
-   e_box_pack_options_set(b->o_box,
-                          1, 1, /* fill */
-                          1, 1, /* expand */
-                          0.5, 0.5, /* align */
-                          w, h, /* min */
-                          -1, -1 /* max */
-                          );
-   if (!b->inst->gcc) return;
-   e_box_size_min_get(b->o_outerbox, &w, &h);
+   elm_box_recalculate(b->o_box);
+   elm_box_recalculate(b->o_outerbox);
+   evas_object_size_hint_min_get(b->o_outerbox, &w, &h);
+   if ((!w) || (!h)) return;
+   e_gadcon_client_min_size_set(b->inst->gcc, w, h);
    e_gadcon_client_aspect_set(b->inst->gcc, w, h);
 }
 
@@ -787,20 +757,15 @@ _ibar_sep_create(IBar *b)
    if (b->o_sep) return;
 
    b->o_sep = edje_object_add(evas_object_evas_get(b->o_box));
-   if (_gc_vertical(b->inst))
+   E_FILL(b->o_sep);
+   if (_is_vertical(b->inst))
      e_theme_edje_object_set(b->o_sep, "base/theme/modules/ibar", "e/modules/ibar/separator/horizontal");
    else
      e_theme_edje_object_set(b->o_sep, "base/theme/modules/ibar", "e/modules/ibar/separator/default");
    evas_object_show(b->o_sep);
-   e_box_pack_end(b->o_outerbox, b->o_sep);
+   elm_box_pack_end(b->o_outerbox, b->o_sep);
    edje_object_size_min_calc(b->o_sep, &w, &h);
-   e_box_pack_options_set(b->o_sep,
-                          1, 1, /* fill */
-                          0, 0, /* expand */
-                          0.5, 0.5, /* align */
-                          w, h, /* min */
-                          -1, -1 /* max */
-                         );
+   evas_object_size_hint_min_set(b->o_sep, w, h);
 }
 
 static IBar_Icon *
@@ -831,6 +796,7 @@ _ibar_icon_new(IBar *b, Efreet_Desktop *desktop, Eina_Bool notinorder)
    ic->app = desktop;
    efreet_desktop_ref(desktop);
    ic->o_holder = edje_object_add(evas_object_evas_get(b->o_box));
+   E_FILL(ic->o_holder);
    e_theme_edje_object_set(ic->o_holder, "base/theme/modules/ibar",
                            "e/modules/ibar/icon");
    evas_object_event_callback_add(ic->o_holder, EVAS_CALLBACK_MOUSE_IN,
@@ -876,10 +842,10 @@ _ibar_icon_new(IBar *b, Efreet_Desktop *desktop, Eina_Bool notinorder)
      {
         ic->not_in_order = 1;
         b->not_in_order_count++;
-        e_box_pack_end(b->o_outerbox, ic->o_holder);
+        elm_box_pack_end(b->o_outerbox, ic->o_holder);
      }
    else
-     e_box_pack_end(b->o_box, ic->o_holder);
+     elm_box_pack_end(b->o_box, ic->o_holder);
    return ic;
 }
 
@@ -1008,7 +974,7 @@ _ibar_icon_empty(IBar_Icon *ic)
 }
 
 static void
-_ibar_icon_signal_emit(IBar_Icon *ic, char *sig, char *src)
+_ibar_icon_signal_emit(IBar_Icon *ic, const char *sig, const char *src)
 {
    if (ic->o_holder)
      edje_object_signal_emit(ic->o_holder, sig, src);
@@ -1021,7 +987,7 @@ _ibar_icon_signal_emit(IBar_Icon *ic, char *sig, char *src)
 }
 
 static void
-_ibar_cb_app_change(void *data, E_Order *eo __UNUSED__)
+_ibar_cb_app_change(void *data, E_Order *eo EINA_UNUSED)
 {
    IBar *b;
    IBar_Order *io = data;
@@ -1047,7 +1013,7 @@ _ibar_cb_resize_job(void *data)
 }
 
 static void
-_ibar_cb_obj_moveresize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_ibar_cb_obj_moveresize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Instance *inst = data;
 
@@ -1056,14 +1022,21 @@ _ibar_cb_obj_moveresize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
 }
 
 static void
-_ibar_cb_menu_icon_new(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_ibar_cb_menu_icon_action_exec(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
-   if (!e_configure_registry_exists("applications/new_application")) return;
-   e_configure_registry_call("applications/new_application", e_comp_get(NULL), NULL);
+   Efreet_Desktop_Action *action = (Efreet_Desktop_Action*)data;
+   e_exec(NULL, NULL, action->exec, NULL, "ibar");
 }
 
 static void
-_ibar_cb_menu_icon_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_ibar_cb_menu_icon_new(void *data EINA_UNUSED, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
+{
+   if (!e_configure_registry_exists("applications/new_application")) return;
+   e_configure_registry_call("applications/new_application", NULL, NULL);
+}
+
+static void
+_ibar_cb_menu_icon_add(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    char path[PATH_MAX];
    IBar *b;
@@ -1071,21 +1044,20 @@ _ibar_cb_menu_icon_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSE
    b = data;
    e_user_dir_snprintf(path, sizeof(path), "applications/bar/%s/.order",
                        b->inst->ci->dir);
-   e_configure_registry_call("internal/ibar_other",
-                             NULL, path);
+   e_configure_registry_call("internal/ibar_other", NULL, path);
 }
 
 static void
-_ibar_cb_menu_icon_properties(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_ibar_cb_menu_icon_properties(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    IBar_Icon *ic;
 
    ic = data;
-   e_desktop_edit(e_comp_get(ic->ibar->inst->gcc), ic->app);
+   e_desktop_edit(ic->app);
 }
 
 static void
-_ibar_cb_menu_icon_stick(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_ibar_cb_menu_icon_stick(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    IBar_Icon *ic = data;
 
@@ -1094,7 +1066,7 @@ _ibar_cb_menu_icon_stick(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
 }
 
 static void
-_ibar_cb_menu_icon_remove(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_ibar_cb_menu_icon_remove(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    IBar_Icon *ic = data;
    IBar *i;
@@ -1106,7 +1078,7 @@ _ibar_cb_menu_icon_remove(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UN
 }
 
 static void
-_ibar_cb_menu_configuration(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_ibar_cb_menu_configuration(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    IBar *b;
 
@@ -1195,7 +1167,7 @@ _ibar_icon_menu_recalc(IBar_Icon *ic)
    evas_object_resize(ic->menu->comp_object, w, h);
    e_gadcon_popup_show(ic->menu);
    evas_object_geometry_get(ic->menu->comp_object, &ox, &oy, NULL, NULL);
-   if (e_box_orientation_get(ic->ibar->o_box))
+   if (elm_box_horizontal_get(ic->ibar->o_box))
      {
         ox = (x + (iw / 2)) - (w / 2);
         if (E_INTERSECTS(ox, oy, w, h, x, y, iw, ih))
@@ -1273,7 +1245,7 @@ _ibar_cb_icon_menu_img_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, vo
    edje_object_calc_force(ic->menu->o_bg);
    edje_object_size_min_calc(ic->menu->o_bg, &w, &h);
    evas_object_size_hint_min_set(ic->menu->o_bg, w, h);
-   if (e_box_orientation_get(ic->ibar->o_box))
+   if (elm_box_horizontal_get(ic->ibar->o_box))
      {
         int cx, cy, cw, ch, ny;
         E_Zone *zone;
@@ -1303,7 +1275,7 @@ _ibar_icon_menu_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA
 {
    IBar_Icon *ic = data;
 
-   if (e_menu_grab_window_get()) return;
+   if (e_comp_util_mouse_grabbed()) return;
    if (ic->hide_timer)
      ecore_timer_reset(ic->hide_timer);
    else
@@ -1328,7 +1300,7 @@ _ibar_icon_menu_client_add(IBar_Icon *ic, E_Client *ec)
 
    if (ec->netwm.state.skip_taskbar) return EINA_FALSE;
    o = ic->menu->o_bg;
-   it = edje_object_add(e_comp_get(ec)->evas);
+   it = edje_object_add(e_comp->evas);
    ic->client_objs = eina_list_append(ic->client_objs, it);
    e_comp_object_util_del_list_append(ic->menu->comp_object, it);
    e_theme_edje_object_set(it, "base/theme/modules/ibar",
@@ -1382,7 +1354,7 @@ _ibar_icon_menu(IBar_Icon *ic, Eina_Bool grab)
    ic->menu = e_gadcon_popup_new(ic->ibar->inst->gcc, 1);
    e_object_data_set(E_OBJECT(ic->menu), ic);
    E_OBJECT_DEL_SET(ic->menu, _ibar_cb_icon_menu_del);
-   e = e_comp_get(ic->menu)->evas;
+   e = e_comp->evas;
    o = edje_object_add(e);
    e_theme_edje_object_set(o, "base/theme/modules/ibar",
                            "e/modules/ibar/menu");
@@ -1490,7 +1462,7 @@ _ibar_icon_mouse_in_timer(void *data)
 }
 
 static void
-_ibar_cb_icon_mouse_in(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_ibar_cb_icon_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    IBar_Icon *ic;
 
@@ -1521,7 +1493,7 @@ _ibar_cb_out_hide_delay(void *data)
 }
 
 static void
-_ibar_cb_icon_mouse_out(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_ibar_cb_icon_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    IBar_Icon *ic;
 
@@ -1552,7 +1524,7 @@ _ibar_cb_icon_menu_cb(void *data)
 }
 
 static void
-_ibar_cb_icon_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_ibar_cb_icon_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Event_Mouse_Down *ev;
    IBar_Icon *ic;
@@ -1578,8 +1550,10 @@ _ibar_cb_icon_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUS
      }
    else if (ev->button == 3)
      {
+        Eina_List *it;
         E_Menu *m, *mo;
         E_Menu_Item *mi;
+        Efreet_Desktop_Action *action;
         char buf[256];
         int cx, cy;
 
@@ -1646,12 +1620,27 @@ _ibar_cb_icon_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUS
                                           mi);
         e_menu_item_submenu_set(mi, mo);
         e_object_unref(E_OBJECT(mo));
+
+        if (ic->app->actions)
+          {
+             mi = NULL;
+             EINA_LIST_FOREACH(ic->app->actions, it, action)
+               {
+                  mi = e_menu_item_new_relative(m, mi);
+                  e_menu_item_label_set(mi, action->name);
+                  e_util_menu_item_theme_icon_set(mi, action->icon);
+                  e_menu_item_callback_set(mi, _ibar_cb_menu_icon_action_exec, action);
+               }
+             mi = e_menu_item_new_relative(m, mi);
+             e_menu_item_separator_set(mi, 1);
+          }
+
         e_gadcon_client_menu_set(ic->ibar->inst->gcc, m);
 
         e_gadcon_canvas_zone_geometry_get(ic->ibar->inst->gcc->gadcon,
                                           &cx, &cy, NULL, NULL);
         e_menu_activate_mouse(m,
-                              e_util_zone_current_get(e_manager_current_get()),
+                              e_zone_current_get(),
                               cx + ev->output.x, cy + ev->output.y, 1, 1,
                               E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
      }
@@ -1673,7 +1662,7 @@ _ibar_cb_icon_reset(void *data)
 }
 
 static void
-_ibar_cb_icon_wheel(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_ibar_cb_icon_wheel(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Event_Mouse_Wheel *ev = event_info;
    E_Exec_Instance *exe;
@@ -1819,7 +1808,7 @@ _ibar_icon_go(IBar_Icon *ic, Eina_Bool keep_going)
 }
 
 static void
-_ibar_cb_icon_mouse_up(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_ibar_cb_icon_mouse_up(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Event_Mouse_Up *ev;
    IBar_Icon *ic;
@@ -1838,7 +1827,7 @@ _ibar_cb_icon_mouse_up(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED
 }
 
 static void
-_ibar_cb_icon_mouse_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_ibar_cb_icon_mouse_move(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Event_Mouse_Move *ev = event_info;
    IBar_Icon *ic = data;
@@ -1865,9 +1854,9 @@ _ibar_cb_icon_mouse_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUS
         if (ic->ibar->inst->ci->lock_move) return;
 
         evas_object_geometry_get(ic->o_icon, &x, &y, &w, &h);
-        d = e_drag_new(ic->ibar->inst->gcc->gadcon->zone->comp,
-                       x, y, drag_types, 1,
+        d = e_drag_new(x, y, drag_types, 1,
                        ic->app, -1, NULL, _ibar_cb_drag_finished);
+        d->button_mask = evas_pointer_button_down_mask_get(e_comp->evas);
         efreet_desktop_ref(ic->app);
         size = MAX(w, h);
         o = e_util_desktop_icon_add(ic->app, size, e_drag_evas_get(d));
@@ -1886,18 +1875,39 @@ _ibar_cb_icon_mouse_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUS
 }
 
 static void
-_ibar_cb_icon_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_ibar_cb_icon_move(void *data, Evas *e, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    IBar_Icon *ic;
-   Evas_Coord x, y;
+   int x, y, w, h, cw, chx, len = 0;
+   const char *sig = "e,origin,center";
+   E_Zone *zone;
 
    ic = data;
-   evas_object_geometry_get(ic->o_holder, &x, &y, NULL, NULL);
+   evas_object_geometry_get(ic->o_holder, &x, &y, &w, &h);
    evas_object_move(ic->o_holder2, x, y);
+   evas_output_size_get(e, &cw, NULL);
+
+   edje_object_part_geometry_get(ic->o_holder2, "e.text.label", NULL, NULL, &len, NULL);
+   chx = x + (w / 2);
+   zone = e_comp_object_util_zone_get(obj);
+   if (!zone)
+     {
+        if (x < 1)
+          zone = e_comp_zone_xy_get(0, y);
+        else
+          zone = e_comp_zone_xy_get(e_comp->w - 5, y);
+        if (!zone)
+          zone = eina_list_data_get(e_comp->zones);
+     }
+   if (chx - (len / 2) < zone->x)
+     sig = "e,origin,left";
+   else if ((chx + (len / 2) > cw) || ((chx + (len / 2) > zone->x + zone->w)))
+     sig = "e,origin,right";
+   _ibar_icon_signal_emit(ic, sig, "e");
 }
 
 static void
-_ibar_cb_icon_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_ibar_cb_icon_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    IBar_Icon *ic;
    Evas_Coord w, h;
@@ -1908,7 +1918,7 @@ _ibar_cb_icon_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__
 }
 
 static void
-_ibar_cb_drop_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_ibar_cb_drop_move(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    IBar *b;
    Evas_Coord x, y;
@@ -1919,7 +1929,7 @@ _ibar_cb_drop_move(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, 
 }
 
 static void
-_ibar_cb_drop_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_ibar_cb_drop_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    IBar *b;
    Evas_Coord w, h;
@@ -1973,7 +1983,7 @@ _ibar_drop_position_update(Instance *inst, Evas_Coord x, Evas_Coord y)
         evas_object_geometry_get(inst->ibar->o_drop, &ox, &oy, &ow, &oh);
         /* if cursor is still inside last drop area, do nothing */
         if (E_INSIDE(x, y, ox, oy, ow, oh)) return;
-        e_box_unpack(inst->ibar->o_drop);
+        elm_box_unpack(inst->ibar->o_box, inst->ibar->o_drop);
      }
 
    inst->ibar->ic_drop_before = ic;
@@ -1983,7 +1993,7 @@ _ibar_drop_position_update(Instance *inst, Evas_Coord x, Evas_Coord y)
         int before = 0;
 
         evas_object_geometry_get(ic->o_holder, &ix, &iy, &iw, &ih);
-        if (e_box_orientation_get(inst->ibar->o_box))
+        if (elm_box_horizontal_get(inst->ibar->o_box))
           {
              if (x < (ix + (iw / 2))) before = 1;
           }
@@ -1992,25 +2002,19 @@ _ibar_drop_position_update(Instance *inst, Evas_Coord x, Evas_Coord y)
              if (y < (iy + (ih / 2))) before = 1;
           }
         if (before)
-          e_box_pack_before(inst->ibar->o_box, inst->ibar->o_drop, ic->o_holder);
+          elm_box_pack_before(inst->ibar->o_box, inst->ibar->o_drop, ic->o_holder);
         else
-          e_box_pack_after(inst->ibar->o_box, inst->ibar->o_drop, ic->o_holder);
+          elm_box_pack_after(inst->ibar->o_box, inst->ibar->o_drop, ic->o_holder);
         inst->ibar->drop_before = before;
      }
-   else e_box_pack_end(inst->ibar->o_box, inst->ibar->o_drop);
-   e_box_pack_options_set(inst->ibar->o_drop,
-                          1, 1, /* fill */
-                          1, 1, /* expand */
-                          0.5, 0.5, /* align */
-                          1, 1, /* min */
-                          -1, -1 /* max */
-                          );
+   else elm_box_pack_end(inst->ibar->o_box, inst->ibar->o_drop);
+   evas_object_size_hint_min_set(inst->ibar->o_drop, 1, 1);
    _ibar_resize_handle(inst->ibar);
    _gc_orient(inst->gcc, -1);
 }
 
 static void
-_ibar_inst_cb_enter(void *data, const char *type __UNUSED__, void *event_info)
+_ibar_inst_cb_enter(void *data, const char *type EINA_UNUSED, void *event_info)
 {
    E_Event_Dnd_Enter *ev;
    Instance *inst;
@@ -2020,6 +2024,8 @@ _ibar_inst_cb_enter(void *data, const char *type __UNUSED__, void *event_info)
    inst = data;
    o = edje_object_add(evas_object_evas_get(inst->ibar->o_box));
    inst->ibar->o_drop = o;
+   E_EXPAND(o);
+   E_FILL(o);
    o2 = edje_object_add(evas_object_evas_get(inst->ibar->o_box));
    inst->ibar->o_drop_over = o2;
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOVE,
@@ -2040,7 +2046,7 @@ _ibar_inst_cb_enter(void *data, const char *type __UNUSED__, void *event_info)
 }
 
 static void
-_ibar_inst_cb_move(void *data, const char *type __UNUSED__, void *event_info)
+_ibar_inst_cb_move(void *data, const char *type EINA_UNUSED, void *event_info)
 {
    E_Event_Dnd_Move *ev;
    Instance *inst;
@@ -2054,7 +2060,7 @@ _ibar_inst_cb_move(void *data, const char *type __UNUSED__, void *event_info)
 }
 
 static void
-_ibar_inst_cb_leave(void *data, const char *type __UNUSED__, void *event_info __UNUSED__)
+_ibar_inst_cb_leave(void *data, const char *type EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Instance *inst;
 
@@ -2093,7 +2099,7 @@ _ibar_inst_cb_drop(void *data, const char *type, void *event_info)
           {
              app = e_desktop_client_create(ec);
              efreet_desktop_save(app);
-             e_desktop_edit(NULL, app);
+             e_desktop_edit(app);
           }
      }
    else if (!strcmp(type, "text/uri-list"))
@@ -2153,9 +2159,9 @@ static Ecore_Event_Handler *_ibar_key_down_handler = NULL;
 static void _ibar_go_unfocus(void);
 
 static IBar *
-_ibar_manager_find(E_Manager *man)
+_ibar_manager_find(void)
 {
-   E_Zone *z = e_util_zone_current_get(man);
+   E_Zone *z = e_zone_current_get();
    IBar *b;
    Eina_List *l;
    
@@ -2223,8 +2229,8 @@ _ibar_cb_sort(IBar *b1, IBar *b2)
      {
         int id1, id2;
         
-        id1 = z1->id + (z1->comp->num * 100) + (z1->comp->num * 10000);
-        id2 = z2->id + (z2->comp->num * 100) + (z2->comp->num * 10000);
+        id1 = z1->id;
+        id2 = z2->id;
         return id2 - id1;
      }
    return 0;
@@ -2398,7 +2404,7 @@ _ibar_focus_launch(IBar *b)
 }
 
 static Eina_Bool
-_ibar_focus_cb_key_down(void *data __UNUSED__, int type __UNUSED__, void *event)
+_ibar_focus_cb_key_down(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Event_Key *ev;
    IBar *b, *b2;
@@ -2539,33 +2545,16 @@ _ibar_focus_cb_key_down(void *data __UNUSED__, int type __UNUSED__, void *event)
 static void
 _ibar_go_focus(void)
 {
-   E_Manager *man;
    IBar *b;
    
    if (_ibar_focus_win) return;
-   man = e_manager_current_get();
-   if (!man) return;
-   _ibar_focus_win = e_comp_get(man)->ee_win;
-   if (!e_grabinput_get(0, 0, _ibar_focus_win))
-     {
-        _ibar_focus_win = 0;
-        return;
-     }
-   _ibar_key_down_handler = ecore_event_handler_add
-     (ECORE_EVENT_KEY_DOWN, _ibar_focus_cb_key_down, NULL);
-   if (!_ibar_key_down_handler) goto err;
-   b = _ibar_manager_find(man);
-   if (!b) goto err;
+   b = _ibar_manager_find();
+   if (!b) return;
+   if (!e_comp_grab_input(0, 1)) return;
+   _ibar_focus_win = e_comp->ee_win;
+   _ibar_key_down_handler = ecore_event_handler_add(ECORE_EVENT_KEY_DOWN,
+     _ibar_focus_cb_key_down, NULL);
    _ibar_focus(b);
-   return;
-err:
-   if (_ibar_key_down_handler) ecore_event_handler_del(_ibar_key_down_handler);
-   _ibar_key_down_handler = NULL;
-   if (_ibar_focus_win)
-     {
-        e_grabinput_release(0, _ibar_focus_win);
-     }
-   _ibar_focus_win = 0;
 }
 
 static void
@@ -2576,14 +2565,14 @@ _ibar_go_unfocus(void)
    if (!_ibar_focus_win) return;
    b = _ibar_focused_find();
    if (b) _ibar_unfocus(b);
-   e_grabinput_release(0, _ibar_focus_win);
+   e_comp_ungrab_input(0, 1);
    _ibar_focus_win = 0;
    ecore_event_handler_del(_ibar_key_down_handler);
    _ibar_key_down_handler = NULL;
 }
    
 static void
-_ibar_cb_action_focus(E_Object *obj __UNUSED__, const char *params __UNUSED__, Ecore_Event_Key *ev __UNUSED__)
+_ibar_cb_action_focus(E_Object *obj EINA_UNUSED, const char *params EINA_UNUSED, Ecore_Event_Key *ev EINA_UNUSED)
 {
    _ibar_go_focus();
 }
@@ -2855,7 +2844,7 @@ e_modapi_init(E_Module *m)
 }
 
 E_API int
-e_modapi_shutdown(E_Module *m __UNUSED__)
+e_modapi_shutdown(E_Module *m EINA_UNUSED)
 {
    Ecore_Event_Handler *eh;
    Config_Item *ci;
@@ -2890,14 +2879,14 @@ e_modapi_shutdown(E_Module *m __UNUSED__)
 }
 
 E_API int
-e_modapi_save(E_Module *m __UNUSED__)
+e_modapi_save(E_Module *m EINA_UNUSED)
 {
    e_config_domain_save("module.ibar", conf_edd, ibar_config);
    return 1;
 }
 
 static Eina_Bool
-_ibar_cb_config_icons(__UNUSED__ void *data, __UNUSED__ int ev_type, __UNUSED__ void *ev)
+_ibar_cb_config_icons(EINA_UNUSED void *data, EINA_UNUSED int ev_type, EINA_UNUSED void *ev)
 {
    const Eina_List *l;
    Instance *inst;

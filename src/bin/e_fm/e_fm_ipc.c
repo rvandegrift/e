@@ -44,10 +44,6 @@
 #include "e_fm_shared_codec.h"
 #define DEF_MOD_BACKOFF          0.2
 
-#ifndef strdupa
-# define strdupa(str) strcpy(alloca(strlen(str) + 1), str)
-#endif
-
 typedef struct _E_Dir          E_Dir;
 typedef struct _E_Fop          E_Fop;
 typedef struct _E_Mod          E_Mod;
@@ -190,7 +186,7 @@ _e_fm_ipc_init(void)
 }
 
 static Eina_Bool
-_e_fm_ipc_cb_server_add(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_fm_ipc_cb_server_add(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Ipc_Event_Server_Add *e;
 
@@ -203,7 +199,7 @@ _e_fm_ipc_cb_server_add(void *data __UNUSED__, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_e_fm_ipc_cb_server_del(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
+_e_fm_ipc_cb_server_del(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
 {
    /* quit now */
    ecore_main_loop_quit();
@@ -485,7 +481,7 @@ _e_fm_ipc_mkdir_try(E_Fm_Task *task)
 }
 
 static void
-_e_fm_ipc_mkdir(int id, const char *src, const char *rel, int rel_to __UNUSED__, int x, int y)
+_e_fm_ipc_mkdir(int id, const char *src, const char *rel, int rel_to EINA_UNUSED, int x, int y)
 {
    E_Fm_Task *task;
 
@@ -540,7 +536,7 @@ _e_fm_ipc_handle_error_response(int id, E_Fm_Op_Type type)
 }
 
 static Eina_Bool
-_e_fm_ipc_cb_server_data(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_fm_ipc_cb_server_data(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Ipc_Event_Server_Data *e;
 
@@ -821,7 +817,7 @@ _e_fm_ipc_slave_send(E_Fm_Slave *slave, E_Fm_Op_Type type, void *data, int size)
 }
 
 Eina_Bool
-_e_fm_ipc_slave_data_cb(void *data, int type __UNUSED__, void *event)
+_e_fm_ipc_slave_data_cb(void *data, int type EINA_UNUSED, void *event)
 {
    Ecore_Exe_Event_Data *e = event;
    E_Fm_Slave *slave;
@@ -876,7 +872,7 @@ _e_fm_ipc_slave_data_cb(void *data, int type __UNUSED__, void *event)
 }
 
 Eina_Bool
-_e_fm_ipc_slave_error_cb(void *data, int type __UNUSED__, void *event)
+_e_fm_ipc_slave_error_cb(void *data, int type EINA_UNUSED, void *event)
 {
    Ecore_Exe_Event_Data *e = event;
    E_Fm_Slave *slave;
@@ -894,7 +890,7 @@ _e_fm_ipc_slave_error_cb(void *data, int type __UNUSED__, void *event)
 }
 
 Eina_Bool
-_e_fm_ipc_slave_del_cb(void *data, int type __UNUSED__, void *event)
+_e_fm_ipc_slave_del_cb(void *data, int type EINA_UNUSED, void *event)
 {
    Ecore_Exe_Event_Del *e = event;
    E_Fm_Slave *slave;
@@ -916,7 +912,7 @@ _e_fm_ipc_slave_del_cb(void *data, int type __UNUSED__, void *event)
 }
 
 static void
-_e_fm_ipc_cb_file_monitor(void *data __UNUSED__, Ecore_File_Monitor *em __UNUSED__, Ecore_File_Event event, const char *path)
+_e_fm_ipc_cb_file_monitor(void *data EINA_UNUSED, Ecore_File_Monitor *em EINA_UNUSED, Ecore_File_Event event, const char *path)
 {
    E_Dir *ed;
    char *dir, *rp, *drp;
@@ -1020,12 +1016,10 @@ _e_fm_ipc_file_add_mod(E_Dir *ed, const char *path, E_Fm_Op_Type op, int listing
    struct stat st;
    char *lnk = NULL, *rlnk = NULL;
    int broken_lnk = 0;
-   int bsz = 0;
-   unsigned char *p, buf
+   Eina_Binbuf *buf;
    /* file add/change format is as follows:
     *
     * stat_info[stat size] + broken_link[1] + path[n]\0 + lnk[n]\0 + rlnk[n]\0 */
-   [sizeof(struct stat) + 1 + 4096 + 4096 + 4096];
 
    /* FIXME: handle BACKOFF */
    if ((!listing) && (op == E_FM_OP_FILE_CHANGE) && (!ed->cleaning)) /* 5 == mod */
@@ -1086,29 +1080,21 @@ _e_fm_ipc_file_add_mod(E_Dir *ed, const char *path, E_Fm_Op_Type op, int listing
    if (!lnk) lnk = strdup("");
    if (!rlnk) rlnk = strdup("");
 
-   p = buf;
+   buf = eina_binbuf_new();
    /* NOTE: i am NOT converting this data to portable arch/os independent
     * format. i am ASSUMING e_fm_main and e are local and built together
     * and thus this will work. if this ever changes this here needs to
     * change */
-   memcpy(buf, &st, sizeof(struct stat));
-   p += sizeof(struct stat);
+   eina_binbuf_append_length(buf, (void*)&st, sizeof(struct stat));
 
-   p[0] = broken_lnk;
-   p += 1;
+   eina_binbuf_append_char(buf, !!broken_lnk);
+   eina_binbuf_append_length(buf, (void*)path, strlen(path) + 1);
+   eina_binbuf_append_length(buf, (void*)lnk, strlen(lnk) + 1);
+   eina_binbuf_append_length(buf, (void*)rlnk, strlen(rlnk) + 1);
 
-   strcpy((char *)p, path);
-   p += strlen(path) + 1;
-
-   strcpy((char *)p, lnk);
-   p += strlen(lnk) + 1;
-
-   strcpy((char *)p, rlnk);
-   p += strlen(rlnk) + 1;
-
-   bsz = p - buf;
    ecore_ipc_server_send(_e_fm_ipc_server, 6 /*E_IPC_DOMAIN_FM*/, op, 0, ed->id,
-                         listing, buf, bsz);
+                         listing, eina_binbuf_string_get(buf), eina_binbuf_length_get(buf));
+   eina_binbuf_free(buf);
    free(lnk);
    free(rlnk);
 }
@@ -1160,8 +1146,8 @@ _e_fm_ipc_cb_fop_trash_idler(void *data)
    FILE *info = NULL;
    const char *filename;
    const char *escname = NULL;
-   char *dest, *trash_dir;
-   char buf[4096];
+   char *dest;
+   char buf[4096], trash_dir[4096];
    unsigned int i = 0;
    struct tm *lt;
    time_t t;
@@ -1173,8 +1159,7 @@ _e_fm_ipc_cb_fop_trash_idler(void *data)
    if (!fop) return 0;
 
    /* Check that 'home trash' and subsequesnt dirs exists, create if not */
-   snprintf(buf, sizeof(buf), "%s/Trash", efreet_data_home_get());
-   trash_dir = strdupa(buf);
+   snprintf(trash_dir, sizeof(trash_dir), "%s/Trash", efreet_data_home_get());
    snprintf(buf, sizeof(buf), "%s/files", trash_dir);
    if (!ecore_file_mkpath(buf)) return 0;
    snprintf(buf, sizeof(buf), "%s/info", trash_dir);
@@ -1368,7 +1353,7 @@ _e_fm_ipc_prepare_command(E_Fm_Op_Type type, const char *args)
 }
 
 static Eina_Bool
-_e_fm_ipc_timer_cb(void *d __UNUSED__)
+_e_fm_ipc_timer_cb(void *d EINA_UNUSED)
 {
    ecore_ipc_server_send(_e_fm_ipc_server,
                          6 /*E_IPC_DOMAIN_FM*/,

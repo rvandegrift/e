@@ -2,11 +2,9 @@
 
 /* local subsystem functions */
 static void
-_cb_settings_theme(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_cb_settings_theme(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
-   E_Obj_Dialog *od = data;
-
-   e_configure_registry_call("appearance/theme", od->win->comp, NULL);
+   e_configure_registry_call("appearance/theme", NULL, NULL);
 }
 
 /* local subsystem globals */
@@ -14,11 +12,11 @@ _cb_settings_theme(void *data, Evas_Object *obj __UNUSED__, const char *emission
 /* externally accessible functions */
 
 E_API E_Theme_About *
-e_theme_about_new(E_Comp *c)
+e_theme_about_new(void)
 {
    E_Obj_Dialog *od;
 
-   od = e_obj_dialog_new(c, _("About Theme"), "E", "_theme_about");
+   od = e_obj_dialog_new(_("About Theme"), "E", "_theme_about");
    if (!od) return NULL;
    e_obj_dialog_obj_theme_set(od, "base/theme", "e/theme/about");
    e_obj_dialog_obj_part_text_set(od, "e.text.label", _("Close"));

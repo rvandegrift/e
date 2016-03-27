@@ -1,7 +1,7 @@
 #ifndef E_H
 # define E_H
 
-# define E_VERSION_MAJOR 19
+# define E_VERSION_MAJOR 20
 
 /**
  * @defgroup API Enlightenment API
@@ -15,6 +15,10 @@
 # ifdef HAVE_CONFIG_H
 #  include "config.h"
 # endif
+
+#ifdef HAVE_WAYLAND
+# define EFL_BETA_API_SUPPORT
+#endif
 
 # define USE_IPC
 # if 0
@@ -99,6 +103,11 @@ void *alloca (size_t);
 #  include <execinfo.h>
 # endif
 
+/* egl.h must come before Evas_GL.h otherwise they will conflict */
+# ifdef HAVE_WAYLAND_EGL
+#  include <EGL/egl.h>
+# endif
+
 # include <setjmp.h>
 # include <Eo.h>
 # include <Eina.h>
@@ -121,12 +130,8 @@ void *alloca (size_t);
 # include <Emotion.h>
 # include <Elementary.h>
 
-# ifdef HAVE_HAL
-#  include <E_Hal.h>
-# endif
-
 # ifdef HAVE_WAYLAND
-#  include <Ecore_Wayland.h>
+#  include <Ecore_Wl2.h>
 #  include <uuid.h>
 # endif
 
@@ -167,14 +172,6 @@ void *alloca (size_t);
 # else
 #  define EINTERN
 # endif
-
-#ifndef strdupa
-# define strdupa(str)       strcpy(alloca(strlen(str) + 1), str)
-#endif
-
-#ifndef strndupa
-# define strndupa(str, len) strncpy(alloca(len + 1), str, len)
-#endif
 
 typedef struct _E_Before_Idler E_Before_Idler;
 typedef struct _E_Rect         E_Rect;
@@ -268,12 +265,27 @@ typedef struct _E_Rect         E_Rect;
        }                                                          \
   }
 
+#define E_WEIGHT evas_object_size_hint_weight_set
+#define E_ALIGN evas_object_size_hint_align_set
+#define E_EXPAND(X) E_WEIGHT((X), EVAS_HINT_EXPAND, EVAS_HINT_EXPAND)
+#define E_FILL(X) E_ALIGN((X), EVAS_HINT_FILL, EVAS_HINT_FILL)
+
 # define E_REMOTE_OPTIONS 1
 # define E_REMOTE_OUT     2
 # define E_WM_IN          3
 # define E_REMOTE_IN      4
 # define E_ENUM           5
 # define E_LIB_IN         6
+
+
+/* if you see a deprecated warning for a YOLO function,
+ * you are attempting to use an extremely dangerous function.
+ */
+#ifdef EXECUTIVE_MODE_ENABLED
+ #define YOLO
+#else
+ #define YOLO EINA_DEPRECATED
+#endif
 
 # define E_TYPEDEFS       1
 # include "e_includes.h"
@@ -332,5 +344,32 @@ extern EINTERN double e_first_frame_start_time;
  * @defgroup Optional_Mobile Mobile Specific Extensions
  * @}
  */
+
+#if 0
+#define REFD(obj, num) \
+   do { \
+      printf("%p <- %5i <- ref   | %s-%i\n", \
+             obj, E_OBJECT(obj)->references, \
+             __FILE__, num); \
+   } while (0)
+
+#define UNREFD(obj, num) \
+   do { \
+      printf("%p <- %5i <- unref | %s-%i\n", \
+             obj, E_OBJECT(obj)->references, \
+             __FILE__, num); \
+   } while (0)
+
+#define DELD(obj, num) \
+   do { \
+      printf("%p <- %5i <- del   | %s-%i\n", \
+             obj, E_OBJECT(obj)->references, \
+             __FILE__, num); \
+   } while (0)
+#else
+# define REFD(obj, num)
+# define UNREFD(obj, num)
+# define DELD(obj, num)
+#endif
 
 #endif

@@ -21,12 +21,12 @@ struct _E_Config_Dialog_Data
 /* local function prototypes */
 static void        *_create_data(E_Config_Dialog *cfd);
 static void         _fill_data(E_Config_Dialog_Data *cfdata);
-static int          _basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
-static void         _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata);
+static int          _basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata);
+static void         _free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata);
+static Evas_Object *_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata);
 static int          _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 static void         _fill_styles(E_Config_Dialog_Data *cfdata, Evas_Object *obj);
-static void         _cb_autohide_change(void *data, Evas_Object *obj __UNUSED__);
+static void         _cb_autohide_change(void *data, Evas_Object *obj EINA_UNUSED);
 static void         _fill_desks(E_Config_Dialog_Data *cfdata);
 
 E_API void
@@ -43,15 +43,15 @@ e_int_shelf_config(E_Shelf *es)
    v->basic.check_changed = _basic_check_changed;
 
    es->config_dialog =
-     e_config_dialog_new(es->zone->comp, _("Shelf Settings"),
+     e_config_dialog_new(NULL, _("Shelf Settings"),
                          "E", "_shelf_config_dialog",
                          "preferences-desktop-shelf", 0, v, es);
-   e_win_centered_set(es->config_dialog->dia->win, EINA_TRUE);
+   elm_win_center(es->config_dialog->dia->win, 1, 1);
 }
 
 /* local functions */
 static Eina_Bool
-_shelf_event_add(E_Config_Dialog_Data *cfdata, int type __UNUSED__, E_Event_Shelf *ev)
+_shelf_event_add(E_Config_Dialog_Data *cfdata, int type EINA_UNUSED, E_Event_Shelf *ev)
 {
    if (ev->shelf->cfg == cfdata->escfg)
      cfdata->es = ev->shelf;
@@ -59,7 +59,7 @@ _shelf_event_add(E_Config_Dialog_Data *cfdata, int type __UNUSED__, E_Event_Shel
 }
 
 static Eina_Bool
-_shelf_event_del(E_Config_Dialog_Data *cfdata, int type __UNUSED__, E_Event_Shelf *ev)
+_shelf_event_del(E_Config_Dialog_Data *cfdata, int type EINA_UNUSED, E_Event_Shelf *ev)
 {
    if (ev->shelf == cfdata->es)
      cfdata->es = NULL;
@@ -92,7 +92,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
    cfdata->fit_along = cfdata->escfg->fit_along;
 
    /* size */
-   cfdata->size = cfdata->escfg->size;
+   cfdata->size = MAX(cfdata->escfg->size, 20);
 
    /* style */
    if (cfdata->escfg->style)
@@ -112,7 +112,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
 #define CHECK(X) if (cfdata->X != cfdata->escfg->X) return 1
    CHECK(layer);
@@ -131,7 +131,7 @@ _basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfda
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    eina_list_free(cfdata->autohide_list);
 
@@ -144,7 +144,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *otb, *ol, *ow;
    E_Radio_Group *rg;
@@ -164,7 +164,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
                                  1, 0, 1, 0, 0.5, 0.0);
 
    /* position */
-   ol = e_widget_table_add(evas, 1);
+   ol = e_widget_table_add(e_win_evas_win_get(evas), 1);
    rg = e_widget_radio_group_new(&(cfdata->orient));
    ow = e_widget_radio_icon_add(evas, NULL, "preferences-position-left",
                                 24, 24, E_GADCON_ORIENT_LEFT, rg);
@@ -207,7 +207,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
 
    /* size */
    ol = e_widget_list_add(evas, 0, 0);
-   ow = e_widget_slider_add(evas, 1, 0, _("%1.0f pixels"), 4, 256, 4, 0,
+   ow = e_widget_slider_add(evas, 1, 0, _("%1.0f pixels"), 20, 256, 4, 0,
                             NULL, &(cfdata->size), 100);
    e_widget_list_object_append(ol, ow, 1, 1, 0.5);
    ow = e_widget_check_add(evas, _("Shrink to Content Width"),
@@ -455,7 +455,7 @@ _fill_styles(E_Config_Dialog_Data *cfdata, Evas_Object *obj)
 }
 
 static void
-_cb_autohide_change(void *data, Evas_Object *obj __UNUSED__)
+_cb_autohide_change(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    Eina_List *l;

@@ -21,7 +21,7 @@ static Eina_Bool    _e_shelf_cb_mouse_in(void *data, int type, void *event);
 //static Eina_Bool    _e_shelf_cb_mouse_out(void *data, int type, void *event);
 //static void          _e_shelf_cb_mouse_out2(E_Shelf *es, Evas *e, Evas_Object *obj, Evas_Event_Mouse_Out *ev);
 static int          _e_shelf_cb_id_sort(const void *data1, const void *data2);
-static void         _e_shelf_cb_menu_rename(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__);
+static void         _e_shelf_cb_menu_rename(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED);
 static Eina_Bool    _e_shelf_cb_hide_animator(void *data);
 static Eina_Bool    _e_shelf_cb_hide_animator_timer(void *data);
 static Eina_Bool    _e_shelf_cb_hide_urgent_timer(void *data);
@@ -91,8 +91,8 @@ _e_shelf_remaximize(E_Shelf *es)
 {
    E_Client *ec;
 
-   if (es->cfg->overlap) return;
-   E_CLIENT_FOREACH(e_comp_get(es->zone), ec)
+   if ((!e_config->border_fix_on_shelf_toggle) || es->cfg->overlap) return;
+   E_CLIENT_FOREACH(ec)
      {
         E_Maximize max = ec->maximized;
 
@@ -156,7 +156,7 @@ e_shelf_config_update(void)
         E_Zone *zone;
 
         if (cf_es->id <= 0) cf_es->id = id + 1;
-        zone = e_util_comp_zone_number_get(cf_es->manager, cf_es->zone);
+        zone = e_comp_zone_number_get(cf_es->zone);
         if (zone)
           e_shelf_config_new(zone, cf_es);
         id = cf_es->id;
@@ -211,6 +211,12 @@ e_shelf_zone_dummy_new(E_Zone *zone, Evas_Object *obj, int id)
 
    return es;
 }
+static void
+_e_shelf_hidden(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Shelf *es = data;
+   es->hiding = 0;
+}
 
 E_API E_Shelf *
 e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, E_Layer layer, int id)
@@ -231,8 +237,8 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, E_Layer laye
    e_zone_useful_geometry_dirty(zone);
 
 
-   es->ee = zone->comp->ee;
-   es->evas = zone->comp->evas;
+   es->ee = e_comp->ee;
+   es->evas = e_comp->evas;
    es->fit_along = 1;
    es->layer = layer;
 
@@ -246,9 +252,10 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, E_Layer laye
 
    e_shelf_style_set(es, style);
    evas_object_move(es->o_base, es->zone->x + es->x, es->zone->y + es->y);
-   if (layer == E_LAYER_DESKTOP)
+   if ((layer == E_LAYER_DESKTOP) || edje_object_data_get(es->o_base, "noshadow"))
      type = E_COMP_OBJECT_TYPE_NONE;
    es->comp_object = e_comp_object_util_add(es->o_base, type);
+   evas_object_event_callback_add(es->comp_object, EVAS_CALLBACK_HIDE, _e_shelf_hidden, es);
    evas_object_data_set(es->comp_object, "E_Shelf", es);
    evas_object_data_set(es->comp_object, "comp_skip", (void*)1);
    evas_object_name_set(es->comp_object, es->name);
@@ -283,8 +290,8 @@ e_shelf_zone_new(E_Zone *zone, const char *name, const char *style, E_Layer laye
    e_gadcon_zone_set(es->gadcon, zone);
    e_gadcon_ecore_evas_set(es->gadcon, es->ee);
    e_gadcon_shelf_set(es->gadcon, es);
-   e_gadcon_xdnd_window_set(es->gadcon, e_comp_get(es)->ee_win);
-   e_gadcon_dnd_window_set(es->gadcon, e_comp_get(es)->ee_win);
+   e_gadcon_xdnd_window_set(es->gadcon, e_comp->ee_win);
+   e_gadcon_dnd_window_set(es->gadcon, e_comp->ee_win);
    evas_object_clip_set(es->comp_object, es->zone->bg_clip_object);
    e_gadcon_util_menu_attach_func_set(es->gadcon,
                                       _e_shelf_cb_menu_items_append, es);
@@ -365,6 +372,7 @@ e_shelf_show(E_Shelf *es)
 {
    E_OBJECT_CHECK(es);
    E_OBJECT_TYPE_CHECK(es, E_SHELF_TYPE);
+   if (es->hiding) evas_object_hide(es->comp_object);
    evas_object_show(es->comp_object);
 }
 
@@ -374,6 +382,7 @@ e_shelf_hide(E_Shelf *es)
    E_OBJECT_CHECK(es);
    E_OBJECT_TYPE_CHECK(es, E_SHELF_TYPE);
    evas_object_hide(es->comp_object);
+   es->hiding = evas_object_visible_get(es->comp_object);
 }
 
 E_API void
@@ -541,7 +550,6 @@ e_shelf_save(E_Shelf *es)
 
         cf_es = E_NEW(E_Config_Shelf, 1);
         cf_es->name = eina_stringshare_add(es->name);
-        cf_es->manager = es->zone->comp->num;
         cf_es->zone = es->zone->num;
         cf_es->layer = es->layer;
         e_config->shelves = eina_list_append(e_config->shelves, cf_es);
@@ -854,7 +862,7 @@ e_shelf_desk_visible(const E_Shelf *es, const E_Desk *desk)
    EINA_SAFETY_ON_NULL_RETURN_VAL(es, EINA_FALSE);
    if (!desk)
      {
-        EINA_LIST_FOREACH(e_util_comp_current_get()->zones, ll, zone)
+        EINA_LIST_FOREACH(e_comp->zones, ll, zone)
           {
              desk = e_desk_current_get(zone);
              if (e_shelf_desk_visible(es, desk)) return EINA_TRUE;
@@ -1020,7 +1028,6 @@ _e_shelf_new_dialog_ok(void *data, char *text)
 
    cfg = E_NEW(E_Config_Shelf, 1);
    cfg->name = eina_stringshare_add(text);
-   cfg->manager = zone->comp->num;
    cfg->zone = zone->num;
    cfg->layer = E_LAYER_CLIENT_ABOVE;
    EINA_LIST_FOREACH(e_config->shelves, l, es_cf)
@@ -1063,14 +1070,14 @@ _e_shelf_del_cb(void *d)
 }
 
 static void
-_e_shelf_event_rename_end_cb(void *data __UNUSED__, E_Event_Shelf *ev)
+_e_shelf_event_rename_end_cb(void *data EINA_UNUSED, E_Event_Shelf *ev)
 {
    e_object_unref(E_OBJECT(ev->shelf));
    free(ev);
 }
 
 static void
-_e_shelf_free_cb(void *data __UNUSED__, void *event)
+_e_shelf_free_cb(void *data EINA_UNUSED, void *event)
 {
    E_Event_Shelf *ev = event;
    E_Shelf *es = ev->shelf;
@@ -1101,7 +1108,8 @@ _e_shelf_free(E_Shelf *es)
    if (!es->dummy)
      _e_shelf_bindings_del(es);
 
-   e_zone_useful_geometry_dirty(es->zone);
+   if (!stopping)
+     e_zone_useful_geometry_dirty(es->zone);
    E_FREE_LIST(es->handlers, ecore_event_handler_del);
 
    E_FREE_FUNC(es->autohide, ecore_event_handler_del);
@@ -1148,7 +1156,7 @@ _e_shelf_free(E_Shelf *es)
 }
 
 static void
-_e_shelf_gadcon_min_size_request(void *data __UNUSED__, E_Gadcon *gc __UNUSED__, Evas_Coord w __UNUSED__, Evas_Coord h __UNUSED__)
+_e_shelf_gadcon_min_size_request(void *data EINA_UNUSED, E_Gadcon *gc EINA_UNUSED, Evas_Coord w EINA_UNUSED, Evas_Coord h EINA_UNUSED)
 {
    return;
 }
@@ -1386,7 +1394,7 @@ _e_shelf_toggle_client_fix(E_Shelf *es)
    if (es->cfg->overlap)
      return;
 
-   EINA_LIST_FOREACH(e_comp_get(es)->clients, l, ec)
+   EINA_LIST_FOREACH(e_comp->clients, l, ec)
      {
         if ((ec->maximized & E_MAXIMIZE_TYPE) == E_MAXIMIZE_NONE)
           {
@@ -1506,7 +1514,7 @@ _e_shelf_menu_append(E_Shelf *es, E_Menu *mn)
 }
 
 static void
-_e_shelf_cb_menu_items_append(void *data, E_Gadcon_Client *gcc __UNUSED__, E_Menu *mn)
+_e_shelf_cb_menu_items_append(void *data, E_Gadcon_Client *gcc EINA_UNUSED, E_Menu *mn)
 {
    E_Shelf *es;
 
@@ -1533,7 +1541,7 @@ _e_shelf_cb_urgent_show(void *data)
 }
 
 static void
-_e_shelf_cb_menu_autohide(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_shelf_cb_menu_autohide(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Shelf *es = data;
 
@@ -1547,7 +1555,7 @@ _e_shelf_cb_menu_autohide(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UN
 }
 
 static void
-_e_shelf_cb_menu_refresh(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_shelf_cb_menu_refresh(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Shelf *es = data;
 
@@ -1556,7 +1564,7 @@ _e_shelf_cb_menu_refresh(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
 }
 
 static void
-_e_shelf_cb_menu_config(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_shelf_cb_menu_config(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Shelf *es;
 
@@ -1565,7 +1573,7 @@ _e_shelf_cb_menu_config(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
 }
 
 static void
-_e_shelf_cb_menu_edit(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_shelf_cb_menu_edit(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Shelf *es;
 
@@ -1583,7 +1591,7 @@ _e_shelf_cb_menu_edit(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED
 }
 
 static void
-_e_shelf_cb_menu_contents(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_shelf_cb_menu_contents(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Shelf *es;
 
@@ -1612,7 +1620,7 @@ _e_shelf_cb_confirm_dialog_yes(void *data)
 }
 
 static void
-_e_shelf_cb_menu_delete(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_shelf_cb_menu_delete(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Shelf *es;
 
@@ -1650,7 +1658,7 @@ _e_shelf_cb_menu_post(void *data, E_Menu *m)
 }
 
 static void
-_e_shelf_cb_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_e_shelf_cb_mouse_down(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Event_Mouse_Down *ev;
    E_Shelf *es;
@@ -1675,7 +1683,7 @@ _e_shelf_cb_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNU
 
         e_gadcon_canvas_zone_geometry_get(es->gadcon, &cx, &cy, NULL, NULL);
         e_menu_activate_mouse(mn,
-                              e_util_zone_current_get(e_manager_current_get()),
+                              e_zone_current_get(),
                               cx + ev->output.x,
                               cy + ev->output.y, 1, 1,
                               E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
@@ -1690,9 +1698,9 @@ _e_shelf_cb_mouse_move_autohide_fuck_systray(E_Shelf *es)
    Ecore_Event_Mouse_Move ev;
 
    memset(&ev, 0, sizeof(Ecore_Event_Mouse_Move));
-   ecore_evas_pointer_xy_get(es->zone->comp->ee, &x, &y);
-   ev.root.x = e_comp_canvas_x_root_unadjust(es->zone->comp, x);
-   ev.root.y = e_comp_canvas_y_root_unadjust(es->zone->comp, y);
+   ecore_evas_pointer_xy_get(e_comp->ee, &x, &y);
+   ev.root.x = e_comp_canvas_x_root_unadjust(x);
+   ev.root.y = e_comp_canvas_y_root_unadjust(y);
    _e_shelf_cb_mouse_in(es, ECORE_EVENT_MOUSE_MOVE, &ev);
    return EINA_TRUE;
 }
@@ -1815,11 +1823,11 @@ _e_shelf_cb_mouse_in(void *data, int type, void *event)
          * mouse in/out events. in the future, when we remove systray, we should go
          * back to mouse in/out events
          */
-        inside = E_INSIDE(e_comp_canvas_x_root_adjust(e_comp_get(es), ev->root.x),
-                          e_comp_canvas_x_root_adjust(e_comp_get(es), ev->root.y),
+        inside = E_INSIDE(e_comp_canvas_x_root_adjust(ev->root.x),
+                          e_comp_canvas_x_root_adjust(ev->root.y),
                           es->zone->x, es->zone->y, es->zone->w + 4, es->zone->h + 4);
-        x = e_comp_canvas_x_root_adjust(e_comp_get(es), ev->root.x) - es->zone->x;
-        y = e_comp_canvas_x_root_adjust(e_comp_get(es), ev->root.y) - es->zone->y;
+        x = e_comp_canvas_x_root_adjust(ev->root.x) - es->zone->x;
+        y = e_comp_canvas_x_root_adjust(ev->root.y) - es->zone->y;
         if (inside)
           inside = (
               ((E_INSIDE(x, y, es->x, es->y, es->w, es->h)) ||
@@ -1852,7 +1860,7 @@ _e_shelf_cb_mouse_in(void *data, int type, void *event)
 
 #if 0
 static void
-_e_shelf_cb_mouse_out2(E_Shelf *es, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, Evas_Event_Mouse_Out *ev)
+_e_shelf_cb_mouse_out2(E_Shelf *es, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, Evas_Event_Mouse_Out *ev)
 {
    int x, y, w, h;
 
@@ -1874,7 +1882,7 @@ _e_shelf_cb_mouse_out(void *data, int type, void *event)
         Ecore_X_Event_Mouse_Out *ev = event;
         int x, y, w, h;
 
-        if (ev->win != e_comp_get(es)->ee_win) return ECORE_CALLBACK_PASS_ON;
+        if (ev->win != e_comp->ee_win) return ECORE_CALLBACK_PASS_ON;
 
         /*
          * ECORE_X_EVENT_DETAIL_INFERIOR means focus went to children windows
@@ -1903,7 +1911,7 @@ _e_shelf_cb_mouse_out(void *data, int type, void *event)
 
 #endif
 static void
-_e_shelf_cb_dummy_moveresize(E_Shelf *es, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_shelf_cb_dummy_moveresize(E_Shelf *es, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    int x, y, w, h;
 
@@ -1916,7 +1924,7 @@ _e_shelf_cb_dummy_moveresize(E_Shelf *es, Evas *e __UNUSED__, Evas_Object *obj _
 }
 
 static void
-_e_shelf_cb_dummy_del(E_Shelf *es, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_shelf_cb_dummy_del(E_Shelf *es, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    e_object_free(E_OBJECT(es));
 }
@@ -2131,7 +2139,7 @@ _e_shelf_cb_instant_hide_timer(void *data)
 }
 
 static Eina_Bool
-_e_shelf_gadcon_populate_handler_cb(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_shelf_gadcon_populate_handler_cb(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    E_Event_Gadcon_Populate *ev = event;
    Eina_List *l;
@@ -2177,7 +2185,7 @@ _e_shelf_cb_menu_rename_cb(void *data)
 }
 
 static void
-_e_shelf_cb_menu_rename(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_shelf_cb_menu_rename(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Shelf *es = data;
    if (es->rename_dialog) return;

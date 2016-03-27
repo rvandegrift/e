@@ -24,7 +24,7 @@ struct _E_Config_Dialog_Data
 };
 
 E_Config_Dialog *
-e_int_config_powermanagement(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_powermanagement(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -38,14 +38,14 @@ e_int_config_powermanagement(E_Comp *comp, const char *params __UNUSED__)
    v->basic.create_widgets = _basic_create;
    v->basic.check_changed = _basic_check_changed;
 
-   cfd = e_config_dialog_new(comp, _("Power Management Settings"),
+   cfd = e_config_dialog_new(NULL, _("Power Management Settings"),
 			     "E", "advanced/powermanagement",
 			     "preferences-system-power-management", 0, v, NULL);
    return cfd;
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd __UNUSED__)
+_create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -60,7 +60,7 @@ _create_data(E_Config_Dialog *cfd __UNUSED__)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    eina_list_free(cfdata->gui.rmin);
    eina_list_free(cfdata->gui.rmax);
@@ -68,7 +68,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    e_config->powersave.none = cfdata->powersave_none;
    e_config->powersave.low = cfdata->powersave_low;
@@ -90,7 +90,7 @@ _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    return ((e_config->powersave.min != cfdata->powersave_min) ||
            (e_config->powersave.max != cfdata->powersave_max) ||
@@ -102,7 +102,7 @@ _basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfda
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *ob, *ol;
    E_Radio_Group *rmin, *rmax;
@@ -113,7 +113,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
    rmin = e_widget_radio_group_new((int*) &(cfdata->powersave_min));
    rmax = e_widget_radio_group_new((int*) &(cfdata->powersave_max));
 
-   ol = e_widget_table_add(evas, 0);
+   ol = e_widget_table_add(e_win_evas_win_get(evas), 0);
    
    y = 0;
    ob = e_widget_label_add(evas,
@@ -372,7 +372,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
 
 
 static void
-_cb_min_changed(void *data, Evas_Object *obj __UNUSED__)
+_cb_min_changed(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    Evas_Object *o;
@@ -388,7 +388,7 @@ _cb_min_changed(void *data, Evas_Object *obj __UNUSED__)
 }
 
 static void
-_cb_max_changed(void *data, Evas_Object *obj __UNUSED__)
+_cb_max_changed(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    Evas_Object *o;

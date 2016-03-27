@@ -60,6 +60,7 @@ static void
 icon_pixmap_deserialize(Eldbus_Message_Iter *variant, uint32_t **data, int *w, int *h)
 {
    Eldbus_Message_Iter *iter, *struc;
+   int tmpw, tmph;
 
    *data = NULL;
    *w = *h = 0;
@@ -68,19 +69,24 @@ icon_pixmap_deserialize(Eldbus_Message_Iter *variant, uint32_t **data, int *w, i
      {
         Eldbus_Message_Iter *imgdata;
 
-        if (eldbus_message_iter_arguments_get(struc, "iiay", w, h, &imgdata))
+        if (eldbus_message_iter_arguments_get(struc, "iiay", &tmpw, &tmph, &imgdata))
           {
              uint32_t *img;
              int len;
 
-             if (eldbus_message_iter_fixed_array_get(imgdata, 'y', &img, &len))
+             //only take this img if it has a higher resolution
+             if (tmpw > *w || tmph > *h)
                {
-                  unsigned int pos;
+                  *w = tmpw;
+                  *h = tmph;
+                  if (eldbus_message_iter_fixed_array_get(imgdata, 'y', &img, &len))
+                    {
+                       unsigned int pos;
 
-                  *data = malloc(len * sizeof(int));
-                  for (pos = 0; pos < (unsigned int)len; pos++)
-                    (*data)[pos] = eina_swap32(img[pos]);
-                  return;
+                       *data = malloc(len * sizeof(int));
+                       for (pos = 0; pos < (unsigned int)len; pos++)
+                         (*data)[pos] = eina_swap32(img[pos]);
+                    }
                }
           }
      }
@@ -340,6 +346,7 @@ static void
 notifier_item_add(const char *path, const char *bus_id, Context_Notifier_Host *ctx)
 {
    Eldbus_Proxy *proxy;
+   Notifier_Item_Cache *nic;
    Notifier_Item *item = calloc(1, sizeof(Notifier_Item));
    Eldbus_Signal_Handler *s;
    EINA_SAFETY_ON_NULL_RETURN(item);
@@ -368,6 +375,11 @@ notifier_item_add(const char *path, const char *bus_id, Context_Notifier_Host *c
    item->signals = eina_list_append(item->signals, s);
    s = eldbus_proxy_signal_handler_add(proxy, "NewTitle", new_title_cb, item);
    item->signals = eina_list_append(item->signals, s);
+   if (eina_hash_find(systray_ctx_get()->config->items, bus_id)) return;
+   nic = malloc(sizeof(Notifier_Item_Cache));
+   nic->path = eina_stringshare_ref(path);
+   eina_hash_add(systray_ctx_get()->config->items, bus_id, nic);
+   e_config_save_queue();
 }
 
 static void

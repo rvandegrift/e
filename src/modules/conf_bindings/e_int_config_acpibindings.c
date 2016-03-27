@@ -20,9 +20,9 @@ struct _E_Config_Dialog_Data
 /* local function prototypes */
 static void                  *_create_data(E_Config_Dialog *cfd);
 static void                   _fill_data(E_Config_Dialog_Data *cfdata);
-static void                   _free_data(E_Config_Dialog *cfd  __UNUSED__,
+static void                   _free_data(E_Config_Dialog *cfd  EINA_UNUSED,
                                          E_Config_Dialog_Data *cfdata);
-static int                    _basic_apply(E_Config_Dialog *cfd  __UNUSED__,
+static int                    _basic_apply(E_Config_Dialog *cfd  EINA_UNUSED,
                                            E_Config_Dialog_Data *cfdata);
 static Evas_Object           *_basic_create(E_Config_Dialog *cfd,
                                             Evas *evas,
@@ -35,13 +35,13 @@ static const char            *_binding_label_get(E_Config_Binding_Acpi *bind);
 static void                   _cb_bindings_changed(void *data);
 static void                   _cb_actions_changed(void *data);
 static void                   _cb_entry_changed(void *data,
-                                                void *data2 __UNUSED__);
+                                                void *data2 EINA_UNUSED);
 static void                   _cb_add_binding(void *data,
-                                              void *data2 __UNUSED__);
+                                              void *data2 EINA_UNUSED);
 static void                   _cb_del_binding(void *data,
-                                              void *data2 __UNUSED__);
+                                              void *data2 EINA_UNUSED);
 static Eina_Bool              _cb_grab_key_down(void *data,
-                                                int type __UNUSED__,
+                                                int type EINA_UNUSED,
                                                 void *event);
 static Eina_Bool              _cb_acpi_event(void *data,
                                              int type,
@@ -53,8 +53,8 @@ static Ecore_Window grab_win = 0;
 static Eina_List *grab_hdls = NULL;
 
 E_Config_Dialog *
-e_int_config_acpibindings(E_Comp *comp,
-                          const char *params __UNUSED__)
+e_int_config_acpibindings(Evas_Object *parent EINA_UNUSED,
+                          const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -68,7 +68,7 @@ e_int_config_acpibindings(E_Comp *comp,
    v->basic.apply_cfdata = _basic_apply;
    v->basic.create_widgets = _basic_create;
 
-   cfd = e_config_dialog_new(comp, _("ACPI Bindings Settings"), "E",
+   cfd = e_config_dialog_new(NULL, _("ACPI Bindings Settings"), "E",
                              "advanced/acpi_bindings",
                              "preferences-system-power-management",
                              0, v, NULL);
@@ -109,7 +109,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd  __UNUSED__,
+_free_data(E_Config_Dialog *cfd  EINA_UNUSED,
            E_Config_Dialog_Data *cfdata)
 {
    E_Config_Binding_Acpi *binding;
@@ -146,7 +146,7 @@ _free_data(E_Config_Dialog *cfd  __UNUSED__,
 }
 
 static int
-_basic_apply(E_Config_Dialog *cfd  __UNUSED__,
+_basic_apply(E_Config_Dialog *cfd  EINA_UNUSED,
              E_Config_Dialog_Data *cfdata)
 {
    E_Config_Binding_Acpi *binding, *b2;
@@ -181,7 +181,7 @@ _basic_apply(E_Config_Dialog *cfd  __UNUSED__,
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *ol, *of, *ow, *ot;
 
@@ -205,7 +205,7 @@ _basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data
    e_widget_frametable_object_append(of, ow, 1, 1, 1, 1, 1, 0, 1, 0);
    e_widget_list_object_append(ol, of, 1, 1, 0.5);
 
-   ot = e_widget_table_add(evas, 0);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), 0);
    of = e_widget_framelist_add(evas, _("Action"), 0);
    ow = e_widget_ilist_add(evas, (24 * e_scale), (24 * e_scale), NULL);
    cfdata->o_actions = ow;
@@ -215,12 +215,13 @@ _basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data
 
    ow = e_widget_framelist_add(evas, _("Action Params"), 0);
    cfdata->o_params =
-     e_widget_entry_add(evas, NULL, _cb_entry_changed, cfdata, NULL);
+     e_widget_entry_add(cfd->dia->win, NULL, _cb_entry_changed, cfdata, NULL);
    e_widget_disabled_set(cfdata->o_params, EINA_TRUE);
    e_widget_framelist_object_append(ow, cfdata->o_params);
    e_widget_table_object_append(ot, ow, 0, 1, 1, 1, 1, 0, 1, 0);
    e_widget_list_object_append(ol, ot, 1, 1, 0.5);
 
+   e_dialog_resizable_set(cfd->dia, 1);
    return ol;
 }
 
@@ -492,7 +493,7 @@ _cb_actions_changed(void *data)
 
 static void
 _cb_entry_changed(void *data,
-                  void *data2 __UNUSED__)
+                  void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    E_Config_Binding_Acpi *binding;
@@ -508,13 +509,13 @@ _cb_entry_changed(void *data,
 
 static void
 _cb_add_binding(void *data,
-                void *data2 __UNUSED__)
+                void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
    if (grab_win != 0) return;
    if (!(cfdata = data)) return;
-   grab_dlg = e_dialog_new(NULL, "E",
+   grab_dlg = e_dialog_new(cfdata->cfd->dia->win, "E",
                            "_acpibind_getbind_dialog");
    if (!grab_dlg) return;
    e_dialog_title_set(grab_dlg, _("ACPI Binding"));
@@ -522,14 +523,11 @@ _cb_add_binding(void *data,
    e_dialog_text_set(grab_dlg,
                      _("Please trigger the ACPI event you wish to bind to, "
                        "<br><br>or <hilight>Escape</hilight> to abort."));
-   e_win_centered_set(grab_dlg->win, EINA_TRUE);
-   e_win_borderless_set(grab_dlg->win, EINA_TRUE);
+   elm_win_center(grab_dlg->win, 1, 1);
+   elm_win_borderless_set(grab_dlg->win, EINA_TRUE);
 
 #ifndef HAVE_WAYLAND_ONLY
-   E_Manager *man;
-
-   man = e_manager_current_get();
-   grab_win = ecore_x_window_input_new(man->root, 0, 0, 1, 1);
+   grab_win = ecore_x_window_input_new(e_comp->root, 0, 0, 1, 1);
    ecore_x_window_show(grab_win);
    e_grabinput_get(grab_win, 0, grab_win);
 #endif
@@ -547,15 +545,11 @@ _cb_add_binding(void *data,
    e_acpi_events_freeze();
 
    e_dialog_show(grab_dlg);
-#ifndef HAVE_WAYLAND_ONLY
-   ecore_x_icccm_transient_for_set(grab_dlg->win->evas_win,
-                                   cfdata->cfd->dia->win->evas_win);
-#endif
 }
 
 static void
 _cb_del_binding(void *data,
-                void *data2 __UNUSED__)
+                void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    E_Config_Binding_Acpi *binding, *bind2;
@@ -618,7 +612,7 @@ _cb_del_binding(void *data,
 
 static Eina_Bool
 _cb_grab_key_down(void *data,
-                  int type __UNUSED__,
+                  int type EINA_UNUSED,
                   void *event)
 {
    E_Config_Dialog_Data *cfdata;
@@ -652,7 +646,7 @@ _cb_grab_key_down(void *data,
 
 static Eina_Bool
 _cb_acpi_event(void *data,
-               __UNUSED__ int type,
+               EINA_UNUSED int type,
                void *event)
 {
    E_Event_Acpi *ev;

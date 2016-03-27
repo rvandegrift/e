@@ -46,7 +46,7 @@ packagekit_icon_update(E_PackageKit_Module_Context *ctxt,
           state = "packagekit,state,updated";
      }
 
-   DBG("PKGKIT: IconUpdate, %d updates available (%s)", count, state);
+   //DBG("PKGKIT: IconUpdate, %d updates available (%s)", count, state);
 
    if (count) snprintf(buf, sizeof(buf), "%d", count);
    EINA_LIST_FOREACH(ctxt->instances, l, inst)
@@ -89,7 +89,7 @@ packagekit_popup_update(E_PackageKit_Instance *inst)
    unsigned num_updates = 0;
    const char *emblem_name;
    Efreet_Desktop *desktop;
-   Evas *evas = e_comp_get(inst->popup)->evas;
+   Evas *evas = e_comp->evas;
    Evas_Object *icon, *end;
    char buf[PATH_MAX];
 
@@ -178,9 +178,9 @@ packagekit_popup_new(E_PackageKit_Instance *inst)
    Evas *evas;
 
    inst->popup = e_gadcon_popup_new(inst->gcc, EINA_FALSE);
-   evas = e_comp_get(inst->popup)->evas;
+   evas = e_comp->evas;
 
-   table = e_widget_table_add(evas, 0);
+   table = e_widget_table_add(e_win_evas_win_get(evas), 0);
 
    inst->popup_label = e_widget_label_add(evas, NULL);
    e_widget_table_object_append(table, inst->popup_label, 0,0, 1,1, 1,0,1,0);
@@ -256,7 +256,7 @@ signal_repo_detail_cb(void *data, const Eldbus_Message *msg)
         _store_error(ctxt, "could not get arguments (ssb)");
         return;
      }
-   DBG("PKGKIT: RepoDetail: (%d) %s [ %s ]", enabled, repo_id, desc);
+   //DBG("PKGKIT: RepoDetail: (%d) %s [ %s ]", enabled, repo_id, desc);
 }
 
 static void
@@ -265,7 +265,7 @@ signal_cache_finished_cb(void *data, const Eldbus_Message *msg)
    E_PackageKit_Module_Context *ctxt = data;
    const char *error, *error_msg;
 
-   DBG("PKGKIT: Cache Finished CB");
+   //DBG("PKGKIT: Cache Finished CB");
 
    if (eldbus_message_error_get(msg, &error, &error_msg))
      {
@@ -328,10 +328,10 @@ _signal_package_cb(void *data, const Eldbus_Message *msg)
         _store_error(ctxt, "could not get package arguments");
         return;
      }
-   if (PKITV07)
-     { DBG("PKGKIT: Package: (%s) %s [ %s ]", info_str, pkg_id, summary); }
-   else
-     { DBG("PKGKIT: Package: (%d) %s [ %s ]", info, pkg_id, summary); }
+   //if (PKITV07)
+     //{ DBG("PKGKIT: Package: (%s) %s [ %s ]", info_str, pkg_id, summary); }
+   //else
+     //{ DBG("PKGKIT: Package: (%d) %s [ %s ]", info, pkg_id, summary); }
 
    splitted = eina_str_split_full(pkg_id, ";", 2, &num_elements);
    if (num_elements == 2)
@@ -380,7 +380,7 @@ _signal_finished_cb(void *data, const Eldbus_Message *msg)
    E_FREE_FUNC(obj, eldbus_object_unref);
    E_FREE_FUNC(ctxt->error, eina_stringshare_del);
 
-   DBG("PKGKIT: PackageFinished");
+   //DBG("PKGKIT: PackageFinished");
    packagekit_icon_update(ctxt, EINA_FALSE);
 }
 
@@ -395,9 +395,9 @@ packagekit_get_updates(E_PackageKit_Module_Context *ctxt, const char *transactio
    obj = eldbus_object_get(ctxt->conn, "org.freedesktop.PackageKit", transaction);
    proxy = eldbus_proxy_get(obj, "org.freedesktop.PackageKit.Transaction");
    if (PKITV07)
-     pending = eldbus_proxy_call(proxy, "GetUpdates", null_cb, NULL, -1, "s", "none");
+     pending = eldbus_proxy_call(proxy, "GetUpdates", null_cb, ctxt, -1, "s", "none");
    else
-     pending = eldbus_proxy_call(proxy, "GetUpdates", null_cb, NULL, -1, "t", 1);
+     pending = eldbus_proxy_call(proxy, "GetUpdates", null_cb, ctxt, -1, "t", 1);
    if (!pending)
      {
         _store_error(ctxt, "could not call GetUpdates()");
@@ -452,7 +452,7 @@ packagekit_create_transaction_and_exec(E_PackageKit_Module_Context *ctxt,
 {
    Eldbus_Pending *pending;
 
-   DBG("PKGKIT: Version: %d.%d.%d", ctxt->v_maj, ctxt->v_min, ctxt->v_mic);
+   //DBG("PKGKIT: Version: %d.%d.%d", ctxt->v_maj, ctxt->v_min, ctxt->v_mic);
 
    if (ctxt->transaction)
      {
@@ -524,7 +524,7 @@ packagekit_dbus_connect(E_PackageKit_Module_Context *ctxt)
 {
    Eldbus_Object *obj;
 
-   DBG("PKGKIT: dbus_init()");
+   //DBG("PKGKIT: dbus_init()");
    eldbus_init();
 
    ctxt->conn = eldbus_connection_get(ELDBUS_CONNECTION_TYPE_SYSTEM);
@@ -555,7 +555,7 @@ packagekit_dbus_disconnect(E_PackageKit_Module_Context *ctxt)
 {
    Eldbus_Object *obj;
 
-   DBG("PKGKIT: dbus_shutdown()");
+   //DBG("PKGKIT: dbus_shutdown()");
 
    if (ctxt->transaction)
      {

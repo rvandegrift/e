@@ -1,7 +1,7 @@
 #include "e_mod_main.h"
 #include "e_fm_device.h"
 
-static void _e_mod_menu_populate(void *d, E_Menu *m __UNUSED__, E_Menu_Item *mi);
+static void _e_mod_menu_populate(void *d, E_Menu *m EINA_UNUSED, E_Menu_Item *mi);
 
 static E_Menu *
 _e_mod_menu_top_get(E_Menu *m)
@@ -18,7 +18,7 @@ _e_mod_menu_top_get(E_Menu *m)
 static void
 _e_mod_menu_gtk_cb(void           *data,
                    E_Menu         *m,
-                   E_Menu_Item *mi __UNUSED__)
+                   E_Menu_Item *mi EINA_UNUSED)
 {
    Evas_Object *fm;
 
@@ -27,7 +27,7 @@ _e_mod_menu_gtk_cb(void           *data,
    if (fm && ((fileman_config->view.open_dirs_in_place && evas_object_data_get(fm, "page_is_window")) ||
        (fileman_config->view.desktop_navigation && evas_object_data_get(fm, "page_is_zone"))))
      e_fm2_path_set(fm, NULL, data);
-   else if (m->zone) e_fwin_new(m->zone->comp, NULL, data);
+   else if (m->zone) e_fwin_new(NULL, data);
 }
 
 static void
@@ -43,13 +43,13 @@ _e_mod_menu_virtual_cb(void           *data,
    if (fm && ((fileman_config->view.open_dirs_in_place && evas_object_data_get(fm, "page_is_window")) ||
        (fileman_config->view.desktop_navigation && evas_object_data_get(fm, "page_is_zone"))))
      e_fm2_path_set(fm, data, path ?: "/");
-   else if (m->zone) e_fwin_new(m->zone->comp, data, path ?: "/");
+   else if (m->zone) e_fwin_new(data, path ?: "/");
 }
 
 static void
 _e_mod_menu_volume_cb(void           *data,
                       E_Menu         *m,
-                      E_Menu_Item *mi __UNUSED__)
+                      E_Menu_Item *mi EINA_UNUSED)
 {
    E_Volume *vol = data;
    Evas_Object *fm;
@@ -62,7 +62,7 @@ _e_mod_menu_volume_cb(void           *data,
            (fileman_config->view.desktop_navigation && evas_object_data_get(fm, "page_is_zone"))))
          e_fm2_path_set(fm, NULL, vol->mount_point);
         else if (m->zone)
-          e_fwin_new(m->zone->comp, NULL, vol->mount_point);
+          e_fwin_new(NULL, vol->mount_point);
      }
    else
      {
@@ -73,7 +73,7 @@ _e_mod_menu_volume_cb(void           *data,
             (fileman_config->view.desktop_navigation && evas_object_data_get(fm, "page_is_zone"))))
           e_fm2_path_set(fm, buf, "/");
         else if (m->zone)
-          e_fwin_new(m->zone->comp, buf, "/");
+          e_fwin_new(buf, "/");
      }
 }
 
@@ -94,7 +94,7 @@ _e_mod_menu_populate_cb(void      *data,
        (fileman_config->view.desktop_navigation && evas_object_data_get(fm, "page_is_zone"))))
      e_fm2_path_set(fm, data, path ?: "/");
    else if (m->zone)
-     e_fwin_new(m->zone->comp, data, path ?: "/");
+     e_fwin_new(data, path ?: "/");
 }
 
 static void
@@ -128,7 +128,7 @@ _e_mod_menu_populate_filter(void *data EINA_UNUSED, Eio_File *handler, const Ein
 }
 
 static void
-_e_mod_menu_populate_item(void *data, Eio_File *handler __UNUSED__, const Eina_File_Direct_Info *info)
+_e_mod_menu_populate_item(void *data, Eio_File *handler EINA_UNUSED, const Eina_File_Direct_Info *info)
 {
    E_Menu *m = data;
    E_Menu_Item *mi;
@@ -244,7 +244,7 @@ _e_mod_menu_populate_sort(E_Menu_Item *a, E_Menu_Item *b)
 }
 
 static void
-_e_mod_menu_populate_done(void *data, Eio_File *handler __UNUSED__)
+_e_mod_menu_populate_done(void *data, Eio_File *handler EINA_UNUSED)
 {
    E_Menu *m = data;
    if (!e_object_unref(data)) return;
@@ -314,8 +314,13 @@ _e_mod_fileman_parse_gtk_bookmarks(E_Menu   *m,
    char *alias;
    FILE *fp;
 
-   snprintf(buf, sizeof(buf), "%s/.gtk-bookmarks", e_user_homedir_get());
+   snprintf(buf, sizeof(buf), "%s/gtk-3.0/bookmarks", efreet_config_home_get());
    fp = fopen(buf, "r");
+   if (!fp)
+     {
+        snprintf(buf, sizeof(buf), "%s/.gtk-bookmarks", e_user_homedir_get());
+        fp = fopen(buf, "r");
+    }
    if (fp)
      {
         while (fgets(line, sizeof(line), fp))
@@ -508,7 +513,7 @@ static void
 _e_mod_menu_navigate_cb(void *d EINA_UNUSED, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
 {
    if (m->zone)
-     e_fwin_new(m->zone->comp, "~/", "/");
+     e_fwin_new("~/", "/");
 }
 
 /* returns submenu so we can add Go to Parent */

@@ -13,7 +13,7 @@ typedef void (*E_Desk_Flip_Cb)(void *data, E_Desk *desk, int dx, int dy, Eina_Bo
 #ifndef E_DESK_H
 #define E_DESK_H
 
-#define E_DESK_TYPE 0xE0b01005
+#define E_DESK_TYPE (int)0xE0b01005
 
 typedef enum
 {
@@ -68,8 +68,8 @@ EINTERN int          e_desk_init(void);
 EINTERN int          e_desk_shutdown(void);
 E_API E_Desk      *e_desk_new(E_Zone *zone, int x, int y);
 E_API void         e_desk_name_set(E_Desk *desk, const char *name);
-E_API void         e_desk_name_add(int manager, int zone, int desk_x, int desk_y, const char *name);
-E_API void         e_desk_name_del(int manager, int zone, int desk_x, int desk_y);
+E_API void         e_desk_name_add(int zone, int desk_x, int desk_y, const char *name);
+E_API void         e_desk_name_del(int zone, int desk_x, int desk_y);
 E_API void         e_desk_name_update(void);
 E_API void         e_desk_show(E_Desk *desk);
 E_API void         e_desk_deskshow(E_Zone *zone);
@@ -86,12 +86,14 @@ E_API void         e_desk_row_remove(E_Zone *zone);
 E_API void         e_desk_col_add(E_Zone *zone);
 E_API void         e_desk_col_remove(E_Zone *zone);
 E_API void         e_desk_window_profile_set(E_Desk *desk, const char *profile);
-E_API void         e_desk_window_profile_add(int manager, int zone, int desk_x, int desk_y, const char *profile);
-E_API void         e_desk_window_profile_del(int manager, int zone, int desk_x, int desk_y);
+E_API void         e_desk_window_profile_add(int zone, int desk_x, int desk_y, const char *profile);
+E_API void         e_desk_window_profile_del(int zone, int desk_x, int desk_y);
 E_API void         e_desk_window_profile_update(void);
 
 E_API void         e_desk_flip_cb_set(E_Desk_Flip_Cb cb, const void *data);
 E_API void         e_desk_flip_end(E_Desk *desk);
+
+E_API unsigned int e_desks_count(void);
 
 extern E_API int E_EVENT_DESK_SHOW;
 extern E_API int E_EVENT_DESK_BEFORE_SHOW;

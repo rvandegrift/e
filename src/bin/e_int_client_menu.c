@@ -5,7 +5,7 @@ static void _e_client_menu_cb_locks(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_remember(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_borderless(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_border(void *data, E_Menu *m, E_Menu_Item *mi);
-static void _e_client_menu_cb_redirect_set(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi EINA_UNUSED);
+static void _e_client_menu_cb_redirect_set(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED);
 static void _e_client_menu_cb_close(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_iconify(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_kill(void *data, E_Menu *m, E_Menu_Item *mi);
@@ -22,7 +22,7 @@ static void _e_client_menu_cb_shade(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_resistance(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_icon_edit(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_application_pre(void *data, E_Menu *m, E_Menu_Item *mi);
-static void _e_client_menu_cb_window_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi);
+static void _e_client_menu_cb_window_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi);
 static void _e_client_menu_cb_prop(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_stick(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_stacking_pre(void *data, E_Menu *m, E_Menu_Item *mi);
@@ -34,6 +34,7 @@ static void _e_client_menu_cb_skip_winlist(void *data, E_Menu *m, E_Menu_Item *m
 static void _e_client_menu_cb_skip_pager(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_skip_taskbar(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_sendto_pre(void *data, E_Menu *m, E_Menu_Item *mi);
+static void _e_client_menu_cb_align_pre(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_sendto(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_pin(void *data, E_Menu *m, E_Menu_Item *mi);
 static void _e_client_menu_cb_unpin(void *data, E_Menu *m, E_Menu_Item *mi);
@@ -137,7 +138,7 @@ e_int_client_menu_create(E_Client *ec)
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
 
-   if ((!ec->sticky) && ((eina_list_count(ec->comp->zones) > 1) || (ec->zone->desk_x_count > 1) || (ec->zone->desk_y_count > 1)))
+   if ((!ec->sticky) && ((eina_list_count(e_comp->zones) > 1) || (ec->zone->desk_x_count > 1) || (ec->zone->desk_y_count > 1)))
      {
         mi = e_menu_item_new(m);
         e_menu_item_label_set(mi, _("Move to"));
@@ -146,6 +147,13 @@ e_int_client_menu_create(E_Client *ec)
                                   e_theme_edje_file_get("base/theme/borders",
                                                         "e/widgets/border/default/sendto"),
                                   "e/widgets/border/default/sendto");
+     }
+
+   if ((!ec->lock_user_location) && (!ec->iconic) && (!ec->maximized) && (!ec->fullscreen))
+     {
+        mi = e_menu_item_new(m);
+        e_menu_item_label_set(mi, _("Align"));
+        e_menu_item_submenu_pre_callback_set(mi, _e_client_menu_cb_align_pre, ec);
      }
 
    if (ec->layer <= E_LAYER_CLIENT_ABOVE)
@@ -215,8 +223,8 @@ e_int_client_menu_create(E_Client *ec)
         subm = e_menu_new();
         e_menu_item_submenu_set(mi, subm);
         e_object_unref(E_OBJECT(subm));
-        e_object_data_set(E_OBJECT(subm), ec->comp);
-        if (e_pixmap_type_get(ec->pixmap) == E_PIXMAP_TYPE_X)
+        e_object_data_set(E_OBJECT(subm), e_comp);
+        if (e_pixmap_is_x(ec->pixmap) && (e_comp->nocomp_ec != ec))
           {
              mi = e_menu_item_new(subm);
              e_menu_item_check_set(mi, 1);
@@ -264,7 +272,7 @@ e_int_client_menu_del(E_Client *ec)
 }
 
 static void
-_e_client_cb_border_menu_end(void *data __UNUSED__, E_Menu *m)
+_e_client_cb_border_menu_end(void *data EINA_UNUSED, E_Menu *m)
 {
    E_Client *ec;
 
@@ -282,57 +290,47 @@ _e_client_cb_border_menu_end(void *data __UNUSED__, E_Menu *m)
 }
 
 static void
-_e_client_menu_cb_locks(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_locks(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
    ec = data;
    if (ec->border_locks_dialog)
-     {
-        e_client_desk_set(ec->border_locks_dialog->dia->win->client, ec->desk);
-        e_win_raise(ec->border_locks_dialog->dia->win);
-        evas_object_focus_set(ec->border_locks_dialog->dia->win->client->frame, 1);
-        return;
-     }
-   e_int_client_locks(ec);
+     e_client_activate(e_win_client_get(ec->border_locks_dialog->dia->win), 1);
+   else
+     e_int_client_locks(ec);
 }
 
 static void
-_e_client_menu_cb_remember(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_remember(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
    ec = data;
    if (ec->border_remember_dialog)
-     {
-        e_client_desk_set(ec->border_remember_dialog->dia->win->client, ec->desk);
-        e_win_raise(ec->border_remember_dialog->dia->win);
-        evas_object_focus_set(ec->border_remember_dialog->dia->win->client->frame, 1);
-        return;
-     }
-   e_int_client_remember(ec);
+     e_client_activate(e_win_client_get(ec->border_remember_dialog->dia->win), 1);
+   else
+     e_int_client_remember(ec);
 }
 
 static void
-_e_client_menu_cb_border(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_border(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
    char buf[256];
 
    ec = data;
    if (ec->border_border_dialog)
+     e_client_activate(e_win_client_get(ec->border_border_dialog->dia->win), 1);
+   else
      {
-        e_client_desk_set(ec->border_border_dialog->dia->win->client, ec->desk);
-        e_win_raise(ec->border_border_dialog->dia->win);
-        evas_object_focus_set(ec->border_border_dialog->dia->win->client->frame, 1);
-        return;
+        snprintf(buf, sizeof(buf), "%p", ec);
+        e_configure_registry_call("internal/borders_border", NULL, buf);
      }
-   snprintf(buf, sizeof(buf), "%p", ec);
-   e_configure_registry_call("internal/borders_border", ec->zone->comp, buf);
 }
 
 static void
-_e_client_menu_cb_borderless(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_borderless(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Client *ec = data;
 
@@ -343,13 +341,13 @@ _e_client_menu_cb_borderless(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 
 
 static void
-_e_client_menu_cb_redirect_set(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi EINA_UNUSED)
+_e_client_menu_cb_redirect_set(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    e_comp_client_redirect_toggle(data);
 }
 
 static void
-_e_client_menu_cb_close(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_close(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -358,7 +356,7 @@ _e_client_menu_cb_close(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
 }
 
 static void
-_e_client_menu_cb_iconify(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_iconify(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -373,7 +371,7 @@ _e_client_menu_cb_iconify(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UN
 }
 
 static void
-_e_client_menu_cb_kill(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_kill(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Action *a;
    E_Client *ec;
@@ -386,7 +384,7 @@ _e_client_menu_cb_kill(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSE
 }
 
 static void
-_e_client_menu_cb_move(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_move(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -397,7 +395,7 @@ _e_client_menu_cb_move(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSE
 }
 
 static void
-_e_client_menu_cb_resize(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_resize(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -408,7 +406,7 @@ _e_client_menu_cb_resize(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
 }
 
 static void
-_e_client_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_maximize_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *subm;
    E_Menu_Item *submi;
@@ -505,7 +503,7 @@ _e_client_menu_cb_maximize_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
 }
 
 static void
-_e_client_menu_cb_maximize(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_maximize(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -516,7 +514,7 @@ _e_client_menu_cb_maximize(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __U
 }
 
 static void
-_e_client_menu_cb_maximize_vertically(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_maximize_vertically(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -531,7 +529,7 @@ _e_client_menu_cb_maximize_vertically(void *data, E_Menu *m __UNUSED__, E_Menu_I
 }
 
 static void
-_e_client_menu_cb_maximize_horizontally(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_maximize_horizontally(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -546,7 +544,7 @@ _e_client_menu_cb_maximize_horizontally(void *data, E_Menu *m __UNUSED__, E_Menu
 }
 
 static void
-_e_client_menu_cb_maximize_left(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_maximize_left(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -561,7 +559,7 @@ _e_client_menu_cb_maximize_left(void *data, E_Menu *m __UNUSED__, E_Menu_Item *m
 }
 
 static void
-_e_client_menu_cb_maximize_right(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_maximize_right(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -576,7 +574,7 @@ _e_client_menu_cb_maximize_right(void *data, E_Menu *m __UNUSED__, E_Menu_Item *
 }
 
 static void
-_e_client_menu_cb_unmaximize(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_unmaximize(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -585,7 +583,7 @@ _e_client_menu_cb_unmaximize(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi _
 }
 
 static void
-_e_client_menu_cb_shade(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_shade(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -600,7 +598,7 @@ _e_client_menu_cb_shade(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
 }
 
 static void
-_e_client_menu_cb_resistance(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_resistance(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -609,16 +607,57 @@ _e_client_menu_cb_resistance(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi _
 }
 
 static void
-_e_client_menu_cb_icon_edit(void *data, E_Menu *m, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_icon_edit(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
    ec = data;
-   e_desktop_border_edit(m->zone->comp, ec);
+   e_desktop_client_edit(ec);
+}
+#if 0
+static void
+_e_client_menu_cb_colors_edit_moveresize(E_Client *ec, ...)
+{
+   evas_object_geometry_set(ec->color_editor, ec->client.x, ec->client.y, ec->client.w, ec->client.h);
+   e_comp_shape_queue();
 }
 
 static void
-_e_client_menu_cb_application_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_colors_edit_del(void *data, ...)
+{
+   E_Client *ec = data;
+
+   E_FREE_FUNC(ec->color_editor, evas_object_del);
+   evas_object_event_callback_del_full(ec->frame, EVAS_CALLBACK_MOVE, (Evas_Object_Event_Cb)_e_client_menu_cb_colors_edit_moveresize, ec);
+   evas_object_event_callback_del_full(ec->frame, EVAS_CALLBACK_RESIZE, (Evas_Object_Event_Cb)_e_client_menu_cb_colors_edit_moveresize, ec);
+   e_client_comp_hidden_set(ec, 0);
+   e_comp_ungrab_input(1, 1);
+   e_comp_shape_queue();
+}
+
+static void
+_e_client_menu_cb_colors_edit(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
+{
+   Evas_Object *o;
+   E_Client *ec = data;
+
+   ec->color_editor = o = elm_color_class_editor_add(e_comp->elm, e_client_util_win_get(data));
+   if (!o) return;
+   e_comp_shape_queue();
+   evas_object_geometry_set(o, ec->client.x, ec->client.y, ec->client.w, ec->client.h);
+   evas_object_layer_set(o, E_LAYER_POPUP);
+   evas_object_show(o);
+   e_client_comp_hidden_set(ec, 1);
+   e_comp_grab_input(1, 1);
+   evas_object_smart_callback_add(o, "application_closed", (Evas_Smart_Cb)_e_client_menu_cb_colors_edit_del, ec);
+   evas_object_smart_callback_add(o, "dismissed", (Evas_Smart_Cb)_e_client_menu_cb_colors_edit_del, ec);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_DEL, (Evas_Object_Event_Cb)_e_client_menu_cb_colors_edit_del, ec);
+   evas_object_event_callback_add(ec->frame, EVAS_CALLBACK_MOVE, (Evas_Object_Event_Cb)_e_client_menu_cb_colors_edit_moveresize, ec);
+   evas_object_event_callback_add(ec->frame, EVAS_CALLBACK_RESIZE, (Evas_Object_Event_Cb)_e_client_menu_cb_colors_edit_moveresize, ec);
+}
+#endif
+static void
+_e_client_menu_cb_application_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *subm;
    E_Menu_Item *submi;
@@ -667,10 +706,17 @@ _e_client_menu_cb_application_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item 
         e_menu_item_callback_set(submi, _e_client_menu_cb_kbdshrtct_add, ec);
         e_util_menu_item_theme_icon_set(submi, "preferences-desktop-keyboard");
      }
+#if 0
+   if (ec->color_editor || (!e_pixmap_is_x(ec->pixmap))) return;
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Edit Color Scheme"));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_colors_edit, ec);
+   e_util_menu_item_theme_icon_set(submi, "preferences-desktop-color");
+#endif
 }
 
 static void
-_e_client_menu_cb_window_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_window_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *subm;
    E_Menu_Item *submi;
@@ -820,7 +866,7 @@ _e_client_menu_cb_window_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 }
 
 static void
-_e_client_menu_cb_prop(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_prop(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -829,7 +875,7 @@ _e_client_menu_cb_prop(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSE
 }
 
 static void
-_e_client_menu_cb_stick(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_stick(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -844,7 +890,7 @@ _e_client_menu_cb_stick(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
 }
 
 static void
-_e_client_menu_cb_on_top(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_on_top(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -854,7 +900,7 @@ _e_client_menu_cb_on_top(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
 }
 
 static void
-_e_client_menu_cb_below(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_below(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -864,7 +910,7 @@ _e_client_menu_cb_below(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
 }
 
 static void
-_e_client_menu_cb_normal(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_normal(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -874,7 +920,7 @@ _e_client_menu_cb_normal(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNU
 }
 
 static void
-_e_client_menu_cb_fullscreen(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_fullscreen(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Client *ec;
    int toggle;
@@ -892,7 +938,7 @@ _e_client_menu_cb_fullscreen(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 }
 
 static void
-_e_client_menu_cb_skip_winlist(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_skip_winlist(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Client *ec;
 
@@ -908,7 +954,7 @@ _e_client_menu_cb_skip_winlist(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
 }
 
 static void
-_e_client_menu_cb_skip_pager(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_skip_pager(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Client *ec;
 
@@ -923,7 +969,7 @@ _e_client_menu_cb_skip_pager(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 }
 
 static void
-_e_client_menu_cb_skip_taskbar(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_skip_taskbar(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Client *ec;
 
@@ -951,7 +997,7 @@ _e_client_menu_cb_sendto_icon_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 
    tw = 50;
    th = (tw * desk->zone->h) / desk->zone->w;
-   bgfile = e_bg_file_get(desk->zone->comp->num, desk->zone->num,
+   bgfile = e_bg_file_get(desk->zone->num,
                           desk->x, desk->y);
    o = e_thumb_icon_add(m->evas);
    e_thumb_icon_file_set(o, bgfile, "e/desktop/background");
@@ -963,7 +1009,235 @@ _e_client_menu_cb_sendto_icon_pre(void *data, E_Menu *m, E_Menu_Item *mi)
 #endif
 
 static void
-_e_client_menu_cb_sendto_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_align_setup(E_Client *ec, Evas_Object_Event_Cb cb)
+{
+   E_Notification_Notify n;
+   Evas_Object *o;
+
+   memset(&n, 0, sizeof(E_Notification_Notify));
+   n.timeout = 3000;
+   n.summary = _("Alignment");
+   n.body = _("Click an object to align with.");
+   n.urgency = E_NOTIFICATION_NOTIFY_URGENCY_NORMAL;
+   e_notification_client_send(&n, NULL, NULL);
+
+   o = evas_object_rectangle_add(e_comp->evas);
+   evas_object_resize(o, e_comp->w, e_comp->h);
+   evas_object_color_set(o, 0, 0, 0, 0);
+   evas_object_layer_set(o, E_LAYER_POPUP);
+   evas_object_show(o);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN, cb, ec);
+   e_comp_shape_queue();
+}
+
+static Evas_Object *
+_e_client_menu_cb_align_cb(Evas *e, Evas_Object *obj, Evas_Event_Mouse_Down *ev)
+{
+   evas_object_hide(obj);
+   evas_object_del(obj);
+   e_comp_shape_queue();
+   return evas_object_top_at_xy_get(e, ev->output.x, ev->output.y, 0, 0);
+}
+
+static void
+_e_client_menu_cb_align_on_center(E_Client *ec, Evas *e, Evas_Object *obj, Evas_Event_Mouse_Down *ev)
+{
+   Evas_Object *o;
+
+   o = _e_client_menu_cb_align_cb(e, obj, ev);
+   e_comp_object_util_center_on(ec->frame, o);
+}
+
+static void
+_e_client_menu_cb_align_center(void *data, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
+{
+   E_Client *ec = e_object_data_get(E_OBJECT(m));
+
+   if (data)
+     _e_client_menu_cb_align_setup(ec, (Evas_Object_Event_Cb)_e_client_menu_cb_align_on_center);
+   else
+     e_comp_object_util_center(ec->frame);
+}
+
+static void
+_e_client_menu_cb_align_on_top(E_Client *ec, Evas *e, Evas_Object *obj, Evas_Event_Mouse_Down *ev)
+{
+   Evas_Object *o;
+   int y;
+
+   o = _e_client_menu_cb_align_cb(e, obj, ev);
+   evas_object_geometry_get(o, NULL, &y, NULL, NULL);
+   evas_object_move(ec->frame, ec->x, y);
+}
+
+static void
+_e_client_menu_cb_align_top(void *data, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
+{
+   E_Client *ec = e_object_data_get(E_OBJECT(m));
+
+   if (data)
+     _e_client_menu_cb_align_setup(ec, (Evas_Object_Event_Cb)_e_client_menu_cb_align_on_top);
+   else
+     {
+        int y;
+
+        e_zone_useful_geometry_get(ec->zone, NULL, &y, NULL, NULL);
+        evas_object_move(ec->frame, ec->x, y);
+     }
+}
+
+static void
+_e_client_menu_cb_align_on_left(E_Client *ec, Evas *e, Evas_Object *obj, Evas_Event_Mouse_Down *ev)
+{
+   Evas_Object *o;
+   int x;
+
+   o = _e_client_menu_cb_align_cb(e, obj, ev);
+   evas_object_geometry_get(o, &x, NULL, NULL, NULL);
+   evas_object_move(ec->frame, x, ec->y);
+}
+
+static void
+_e_client_menu_cb_align_left(void *data, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
+{
+   E_Client *ec = e_object_data_get(E_OBJECT(m));
+
+   if (data)
+     _e_client_menu_cb_align_setup(ec, (Evas_Object_Event_Cb)_e_client_menu_cb_align_on_left);
+   else
+     {
+        int x;
+
+        e_zone_useful_geometry_get(ec->zone, &x, NULL, NULL, NULL);
+        evas_object_move(ec->frame, x, ec->y);
+     }
+}
+
+static void
+_e_client_menu_cb_align_on_right(E_Client *ec, Evas *e, Evas_Object *obj, Evas_Event_Mouse_Down *ev)
+{
+   Evas_Object *o;
+   int x, w;
+
+   o = _e_client_menu_cb_align_cb(e, obj, ev);
+   evas_object_geometry_get(o, &x, NULL, &w, NULL);
+   evas_object_move(ec->frame, x + w - ec->w, ec->y);
+}
+
+static void
+_e_client_menu_cb_align_right(void *data, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
+{
+   E_Client *ec = e_object_data_get(E_OBJECT(m));
+
+   if (data)
+     _e_client_menu_cb_align_setup(ec, (Evas_Object_Event_Cb)_e_client_menu_cb_align_on_right);
+   else
+     {
+        int x, w;
+
+        e_zone_useful_geometry_get(ec->zone, &x, NULL, &w, NULL);
+        evas_object_move(ec->frame, x + w - ec->w, ec->y);
+     }
+}
+
+static void
+_e_client_menu_cb_align_on_bottom(E_Client *ec, Evas *e, Evas_Object *obj, Evas_Event_Mouse_Down *ev)
+{
+   Evas_Object *o;
+   int y, h;
+
+   o = _e_client_menu_cb_align_cb(e, obj, ev);
+   evas_object_geometry_get(o, NULL, &y, NULL, &h);
+   evas_object_move(ec->frame, ec->x, y + h - ec->h);
+}
+
+static void
+_e_client_menu_cb_align_bottom(void *data, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
+{
+   E_Client *ec = e_object_data_get(E_OBJECT(m));
+
+   if (data)
+     _e_client_menu_cb_align_setup(ec, (Evas_Object_Event_Cb)_e_client_menu_cb_align_on_bottom);
+   else
+     {
+        int y, h;
+
+        e_zone_useful_geometry_get(ec->zone, NULL, &y, NULL, &h);
+        evas_object_move(ec->frame, ec->x, y + h - ec->h);
+     }
+}
+
+static void
+_e_client_menu_cb_align_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
+{
+   E_Menu *subm, *mm;
+   E_Menu_Item *submi;
+   E_Client *ec = data;
+
+   subm = e_menu_new();
+   e_menu_title_set(subm, _("Alignment"));
+   e_object_data_set(E_OBJECT(subm), ec);
+   e_menu_item_submenu_set(mi, subm);
+   e_object_unref(E_OBJECT(subm));
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Center"));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_center, NULL);
+   mm = e_menu_new();
+   e_object_data_set(E_OBJECT(mm), ec);
+   e_menu_item_submenu_set(submi, mm);
+   e_object_unref(E_OBJECT(mm));
+   submi = e_menu_item_new(mm);
+   e_menu_item_label_set(submi, _("On window..."));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_center, (void*)1);
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Top"));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_top, NULL);
+   mm = e_menu_new();
+   e_object_data_set(E_OBJECT(mm), ec);
+   e_menu_item_submenu_set(submi, mm);
+   e_object_unref(E_OBJECT(mm));
+   submi = e_menu_item_new(mm);
+   e_menu_item_label_set(submi, _("Of window..."));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_top, (void*)1);
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Left"));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_left, NULL);
+   mm = e_menu_new();
+   e_object_data_set(E_OBJECT(mm), ec);
+   e_menu_item_submenu_set(submi, mm);
+   e_object_unref(E_OBJECT(mm));
+   submi = e_menu_item_new(mm);
+   e_menu_item_label_set(submi, _("Of window..."));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_left, (void*)1);
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Right"));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_right, NULL);
+   mm = e_menu_new();
+   e_object_data_set(E_OBJECT(mm), ec);
+   e_menu_item_submenu_set(submi, mm);
+   e_object_unref(E_OBJECT(mm));
+   submi = e_menu_item_new(mm);
+   e_menu_item_label_set(submi, _("Of window..."));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_right, (void*)1);
+
+   submi = e_menu_item_new(subm);
+   e_menu_item_label_set(submi, _("Bottom"));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_bottom, NULL);
+   mm = e_menu_new();
+   e_object_data_set(E_OBJECT(mm), ec);
+   e_menu_item_submenu_set(submi, mm);
+   e_object_unref(E_OBJECT(mm));
+   submi = e_menu_item_new(mm);
+   e_menu_item_label_set(submi, _("Of window..."));
+   e_menu_item_callback_set(submi, _e_client_menu_cb_align_bottom, (void*)1);
+}
+
+static void
+_e_client_menu_cb_sendto_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *subm;
    E_Menu_Item *submi;
@@ -974,14 +1248,14 @@ _e_client_menu_cb_sendto_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
    int zones, i;
 
    ec = data;
-   zones = eina_list_count(ec->zone->comp->zones);
+   zones = eina_list_count(e_comp->zones);
 
    subm = e_menu_new();
    e_object_data_set(E_OBJECT(subm), ec);
    e_menu_item_submenu_set(mi, subm);
    e_object_unref(E_OBJECT(subm));
 
-   EINA_LIST_FOREACH(ec->comp->zones, l, zone)
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
      {
         if (zones > 1)
           {
@@ -1025,7 +1299,7 @@ _e_client_menu_cb_sendto_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 }
 
 static void
-_e_client_menu_cb_sendto(void *data, E_Menu *m, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_sendto(void *data, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Desk *desk;
    E_Client *ec;
@@ -1040,7 +1314,7 @@ _e_client_menu_cb_sendto(void *data, E_Menu *m, E_Menu_Item *mi __UNUSED__)
 }
 
 static void
-_e_client_menu_cb_pin(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_pin(void *data EINA_UNUSED, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -1049,7 +1323,7 @@ _e_client_menu_cb_pin(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED
 }
 
 static void
-_e_client_menu_cb_unpin(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_unpin(void *data EINA_UNUSED, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -1058,7 +1332,7 @@ _e_client_menu_cb_unpin(void *data __UNUSED__, E_Menu *m, E_Menu_Item *mi __UNUS
 }
 
 static void
-_e_client_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_stacking_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *subm;
    E_Menu_Item *submi;
@@ -1164,7 +1438,7 @@ _e_client_menu_cb_stacking_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
 }
 
 static void
-_e_client_menu_cb_raise(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_raise(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec = data;
 
@@ -1176,7 +1450,7 @@ _e_client_menu_cb_raise(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUS
 }
 
 static void
-_e_client_menu_cb_lower(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_lower(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec = data;
 
@@ -1225,7 +1499,7 @@ _e_client_menu_cb_netwm_icon(void *data, E_Menu *m, E_Menu_Item *mi)
 }
 
 static void
-_e_client_menu_cb_border_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_border_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *subm;
    E_Menu_Item *submi;
@@ -1289,7 +1563,7 @@ _e_client_menu_cb_border_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 }
 
 static void
-_e_client_menu_cb_iconpref_e(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_iconpref_e(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -1301,7 +1575,7 @@ _e_client_menu_cb_iconpref_e(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi _
 }
 
 static void
-_e_client_menu_cb_iconpref_user(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_iconpref_user(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -1313,7 +1587,7 @@ _e_client_menu_cb_iconpref_user(void *data, E_Menu *m __UNUSED__, E_Menu_Item *m
 }
 
 static void
-_e_client_menu_cb_iconpref_netwm(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_iconpref_netwm(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
 
@@ -1325,7 +1599,7 @@ _e_client_menu_cb_iconpref_netwm(void *data, E_Menu *m __UNUSED__, E_Menu_Item *
 }
 
 static void
-_e_client_menu_cb_skip_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_skip_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Client *ec;
    E_Menu *subm;
@@ -1370,7 +1644,7 @@ _e_client_menu_cb_skip_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
 }
 
 static void
-_e_client_menu_cb_fav_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_fav_add(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
    Efreet_Menu *menu;
@@ -1389,20 +1663,20 @@ _e_client_menu_cb_fav_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UN
 }
 
 static void
-_e_client_menu_cb_kbdshrtct_add(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_kbdshrtct_add(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Client *ec;
    E_Zone *zone;
 
    if (!(ec = data)) return;
-   zone = e_util_zone_current_get(e_manager_current_get());
+   zone = e_zone_current_get();
    if (!zone) return;
    e_configure_registry_call("keyboard_and_mouse/key_bindings",
-                             zone->comp, ec->desktop->exec);
+                             NULL, ec->desktop->exec);
 }
 
 static void
-_e_client_menu_cb_ibar_add_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_client_menu_cb_ibar_add_pre(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *sm;
    E_Client *ec;
@@ -1441,7 +1715,7 @@ _e_client_menu_cb_ibar_add_pre(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi
 }
 
 static void
-_e_client_menu_cb_ibar_add(void *data, E_Menu *m, E_Menu_Item *mi __UNUSED__)
+_e_client_menu_cb_ibar_add(void *data, E_Menu *m, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Order *od;
    E_Client *ec;

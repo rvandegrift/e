@@ -7,14 +7,14 @@
 /* externally accessible functions */
 
 E_API E_About *
-e_about_new(E_Comp *c)
+e_about_new(void)
 {
    E_Obj_Dialog *od;
    char buf[16384];
    FILE *f;
    Eina_Strbuf *tbuf;
 
-   od = e_obj_dialog_new(c, _("About Enlightenment"), "E", "_about");
+   od = e_obj_dialog_new(_("About Enlightenment"), "E", "_about");
    if (!od) return NULL;
    e_obj_dialog_obj_theme_set(od, "base/theme/about", "e/widgets/about/main");
    e_obj_dialog_obj_part_text_set(od, "e.text.label", _("Close"));
@@ -23,7 +23,7 @@ e_about_new(E_Comp *c)
    snprintf
      (buf, sizeof(buf), "%s%s",
      _(
-       "<title>Copyright &copy; 2000-2014, by the Enlightenment "
+       "<title>Copyright &copy; 2000-2016, by the Enlightenment "
        "Development Team</><br>"
        "<br>"
        "We hope you enjoy using this software as much as we enjoyed "

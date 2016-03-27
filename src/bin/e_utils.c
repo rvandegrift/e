@@ -51,14 +51,6 @@ e_util_env_set(const char *var, const char *val)
      }
 }
 
-E_API E_Zone *
-e_util_zone_current_get(E_Manager *man)
-{
-   E_OBJECT_CHECK_RETURN(man, NULL);
-   E_OBJECT_TYPE_CHECK_RETURN(man, E_MANAGER_TYPE, NULL);
-   return e_zone_current_get(man->comp);
-}
-
 E_API int
 e_util_glob_match(const char *str, const char *pattern)
 {
@@ -99,72 +91,6 @@ e_util_glob_case_match(const char *str, const char *pattern)
    return 0;
 }
 
-
-E_API E_Zone *
-e_util_comp_zone_number_get(int c_num, int zone_num)
-{
-   E_Comp *c;
-
-   c = e_comp_number_get(c_num);
-   if (!c) return NULL;
-   return e_comp_zone_number_get(c, zone_num);
-}
-
-E_API E_Zone *
-e_util_comp_zone_id_get(int c_num, int id)
-{
-   E_Comp *c;
-
-   c = e_comp_number_get(c_num);
-   if (!c) return NULL;
-   return e_comp_zone_id_get(c, id);
-}
-
-E_API int
-e_util_head_exec(int head, const char *cmd)
-{
-   char *penv_display;
-   char *p1, *p2;
-   char buf[4096];
-   int ok = 0;
-   Ecore_Exe *exe;
-
-   penv_display = getenv("DISPLAY");
-   if (!penv_display) return 0;
-   penv_display = strdup(penv_display);
-   if (!penv_display) return 0;
-   /* set env vars */
-   p1 = strrchr(penv_display, ':');
-   p2 = strrchr(penv_display, '.');
-   if ((p1) && (p2) && (p2 > p1)) /* "blah:x.y" */
-     {
-        *p2 = 0;
-        snprintf(buf, sizeof(buf), "%s.%i", penv_display, head);
-        *p2 = '.';
-     }
-   else if (p1) /* "blah:x */
-     snprintf(buf, sizeof(buf), "%s.%i", penv_display, head);
-   else
-     eina_strlcpy(buf, penv_display, sizeof(buf));
-
-   ok = 1;
-   exe = ecore_exe_run(cmd, NULL);
-   if (!exe)
-     {
-        e_util_dialog_show(_("Run Error"),
-                           _("Enlightenment was unable to fork a child process:<br>"
-                             "<br>"
-                             "%s<br>"),
-                           cmd);
-        ok = 0;
-     }
-
-   /* reset env vars */
-   e_util_env_set("DISPLAY", penv_display);
-   free(penv_display);
-   return ok;
-}
-
 E_API int
 e_util_strcmp(const char *s1, const char *s2)
 {
@@ -202,7 +128,7 @@ e_util_immortal_check(void)
 {
    Eina_List *wins;
 
-   wins = e_clients_immortal_list(NULL);
+   wins = e_clients_immortal_list();
    if (wins)
      {
         e_util_dialog_show(_("Cannot exit - immortal windows."),
@@ -473,7 +399,7 @@ e_util_dialog_internal(const char *title, const char *txt)
    e_dialog_icon_set(dia, "dialog-error", 64);
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
    e_dialog_button_focus_num(dia, 0);
-   e_win_centered_set(dia->win, 1);
+   elm_win_center(dia->win, 1, 1);
    e_dialog_show(dia);
    return dia;
 }
@@ -838,49 +764,28 @@ _win_auto_size_calc(int max, int min)
 }
 
 E_API void
-e_util_win_auto_resize_fill(E_Win *win)
+e_util_win_auto_resize_fill(Evas_Object *win)
 {
    E_Zone *zone = NULL;
+   E_Client *ec;
 
-   if (win->client)
-     zone = win->client->zone;
-   if ((!zone) && (win->comp))
-     zone = e_zone_current_get(win->comp);
+   ec = e_win_client_get(win);
+   if (ec)
+     zone = ec->zone;
+   if (!zone)
+     zone = e_zone_current_get();
 
    if (zone)
      {
-        int w, h;
+        int w, h, mw, mh;
 
         e_zone_useful_geometry_get(zone, NULL, NULL, &w, &h);
 
-        w = _win_auto_size_calc(w, win->min_w);
-        h = _win_auto_size_calc(h, win->min_h);
-        e_win_resize(win, w, h);
+        evas_object_size_hint_min_get(win, &mw, &mh);
+        w = _win_auto_size_calc(w, mw);
+        h = _win_auto_size_calc(h, mh);
+        evas_object_resize(win, w, h);
      }
-}
-
-E_API int
-e_util_comp_desk_count_get(E_Comp *c)
-{
-   Eina_List *zl;
-   E_Zone *zone;
-   int count = 0;
-
-   E_OBJECT_CHECK_RETURN(c, 0);
-   E_OBJECT_TYPE_CHECK_RETURN(c, E_COMP_TYPE, 0);
-   EINA_LIST_FOREACH(c->zones, zl, zone)
-     {
-        int x, y;
-        int cx = 0, cy = 0;
-
-        e_zone_desk_count_get(zone, &cx, &cy);
-        for (x = 0; x < cx; x++)
-          {
-             for (y = 0; y < cy; y++)
-               count += 1;
-          }
-     }
-   return count;
 }
 
 /* local subsystem functions */
@@ -920,7 +825,7 @@ _e_util_cb_delayed_del(void *data)
 }
 
 static void
-_e_util_cb_delayed_cancel(void *data, void *obj __UNUSED__)
+_e_util_cb_delayed_cancel(void *data, void *obj EINA_UNUSED)
 {
    Ecore_Idle_Enterer *idler = data;
 
@@ -928,7 +833,7 @@ _e_util_cb_delayed_cancel(void *data, void *obj __UNUSED__)
 }
 
 static Eina_Bool
-_e_util_wakeup_cb(void *data __UNUSED__)
+_e_util_wakeup_cb(void *data EINA_UNUSED)
 {
    _e_util_dummy_timer = NULL;
    return ECORE_CALLBACK_CANCEL;
@@ -1003,8 +908,7 @@ e_util_module_config_check(const char *module_name, int loaded, int current)
 E_API Eina_Bool
 e_util_fullscreen_current_any(void)
 {
-   E_Manager *man = e_manager_current_get();
-   E_Zone *zone = e_util_zone_current_get(man);
+   E_Zone *zone = e_zone_current_get();
    E_Desk *desk;
 
    if ((zone) && (zone->fullscreen > 0)) return EINA_TRUE;
@@ -1020,25 +924,21 @@ E_API Eina_Bool
 e_util_fullscreen_any(void)
 {
    E_Zone *zone;
-   const Eina_List *lc, *lz;
-   E_Comp *c;
+   const Eina_List *lz;
    E_Desk *desk;
    int x, y;
 
-   EINA_LIST_FOREACH(e_comp_list(), lc, c)
+   EINA_LIST_FOREACH(e_comp->zones, lz, zone)
      {
-        EINA_LIST_FOREACH(c->zones, lz, zone)
-          {
-             if (zone->fullscreen > 0) return EINA_TRUE;
+        if (zone->fullscreen > 0) return EINA_TRUE;
 
-             for (x = 0; x < zone->desk_x_count; x++)
-               for (y = 0; y < zone->desk_y_count; y++)
-                 {
-                    desk = e_desk_at_xy_get(zone, x, y);
-                    if ((desk) && (desk->fullscreen_clients))
-                      return EINA_TRUE;
-                 }
-          }
+        for (x = 0; x < zone->desk_x_count; x++)
+          for (y = 0; y < zone->desk_y_count; y++)
+            {
+               desk = e_desk_at_xy_get(zone, x, y);
+               if ((desk) && (desk->fullscreen_clients))
+                 return EINA_TRUE;
+            }
      }
    return EINA_FALSE;
 }
@@ -1090,7 +990,7 @@ e_util_time_str_get(long int seconds)
 }
 
 static void
-_e_util_size_debug_free(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_e_util_size_debug_free(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    int x, y, w, h;
    const char *name;
@@ -1101,7 +1001,7 @@ _e_util_size_debug_free(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *
 }
 
 static void
-_e_util_size_debug_del(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_e_util_size_debug_del(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    int x, y, w, h;
    const char *name;
@@ -1112,7 +1012,7 @@ _e_util_size_debug_del(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *o
 }
 
 static void
-_e_util_size_debug_stack(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_e_util_size_debug_stack(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    int x, y, w, h;
    const char *name;
@@ -1123,7 +1023,7 @@ _e_util_size_debug_stack(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object 
 }
 
 static void
-_e_util_size_debug(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_e_util_size_debug(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    int x, y, w, h;
    const char *name;
@@ -1243,7 +1143,7 @@ e_util_terminal_desktop_get(void)
              tdesktop = l->data;
              EINA_LIST_FREE(l, td)
                {
-                  // free/unref the desktosp we are not going to use
+                  // free/unref the desktops we are not going to use
                   if (td != tdesktop) efreet_desktop_free(td);
                }
           }
@@ -1522,4 +1422,22 @@ e_util_evas_objects_above_print_smart(Evas_Object *o)
         else
           fprintf(stderr, "[%p] - %s(%s) %s\n", a, evas_object_type_get(a), evas_object_name_get(a), evas_object_visible_get(a) ? "VISIBLE" : "HIDDEN");
      }
+}
+
+/*
+ * NOTICE: This function should not be used by external modules!!!
+ *
+ * This function is just a hack to allow us to "securely" clear sensitive
+ * info until memset_s() is readily available, or at least we move this hack
+ * to Eina.
+ *
+ * This is going to work until link time optimizations are good enough.
+ * Hopefully by then, we'll be able to properly use memset_s().
+ */
+static void *(* const volatile memset_ptr)(void *, int, size_t) = memset;
+
+E_API void
+e_util_memclear(void *s, size_t n)
+{
+   memset_ptr(s, 0, n);
 }

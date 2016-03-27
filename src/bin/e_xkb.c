@@ -13,6 +13,7 @@ _e_xkb_init_timer(void *data)
    E_Config_XKB_Layout *cl2, *cl = data;
    int cur_group = -1;
 
+   if (!e_comp->root) return EINA_FALSE;
    EINA_LIST_FOREACH(e_config->xkb.used_layouts, l, cl2)
      {
         cur_group++;
@@ -65,7 +66,8 @@ e_xkb_update(int cur_group)
      {
         _e_xkb_cur_group = cur_group;
 #ifndef HAVE_WAYLAND_ONLY
-        ecore_x_xkb_select_group(cur_group);
+        if (e_comp->root)
+          ecore_x_xkb_select_group(cur_group);
 #endif
         e_deskenv_xmodmap_run();
         _e_xkb_update_event(cur_group);

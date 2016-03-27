@@ -52,7 +52,7 @@ static void             _cb_favorites_click(void *data, Evas_Object *obj, const 
 static void             _cb_changed(void *data, Evas_Object *obj, void *event_info);
 static void             _cb_dir_changed(void *data, Evas_Object *obj, void *event_info);
 static void             _cb_button_click(void *data, Evas_Object *obj, const char *emission, const char *source);
-static void             _cb_scroll_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info);
+static void             _cb_scroll_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info);
 static void             _box_button_append(Instance *inst, const char *label, Edje_Signal_Cb func);
 static void             _box_button_free(Nav_Item *ni);
 static void _cb_fm_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info);
@@ -119,7 +119,7 @@ _event_deleted(Nav_Item *ni, int type, void *e)
 }
 
 static void
-_cb_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Instance *inst;
    int w, h;
@@ -141,7 +141,7 @@ _cb_initial_dir(void *data)
 }
 
 static void
-_box_button_cb_dnd_enter(void *data __UNUSED__, const char *type, void *event)
+_box_button_cb_dnd_enter(void *data EINA_UNUSED, const char *type, void *event)
 {
    E_Event_Dnd_Enter *ev = event;
 
@@ -150,7 +150,7 @@ _box_button_cb_dnd_enter(void *data __UNUSED__, const char *type, void *event)
 }
 
 static void
-_box_button_cb_dnd_leave(void *data, const char *type __UNUSED__, void *event __UNUSED__)
+_box_button_cb_dnd_leave(void *data, const char *type EINA_UNUSED, void *event EINA_UNUSED)
 {
    Instance *inst = data;
 
@@ -164,11 +164,20 @@ static void
 _box_button_cb_dnd_move(void *data, const char *type, void *event)
 {
    Instance *inst = data;
+   Eina_List *l;
    Evas_Object *obj;
    E_Event_Dnd_Move *ev = event;
 
    if (strcmp(type, "text/uri-list") && strcmp(type, "XdndDirectSave0")) return;
-   obj = e_box_item_at_xy_get(inst->o_box, ev->x, ev->y);
+   l = elm_box_children_get(inst->o_box);
+   EINA_LIST_FREE(l, obj)
+     {
+        int x, y, w, h;
+
+        evas_object_geometry_get(obj, &x, &y, &w, &h);
+        if (E_INSIDE(ev->x, ev->y, x, y, w, h)) break;
+     }
+   eina_list_free(l);
    if (!obj)
      {
         _box_button_cb_dnd_leave(inst, type, NULL);
@@ -231,33 +240,44 @@ out:
    _box_button_cb_dnd_leave(inst, type, NULL);
 }
 
+static Eina_Strbuf *
+_path_generate(Instance *inst, Evas_Object *break_obj)
+{
+   Nav_Item *ni;
+   Eina_Strbuf *buf;
+
+   buf = eina_strbuf_new();
+   EINA_INLIST_FOREACH(inst->l_buttons, ni)
+     {
+        eina_strbuf_append(buf, edje_object_part_text_get(ni->o, "e.text.label"));
+        if (break_obj && (ni->o == break_obj)) break;
+        if (eina_strbuf_length_get(buf)) eina_strbuf_append_char(buf, '/');
+     }
+   return buf;
+}
+
 static Eina_Bool
-_box_button_cb_dnd_drop(void *data, const char *type __UNUSED__)
+_box_button_cb_dnd_drop(void *data, const char *type EINA_UNUSED)
 {
    Instance *inst = data;
-   Nav_Item *ni;
    Eina_Bool allow;
-   char path[PATH_MAX] = {0};
+   Eina_Strbuf *buf;
 
    if (!inst->dnd_obj) return EINA_FALSE;
 
-   EINA_INLIST_FOREACH(inst->l_buttons, ni)
-     {
-        strcat(path, edje_object_part_text_get(ni->o, "e.text.label"));
-        if (ni->o == inst->dnd_obj) break;
-        if (path[1]) strcat(path, "/");
-     }
-   allow = ecore_file_can_write(path);
+   buf = _path_generate(inst, inst->dnd_obj);
+   allow = ecore_file_can_write(eina_strbuf_string_get(buf));
    if (allow)
      {
-        e_drop_xds_update(allow, path);
-        inst->dnd_path = strdup(path);
+        e_drop_xds_update(allow, eina_strbuf_string_get(buf));
+        inst->dnd_path = eina_strbuf_string_steal(buf);
      }
+   eina_strbuf_free(buf);
    return allow;
 }
 
 static void
-_gc_moveresize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_gc_moveresize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Instance *inst = data;
    int x, y, w, h;
@@ -326,10 +346,10 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    e_scrollframe_thumbscroll_force(inst->o_scroll, 1);
    evas_object_show(inst->o_scroll);
 
-   inst->o_box = e_box_add(gc->evas);
+   inst->o_box = elm_box_add(e_win_evas_object_win_get(gc->o_container));
    evas_object_repeat_events_set(inst->o_box, EINA_TRUE);
-   e_box_orientation_set(inst->o_box, 1);
-   e_box_homogenous_set(inst->o_box, 0);
+   elm_box_horizontal_set(inst->o_box, 1);
+   elm_box_homogeneous_set(inst->o_box, 0);
    e_scrollframe_child_set(inst->o_scroll, inst->o_box);
    evas_object_show(inst->o_box);
 
@@ -367,7 +387,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    edje_object_message_signal_process(inst->o_base);
 
    evas_object_geometry_get(inst->o_scroll, &x, &y, &w, &h);
-   inst->dnd_handler = e_drop_handler_add(E_OBJECT(inst->gcc),
+   inst->dnd_handler = e_drop_handler_add(E_OBJECT(inst->gcc), NULL,
                                          inst,
                                          _box_button_cb_dnd_enter,
                                          _box_button_cb_dnd_move,
@@ -430,7 +450,7 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 }
 
 static void
-_gc_orient(E_Gadcon_Client *gcc __UNUSED__, E_Gadcon_Orient orient)
+_gc_orient(E_Gadcon_Client *gcc EINA_UNUSED, E_Gadcon_Orient orient)
 {
    /* Instance *inst; */
 
@@ -454,19 +474,19 @@ _gc_orient(E_Gadcon_Client *gcc __UNUSED__, E_Gadcon_Orient orient)
 }
 
 static const char *
-_gc_label(const E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_label(const E_Gadcon_Client_Class *client_class EINA_UNUSED)
 {
    return _("EFM Navigation");
 }
 
 static Evas_Object *
-_gc_icon(const E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
+_gc_icon(const E_Gadcon_Client_Class *client_class EINA_UNUSED, Evas *evas)
 {
    return e_util_icon_theme_icon_add("system-file-manager", 48, evas);
 }
 
 static const char *
-_gc_id_new(const E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_id_new(const E_Gadcon_Client_Class *client_class EINA_UNUSED)
 {
    static char buf[4096];
 
@@ -477,7 +497,7 @@ _gc_id_new(const E_Gadcon_Client_Class *client_class __UNUSED__)
 
 /* local functions */
 static void
-_cb_key_down(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
+_cb_key_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    Instance *inst;
    Evas_Event_Key_Down *ev;
@@ -501,7 +521,7 @@ _cb_key_down(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
 }
 
 static void
-_cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_cb_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Instance *inst;
    Evas_Event_Mouse_Down *ev;
@@ -512,11 +532,11 @@ _cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void
    inst = data;
    ev = event_info;
    if ((ev->button != 3) || (inst->gcc->menu)) return;
-   zone = e_util_zone_current_get(e_manager_current_get());
+   zone = e_zone_current_get();
 
    m = e_menu_new();
    m = e_gadcon_client_util_menu_items_append(inst->gcc, m, 0);
-   ecore_evas_pointer_xy_get(zone->comp->ee, &x, &y);
+   ecore_evas_pointer_xy_get(e_comp->ee, &x, &y);
    e_menu_activate_mouse(m, zone, x, y, 1, 1,
                          E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
    evas_event_feed_mouse_up(inst->gcc->gadcon->evas, ev->button,
@@ -524,7 +544,7 @@ _cb_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void
 }
 
 static void
-_cb_back_click(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_cb_back_click(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    Instance *inst;
 
@@ -538,7 +558,7 @@ _cb_back_click(void *data, Evas_Object *obj __UNUSED__, const char *emission __U
 }
 
 static void
-_cb_forward_click(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_cb_forward_click(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    Instance *inst;
 
@@ -552,7 +572,7 @@ _cb_forward_click(void *data, Evas_Object *obj __UNUSED__, const char *emission 
 }
 
 static void
-_cb_refresh_click(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_cb_refresh_click(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    Instance *inst = data;
 
@@ -562,7 +582,7 @@ _cb_refresh_click(void *data, Evas_Object *obj __UNUSED__, const char *emission 
 }
 
 static void
-_cb_up_click(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_cb_up_click(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    Instance *inst;
    char *p, *t;
@@ -587,7 +607,7 @@ _cb_up_click(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNU
 }
 
 static void
-_cb_favorites_click(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_cb_favorites_click(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    Instance *inst;
 
@@ -609,7 +629,7 @@ _cb_fm_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
 }
 
 static void
-_cb_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info)
+_cb_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Instance *inst;
 
@@ -618,23 +638,25 @@ _cb_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info)
 }
 
 static void
-_cb_button_click(void *data, Evas_Object *obj, const char *emission __UNUSED__, const char *source __UNUSED__)
+_cb_button_click(void *data, Evas_Object *obj, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    Instance *inst = data;
    Nav_Item *ni;
-   char path[PATH_MAX] = "";
+   Eina_Strbuf *buf;
 
+   buf = eina_strbuf_new();
    EINA_INLIST_FOREACH(inst->l_buttons, ni)
      {
-        strcat(path, edje_object_part_text_get(ni->o, "e.text.label"));
+        eina_strbuf_append(buf, edje_object_part_text_get(ni->o, "e.text.label"));
         if (ni->o == obj) break;
-        strcat(path, "/");
+        eina_strbuf_append_char(buf, '/');
      }
-   e_fm2_path_set(inst->o_fm, "/", path);
+   e_fm2_path_set(inst->o_fm, "/", eina_strbuf_string_get(buf));
+   eina_strbuf_free(buf);
 }
 
 static void
-_cb_scroll_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_scroll_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Instance *inst = data;
    Evas_Coord mw = 0, mh = 0;
@@ -649,7 +671,6 @@ _box_button_free(Nav_Item *ni)
 {
    if (!ni) return;
    ni->inst->l_buttons = eina_inlist_remove(ni->inst->l_buttons, EINA_INLIST_GET(ni));
-   e_box_unpack(ni->o);
    evas_object_del(ni->o);
    E_FREE_LIST(ni->handlers, ecore_event_handler_del);
    eio_monitor_del(ni->monitor);
@@ -662,8 +683,8 @@ _box_button_append(Instance *inst, const char *label, Edje_Signal_Cb func)
 {
    Evas_Object *o;
    Evas_Coord mw = 0, mh = 0;
-   char path[PATH_MAX] = {0};
-   Nav_Item *ni, *nil;
+   Eina_Strbuf *buf;
+   Nav_Item *ni;
 
    if (!inst || !label || !*label || !func)
      return;
@@ -678,28 +699,27 @@ _box_button_append(Instance *inst, const char *label, Edje_Signal_Cb func)
    edje_object_signal_callback_add(o, "e,action,click", "", func, inst);
    edje_object_part_text_set(o, "e.text.label", label);
    edje_object_size_min_calc(o, &mw, &mh);
-   e_box_pack_end(inst->o_box, o);
+   E_ALIGN(o, -1, 0.5);
+   elm_box_pack_end(inst->o_box, o);
    evas_object_show(o);
-   e_box_pack_options_set(o, 1, 0, 0, 0, 0.5, 0.5, mw, mh, 9999, 9999);
-   e_box_size_min_get(inst->o_box, &mw, NULL);
+   evas_object_size_hint_min_set(o, mw, mh);
+   elm_box_recalculate(inst->o_box);
+   evas_object_size_hint_min_get(inst->o_box, &mw, NULL);
    evas_object_geometry_get(inst->o_scroll, NULL, NULL, NULL, &mh);
    evas_object_resize(inst->o_box, mw, mh);
    ni->o = o;
    ni->inst = inst;
    inst->l_buttons = eina_inlist_append(inst->l_buttons, EINA_INLIST_GET(ni));
-   EINA_INLIST_FOREACH(inst->l_buttons, nil)
-     {
-        strcat(path, edje_object_part_text_get(nil->o, "e.text.label"));
-        if (path[1]) strcat(path, "/");
-     }
-   ni->path = eina_stringshare_add(path);
+   buf = _path_generate(inst, NULL);
+   ni->path = eina_stringshare_add(eina_strbuf_string_get(buf));
    ni->monitor = eio_monitor_stringshared_add(ni->path);
    E_LIST_HANDLER_APPEND(ni->handlers, EIO_MONITOR_SELF_DELETED, _event_deleted, ni);
    E_LIST_HANDLER_APPEND(ni->handlers, EIO_MONITOR_ERROR, _event_deleted, ni);
+   eina_strbuf_free(buf);
 }
 
 static void
-_cb_dir_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_dir_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Instance *inst;
    const char *real_path;

@@ -103,19 +103,6 @@ static int _e_menu_autoscroll_y = 0;
 static Eina_List *handlers = NULL;
 static Eina_Bool _e_menu_lock = EINA_FALSE;
 
-static void
-_mouse_up_feed(Evas *e, unsigned int activate_time)
-{
-   int button_mask, i;
-
-   button_mask = evas_pointer_button_down_mask_get(e);
-   for (i = 0; i < 32; i++)
-     {
-       if ((button_mask & (1 << i)))
-         evas_event_feed_mouse_up(e, i + 1, EVAS_BUTTON_NONE, activate_time, NULL);
-     }
-}
-
 static Eina_List *
 _e_active_menus_copy_ref(void)
 {
@@ -202,6 +189,8 @@ e_menu_hide_all(void)
         if (m->post_deactivate_cb.func)
           m->post_deactivate_cb.func(m->post_deactivate_cb.data, m);
         m->active = 0;
+        if (m->comp_object == e_comp->autoclose.obj)
+          e_comp_object_util_autoclose(NULL, NULL, NULL, NULL);
         _e_menu_unrealize(m);
         m->in_active_list = 0;
         e_object_unref(E_OBJECT(m));
@@ -357,7 +346,7 @@ e_menu_activate_mouse(E_Menu *m, E_Zone *zone, int x, int y, int w, int h, int d
      }
    pmi = _e_menu_item_active_get();
    if (pmi) e_menu_item_active_set(pmi, 0);
-   _mouse_up_feed(e_comp_get(m)->evas, activate_time);
+   e_comp_canvas_feed_mouse_up(activate_time);
 }
 
 E_API void
@@ -484,7 +473,7 @@ e_menu_title_set(E_Menu *m, const char *title)
 }
 
 E_API void
-e_menu_icon_file_set(E_Menu *m __UNUSED__, const char *icon __UNUSED__)
+e_menu_icon_file_set(E_Menu *m EINA_UNUSED, const char *icon EINA_UNUSED)
 {
    /* FIXME: support menu icons
       E_OBJECT_CHECK(m);
@@ -757,13 +746,9 @@ e_menu_item_submenu_set(E_Menu_Item *mi, E_Menu *sub)
                   edje_object_size_min_calc(mi->submenu_object, &ww, &hh);
                   mi->submenu_w = ww;
                   mi->submenu_h = hh;
-                  e_box_pack_options_set(mi->submenu_object,
-                                         1, 1, /* fill */
-                                         0, 1, /* expand */
-                                         0.5, 0.5, /* align */
-                                         ww, hh, /* min */
-                                         -1, -1 /* max */
-                                         );
+                  E_WEIGHT(mi->submenu_object, 0, 1);
+                  E_FILL(mi->submenu_object);
+                  evas_object_size_hint_min_set(mi->submenu_object, ww, hh);
                   goto out;
                }
              evas_object_del(mi->submenu_object);
@@ -776,27 +761,19 @@ e_menu_item_submenu_set(E_Menu_Item *mi, E_Menu *sub)
                                 "e/widgets/menu/default/submenu");
         evas_object_pass_events_set(o, 1);
         evas_object_show(o);
-        e_box_pack_end(mi->container_object, o);
+        elm_box_pack_end(mi->container_object, o);
         edje_object_size_min_calc(mi->submenu_object, &ww, &hh);
         mi->submenu_w = ww;
         mi->submenu_h = hh;
-        e_box_pack_options_set(mi->submenu_object,
-                               1, 1, /* fill */
-                               0, 1, /* expand */
-                               0.5, 0.5, /* align */
-                               ww, hh, /* min */
-                               -1, -1 /* max */
-                               );
+        E_WEIGHT(mi->submenu_object, 0, 1);
+        E_FILL(mi->submenu_object);
+        evas_object_size_hint_min_set(mi->submenu_object, ww, hh);
         edje_object_part_swallow(mi->bg_object, "e.swallow.content",
                                  mi->container_object);
         edje_object_size_min_calc(mi->bg_object, &ww, &hh);
-        e_box_pack_options_set(mi->bg_object,
-                               1, 1, /* fill */
-                               1, 0, /* expand */
-                               0.5, 0.5, /* align */
-                               ww, hh, /* min */
-                               -1, -1 /* max */
-                               );
+        E_WEIGHT(mi->bg_object, 1, 0);
+        E_FILL(mi->bg_object);
+        evas_object_size_hint_min_set(mi->bg_object, ww, hh);
      }
    else
      {
@@ -805,7 +782,7 @@ e_menu_item_submenu_set(E_Menu_Item *mi, E_Menu *sub)
         mi->submenu_object = o;
         evas_object_color_set(o, 0, 0, 0, 0);
         evas_object_pass_events_set(o, 1);
-        e_box_pack_end(mi->container_object, o);
+        elm_box_pack_end(mi->container_object, o);
      }
    _e_menu_lock = EINA_FALSE;
    if (sub) e_object_unref(E_OBJECT(sub));
@@ -1207,12 +1184,9 @@ e_menu_idler_before(void)
      {
         if (_e_menu_win)
           {
-             E_Comp *c;
-
-             c = e_comp_find_by_window(_e_menu_win);
-             if (!c) c = e_comp_get(NULL);
-             e_comp_ungrab_input(c, 1, 1);
+             e_comp_ungrab_input(1, 1);
              _e_menu_win = 0;
+             e_bindings_disabled_set(0);
           }
      }
 }
@@ -1379,9 +1353,10 @@ _e_menu_item_realize(E_Menu_Item *mi)
                                 "e/widgets/menu/default/separator");
         evas_object_show(o);
         edje_object_size_min_calc(mi->separator_object, &ww, &hh);
+        E_FILL(mi->separator_object);
         mi->separator_w = ww;
         mi->separator_h = hh;
-        e_box_pack_end(mi->menu->container_object, mi->separator_object);
+        elm_box_pack_end(mi->menu->container_object, mi->separator_object);
      }
    else
      {
@@ -1407,14 +1382,13 @@ no_submenu_item:
           }
         evas_object_show(o);
 
-        o = e_box_add(mi->menu->evas);
+        o = elm_box_add(e_comp->elm);
         evas_object_name_set(o, "mi->container_object");
-        e_box_homogenous_set(o, 0);
+        elm_box_homogeneous_set(o, 0);
         mi->container_object = o;
-        e_box_orientation_set(o, 1);
+        elm_box_horizontal_set(o, 1);
         evas_object_show(o);
 
-        e_box_freeze(mi->container_object);
 
         if (mi->check)
           {
@@ -1424,17 +1398,13 @@ no_submenu_item:
              e_theme_edje_object_set(o, "base/theme/menus",
                                      "e/widgets/menu/default/check");
              evas_object_show(o);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
              edje_object_size_min_calc(mi->toggle_object, &ww, &hh);
              mi->toggle_w = ww;
              mi->toggle_h = hh;
-             e_box_pack_options_set(mi->toggle_object,
-                                    1, 1, /* fill */
-                                    0, 1, /* expand */
-                                    0.5, 0.5, /* align */
-                                    ww, hh, /* min */
-                                    -1, -1 /* max */
-                                    );
+             E_WEIGHT(mi->toggle_object, 0, 1);
+             E_FILL(mi->toggle_object);
+             evas_object_size_hint_min_set(mi->toggle_object, ww, hh);
           }
         else if (mi->radio)
           {
@@ -1444,17 +1414,13 @@ no_submenu_item:
              e_theme_edje_object_set(o, "base/theme/menus",
                                      "e/widgets/menu/default/radio");
              evas_object_show(o);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
              edje_object_size_min_calc(mi->toggle_object, &ww, &hh);
              mi->toggle_w = ww;
              mi->toggle_h = hh;
-             e_box_pack_options_set(mi->toggle_object,
-                                    1, 1, /* fill */
-                                    0, 1, /* expand */
-                                    0.5, 0.5, /* align */
-                                    ww, hh, /* min */
-                                    -1, -1 /* max */
-                                    );
+             E_WEIGHT(mi->toggle_object, 0, 1);
+             E_FILL(mi->toggle_object);
+             evas_object_size_hint_min_set(mi->toggle_object, ww, hh);
           }
         else
           {
@@ -1462,7 +1428,7 @@ no_submenu_item:
              evas_object_name_set(o, "mi->toggle_object");
              mi->toggle_object = o;
              evas_object_color_set(o, 0, 0, 0, 0);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
           }
         if ((!e_config->menu_icons_hide) && ((mi->icon) || (mi->realize_cb.func)))
           {
@@ -1483,7 +1449,7 @@ no_submenu_item:
                }
              //if (o) evas_object_pass_events_set(o, 1);
 
-             /* FIXME: Not sure why there are two different tries to get the icon size, surely only the last one si needed. */
+             /* FIXME: Not sure why there are two different tries to get the icon size, surely only the last one is needed. */
              /* FIXME: Do it this way later, when e_app_icon_add() just registers a request for an icon to be filled in when it's ready.
                 if (mi->app)
                 {
@@ -1545,14 +1511,10 @@ no_submenu_item:
                   edje_object_size_min_calc(mi->icon_bg_object, &ww, &hh);
                   mi->icon_w = ww;
                   mi->icon_h = hh;
-                  e_box_pack_end(mi->container_object, mi->icon_bg_object);
-                  e_box_pack_options_set(mi->icon_bg_object,
-                                         1, 1, /* fill */
-                                         0, 1, /* expand */
-                                         0.5, 0.5, /* align */
-                                         ww, hh, /* min */
-                                         -1, -1 /* max */
-                                         );
+                  elm_box_pack_end(mi->container_object, mi->icon_bg_object);
+                  E_WEIGHT(mi->icon_bg_object, 0, 1);
+                  E_FILL(mi->icon_bg_object);
+                  evas_object_size_hint_min_set(mi->icon_bg_object, ww, hh);
                }
              else
                {
@@ -1561,14 +1523,10 @@ no_submenu_item:
                   e_icon_size_get(mi->icon_object, &icon_w, &icon_h);
                   mi->icon_w = icon_w;
                   mi->icon_h = icon_h;
-                  e_box_pack_end(mi->container_object, o);
-                  e_box_pack_options_set(mi->icon_object,
-                                         1, 1, /* fill */
-                                         0, 1, /* expand */
-                                         0.5, 0.5, /* align */
-                                         ww, hh, /* min */
-                                         -1, -1 /* max */
-                                         );
+                  elm_box_pack_end(mi->container_object, o);
+                  E_WEIGHT(mi->icon_object, 0, 1);
+                  E_FILL(mi->icon_bg_object);
+                  evas_object_size_hint_min_set(mi->icon_object, ww, hh);
                }
           }
         else
@@ -1577,7 +1535,7 @@ no_submenu_item:
              evas_object_name_set(o, "mi->icon_object");
              mi->icon_object = o;
              evas_object_color_set(o, 0, 0, 0, 0);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
           }
 
         if (mi->label)
@@ -1590,17 +1548,13 @@ no_submenu_item:
              /* default label */
              edje_object_part_text_set(o, "e.text.label", mi->label);
              evas_object_show(o);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
              edje_object_size_min_calc(mi->label_object, &ww, &hh);
              mi->label_w = ww;
              mi->label_h = hh;
-             e_box_pack_options_set(mi->label_object,
-                                    1, 1, /* fill */
-                                    1, 1, /* expand */
-                                    0.5, 0.5, /* align */
-                                    ww, hh, /* min */
-                                    -1, -1 /* max */
-                                    );
+             E_EXPAND(mi->label_object);
+             E_FILL(mi->label_object);
+             evas_object_size_hint_min_set(mi->label_object, ww, hh);
           }
         else
           {
@@ -1608,7 +1562,7 @@ no_submenu_item:
              evas_object_name_set(o, "mi->label_object");
              mi->label_object = o;
              evas_object_color_set(o, 0, 0, 0, 0);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
           }
         if ((mi->submenu) || (mi->submenu_pre_cb.func))
           {
@@ -1618,17 +1572,13 @@ no_submenu_item:
              e_theme_edje_object_set(o, "base/theme/menus",
                                      "e/widgets/menu/default/submenu");
              evas_object_show(o);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
              edje_object_size_min_calc(mi->submenu_object, &ww, &hh);
              mi->submenu_w = ww;
              mi->submenu_h = hh;
-             e_box_pack_options_set(mi->submenu_object,
-                                    1, 1, /* fill */
-                                    0, 1, /* expand */
-                                    0.5, 0.5, /* align */
-                                    ww, hh, /* min */
-                                    -1, -1 /* max */
-                                    );
+             E_WEIGHT(mi->submenu_object, 0, 1);
+             E_FILL(mi->submenu_object);
+             evas_object_size_hint_min_set(mi->submenu_object, ww, hh);
           }
         else
           {
@@ -1636,14 +1586,13 @@ no_submenu_item:
              evas_object_name_set(o, "mi->submenu_object");
              mi->submenu_object = o;
              evas_object_color_set(o, 0, 0, 0, 0);
-             e_box_pack_end(mi->container_object, o);
+             elm_box_pack_end(mi->container_object, o);
           }
 
         edje_object_part_swallow(mi->bg_object, "e.swallow.content",
                                  mi->container_object);
 
-        e_box_pack_end(mi->menu->container_object, mi->bg_object);
-        e_box_thaw(mi->container_object);
+        elm_box_pack_end(mi->menu->container_object, mi->bg_object);
      }
    if (mi->active) e_menu_item_active_set(mi, 1);
    if (mi->toggle) e_menu_item_toggle_set(mi, 1);
@@ -1662,7 +1611,7 @@ _e_menu_realize(E_Menu *m)
    if (m->parent_item && m->parent_item->menu)
      m->zone = m->parent_item->menu->zone;
    if (!m->zone) return; //menu not ready!
-   m->evas = e_comp_get(m)->evas;
+   m->evas = evas_object_evas_get(e_comp->elm);
    evas_event_freeze(m->evas);
 
    o = edje_object_add(m->evas);
@@ -1685,20 +1634,18 @@ _e_menu_realize(E_Menu *m)
    evas_object_move(m->comp_object, m->cur.x, m->cur.y);
    evas_object_resize(m->comp_object, m->cur.w, m->cur.h);
 
-   o = e_box_add(m->evas);
+   o = elm_box_add(e_comp->elm);
    evas_object_name_set(o, "menu->container_object");
    m->container_object = o;
    evas_object_intercept_move_callback_add(o, _e_menu_cb_intercept_container_move, m);
    evas_object_intercept_resize_callback_add(o, _e_menu_cb_intercept_container_resize, m);
-   e_box_freeze(o);
-   e_box_homogenous_set(o, 0);
+   elm_box_homogeneous_set(o, 0);
    edje_object_part_swallow(m->bg_object, "e.swallow.content", m->container_object);
 
    EINA_LIST_FOREACH(m->items, l, mi)
      _e_menu_item_realize(mi);
 
    _e_menu_items_layout_update(m);
-   e_box_thaw(m->container_object);
 
    evas_event_thaw(m->evas);
    m->realized = 1;
@@ -1722,7 +1669,6 @@ _e_menu_items_layout_update(E_Menu *m)
    int zh = 0, ms = 0, maxh = 0;
    unsigned int cur_items = 0, max_items = -1;
 
-   e_box_freeze(m->container_object);
    EINA_LIST_FOREACH(m->items, l, mi)
      {
         if (mi->icon) icons_on = 1;
@@ -1804,113 +1750,52 @@ _e_menu_items_layout_update(E_Menu *m)
         cur_items++;
         if (mi->separator)
           {
-             e_box_pack_options_set(mi->separator_object,
-                                    1, 1, /* fill */
-                                    1, 0, /* expand */
-                                    0.5, 0.5, /* align */
-                                    mi->separator_w, mi->separator_h, /* min */
-                                    -1, mi->separator_h /* max */
-                                    );
+             E_WEIGHT(mi->separator_object, 1, 0);
+             E_FILL(mi->separator_object);
+             evas_object_size_hint_min_set(mi->separator_object, mi->separator_w, mi->separator_h);
+             evas_object_size_hint_max_set(mi->separator_object, -1, mi->separator_h);
              ms += mi->separator_h;
              continue;
           }
-        e_box_freeze(mi->container_object);
-        if (toggles_on)
-          e_box_pack_options_set(mi->toggle_object,
-                                 1, 1, /* fill */
-                                 0, 1, /* expand */
-                                 0.5, 0.5, /* align */
-                                 min_toggle_w, min_toggle_h, /* min */
-                                 -1, -1 /* max */
-                                 );
-        else
-          e_box_pack_options_set(mi->toggle_object,
-                                 1, 1, /* fill */
-                                 0, 0, /* expand */
-                                 0.5, 0.5, /* align */
-                                 0, 0, /* min */
-                                 0, 0 /* max */
-                                 );
+        E_WEIGHT(mi->toggle_object, 0, toggles_on);
+        E_FILL(mi->toggle_object);
+        evas_object_size_hint_min_set(mi->toggle_object, min_toggle_w * toggles_on, min_toggle_h * toggles_on);
         if (icons_on)
           {
-             if (mi->icon_bg_object)
-               e_box_pack_options_set(mi->icon_bg_object,
-                                      1, 1, /* fill */
-                                      0, 1, /* expand */
-                                      0.5, 0.5, /* align */
-                                      min_icon_w, min_icon_h, /* min */
-                                      -1, -1 /* max */
-                                      );
-             else
-               e_box_pack_options_set(mi->icon_object,
-                                      1, 1, /* fill */
-                                      0, 1, /* expand */
-                                      0.5, 0.5, /* align */
-                                      min_icon_w, min_icon_h, /* min */
-                                      -1, -1 /* max */
-                                      );
+             E_WEIGHT(mi->icon_bg_object ?: mi->icon_object, 0, 1);
+             E_FILL(mi->icon_bg_object ?: mi->icon_object);
+             evas_object_size_hint_min_set(mi->icon_bg_object ?: mi->icon_object, min_icon_w, min_icon_h);
           }
         else
-          e_box_pack_options_set(mi->icon_object,
-                                 1, 1, /* fill */
-                                 0, 1, /* expand */
-                                 0.5, 0.5, /* align */
-                                 0, 0, /* min */
-                                 0, 0 /* max */
-                                 );
-        if (labels_on)
-          e_box_pack_options_set(mi->label_object,
-                                 1, 1, /* fill */
-                                 0, 1, /* expand */
-                                 0.5, 0.5, /* align */
-                                 min_label_w, min_label_h, /* min */
-                                 -1, -1 /* max */
-                                 );
-        else
-          e_box_pack_options_set(mi->label_object,
-                                 1, 1, /* fill */
-                                 0, 0, /* expand */
-                                 0.5, 0.5, /* align */
-                                 0, 0, /* min */
-                                 0, 0 /* max */
-                                 );
-        if (submenus_on)
-          e_box_pack_options_set(mi->submenu_object,
-                                 1, 1, /* fill */
-                                 0, 1, /* expand */
-                                 0.5, 0.5, /* align */
-                                 min_submenu_w, min_submenu_h, /* min */
-                                 -1, -1 /* max */
-                                 );
-        else
-          e_box_pack_options_set(mi->submenu_object,
-                                 1, 1, /* fill */
-                                 0, 0, /* expand */
-                                 0.5, 0.5, /* align */
-                                 0, 0, /* min */
-                                 0, 0 /* max */
-                                 );
+          {
+             E_WEIGHT(mi->icon_object, 0, 1);
+             E_FILL(mi->icon_object);
+             evas_object_size_hint_min_set(mi->icon_object, 0, 0);
+          }
+
+        E_WEIGHT(mi->label_object, 0, 1 * labels_on);
+        E_FILL(mi->label_object);
+        evas_object_size_hint_min_set(mi->label_object, min_label_w * labels_on, min_label_h * labels_on);
+
+        E_WEIGHT(mi->submenu_object, 0, 1 * submenus_on);
+        E_FILL(mi->submenu_object);
+        evas_object_size_hint_min_set(mi->submenu_object, min_submenu_w * submenus_on, min_submenu_h * submenus_on);
+
         evas_object_size_hint_min_set(mi->container_object,
                                         min_w, min_h);
         edje_object_part_swallow(mi->bg_object, "e.swallow.content",
                                  mi->container_object);
         edje_object_size_min_calc(mi->bg_object, &mw, &mh);
-        e_box_pack_options_set(mi->bg_object,
-                               1, 1, /* fill */
-                               1, 0, /* expand */
-                               0.5, 0.5, /* align */
-                               mw, mh, /* min */
-                               -1, -1 /* max */
-                               );
+        E_WEIGHT(mi->bg_object, 0, 1);
+        E_FILL(mi->bg_object);
+        evas_object_size_hint_min_set(mi->bg_object, mw, mh);
         ms += mh;
-        e_box_thaw(mi->container_object);
      }
-   e_box_size_min_get(m->container_object, &bw, &bh);
-   evas_object_size_hint_min_set(m->container_object, bw, bh);
+   elm_box_recalculate(m->container_object);
+   evas_object_size_hint_min_get(m->container_object, &bw, &bh);
    evas_object_size_hint_max_set(m->container_object, bw, bh);
    edje_object_part_swallow(m->bg_object, "e.swallow.content", m->container_object);
    edje_object_size_min_calc(m->bg_object, &mw, &mh);
-   e_box_thaw(m->container_object);
    m->cur.w = mw;
    m->cur.h = mh;
 }
@@ -1918,7 +1803,6 @@ _e_menu_items_layout_update(E_Menu *m)
 static void
 _e_menu_item_unrealize(E_Menu_Item *mi)
 {
-   if (mi->container_object) e_box_freeze(mi->container_object);
    if (mi->separator_object) evas_object_del(mi->separator_object);
    mi->separator_object = NULL;
    if (mi->bg_object) evas_object_del(mi->bg_object);
@@ -1966,7 +1850,6 @@ _e_menu_unrealize(E_Menu *m)
    evas_object_hide(m->comp_object);
    evas_object_del(m->comp_object);
    if (stopping && m->comp_object) evas_object_unref(m->comp_object);
-   e_box_freeze(m->container_object);
    EINA_LIST_FOREACH(m->items, l, mi)
      _e_menu_item_unrealize(mi);
    E_FREE_FUNC(m->header.icon, evas_object_del);
@@ -1992,16 +1875,13 @@ _e_menu_activate_internal(E_Menu *m, E_Zone *zone)
    m->pending_new_submenu = 0;
    if (!_e_menu_win)
      {
-        _e_menu_win = zone->comp->ee_win;
-        if (!e_comp_grab_input(zone->comp, 1, 1))
+        _e_menu_win = e_comp->ee_win;
+        if (!e_comp_grab_input(1, 1))
           {
              _e_menu_win = 0;
              return;
           }
-     }
-   if ((m->zone) && (m->zone->comp != zone->comp))
-     {
-        return;
+        e_bindings_disabled_set(1);
      }
    m->zone = zone;
    if (!m->active)
@@ -2313,6 +2193,7 @@ _e_menu_item_activate_nth(int n)
         if (!mi->separator) i++;
         if (i == n) break;
      }
+   if (!mi) return;
    e_menu_item_active_set(mi, 1);
    _e_menu_item_ensure_onscreen(mi);
 }
@@ -2748,7 +2629,7 @@ _e_menu_auto_place(E_Menu *m, int x, int y, int w, int h)
 }
 
 static void
-_e_menu_cb_item_in(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_menu_cb_item_in(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Menu_Item *mi = data;
 
@@ -2759,7 +2640,7 @@ _e_menu_cb_item_in(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED_
 }
 
 static void
-_e_menu_cb_item_out(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info EINA_UNUSED)
+_e_menu_cb_item_out(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Menu_Item *mi = data;
    /* this can be triggered when creating menus if the new menu is on top of its parent */
@@ -2822,13 +2703,17 @@ _e_menu_cb_key_down(void *data EINA_UNUSED, Ecore_Event_Key *ev)
  */
 
 static void
-_e_menu_cb_mouse_evas_down(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED)
+_e_menu_cb_mouse_evas_down(void *data, Evas_Object *obj EINA_UNUSED)
 {
-   _e_menu_deactivate_all();
+   E_Menu *m = data;
+
+   while (m->parent_item)
+     m = m->parent_item->menu;
+   e_menu_deactivate(m);
 }
 
 static Eina_Bool
-_e_menu_cb_mouse_down(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_menu_cb_mouse_down(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
 
@@ -2841,7 +2726,7 @@ _e_menu_cb_mouse_down(void *data __UNUSED__, int type __UNUSED__, void *event)
      }
 
    _e_menu_lock = 1;
-   _mouse_up_feed(e_comp_get(NULL)->evas, 0);
+   e_comp_canvas_feed_mouse_up(0);
    _e_menu_lock = 0;
 
    /* Only allow dragging from floating menus for now.
@@ -2856,7 +2741,7 @@ _e_menu_cb_mouse_down(void *data __UNUSED__, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_mouse_up(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_menu_cb_mouse_up(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Event_Mouse_Button *ev;
    unsigned int t;
@@ -2877,7 +2762,7 @@ _e_menu_cb_mouse_up(void *data __UNUSED__, int type __UNUSED__, void *event)
    if (_e_menu_activate_dragging)
      {
         /* FIXME: This is a drop, which is not allowed for now.
-         * Once dragging is working, this will be subject to some experimenattion.
+         * Once dragging is working, this will be subject to some experimentation.
          */
      }
    else
@@ -2886,8 +2771,8 @@ _e_menu_cb_mouse_up(void *data __UNUSED__, int type __UNUSED__, void *event)
 
         mi = _e_menu_item_active_get();
         if ((!mi) ||
-            (E_INSIDE(e_comp_canvas_x_root_adjust(e_comp_get(mi), ev->root.x),
-                      e_comp_canvas_y_root_adjust(e_comp_get(mi), ev->root.y),
+            (E_INSIDE(e_comp_canvas_x_root_adjust(ev->root.x),
+                      e_comp_canvas_y_root_adjust(ev->root.y),
                       mi->x, mi->y, mi->w, mi->h))
            )
           ret = _e_menu_active_call();
@@ -2908,7 +2793,7 @@ _e_menu_cb_mouse_up(void *data __UNUSED__, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_mouse_move(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_menu_cb_mouse_move(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Event_Mouse_Move *ev;
    Eina_List *l, *tmp;
@@ -2982,7 +2867,7 @@ _e_menu_cb_mouse_move(void *data __UNUSED__, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_mouse_wheel(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_menu_cb_mouse_wheel(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Event_Mouse_Wheel *ev;
 
@@ -3006,7 +2891,7 @@ _e_menu_cb_mouse_wheel(void *data __UNUSED__, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_e_menu_cb_scroll_animator(void *data __UNUSED__)
+_e_menu_cb_scroll_animator(void *data EINA_UNUSED)
 {
    double t, dt;
    double dx, dy;
@@ -3056,7 +2941,7 @@ _e_menu_cb_scroll_animator(void *data __UNUSED__)
 }
 
 static void
-_e_menu_cb_item_submenu_post_default(void *data __UNUSED__, E_Menu *m __UNUSED__, E_Menu_Item *mi)
+_e_menu_cb_item_submenu_post_default(void *data EINA_UNUSED, E_Menu *m EINA_UNUSED, E_Menu_Item *mi)
 {
    E_Menu *subm;
 

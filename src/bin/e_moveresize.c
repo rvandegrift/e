@@ -78,7 +78,7 @@ e_moveresize_client_extents(const E_Client *ec, int *w, int *h)
 }
 
 static void
-_e_resize_begin(void *data __UNUSED__, E_Client *ec)
+_e_resize_begin(void *data EINA_UNUSED, E_Client *ec)
 {
    Evas_Object *o;
    Evas_Coord ew, eh;
@@ -93,7 +93,7 @@ _e_resize_begin(void *data __UNUSED__, E_Client *ec)
 
    e_moveresize_client_extents(ec, &w, &h);
 
-   _disp_content = o = edje_object_add(e_comp_get(ec)->evas);
+   _disp_content = o = edje_object_add(e_comp->evas);
    evas_object_name_set(o, "resizeinfo->_disp_content");
    e_theme_edje_object_set(o, "base/theme/borders",
                            "e/widgets/border/default/resize");
@@ -118,7 +118,7 @@ _e_resize_begin(void *data __UNUSED__, E_Client *ec)
 }
 
 static void
-_e_resize_end(void *data __UNUSED__, E_Client *ec __UNUSED__)
+_e_resize_end(void *data EINA_UNUSED, E_Client *ec EINA_UNUSED)
 {
    if (e_config->resize_info_visible)
      {
@@ -134,7 +134,7 @@ _e_resize_end(void *data __UNUSED__, E_Client *ec __UNUSED__)
 }
 
 static void
-_e_resize_update(void *data __UNUSED__, E_Client *ec)
+_e_resize_update(void *data EINA_UNUSED, E_Client *ec)
 {
    char buf[40];
    int w, h;
@@ -151,7 +151,7 @@ _e_resize_update(void *data __UNUSED__, E_Client *ec)
 }
 
 static void
-_e_move_begin(void *data __UNUSED__, E_Client *ec)
+_e_move_begin(void *data EINA_UNUSED, E_Client *ec)
 {
    Evas_Object *o;
    Evas_Coord ew, eh;
@@ -167,7 +167,7 @@ _e_move_begin(void *data __UNUSED__, E_Client *ec)
    if ((!e_config->move_info_visible) || (!_e_moveresize_enabled))
      return;
 
-   _disp_content = o = edje_object_add(e_comp_get(ec)->evas);
+   _disp_content = o = edje_object_add(e_comp->evas);
    evas_object_name_set(o, "moveinfo->_disp_content");
    e_theme_edje_object_set(o, "base/theme/borders",
                            "e/widgets/border/default/move");
@@ -192,7 +192,7 @@ _e_move_begin(void *data __UNUSED__, E_Client *ec)
 }
 
 static void
-_e_move_end(void *data __UNUSED__, E_Client *ec __UNUSED__)
+_e_move_end(void *data EINA_UNUSED, E_Client *ec EINA_UNUSED)
 {
    if (e_config->move_info_visible)
      {
@@ -206,7 +206,7 @@ _e_move_end(void *data __UNUSED__, E_Client *ec __UNUSED__)
 }
 
 static void
-_e_move_update(void *data __UNUSED__, E_Client *ec)
+_e_move_update(void *data EINA_UNUSED, E_Client *ec)
 {
    char buf[40];
 

@@ -103,7 +103,7 @@ _dialog_cancel_cb(void *data, E_Dialog *dialog)
 }
 
 static void
-_dialog_key_down_cb(void *data, Evas *e __UNUSED__, Evas_Object *o __UNUSED__,
+_dialog_key_down_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *o EINA_UNUSED,
                     void *event)
 {
    Evas_Event_Key_Down *ev = event;
@@ -141,7 +141,7 @@ _dialog_del_cb(void *data)
 }
 
 static void
-_page_del(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_page_del(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    E_Connman_Agent_Input *input;
    Eina_List *input_list;
@@ -155,7 +155,7 @@ _page_del(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *eve
 }
 
 static void
-_show_password_cb(void *data, Evas_Object *obj, void *event  __UNUSED__)
+_show_password_cb(void *data, Evas_Object *obj, void *event  EINA_UNUSED)
 {
    Evas_Object *entry = data;
    int hidden;
@@ -174,7 +174,7 @@ _dialog_field_add(E_Connman_Agent *agent, struct Connman_Field *field)
    char header[64];
    Evas *evas;
 
-   evas = agent->dialog->win->evas;
+   evas = evas_object_evas_get(agent->dialog->win);
    toolbook = agent->dialog->content_object;
    mandatory = !strcmp(field->requirement, "mandatory");
 
@@ -186,7 +186,7 @@ _dialog_field_add(E_Connman_Agent *agent, struct Connman_Field *field)
 
    input = E_NEW(E_Connman_Agent_Input, 1);
    input->key = strdup(field->name);
-   entry = e_widget_entry_add(evas, &(input->value), NULL, NULL, NULL);
+   entry = e_widget_entry_add(agent->dialog->win, &(input->value), NULL, NULL, NULL);
    evas_object_show(entry);
 
    list = evas_object_data_get(toolbook, field->requirement);
@@ -230,6 +230,7 @@ _dialog_field_add(E_Connman_Agent *agent, struct Connman_Field *field)
         evas_object_smart_callback_add(check, "changed", _show_password_cb,
                                        entry);
      }
+   e_util_win_auto_resize_fill(agent->dialog->win);
 }
 
 static E_Dialog *
@@ -243,6 +244,7 @@ _dialog_new(E_Connman_Agent *agent)
    dialog = e_dialog_new(NULL, "E", "connman_request_input");
    if (!dialog)
      return NULL;
+   e_dialog_resizable_set(dialog, 1);
 
    e_dialog_title_set(dialog, _("Input requested"));
    e_dialog_border_icon_set(dialog, "dialog-ask");
@@ -251,7 +253,7 @@ _dialog_new(E_Connman_Agent *agent)
    e_dialog_button_add(dialog, _("Cancel"), NULL, _dialog_cancel_cb, agent);
    agent->canceled = EINA_TRUE; /* if win is closed it works like cancel */
 
-   evas = dialog->win->evas;
+   evas = evas_object_evas_get(dialog->win);
 
    toolbook = e_widget_toolbook_add(evas, 48 * e_scale, 48 * e_scale);
    evas_object_show(toolbook);
@@ -272,7 +274,7 @@ _dialog_new(E_Connman_Agent *agent)
    e_object_data_set(E_OBJECT(dialog), agent);
 
    e_dialog_button_focus_num(dialog, 0);
-   e_win_centered_set(dialog->win, 1);
+   elm_win_center(dialog->win, 1, 1);
 
    return dialog;
 }

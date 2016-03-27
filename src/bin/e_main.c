@@ -70,9 +70,9 @@ static double t0, t1, t2;
 static void      _e_main_shutdown(int errcode);
 static void      _e_main_shutdown_push(int (*func)(void));
 static void      _e_main_parse_arguments(int argc, char **argv);
-static Eina_Bool _e_main_cb_signal_exit(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__);
-static Eina_Bool _e_main_cb_signal_hup(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__);
-static Eina_Bool _e_main_cb_signal_user(void *data __UNUSED__, int ev_type __UNUSED__, void *ev);
+static Eina_Bool _e_main_cb_signal_exit(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev EINA_UNUSED);
+static Eina_Bool _e_main_cb_signal_hup(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev EINA_UNUSED);
+static Eina_Bool _e_main_cb_signal_user(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev);
 static int       _e_main_dirs_init(void);
 static int       _e_main_dirs_shutdown(void);
 static int       _e_main_path_init(void);
@@ -84,10 +84,9 @@ static void      _e_main_desk_save(void);
 static void      _e_main_desk_restore(void);
 static void      _e_main_efreet_paths_init(void);
 static void      _e_main_modules_load(Eina_Bool safe_mode);
-static Eina_Bool _e_main_cb_x_flusher(void *data __UNUSED__);
-static Eina_Bool _e_main_cb_idle_before(void *data __UNUSED__);
-static Eina_Bool _e_main_cb_idle_after(void *data __UNUSED__);
-static Eina_Bool _e_main_cb_startup_fake_end(void *data __UNUSED__);
+static Eina_Bool _e_main_cb_idle_before(void *data EINA_UNUSED);
+static Eina_Bool _e_main_cb_idle_after(void *data EINA_UNUSED);
+static Eina_Bool _e_main_cb_startup_fake_end(void *data EINA_UNUSED);
 
 /* local variables */
 static Eina_Bool really_know = EINA_FALSE;
@@ -100,7 +99,6 @@ static int(*_e_main_shutdown_func[MAX_LEVEL]) (void);
 
 static Ecore_Idle_Enterer *_idle_before = NULL;
 static Ecore_Idle_Enterer *_idle_after = NULL;
-static Ecore_Idle_Enterer *_idle_flush = NULL;
 
 static Ecore_Event_Handler *mod_init_end = NULL;
 
@@ -255,10 +253,12 @@ main(int argc, char **argv)
 	sigemptyset(&action.sa_mask);
 	sigaction(SIGFPE, &action, NULL);
 
+#ifndef HAVE_WAYLAND_ONLY
 	action.sa_sigaction = e_sigbus_act;
 	action.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;
 	sigemptyset(&action.sa_mask);
 	sigaction(SIGBUS, &action, NULL);
+#endif
 
 	action.sa_sigaction = e_sigabrt_act;
 	action.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;
@@ -324,8 +324,23 @@ main(int argc, char **argv)
      e_util_env_set("DESKTOP_STARTUP_ID", NULL);
    e_util_env_set("E_RESTART_OK", NULL);
    e_util_env_set("PANTS", "ON");
-   e_util_env_set("DESKTOP", "Enlightenment-0.17.0");
+   e_util_env_set("DESKTOP", "Enlightenment");
    TS("Environment Variables Done");
+
+   /* KDE5 applications don't understand anything other then gnome or kde     */
+   /* They expect everyone else to set QT_QPA_PLATFORMTHEME to tell them how  */
+   /* to theme there apps otherwise they use a fallback mode which results in */
+   /* missing icons and a inability to change the appearance of applications  */
+   /* see https://bugzilla.suse.com/show_bug.cgi?id=920792 for more info.     */
+   /* There are two sensible defaults for this variable, "kde" which will     */
+   /* make apps appear the same as they do if they are run in kde. and gtk2   */
+   /* which will make kde applications follow the gtk/gnome theme, we have    */
+   /* decided on choosing gtk2 as it means that kde/qt apps will follow the   */
+   /* app and icon theme set in the enlightenment settings dialog. Some users */
+   /* who wish to use Qt apps without any gnome or gtk usage may choose to    */
+   /* install qt5ct and overwrite this variable with qt5ct and use that to    */
+   /* configure there Qt5 applications.                                       */
+   e_util_env_set("QT_QPA_PLATFORMTHEME", "gtk2");
 
    TS("Parse Arguments");
    _e_main_parse_arguments(argc, argv);
@@ -352,10 +367,10 @@ main(int argc, char **argv)
    _e_main_shutdown_push(ecore_shutdown);
 
    e_first_frame = getenv("E_FIRST_FRAME");
-   if (e_first_frame && (!e_first_frame[0]))
-     e_first_frame = NULL;
-   else
+   if (e_first_frame && e_first_frame[0])
      e_first_frame_start_time = ecore_time_get();
+   else
+     e_first_frame = NULL;
 
    TS("EIO Init");
    if (!eio_init())
@@ -438,10 +453,10 @@ main(int argc, char **argv)
         e_error_message_show(_("Enlightenment cannot initialize Elementary!\n"));
         _e_main_shutdown(-1);
      }
-   if (e_util_strcmp(elm_theme_get(NULL), "default"))
+   if (!eina_streq(elm_theme_get(NULL), "default"))
      elm_theme_extension_add(NULL, "default");
    TS("Elementary Init Done");
-   _e_main_shutdown_push(elm_shutdown);
+   //_e_main_shutdown_push(elm_shutdown);
 
    TS("Emotion Init");
    if (!emotion_init())
@@ -450,12 +465,22 @@ main(int argc, char **argv)
         _e_main_shutdown(-1);
      }
    TS("Emotion Init Done");
-   _e_main_shutdown_push((void *)emotion_shutdown);
+   /* triggers event flush: do not call */
+   //_e_main_shutdown_push((void *)emotion_shutdown);
 
    /* e doesn't sync to compositor - it should be one */
    ecore_evas_app_comp_sync_set(0);
 
    TS("Ecore_Evas Engine Check");
+#ifdef HAVE_WAYLAND_ONLY
+   if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_WAYLAND_SHM))
+     {
+        e_error_message_show(_("Enlightenment found ecore_evas doesn't support the Wayland SHM\n"
+                               "rendering in Evas. Please check your installation of Evas and\n"
+                                "Ecore and check they support the Wayland SHM rendering engine."));
+        _e_main_shutdown(-1);
+     }
+#else
    if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_XCB))
      {
         if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_XLIB))
@@ -466,6 +491,7 @@ main(int argc, char **argv)
              _e_main_shutdown(-1);
           }
      }
+#endif
    if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_BUFFER))
      {
         e_error_message_show(_("Enlightenment found ecore_evas doesn't support the Software Buffer\n"
@@ -496,6 +522,7 @@ main(int argc, char **argv)
    TS("E Intl Init Done");
    _e_main_shutdown_push(e_intl_shutdown);
 
+#ifndef HAVE_WAYLAND_ONLY
    /* init white box of death alert */
    TS("E_Alert Init");
    if (!e_alert_init())
@@ -506,6 +533,20 @@ main(int argc, char **argv)
      }
    TS("E_Alert Init Done");
    _e_main_shutdown_push(e_alert_shutdown);
+#endif
+
+#if 0
+//#ifdef HAVE_WAYLAND
+   /* init uuid store for window/surface properties */
+   TS("E_UUID_Store Init");
+   if (!e_uuid_store_init())
+     {
+        e_error_message_show(_("Enlightenment cannot initialize its UUID store.\n"));
+        _e_main_shutdown(-1);
+     }
+   TS("E_UUID_Store Init Done");
+   _e_main_shutdown_push(e_uuid_store_shutdown);
+#endif
 
    TS("E Directories Init");
    /* setup directories we will be using for configurations storage etc. */
@@ -545,6 +586,7 @@ main(int argc, char **argv)
    TS("E_Env Init Done");
    _e_main_shutdown_push(e_env_shutdown);
 
+   efreet_desktop_environment_set(e_config->desktop_environment);
    e_util_env_set("E_ICON_THEME", e_config->icon_theme);
    ecore_exe_run_priority_set(e_config->priority);
    locked |= e_config->desklock_start_locked;
@@ -581,10 +623,6 @@ main(int argc, char **argv)
    TS("E_Font Apply");
    e_font_apply();
    TS("E_Font Apply Done");
-
-   TS("E_Canvas Recache");
-   e_canvas_recache();
-   TS("E_Canvas Recache Done");
 
    TS("E_Theme Init");
    if (!e_theme_init())
@@ -686,7 +724,6 @@ main(int argc, char **argv)
      }
    TS("Screens Init Done");
    _e_main_shutdown_push(_e_main_screens_shutdown);
-   e_screensaver_force_update();
 
    TS("E_Pointer Init");
    if (!e_pointer_init())
@@ -864,17 +901,6 @@ main(int argc, char **argv)
    _e_main_shutdown_push(e_remember_shutdown);
 
    if (e_config->show_splash)
-     e_init_status_set(_("Setup Color Classes"));
-   TS("E_Color_Class Init");
-   if (!e_color_class_init())
-     {
-        e_error_message_show(_("Enlightenment cannot set up its color class system.\n"));
-        _e_main_shutdown(-1);
-     }
-   TS("E_Color_Class Init Done");
-   _e_main_shutdown_push(e_color_class_shutdown);
-
-   if (e_config->show_splash)
      e_init_status_set(_("Setup Gadcon"));
    TS("E_Gadcon Init");
    if (!e_gadcon_init())
@@ -979,13 +1005,9 @@ main(int argc, char **argv)
    TS("E_Order Init Done");
    _e_main_shutdown_push(e_order_shutdown);
 
-   TS("Add Idler For X Flush");
-   _idle_flush = ecore_idle_enterer_add(_e_main_cb_x_flusher, NULL);
-   TS("Add Idler For X Flush Done");
-
-   TS("E_Manager Keys Grab");
-   e_managers_keys_grab();
-   TS("E_Manager Keys Grab Done");
+   TS("E_Comp_Canvas Keys Grab");
+   e_comp_canvas_keys_grab();
+   TS("E_Comp_Canvas Keys Grab Done");
 
    if (e_config->show_splash)
      e_init_status_set(_("Load Modules"));
@@ -1045,7 +1067,7 @@ main(int argc, char **argv)
    inloop = EINA_FALSE;
    stopping = EINA_TRUE;
 
-   if (!x_fatal) e_canvas_idle_flush();
+   //if (!x_fatal) e_canvas_idle_flush();
 
    e_config_save_flush();
    _e_main_desk_save();
@@ -1092,8 +1114,6 @@ _e_main_shutdown(int errcode)
    _idle_before = NULL;
    if (_idle_after) ecore_idle_enterer_del(_idle_after);
    _idle_after = NULL;
-   if (_idle_flush) ecore_idle_enterer_del(_idle_flush);
-   _idle_flush = NULL;
 
    dir = getenv("XDG_RUNTIME_DIR");
    if (dir)
@@ -1172,10 +1192,15 @@ _e_main_parse_arguments(int argc, char **argv)
           locked = EINA_TRUE;
         else if (!strcmp(argv[i], "-nopause"))
           e_nopause = EINA_TRUE;
+        else if ((!strcmp(argv[i], "-version")) ||
+                 (!strcmp(argv[i], "--version")))
+          {
+             printf(_("Version: %s\n"), PACKAGE_VERSION);
+             _e_main_shutdown(-1);
+          }
         else if ((!strcmp(argv[i], "-h")) ||
                  (!strcmp(argv[i], "-help")) ||
-                 (!strcmp(argv[i], "--help")) ||
-                 argv[i][0])
+                 (!strcmp(argv[i], "--help")))
           {
              printf
                (_(
@@ -1201,6 +1226,7 @@ _e_main_parse_arguments(int argc, char **argv)
                  "\t\tStart with desklock on, so password will be asked.\n"
                  "\t-i-really-know-what-i-am-doing-and-accept-full-responsibility-for-it\n"
                  "\t\tIf you need this help, you don't need this option.\n"
+                 "\t-version\n"
                  )
                );
              _e_main_shutdown(-1);
@@ -1243,7 +1269,7 @@ _e_main_parse_arguments(int argc, char **argv)
 }
 
 EINTERN void
-_e_main_cb_x_fatal(void *data __UNUSED__)
+_e_main_cb_x_fatal(void *data EINA_UNUSED)
 {
    e_error_message_show("Lost X Connection.\n");
    ecore_main_loop_quit();
@@ -1255,7 +1281,7 @@ _e_main_cb_x_fatal(void *data __UNUSED__)
 }
 
 static Eina_Bool
-_e_main_cb_signal_exit(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__)
+_e_main_cb_signal_exit(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev EINA_UNUSED)
 {
    /* called on ctrl-c, kill (pid) (also SIGINT, SIGTERM and SIGQIT) */
    e_sys_action_do(E_SYS_EXIT, NULL);
@@ -1263,14 +1289,14 @@ _e_main_cb_signal_exit(void *data __UNUSED__, int ev_type __UNUSED__, void *ev _
 }
 
 static Eina_Bool
-_e_main_cb_signal_hup(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__)
+_e_main_cb_signal_hup(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev EINA_UNUSED)
 {
    e_sys_action_do(E_SYS_RESTART, NULL);
    return ECORE_CALLBACK_RENEW;
 }
 
 static Eina_Bool
-_e_main_cb_signal_user(void *data __UNUSED__, int ev_type __UNUSED__, void *ev)
+_e_main_cb_signal_user(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
 {
    Ecore_Event_Signal_User *e = ev;
 
@@ -1493,7 +1519,6 @@ _e_main_test_formats(void)
                                "Evas has Software Buffer engine support.\n"));
         _e_main_shutdown(-1);
      }
-   e_canvas_add(ee);
    evas = ecore_evas_get(ee);
    im = evas_object_image_add(evas);
 
@@ -1550,16 +1575,12 @@ _e_main_test_formats(void)
         _e_main_shutdown(-1);
      }
    evas_object_del(txt);
-   e_canvas_del(ee);
    ecore_evas_free(ee);
 }
 
 static int
 _e_main_screens_init(void)
 {
-   TS("\tscreens: manager");
-   if (!e_manager_init()) return 0;
-
    TS("\tscreens: client");
    if (!e_client_init()) return 0;
    TS("\tscreens: win");
@@ -1610,63 +1631,51 @@ _e_main_screens_shutdown(void)
    e_exehist_shutdown();
    e_backlight_shutdown();
    e_exec_shutdown();
-// ecore_evas closes evas - deletes objs - deletes fm widgets which tries to
-// ipc to slave to stop monitoring - but ipc has been shut down. dont shut
-// down.
-//   e_desk_shutdown();
-//   e_zone_shutdown();
-//   e_container_shutdown();
-//   e_manager_shutdown();
+
+   e_desk_shutdown();
+   e_zone_shutdown();
    return 1;
 }
 
 static void
 _e_main_desk_save(void)
 {
-   E_Comp *c;
    const Eina_List *l;
    char env[1024], name[1024];
+   E_Zone *zone;
 
-   EINA_LIST_FOREACH(e_comp_list(), l, c)
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
      {
-        Eina_List *zl;
-        E_Zone *zone;
-
-        EINA_LIST_FOREACH(c->zones, zl, zone)
-          {
-             snprintf(name, sizeof(name), "DESK_%d_%d", c->num, zone->num);
-             snprintf(env, sizeof(env), "%d,%d", zone->desk_x_current, zone->desk_y_current);
-             e_util_env_set(name, env);
-          }
+        snprintf(name, sizeof(name), "DESK_%d_%d", 0, zone->num);
+        snprintf(env, sizeof(env), "%d,%d", zone->desk_x_current, zone->desk_y_current);
+        e_util_env_set(name, env);
      }
 }
 
 static void
 _e_main_desk_restore(void)
 {
-   E_Comp *c;
-   const Eina_List *l, *ll;
+   const Eina_List *l;
    E_Zone *zone;
    E_Client *ec;
    char *env;
    char name[1024];
 
-   EINA_LIST_FOREACH(e_comp_list(), l, c)
-      EINA_LIST_FOREACH(c->zones, ll, zone)
-        {
-           E_Desk *desk;
-           int desk_x, desk_y;
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
+     {
+        E_Desk *desk;
+        int desk_x, desk_y;
 
-           snprintf(name, sizeof(name), "DESK_%d_%d", c->num, zone->num);
-           env = getenv(name);
-           if (!env) continue;
-           if (!sscanf(env, "%d,%d", &desk_x, &desk_y)) continue;
-           desk = e_desk_at_xy_get(zone, desk_x, desk_y);
-           if (!desk) continue;
-           e_desk_show(desk);
-        }
+        snprintf(name, sizeof(name), "DESK_%d_%d", 0, zone->num);
+        env = getenv(name);
+        if (!env) continue;
+        if (!sscanf(env, "%d,%d", &desk_x, &desk_y)) continue;
+        desk = e_desk_at_xy_get(zone, desk_x, desk_y);
+        if (!desk) continue;
+        e_desk_show(desk);
+     }
 
-   E_CLIENT_REVERSE_FOREACH(e_comp_get(NULL), ec)
+   E_CLIENT_REVERSE_FOREACH(ec)
      if ((!e_client_util_ignored_get(ec)) && e_client_util_desk_visible(ec, e_desk_current_get(ec->zone)))
        {
           ec->want_focus = ec->take_focus = 1;
@@ -1750,7 +1759,7 @@ _e_main_modules_load(Eina_Bool safe_mode)
 }
 
 static Eina_Bool
-_e_main_cb_idle_before(void *data __UNUSED__)
+_e_main_cb_idle_before(void *data EINA_UNUSED)
 {
    e_menu_idler_before();
    e_client_idler_before();
@@ -1760,10 +1769,11 @@ _e_main_cb_idle_before(void *data __UNUSED__)
 }
 
 static Eina_Bool
-_e_main_cb_idle_after(void *data __UNUSED__)
+_e_main_cb_idle_after(void *data EINA_UNUSED)
 {
    static int first_idle = 1;
 
+   eet_clearcache();
    edje_freeze();
 
 #ifdef E_RELEASE_BUILD
@@ -1786,18 +1796,7 @@ _e_main_cb_idle_after(void *data __UNUSED__)
 }
 
 static Eina_Bool
-_e_main_cb_x_flusher(void *data __UNUSED__)
-{
-   eet_clearcache();
-#ifndef HAVE_WAYLAND_ONLY
-   if (e_comp_get(NULL)->comp_type == E_PIXMAP_TYPE_X)
-     ecore_x_flush();
-#endif
-   return ECORE_CALLBACK_RENEW;
-}
-
-static Eina_Bool
-_e_main_cb_startup_fake_end(void *data __UNUSED__)
+_e_main_cb_startup_fake_end(void *data EINA_UNUSED)
 {
    e_init_hide();
    return ECORE_CALLBACK_CANCEL;

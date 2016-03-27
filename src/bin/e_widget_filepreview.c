@@ -64,7 +64,7 @@ static void  _e_wid_fprev_preview_font(E_Widget_Data *wd);
 static void  _e_wid_fprev_preview_fm(E_Widget_Data *wd);
 
 static void
-_e_wid_fprev_preview_update(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_e_wid_fprev_preview_update(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    E_Widget_Data *wd;
    Evas_Object *o;
@@ -219,7 +219,7 @@ _e_wid_fprev_clear_widgets(E_Widget_Data *wd)
 }
 
 static void
-_e_wid_fprev_preview_video_position(E_Widget_Data *wd, Evas_Object *obj, void *event_info __UNUSED__)
+_e_wid_fprev_preview_video_position(E_Widget_Data *wd, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    double t, tot;
 
@@ -231,7 +231,7 @@ _e_wid_fprev_preview_video_position(E_Widget_Data *wd, Evas_Object *obj, void *e
 }
 
 static void
-_e_wid_fprev_preview_video_opened(E_Widget_Data *wd, Evas_Object *obj, void *event_info __UNUSED__)
+_e_wid_fprev_preview_video_opened(E_Widget_Data *wd, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    double ratio;
    int iw, ih;
@@ -250,7 +250,6 @@ _e_wid_fprev_preview_video_opened(E_Widget_Data *wd, Evas_Object *obj, void *eve
    if (iw < 1) iw = 1;
    if (ih < 1) ih = 1;
 
-   w = w;
    h = (w * ih) / iw;
    e_widget_preview_vsize_set(wd->o_preview_preview, w, h);
    if (h > oh)
@@ -269,9 +268,9 @@ _e_wid_fprev_preview_video_opened(E_Widget_Data *wd, Evas_Object *obj, void *eve
 }
 
 static void
-_e_wid_fprev_preview_video_resize(E_Widget_Data *wd, Evas_Object *obj, void *event_info __UNUSED__)
+_e_wid_fprev_preview_video_resize(E_Widget_Data *wd, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
-   int w, h, mw, mh;
+   int w, h;
    char buf[128];
 
    emotion_object_size_get(obj, &w, &h);
@@ -279,8 +278,7 @@ _e_wid_fprev_preview_video_resize(E_Widget_Data *wd, Evas_Object *obj, void *eve
    snprintf(buf, sizeof(buf), "%dx%d", w, h);
    e_widget_entry_text_set(wd->o_preview_resolution_entry, buf);
    if (!wd->clamp_video) return;
-   e_widget_size_min_get(wd->o_preview_preview, &mw, &mh);
-   e_table_pack_options_set(wd->o_preview_preview, 1, 1, 1, 1, 0.5, 0.5, mw, mh, w, h);
+   evas_object_size_hint_max_set(wd->o_preview_preview, w, h);
 }
 
 static void
@@ -301,12 +299,13 @@ static void
 _e_wid_fprev_preview_video_widgets(E_Widget_Data *wd)
 {
    Evas *evas = evas_object_evas_get(wd->obj);
-   Evas_Object *o, *em;
+   Evas_Object *o, *em, *win;
    int mw, mh, y = 3;
 
+   win = e_win_evas_win_get(evas);
    _e_wid_fprev_clear_widgets(wd);
 
-   o = e_widget_table_add(evas, 0);
+   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
    wd->o_preview_properties_table = o;
 
 #define WIDROW(lab, labob, entob, entw)                                           \
@@ -316,17 +315,16 @@ _e_wid_fprev_preview_video_widgets(E_Widget_Data *wd)
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
                                           wd->labob,                              \
                                           0, y, 1, 1, 0, 1, 0, 0, 1.0, 0.0);      \
-       o = e_widget_entry_add(evas, &(wd->preview_extra_text), NULL, NULL, NULL); \
+       o = e_widget_entry_add(win, &(wd->preview_extra_text), NULL, NULL, NULL); \
        e_widget_entry_readonly_set(o, 1);                                         \
        wd->entob = o;                                                             \
-       e_widget_size_min_set(o, entw, -1);                                        \
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
                                           wd->entob,                              \
                                           1, y, 1, 1, 1, 1, 1, 0, 0.0, 0.0);      \
        y++;                                                                       \
     } while (0)
 
-   o = e_widget_table_add(evas, 0);
+   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
    e_widget_size_min_set(o, wd->w, wd->h);
    e_widget_table_object_append(wd->o_preview_properties_table,
                                 o, 0, 0, 2, 2, 1, 1, 1, 1);
@@ -384,12 +382,13 @@ static void
 _e_wid_fprev_preview_fs_widgets(E_Widget_Data *wd, Eina_Bool mount_point)
 {
    Evas *evas = evas_object_evas_get(wd->obj);
-   Evas_Object *o;
+   Evas_Object *o, *win;
    int mw, mh, y = 0;
 
+   win = e_win_evas_win_get(evas);
    _e_wid_fprev_clear_widgets(wd);
 
-   o = e_widget_table_add(evas, 0);
+   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
    wd->o_preview_properties_table = o;
 
 #define WIDROW(lab, labob, entob, entw)                                           \
@@ -399,10 +398,11 @@ _e_wid_fprev_preview_fs_widgets(E_Widget_Data *wd, Eina_Bool mount_point)
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
                                           wd->labob,                              \
                                           0, y, 1, 1, 0, 1, 0, 0, 1.0, 0.0);      \
-       o = e_widget_entry_add(evas, &(wd->preview_extra_text), NULL, NULL, NULL); \
+       o = e_widget_entry_add(win, &(wd->preview_extra_text), NULL, NULL, NULL); \
+       evas_object_size_hint_min_get(o, &mw, &mh); \
+       e_widget_size_min_set(o, 100, mh); \
        e_widget_entry_readonly_set(o, 1);                                         \
        wd->entob = o;                                                             \
-       e_widget_size_min_set(o, entw, -1);                                        \
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
                                           wd->entob,                              \
                                           1, y, 1, 1, 1, 1, 1, 0, 0.0, 0.0);      \
@@ -440,12 +440,13 @@ static void
 _e_wid_fprev_preview_file_widgets(E_Widget_Data *wd, Eina_Bool dir, Eina_Bool txt, Eina_Bool font)
 {
    Evas *evas = evas_object_evas_get(wd->obj);
-   Evas_Object *o;
+   Evas_Object *o, *win;
    int mw, mh, y = 0;
 
+   win = e_win_evas_win_get(evas);
    _e_wid_fprev_clear_widgets(wd);
 
-   o = e_widget_table_add(evas, 0);
+   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
    wd->o_preview_preview_table = o;
    e_widget_size_min_set(o, 32, 32);
 
@@ -453,7 +454,7 @@ _e_wid_fprev_preview_file_widgets(E_Widget_Data *wd, Eina_Bool dir, Eina_Bool tx
                                wd->o_preview_preview_table,
                                0, 1, 0.5);
 
-   o = e_widget_table_add(evas, 0);
+   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
    wd->o_preview_properties_table = o;
    wd->is_dir = dir;
    wd->is_txt = txt;
@@ -494,18 +495,17 @@ _e_wid_fprev_preview_file(E_Widget_Data *wd)
 {
    char *size, *owner, *perms, *mtime;
    struct stat st;
-   int mw, mh;
    Eina_Bool is_fs = EINA_FALSE;
 
    if (stat(wd->path, &st) < 0) return;
-   // if its a desktop file treat is spcially
+   // if its a desktop file treat is specially
    if (((wd->mime) && (!strcasecmp(wd->mime, "application/x-desktop"))) ||
        (eina_str_has_extension(wd->path, "desktop")))
      {
         Efreet_Desktop *desktop;
         const char *type, *file;
 
-        // load it and if its a specual removable or mount point
+        // load it and if its a special removable or mount point
         // desktop file for e, then we want to do something special
         desktop = efreet_desktop_new(wd->path);
         if ((desktop) && (desktop->url) &&
@@ -723,8 +723,6 @@ _e_wid_fprev_preview_file(E_Widget_Data *wd)
    _e_wid_fprev_preview_font(wd);
    _e_wid_fprev_img_update(wd, wd->path, NULL);
 
-   e_widget_size_min_get(wd->o_preview_list, &mw, &mh);
-   e_widget_size_min_set(wd->obj, mw, mh);
    if (!wd->is_dir)
      {
         if (!wd->is_txt)
@@ -884,47 +882,47 @@ _e_wid_fprev_preview_reset(E_Widget_Data *wd)
 }
 
 static void
-_e_wid_cb_selected(void *data, Evas_Object *obj, void *event __UNUSED__)
+_e_wid_cb_selected(void *data, Evas_Object *obj, void *event EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, "selected", obj);
 }
 
 static void
-_e_wid_cb_selection_change(void *data, Evas_Object *obj, void *event __UNUSED__)
+_e_wid_cb_selection_change(void *data, Evas_Object *obj, void *event EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, "selection_change", obj);
 }
 
 static void
-_e_wid_cb_dir_changed(void *data, Evas_Object *obj, void *event __UNUSED__)
+_e_wid_cb_dir_changed(void *data, Evas_Object *obj, void *event EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, "dir_changed", obj);
 }
 
 static void
-_e_wid_cb_changed(void *data, Evas_Object *obj, void *event __UNUSED__)
+_e_wid_cb_changed(void *data, Evas_Object *obj, void *event EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, "changed", obj);
 }
 
 static void
-_e_wid_cb_file_deleted(void *data, Evas_Object *obj, void *event __UNUSED__)
+_e_wid_cb_file_deleted(void *data, Evas_Object *obj, void *event EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, "files_deleted", obj);
 }
 
 static void
-_e_wid_fprev_preview_txt_read_cancel(void *data __UNUSED__, Ecore_Thread *eth __UNUSED__)
+_e_wid_fprev_preview_txt_read_cancel(void *data EINA_UNUSED, Ecore_Thread *eth EINA_UNUSED)
 {
 }
 
 static void
-_e_wid_fprev_preview_txt_read_end(void *data __UNUSED__, Ecore_Thread *eth __UNUSED__)
+_e_wid_fprev_preview_txt_read_end(void *data EINA_UNUSED, Ecore_Thread *eth EINA_UNUSED)
 {
 }
 
 static void
-_e_wid_fprev_preview_txt_read_notify(void *data, Ecore_Thread *eth __UNUSED__, void *msg)
+_e_wid_fprev_preview_txt_read_notify(void *data, Ecore_Thread *eth EINA_UNUSED, void *msg)
 {
    E_Widget_Data *wd = data;
    char *buf;
@@ -941,7 +939,7 @@ _e_wid_fprev_preview_txt_read_notify(void *data, Ecore_Thread *eth __UNUSED__, v
 }
 
 static void
-_e_wid_fprev_preview_txt_read(void *data __UNUSED__, Ecore_Thread *eth)
+_e_wid_fprev_preview_txt_read(void *data EINA_UNUSED, Ecore_Thread *eth)
 {
    char *text;
    char buf[FILEPREVIEW_TEXT_PREVIEW_SIZE + 1];
@@ -1161,7 +1159,7 @@ _e_wid_fprev_preview_fm(E_Widget_Data *wd)
 }
 
 static Eina_Bool
-_e_wid_fprev_cb_del(E_Widget_Data *wd, int type __UNUSED__, Eio_Monitor_Event *ev)
+_e_wid_fprev_cb_del(E_Widget_Data *wd, int type EINA_UNUSED, Eio_Monitor_Event *ev)
 {
    if (wd->monitor != ev->monitor) return ECORE_CALLBACK_RENEW;
    _e_wid_fprev_clear_widgets(wd);
@@ -1172,7 +1170,7 @@ _e_wid_fprev_cb_del(E_Widget_Data *wd, int type __UNUSED__, Eio_Monitor_Event *e
 }
 
 static Eina_Bool
-_e_wid_fprev_cb_mod(E_Widget_Data *wd, int type __UNUSED__, Eio_Monitor_Event *ev)
+_e_wid_fprev_cb_mod(E_Widget_Data *wd, int type EINA_UNUSED, Eio_Monitor_Event *ev)
 {
    if (wd->monitor != ev->monitor) return ECORE_CALLBACK_RENEW;
    _e_wid_fprev_preview_file(wd);

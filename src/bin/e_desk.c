@@ -67,8 +67,6 @@ e_desk_new(E_Zone *zone, int x, int y)
    /* Get current desktop's name */
    EINA_LIST_FOREACH(e_config->desktop_names, l, cfname)
      {
-        if ((cfname->manager >= 0) &&
-            ((int)zone->comp->num != cfname->manager)) continue;
         if ((cfname->zone >= 0) &&
             ((int)zone->num != cfname->zone)) continue;
         if ((cfname->desk_x != desk->x) || (cfname->desk_y != desk->y))
@@ -87,8 +85,6 @@ e_desk_new(E_Zone *zone, int x, int y)
    ok = 0;
    EINA_LIST_FOREACH(e_config->desktop_window_profiles, l, cfprof)
      {
-        if ((cfprof->manager >= 0) &&
-            ((int)zone->comp->num != cfprof->manager)) continue;
         if ((cfprof->zone >= 0) &&
             ((int)zone->num != cfprof->zone)) continue;
         if ((cfprof->desk_x != desk->x) || (cfprof->desk_y != desk->y))
@@ -111,7 +107,7 @@ e_desk_client_top_visible_get(const E_Desk *desk)
    E_OBJECT_CHECK_RETURN(desk, NULL);
    E_OBJECT_TYPE_CHECK_RETURN(desk, E_DESK_TYPE, NULL);
 
-   E_CLIENT_REVERSE_FOREACH(e_comp_get(desk), ec)
+   E_CLIENT_REVERSE_FOREACH(ec)
      if (e_client_util_desk_visible(ec, desk) && evas_object_visible_get(ec->frame)) return ec;
    return NULL;
 }
@@ -134,14 +130,13 @@ e_desk_name_set(E_Desk *desk, const char *name)
 }
 
 E_API void
-e_desk_name_add(int manager, int zone, int desk_x, int desk_y, const char *name)
+e_desk_name_add(int zone, int desk_x, int desk_y, const char *name)
 {
    E_Config_Desktop_Name *cfname;
 
-   e_desk_name_del(manager, zone, desk_x, desk_y);
+   e_desk_name_del(zone, desk_x, desk_y);
 
    cfname = E_NEW(E_Config_Desktop_Name, 1);
-   cfname->manager = manager;
    cfname->zone = zone;
    cfname->desk_x = desk_x;
    cfname->desk_y = desk_y;
@@ -151,14 +146,14 @@ e_desk_name_add(int manager, int zone, int desk_x, int desk_y, const char *name)
 }
 
 E_API void
-e_desk_name_del(int manager, int zone, int desk_x, int desk_y)
+e_desk_name_del(int zone, int desk_x, int desk_y)
 {
    Eina_List *l = NULL;
    E_Config_Desktop_Name *cfname = NULL;
 
    EINA_LIST_FOREACH(e_config->desktop_names, l, cfname)
      {
-        if ((cfname->manager == manager) && (cfname->zone == zone) &&
+        if ((cfname->zone == zone) &&
             (cfname->desk_x == desk_x) && (cfname->desk_y == desk_y))
           {
              e_config->desktop_names =
@@ -173,45 +168,39 @@ e_desk_name_del(int manager, int zone, int desk_x, int desk_y)
 E_API void
 e_desk_name_update(void)
 {
-   const Eina_List *z, *l, *ll;
-   E_Comp *c;
+   const Eina_List *z, *l;
    E_Zone *zone;
    E_Desk *desk;
    E_Config_Desktop_Name *cfname;
    int d_x, d_y, ok;
    char name[40];
 
-   EINA_LIST_FOREACH(e_comp_list(), l, c)
+   EINA_LIST_FOREACH(e_comp->zones, z, zone)
      {
-        EINA_LIST_FOREACH(c->zones, z, zone)
+        for (d_x = 0; d_x < zone->desk_x_count; d_x++)
           {
-             for (d_x = 0; d_x < zone->desk_x_count; d_x++)
+             for (d_y = 0; d_y < zone->desk_y_count; d_y++)
                {
-                  for (d_y = 0; d_y < zone->desk_y_count; d_y++)
+                  desk = zone->desks[d_x + zone->desk_x_count * d_y];
+                  ok = 0;
+
+                  EINA_LIST_FOREACH(e_config->desktop_names, l, cfname)
                     {
-                       desk = zone->desks[d_x + zone->desk_x_count * d_y];
-                       ok = 0;
+                       if ((cfname->zone >= 0) &&
+                           ((int)zone->num != cfname->zone)) continue;
+                       if ((cfname->desk_x != d_x) ||
+                           (cfname->desk_y != d_y)) continue;
+                       e_desk_name_set(desk, cfname->name);
+                       ok = 1;
+                       break;
+                    }
 
-                       EINA_LIST_FOREACH(e_config->desktop_names, ll, cfname)
-                         {
-                            if ((cfname->manager >= 0) &&
-                                ((int)c->num != cfname->manager)) continue;
-                            if ((cfname->zone >= 0) &&
-                                ((int)zone->num != cfname->zone)) continue;
-                            if ((cfname->desk_x != d_x) ||
-                                (cfname->desk_y != d_y)) continue;
-                            e_desk_name_set(desk, cfname->name);
-                            ok = 1;
-                            break;
-                         }
-
-                       if (!ok)
-                         {
-                            snprintf(name, sizeof(name),
-                                     _(e_config->desktop_default_name),
-                                     d_x, d_y);
-                            e_desk_name_set(desk, name);
-                         }
+                  if (!ok)
+                    {
+                       snprintf(name, sizeof(name),
+                                _(e_config->desktop_default_name),
+                                d_x, d_y);
+                       e_desk_name_set(desk, name);
                     }
                }
           }
@@ -333,7 +322,7 @@ e_desk_deskshow(E_Zone *zone)
         /* uniconify raises windows and changes stacking order
          * go top-down to avoid skipping windows
          */
-        E_CLIENT_REVERSE_FOREACH(zone->comp, ec)
+        E_CLIENT_REVERSE_FOREACH(ec)
           {
              if (e_client_util_ignored_get(ec)) continue;
              if (ec->desk != desk) continue;
@@ -347,9 +336,9 @@ e_desk_deskshow(E_Zone *zone)
    else
      {
         /*
-         * iconify raises, so we ahve to start from the bottom so we are going forward
+         * iconify raises, so we have to start from the bottom so we are going forward
          */
-        E_CLIENT_FOREACH(zone->comp, ec)
+        E_CLIENT_FOREACH(ec)
           {
              if (e_client_util_ignored_get(ec)) continue;
              if (ec->desk != desk) continue;
@@ -561,18 +550,16 @@ e_desk_window_profile_set(E_Desk *desk,
 }
 
 E_API void
-e_desk_window_profile_add(int manager,
-                          int zone,
+e_desk_window_profile_add(int zone,
                           int desk_x,
                           int desk_y,
                           const char *profile)
 {
    E_Config_Desktop_Window_Profile *cfprof;
 
-   e_desk_window_profile_del(manager, zone, desk_x, desk_y);
+   e_desk_window_profile_del(zone, desk_x, desk_y);
 
    cfprof = E_NEW(E_Config_Desktop_Window_Profile, 1);
-   cfprof->manager = manager;
    cfprof->zone = zone;
    cfprof->desk_x = desk_x;
    cfprof->desk_y = desk_y;
@@ -581,8 +568,7 @@ e_desk_window_profile_add(int manager,
 }
 
 E_API void
-e_desk_window_profile_del(int manager,
-                          int zone,
+e_desk_window_profile_del(int zone,
                           int desk_x,
                           int desk_y)
 {
@@ -591,8 +577,7 @@ e_desk_window_profile_del(int manager,
 
    EINA_LIST_FOREACH(e_config->desktop_window_profiles, l, cfprof)
      {
-        if (!((cfprof->manager == manager) &&
-              (cfprof->zone == zone) &&
+        if (!((cfprof->zone == zone) &&
               (cfprof->desk_x == desk_x) &&
               (cfprof->desk_y == desk_y)))
           continue;
@@ -608,8 +593,7 @@ e_desk_window_profile_del(int manager,
 E_API void
 e_desk_window_profile_update(void)
 {
-   const Eina_List *z, *l, *ll;
-   E_Comp *c;
+   const Eina_List *z, *l;
    E_Zone *zone;
    E_Desk *desk;
    E_Config_Desktop_Window_Profile *cfprof;
@@ -620,35 +604,30 @@ e_desk_window_profile_update(void)
    if (!(e_config->use_desktop_window_profile))
      return;
 
-   EINA_LIST_FOREACH(e_comp_list(), l, c)
+   EINA_LIST_FOREACH(e_comp->zones, z, zone)
      {
-        EINA_LIST_FOREACH(c->zones, z, zone)
+        for (d_x = 0; d_x < zone->desk_x_count; d_x++)
           {
-             for (d_x = 0; d_x < zone->desk_x_count; d_x++)
+             for (d_y = 0; d_y < zone->desk_y_count; d_y++)
                {
-                  for (d_y = 0; d_y < zone->desk_y_count; d_y++)
+                  desk = zone->desks[d_x + zone->desk_x_count * d_y];
+                  ok = 0;
+
+                  EINA_LIST_FOREACH(e_config->desktop_window_profiles, l, cfprof)
                     {
-                       desk = zone->desks[d_x + zone->desk_x_count * d_y];
-                       ok = 0;
+                       if ((cfprof->zone >= 0) &&
+                           ((int)zone->num != cfprof->zone)) continue;
+                       if ((cfprof->desk_x != d_x) ||
+                           (cfprof->desk_y != d_y)) continue;
+                       e_desk_window_profile_set(desk, cfprof->profile);
+                       ok = 1;
+                       break;
+                    }
 
-                       EINA_LIST_FOREACH(e_config->desktop_window_profiles, ll, cfprof)
-                         {
-                            if ((cfprof->manager >= 0) &&
-                                ((int)c->num != cfprof->manager)) continue;
-                            if ((cfprof->zone >= 0) &&
-                                ((int)zone->num != cfprof->zone)) continue;
-                            if ((cfprof->desk_x != d_x) ||
-                                (cfprof->desk_y != d_y)) continue;
-                            e_desk_window_profile_set(desk, cfprof->profile);
-                            ok = 1;
-                            break;
-                         }
-
-                       if (!ok)
-                         {
-                            e_desk_window_profile_set
-                              (desk, e_config->desktop_default_window_profile);
-                         }
+                  if (!ok)
+                    {
+                       e_desk_window_profile_set
+                         (desk, e_config->desktop_default_window_profile);
                     }
                }
           }
@@ -674,7 +653,7 @@ e_desk_flip_end(E_Desk *desk)
    ecore_event_add(E_EVENT_DESK_AFTER_SHOW, ev,
                    _e_desk_event_desk_after_show_free, NULL);
 
-   e_comp_shape_queue(e_comp_get(desk));
+   e_comp_shape_queue();
    if (!e_config->focus_last_focused_per_desktop) return;
    if ((e_config->focus_policy == E_FOCUS_MOUSE) ||
        (e_config->focus_policy == E_FOCUS_SLOPPY))
@@ -694,7 +673,7 @@ e_desk_flip_end(E_Desk *desk)
          * user has flipped to this desk. let's be helpful and
          * focus a random window!
          */
-         E_CLIENT_REVERSE_FOREACH(e_comp_get(desk), ec)
+         E_CLIENT_REVERSE_FOREACH(ec)
            {
               /* start with top and go down... */
               if (e_client_util_ignored_get(ec)) continue;
@@ -708,6 +687,23 @@ e_desk_flip_end(E_Desk *desk)
      }
 }
 
+E_API unsigned int
+e_desks_count(void)
+{
+   Eina_List *l;
+   E_Zone *zone;
+   unsigned int count = 0;
+
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
+     {
+        int cx = 0, cy = 0;
+
+        e_zone_desk_count_get(zone, &cx, &cy);
+        count += cx * cy;
+     }
+   return count;
+}
+
 static void
 _e_desk_free(E_Desk *desk)
 {
@@ -717,7 +713,7 @@ _e_desk_free(E_Desk *desk)
 }
 
 static void
-_e_desk_event_desk_show_free(void *data __UNUSED__, void *event)
+_e_desk_event_desk_show_free(void *data EINA_UNUSED, void *event)
 {
    E_Event_Desk_Show *ev;
 
@@ -727,7 +723,7 @@ _e_desk_event_desk_show_free(void *data __UNUSED__, void *event)
 }
 
 static void
-_e_desk_event_desk_before_show_free(void *data __UNUSED__, void *event)
+_e_desk_event_desk_before_show_free(void *data EINA_UNUSED, void *event)
 {
    E_Event_Desk_Before_Show *ev;
 
@@ -737,7 +733,7 @@ _e_desk_event_desk_before_show_free(void *data __UNUSED__, void *event)
 }
 
 static void
-_e_desk_event_desk_after_show_free(void *data __UNUSED__, void *event)
+_e_desk_event_desk_after_show_free(void *data EINA_UNUSED, void *event)
 {
    E_Event_Desk_After_Show *ev;
 
@@ -747,7 +743,7 @@ _e_desk_event_desk_after_show_free(void *data __UNUSED__, void *event)
 }
 
 static void
-_e_desk_event_desk_deskshow_free(void *data __UNUSED__, void *event)
+_e_desk_event_desk_deskshow_free(void *data EINA_UNUSED, void *event)
 {
    E_Event_Desk_Show *ev;
 
@@ -757,7 +753,7 @@ _e_desk_event_desk_deskshow_free(void *data __UNUSED__, void *event)
 }
 
 static void
-_e_desk_event_desk_name_change_free(void *data __UNUSED__, void *event)
+_e_desk_event_desk_name_change_free(void *data EINA_UNUSED, void *event)
 {
    E_Event_Desk_Name_Change *ev = event;
    e_object_unref(E_OBJECT(ev->desk));
@@ -765,7 +761,7 @@ _e_desk_event_desk_name_change_free(void *data __UNUSED__, void *event)
 }
 
 static void
-_e_desk_event_desk_window_profile_change_free(void *data __UNUSED__, void *event)
+_e_desk_event_desk_window_profile_change_free(void *data EINA_UNUSED, void *event)
 {
    E_Event_Desk_Window_Profile_Change *ev = event;
    e_object_unref(E_OBJECT(ev->desk));
@@ -826,7 +822,7 @@ _e_desk_show_begin(E_Desk *desk, int dx, int dy)
         _e_desk_flip_cb(_e_desk_flip_data, desk, dx, dy, 1);
         return;
      }
-   E_CLIENT_FOREACH(desk->zone->comp, ec)
+   E_CLIENT_FOREACH(ec)
      {
         if (e_client_util_ignored_get(ec) || (ec->desk->zone != desk->zone) || (ec->iconic)) continue;
         if (ec->moving)
@@ -868,7 +864,7 @@ _e_desk_hide_begin(E_Desk *desk, int dx, int dy)
         _e_desk_flip_cb(_e_desk_flip_data, desk, dx, dy, 0);
         return;
      }
-   E_CLIENT_FOREACH(desk->zone->comp, ec)
+   E_CLIENT_FOREACH(ec)
      {
         if (e_client_util_ignored_get(ec) || (ec->desk->zone != desk->zone) || (ec->iconic)) continue;
         if (ec->moving) continue;
@@ -894,10 +890,6 @@ static void
 _e_desk_window_profile_change_protocol_set(void)
 {
 #ifndef HAVE_WAYLAND_ONLY
-   Eina_List *l = NULL;
-   E_Manager *man;
-
-   EINA_LIST_FOREACH(e_manager_list(), l, man)
-     ecore_x_e_window_profile_supported_set(man->root, e_config->use_desktop_window_profile);
+  ecore_x_e_window_profile_supported_set(e_comp->root, e_config->use_desktop_window_profile);
 #endif
 }

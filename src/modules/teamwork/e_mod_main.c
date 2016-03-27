@@ -179,14 +179,14 @@ e_modapi_init(E_Module *m)
 }
 
 E_API int
-e_modapi_shutdown(E_Module *m __UNUSED__)
+e_modapi_shutdown(E_Module *m EINA_UNUSED)
 {
    _e_modapi_shutdown();
    return 1;
 }
 
 E_API int
-e_modapi_save(E_Module *m __UNUSED__)
+e_modapi_save(E_Module *m EINA_UNUSED)
 {
    e_config_domain_save("module.teamwork", conf_edd, tw_config);
    return 1;

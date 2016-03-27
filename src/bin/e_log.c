@@ -11,7 +11,7 @@ static const char *_names[] = {
 };
 
 static void
-_e_log_cb(const Eina_Log_Domain *d, Eina_Log_Level level, const char *file, const char *fnc __UNUSED__, int line, const char *fmt, void *data __UNUSED__, va_list args)
+_e_log_cb(const Eina_Log_Domain *d, Eina_Log_Level level, const char *file, const char *fnc EINA_UNUSED, int line, const char *fmt, void *data EINA_UNUSED, va_list args)
 {
    const char *color;
 
@@ -27,8 +27,18 @@ _e_log_cb(const Eina_Log_Domain *d, Eina_Log_Level level, const char *file, cons
 EINTERN int
 e_log_init(void)
 {
+   const char *bt_level;
+
    e_log_dom = eina_log_domain_register("e", EINA_COLOR_WHITE);
-   eina_log_print_cb_set(_e_log_cb, NULL);
+   bt_level = getenv("EINA_LOG_BACKTRACE");
+   if (bt_level)
+     {
+        int level;
+
+        level = strtol(bt_level, NULL, 10);
+        if (level < 1)
+          eina_log_print_cb_set(_e_log_cb, NULL);
+     }
    return e_log_dom != -1;
 }
 

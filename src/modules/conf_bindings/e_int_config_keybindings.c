@@ -85,7 +85,7 @@ struct _E_Config_Dialog_Data
 };
 
 E_Config_Dialog *
-e_int_config_keybindings(E_Comp *comp,
+e_int_config_keybindings(Evas_Object *parent EINA_UNUSED,
                          const char *params)
 {
    E_Config_Dialog *cfd;
@@ -100,7 +100,7 @@ e_int_config_keybindings(E_Comp *comp,
    v->basic.create_widgets = _basic_create_widgets;
    v->override_auto_apply = 1;
 
-   cfd = e_config_dialog_new(comp, _("Key Bindings Settings"), "E",
+   cfd = e_config_dialog_new(NULL, _("Key Bindings Settings"), "E",
                              "keyboard_and_mouse/key_bindings",
                              "preferences-desktop-keyboard-shortcuts", 0, v, NULL);
    if ((params) && (params[0]))
@@ -155,7 +155,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd  __UNUSED__,
+_free_data(E_Config_Dialog *cfd  EINA_UNUSED,
            E_Config_Dialog_Data *cfdata)
 {
    E_Config_Binding_Key *bi;
@@ -178,7 +178,7 @@ _free_data(E_Config_Dialog *cfd  __UNUSED__,
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd  __UNUSED__,
+_basic_apply_data(E_Config_Dialog *cfd  EINA_UNUSED,
                   E_Config_Dialog_Data *cfdata)
 {
    Eina_List *l = NULL;
@@ -186,7 +186,7 @@ _basic_apply_data(E_Config_Dialog *cfd  __UNUSED__,
 
    _auto_apply_changes(cfdata);
 
-   e_managers_keys_ungrab();
+   e_comp_canvas_keys_ungrab();
    EINA_LIST_FREE(e_bindings->key_bindings, bi)
      {
         e_bindings_key_del(bi->context, bi->key, bi->modifiers, bi->any_mod,
@@ -215,14 +215,14 @@ _basic_apply_data(E_Config_Dialog *cfd  __UNUSED__,
         e_bindings_key_add(bi->context, bi->key, bi->modifiers, bi->any_mod,
                            bi->action, bi->params);
      }
-   e_managers_keys_grab();
+   e_comp_canvas_keys_grab();
    e_config_save_queue();
 
    return 1;
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *ot, *of, *ob;
 
@@ -253,7 +253,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    e_widget_frametable_object_append(of, ob, 0, 3, 2, 1, 1, 0, 1, 0);
    e_widget_list_object_append(o, of, 1, 1, 0.5);
 
-   ot = e_widget_table_add(evas, 0);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), 0);
    of = e_widget_framelist_add(evas, _("Action"), 0);
    ob = e_widget_ilist_add(evas, 24, 24, &(cfdata->locals.action));
    cfdata->gui.o_action_list = ob;
@@ -262,7 +262,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    e_widget_table_object_append(ot, of, 0, 0, 1, 1, 1, 1, 1, 1);
 
    of = e_widget_framelist_add(evas, _("Action Params"), 0);
-   ob = e_widget_entry_add(evas, &(cfdata->locals.params), NULL, NULL, NULL);
+   ob = e_widget_entry_add(cfd->dia->win, &(cfdata->locals.params), NULL, NULL, NULL);
    cfdata->gui.o_params = ob;
    e_widget_disabled_set(ob, 1);
    e_widget_framelist_object_append(of, ob);
@@ -272,6 +272,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    _update_key_binding_list(cfdata, NULL);
    _fill_actions_list(cfdata);
 
+   e_dialog_resizable_set(cfd->dia, 1);
    return o;
 }
 
@@ -316,7 +317,7 @@ _fill_actions_list(E_Config_Dialog_Data *cfdata)
 
 static void
 _add_key_binding_cb(void *data,
-                    void *data2 __UNUSED__)
+                    void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -330,7 +331,7 @@ _add_key_binding_cb(void *data,
 
 static void
 _modify_key_binding_cb(void *data,
-                       void *data2 __UNUSED__)
+                       void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -376,7 +377,7 @@ _action_change_cb(void *data)
 
 static void
 _delete_all_key_binding_cb(void *data,
-                           void *data2 __UNUSED__)
+                           void *data2 EINA_UNUSED)
 {
    E_Config_Binding_Key *bi;
    E_Config_Dialog_Data *cfdata;
@@ -406,7 +407,7 @@ _delete_all_key_binding_cb(void *data,
 
 static void
 _delete_key_binding_cb(void *data,
-                       void *data2 __UNUSED__)
+                       void *data2 EINA_UNUSED)
 {
    Eina_List *l = NULL;
    const char *n;
@@ -459,7 +460,7 @@ _delete_key_binding_cb(void *data,
 
 static void
 _restore_key_binding_defaults_cb(void *data,
-                                 void *data2 __UNUSED__)
+                                 void *data2 EINA_UNUSED)
 {
    E_Config_Bindings *ecb;
    Eina_Stringshare *prof;
@@ -831,7 +832,7 @@ _grab_wnd_show(E_Config_Dialog_Data *cfdata)
 
 static Eina_Bool
 _grab_key_down_cb(void *data,
-                  __UNUSED__ int type,
+                  EINA_UNUSED int type,
                   void *event)
 {
    E_Config_Dialog_Data *cfdata;
@@ -875,7 +876,7 @@ _grab_key_down_cb(void *data,
 
         /* swap for un-shifted key; binding '(' or ')' is impossible */
         if ((ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT) &&
-            ((!strcmp(ev->key, "parenleft")) || (!strcmp(ev->key, "parenright"))))
+            (eina_streq(ev->key, "parenleft") || eina_streq(ev->key, "parenright")))
           ev->key = ev->keyname;
         if (cfdata->locals.add)
           found = !!e_util_binding_match(cfdata->binding.key, ev, &n, NULL);
@@ -906,8 +907,7 @@ _grab_key_down_cb(void *data,
                   e_widget_ilist_selected_set(cfdata->gui.o_binding_list, n);
                   e_widget_ilist_nth_show(cfdata->gui.o_binding_list, n, 0);
                   e_widget_ilist_unselect(cfdata->gui.o_action_list);
-                  eina_stringshare_del(cfdata->locals.action);
-                  cfdata->locals.action = eina_stringshare_add("");
+                  eina_stringshare_replace(&cfdata->locals.action, "");
                   if ((cfdata->params) && (cfdata->params[0]))
                     {
                        int j, g = -1;
@@ -1111,84 +1111,78 @@ _find_key_binding_action(const char *action,
      }
 }
 
-static char *
-_key_binding_header_get(int modifiers)
+static void
+_modifiers_add(Eina_Strbuf *b, int modifiers)
 {
-   char b[256] = "";
-
-   if (modifiers & E_BINDING_MODIFIER_CTRL)
-     strcat(b, _("CTRL"));
-
    if (modifiers & E_BINDING_MODIFIER_ALT)
      {
-        if (b[0]) strcat(b, " + ");
-        strcat(b, _("ALT"));
+        if (eina_strbuf_length_get(b)) eina_strbuf_append(b, " + ");
+        eina_strbuf_append(b, _("ALT"));
      }
 
    if (modifiers & E_BINDING_MODIFIER_SHIFT)
      {
-        if (b[0]) strcat(b, " + ");
-        strcat(b, _("SHIFT"));
+        if (eina_strbuf_length_get(b)) eina_strbuf_append(b, " + ");
+        eina_strbuf_append(b, _("SHIFT"));
      }
 
    if (modifiers & E_BINDING_MODIFIER_WIN)
      {
-        if (b[0]) strcat(b, " + ");
-        strcat(b, _("WIN"));
+        if (eina_strbuf_length_get(b)) eina_strbuf_append(b, " + ");
+        eina_strbuf_append(b, _("WIN"));
      }
+}
 
-   if (!b[0]) return strdup(TEXT_NO_MODIFIER_HEADER);
-   return strdup(b);
+static char *
+_key_binding_header_get(int modifiers)
+{
+   Eina_Strbuf *b;
+   char *ret;
+
+   b = eina_strbuf_new();
+   _modifiers_add(b, modifiers);
+
+   ret = eina_strbuf_string_steal(b);
+   eina_strbuf_free(b);
+   if (ret[0]) return ret;
+   free(ret);
+   return strdup(TEXT_NO_MODIFIER_HEADER);
 }
 
 static char *
 _key_binding_text_get(E_Config_Binding_Key *bi)
 {
-   char b[256] = "";
+   Eina_Strbuf *b;
+   char *ret;
 
    if (!bi) return NULL;
 
-   if (bi->modifiers & E_BINDING_MODIFIER_CTRL)
-     strcat(b, _("CTRL"));
-
-   if (bi->modifiers & E_BINDING_MODIFIER_ALT)
-     {
-        if (b[0]) strcat(b, " + ");
-        strcat(b, _("ALT"));
-     }
-
-   if (bi->modifiers & E_BINDING_MODIFIER_SHIFT)
-     {
-        if (b[0]) strcat(b, " + ");
-        strcat(b, _("SHIFT"));
-     }
-
-   if (bi->modifiers & E_BINDING_MODIFIER_WIN)
-     {
-        if (b[0]) strcat(b, " + ");
-        strcat(b, _("WIN"));
-     }
+   b = eina_strbuf_new();
+   _modifiers_add(b, bi->modifiers);
 
    if (bi->key && bi->key[0])
      {
         char *l;
-        if (b[0]) strcat(b, " + ");
+        if (eina_strbuf_length_get(b)) eina_strbuf_append(b, " + ");
 
         l = strdup(bi->key);
         l[0] = (char)toupper(bi->key[0]);
-        strcat(b, l);
+        eina_strbuf_append(b, l);
         free(l);
      }
 
    /* see comment in e_bindings on numlock
       if (bi->modifiers & ECORE_X_LOCK_NUM)
       {
-        if (b[0]) strcat(b, " ");
-        strcat(b, _("OFF"));
+        if (eina_strbuf_length_get(b)) eina_strbuf_append(b, " ");
+        eina_strbuf_append(b, _("OFF"));
       }
     */
 
-   if (!b[0]) return strdup(TEXT_NONE_ACTION_KEY);
-   return strdup(b);
+   ret = eina_strbuf_string_steal(b);
+   eina_strbuf_free(b);
+   if (ret[0]) return ret;
+   free(ret);
+   return strdup(TEXT_NONE_ACTION_KEY);
 }
 

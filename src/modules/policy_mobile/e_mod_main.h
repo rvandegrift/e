@@ -54,7 +54,6 @@ struct _Config_Match
 
 struct _Config_Desk
 {
-   unsigned int     comp_num;
    unsigned int     zone_num;
    int              x, y;
    int              enable;
@@ -92,8 +91,8 @@ extern Eina_Hash *hash_pol_clients;
 
 EINTERN void             e_mod_pol_conf_init(Mod *mod);
 EINTERN void             e_mod_pol_conf_shutdown(Mod *mod);
-EINTERN Config_Desk     *e_mod_pol_conf_desk_get_by_nums(Config *conf, unsigned int comp_num, unsigned int zone_num, int x, int y);
-EINTERN E_Config_Dialog *e_int_config_pol_mobile(E_Comp *comp, const char *params EINA_UNUSED);
+EINTERN Config_Desk     *e_mod_pol_conf_desk_get_by_nums(Config *conf, unsigned int zone_num, int x, int y);
+EINTERN E_Config_Dialog *e_int_config_pol_mobile(Evas_Object *parent, const char *params EINA_UNUSED);
 EINTERN void             e_mod_pol_desk_add(E_Desk *desk);
 EINTERN void             e_mod_pol_desk_del(Pol_Desk *pd);
 EINTERN Pol_Client      *e_mod_pol_client_launcher_get(E_Zone *zone);

@@ -209,14 +209,40 @@ _e_deskmirror_smart_resize(Evas_Object *obj, Evas_Coord w, Evas_Coord h)
 static void
 _e_deskmirror_smart_show(Evas_Object *obj)
 {
+   Mirror *m;
+
    INTERNAL_ENTRY;
+   EINA_INLIST_FOREACH(sd->mirrors, m)
+     {
+        Mirror_Border *mb;
+
+        if ((!m->ec) || (!m->mirror)) continue;
+        mb = evas_object_smart_data_get(m->mirror);
+        if (!mb) continue;
+        edje_object_thaw(mb->frame);
+        edje_object_play_set(mb->frame, 1);
+        evas_object_show(mb->mirror);
+     }
    evas_object_show(sd->clip);
 }
 
 static void
 _e_deskmirror_smart_hide(Evas_Object *obj)
 {
+   Mirror *m;
+
    INTERNAL_ENTRY;
+   EINA_INLIST_FOREACH(sd->mirrors, m)
+     {
+        Mirror_Border *mb;
+
+        if ((!m->ec) || (!m->mirror)) continue;
+        mb = evas_object_smart_data_get(m->mirror);
+        if (!mb) continue;
+        edje_object_freeze(mb->frame);
+        edje_object_play_set(mb->frame, 0);
+        evas_object_hide(mb->mirror);
+     }
    evas_object_hide(sd->clip);
 }
 
@@ -678,6 +704,14 @@ _comp_object_add(E_Smart_Data *sd, int type EINA_UNUSED, E_Event_Comp_Object *ev
 }
 
 static Eina_Bool
+_client_add(E_Smart_Data *sd, int type EINA_UNUSED, E_Event_Client *ev)
+{
+   if (!eina_hash_find(sd->mirror_hash, &ev->ec->frame))
+     _e_deskmirror_mirror_add(sd, ev->ec->frame);
+   return ECORE_CALLBACK_RENEW;
+}
+
+static Eina_Bool
 _client_desk_set(E_Smart_Data *sd, int type EINA_UNUSED, E_Event_Client_Desk_Set *ev)
 {
    Mirror *m;
@@ -686,7 +720,7 @@ _client_desk_set(E_Smart_Data *sd, int type EINA_UNUSED, E_Event_Client_Desk_Set
    if (m)
      {
         /* ev->desk is previous desk */
-        if ((ev->desk == sd->desk) && (!ev->ec->sticky))
+        if (!e_client_util_desk_visible(ev->ec, sd->desk))
           eina_hash_del_by_key(sd->mirror_hash, &ev->ec->frame);
      }
    if ((!m) && (sd->desk == ev->ec->desk))
@@ -726,7 +760,7 @@ e_deskmirror_add(E_Desk *desk, Eina_Bool pager, Eina_Bool taskbar)
    Evas_Object *o, *l;
    Evas *e;
 
-   e = e_comp_get(desk)->evas;
+   e = e_comp->evas;
    _e_deskmirror_smart_init();
    o = evas_object_smart_add(e, _e_deskmirror_smart);
    e_object_ref(E_OBJECT(desk));
@@ -759,7 +793,7 @@ e_deskmirror_add(E_Desk *desk, Eina_Bool pager, Eina_Bool taskbar)
 
    e_layout_freeze(sd->layout);
 
-   l = evas_object_bottom_get(e_comp_get(desk)->evas);
+   l = evas_object_bottom_get(e_comp->evas);
    do
      {
         if (evas_object_data_get(l, "comp_object"))
@@ -770,6 +804,7 @@ e_deskmirror_add(E_Desk *desk, Eina_Bool pager, Eina_Bool taskbar)
    e_layout_thaw(sd->layout);
 
    E_LIST_HANDLER_APPEND(sd->handlers, E_EVENT_COMP_OBJECT_ADD, (Ecore_Event_Handler_Cb)_comp_object_add, sd);
+   E_LIST_HANDLER_APPEND(sd->handlers, E_EVENT_CLIENT_ADD, (Ecore_Event_Handler_Cb)_client_add, sd);
    E_LIST_HANDLER_APPEND(sd->handlers, E_EVENT_CLIENT_PROPERTY, (Ecore_Event_Handler_Cb)_client_property, sd);
    E_LIST_HANDLER_APPEND(sd->handlers, E_EVENT_CLIENT_DESK_SET, (Ecore_Event_Handler_Cb)_client_desk_set, sd);
    return o;

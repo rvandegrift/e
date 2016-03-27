@@ -47,7 +47,7 @@ typedef enum
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 17
+#define E_CONFIG_FILE_GENERATION 19
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH * 1000000) + E_CONFIG_FILE_GENERATION)
 
 #define E_CONFIG_BINDINGS_VERSION 0 // DO NOT INCREMENT UNLESS YOU WANT TO WIPE ALL BINDINGS!!!!!
@@ -71,10 +71,6 @@ struct _E_Config
    double      border_shade_speed; // GUI
    double      framerate; // GUI
    int         priority; // GUI
-   int         image_cache; // GUI
-   int         font_cache; // GUI
-   int         edje_cache; // GUI
-   int         edje_collection_cache; // GUI
    int         zone_desks_x_count; // GUI
    int         zone_desks_y_count; // GUI
    int         show_desktop_icons; // GUI
@@ -192,7 +188,7 @@ struct _E_Config
    int                       menu_gadcon_client_toplevel; // GUI
    int                       fullscreen_policy; // GUI
    const char               *exebuf_term_cmd; // GUI
-   Eina_List                *color_classes; // GUI
+   Eina_List                *color_classes; // dead
    int                       use_app_icon; // GUI
    int                       cnfmdlg_disabled; // GUI
    int                       cfgdlg_auto_apply; // GUI
@@ -264,6 +260,7 @@ struct _E_Config
 
    const char               *icon_theme; // GUI
    unsigned char             icon_theme_overrides; // GUI
+   const char               *desktop_environment; // GUI
 
    /* modes:
     * 1-"pane") horizontal or vertical movement to/from next/previous "screen"
@@ -281,13 +278,12 @@ struct _E_Config
 
    Eina_List                *mime_icons; // GUI
    int                       desk_auto_switch; // GUI;
-   
+
    int                       screen_limits;
 
    int                       thumb_nice;
 
    int                       ping_clients_interval; // GUI
-   int                       cache_flush_poll_interval; // GUI
 
    int                       thumbscroll_enable; // GUI
    int                       thumbscroll_threshhold; // GUI
@@ -432,7 +428,13 @@ struct _E_Config
       const char *selected_layout; // whatever teh current layout that the user has selected is
       const char *desklock_layout;
    } xkb;
-   
+
+   struct
+   {
+      int repeat_delay;//delay in milliseconds since key down until repeating starts
+      int repeat_rate;//the rate of repeating keys in characters per second
+   } keyboard;
+
    Eina_List  *menu_applications;
    unsigned char exe_always_single_instance; // GUI
    int           use_desktop_window_profile; // GUI
@@ -541,7 +543,6 @@ struct _E_Config_Binding_Acpi
 
 struct _E_Config_Desktop_Background
 {
-   int         manager;
    int         zone;
    int         desk_x;
    int         desk_y;
@@ -550,7 +551,6 @@ struct _E_Config_Desktop_Background
 
 struct _E_Config_Desktop_Name
 {
-   int         manager;
    int         zone;
    int         desk_x;
    int         desk_y;
@@ -559,7 +559,6 @@ struct _E_Config_Desktop_Name
 
 struct _E_Config_Desktop_Window_Profile
 {
-   int         manager;
    int         zone;
    int         desk_x;
    int         desk_y;
@@ -598,7 +597,7 @@ struct _E_Config_Shelf
 {
    const char   *name;
    int           id;
-   int           manager, zone;
+   int           zone;
    int           layer; //E_Layer
    unsigned char popup; //DEAD
    int           orient;

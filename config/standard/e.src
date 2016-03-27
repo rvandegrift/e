@@ -605,7 +605,6 @@ group "E_Config" struct {
             }
             value "name" string: "shelf";
             value "id" int: 1;
-            value "manager" int: 0;
             value "zone" int: 0;
             value "layer" int: 250;
             value "orient" int: 6;
@@ -1107,6 +1106,8 @@ group "E_Config" struct {
     }
     value "xkb.only_label" int: 0;
     value "xkb.default_model" string: "default";
+    value "keyboard.repeat_delay" int: 400;
+    value "keyboard.repeat_rate" int: 25;
     value "exe_always_single_instance" uchar: 0;
     value "use_desktop_window_profile" int: 0;
 }

@@ -87,7 +87,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->dir) eina_stringshare_del(cfdata->dir);
    if (cfdata->dialog_delete) e_object_del(E_OBJECT(cfdata->dialog_delete));
@@ -96,7 +96,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *of, *ol, *ob, *ot;
    E_Radio_Group *rg;
@@ -110,7 +110,7 @@ _basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dial
    e_widget_size_min_set(ol, 140, 140);
    e_widget_frametable_object_append(of, ol, 0, 0, 1, 2, 1, 1, 1, 0);
 
-   ot = e_widget_table_add(evas, 0);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), 0);
    ob = e_widget_button_add(evas, _("Add"), "list-add", _cb_add, cfdata, NULL);
    e_widget_table_object_append(ot, ob, 0, 0, 1, 1, 1, 1, 1, 0);
    ob = e_widget_button_add(evas, _("Delete"), "list-remove", _cb_del, cfdata, NULL);
@@ -181,7 +181,7 @@ _basic_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static void
-_cb_add(void *data, void *data2 __UNUSED__)
+_cb_add(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -192,7 +192,7 @@ _cb_add(void *data, void *data2 __UNUSED__)
 }
 
 static void
-_cb_del(void *data, void *data2 __UNUSED__)
+_cb_del(void *data, void *data2 EINA_UNUSED)
 {
    char buf[4096];
    E_Config_Dialog_Data *cfdata;
@@ -213,7 +213,7 @@ _cb_del(void *data, void *data2 __UNUSED__)
 }
 
 static void
-_cb_config(void *data, void *data2 __UNUSED__)
+_cb_config(void *data, void *data2 EINA_UNUSED)
 {
    char path[PATH_MAX];
    E_Config_Dialog_Data *cfdata;
@@ -221,8 +221,7 @@ _cb_config(void *data, void *data2 __UNUSED__)
    cfdata = data;
    e_user_dir_snprintf(path, sizeof(path), "applications/bar/%s/.order",
                        cfdata->dir);
-   e_configure_registry_call("internal/ibar_other",
-                             NULL, path);
+   e_configure_registry_call("internal/ibar_other", NULL, path);
 }
 
 static void
@@ -322,7 +321,7 @@ _load_tlist(E_Config_Dialog_Data *cfdata)
 }
 
 static void
-_show_label_cb_change(void *data, Evas_Object *obj __UNUSED__)
+_show_label_cb_change(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 

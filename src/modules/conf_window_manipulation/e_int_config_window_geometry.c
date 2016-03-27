@@ -45,7 +45,7 @@ struct _E_Config_Dialog_Data
 };
 
 E_Config_Dialog *
-e_int_config_window_geometry(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_window_geometry(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -61,14 +61,14 @@ e_int_config_window_geometry(E_Comp *comp, const char *params __UNUSED__)
    v->basic.check_changed = _basic_check_changed;
 
    /* create config diaolg for NULL object/data */
-   cfd = e_config_dialog_new(comp, _("Window Geometry"),
+   cfd = e_config_dialog_new(NULL, _("Window Geometry"),
 			     "E", "windows/window_geometry",
 			     "preferences-window-geometry", 0, v, NULL);
    return cfd;
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd __UNUSED__)
+_create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = E_NEW(E_Config_Dialog_Data, 1);
    if (!cfdata) return NULL;
@@ -102,13 +102,13 @@ _create_data(E_Config_Dialog *cfd __UNUSED__)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    free(cfdata);
 }
 
 static int
-_basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    e_config->use_resist = cfdata->use_resist;
    e_config->desk_resist = cfdata->desk_resist;
@@ -138,7 +138,7 @@ _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    return ((e_config->use_resist != cfdata->use_resist) ||
 	   (e_config->desk_resist != cfdata->desk_resist) ||
@@ -165,11 +165,12 @@ _basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfda
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *otb, *ol, *of, *ow, *oc;
    E_Radio_Group *rg;
 
+   e_dialog_resizable_set(cfd->dia, 1);
    otb = e_widget_toolbook_add(evas, (24 * e_scale), (24 * e_scale));
 
    /* Resistance */

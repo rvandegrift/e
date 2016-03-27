@@ -20,6 +20,7 @@ E_API void           e_grabinput_focus(Ecore_Window win, E_Focus_Method method);
 E_API double         e_grabinput_last_focus_time_get(void);
 E_API Ecore_Window e_grabinput_last_focus_win_get(void);
 E_API Ecore_Window e_grabinput_key_win_get(void);
+E_API Ecore_Window e_grabinput_mouse_win_get(void);
 
 #endif
 #endif

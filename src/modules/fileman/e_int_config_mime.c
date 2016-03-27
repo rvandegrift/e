@@ -45,7 +45,7 @@ static void         _cb_config(void *data, void *data2);
 Eina_List *types = NULL;
 
 E_Config_Dialog *
-e_int_config_mime(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_mime(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -57,7 +57,7 @@ e_int_config_mime(E_Comp *comp, const char *params __UNUSED__)
    v->free_cfdata = _free_data;
    v->basic.create_widgets = _basic_create;
 
-   cfd = e_config_dialog_new(comp, _("File Icons"), "E", "fileman/file_icons",
+   cfd = e_config_dialog_new(NULL, _("File Icons"), "E", "fileman/file_icons",
                              "preferences-file-icons", 0, v, NULL);
    return cfd;
 }
@@ -117,7 +117,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    Config_Type *t;
    Config_Mime *m;
@@ -164,6 +164,7 @@ _basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data
    Evas_Object *o, *of, *ol;
    Evas_Object *ob;
 
+   e_dialog_resizable_set(cfd->dia, 1);
    
    o = e_widget_list_add(evas, 1, 1);
    of = e_widget_framelist_add(evas, _("Categories"), 0);
@@ -527,7 +528,7 @@ _find_glob(Config_Mime *mime, char *globing)
 }
 
 static void
-_cb_config(void *data, void *data2 __UNUSED__)
+_cb_config(void *data, void *data2 EINA_UNUSED)
 {
    Eina_List *l;
    E_Config_Dialog_Data *cfdata;

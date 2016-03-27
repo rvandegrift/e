@@ -68,7 +68,7 @@ static int          _advanced_apply_data(E_Config_Dialog *cfd,
                                       E_Config_Dialog_Data *cfdata);
 
 E_API E_Config_Dialog *
-e_int_config_comp(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_comp(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -83,7 +83,7 @@ e_int_config_comp(E_Comp *comp, const char *params __UNUSED__)
    v->advanced.apply_cfdata = _advanced_apply_data;
    v->advanced.create_widgets = _advanced_create_widgets;
    
-   cfd = e_config_dialog_new(comp, _("Composite Settings"),
+   cfd = e_config_dialog_new(NULL, _("Composite Settings"),
                              "E", "appearance/comp", "preferences-composite", 0, v, NULL);
    return cfd;
 }
@@ -156,7 +156,7 @@ _advanced_features_changed(E_Comp_Config *conf)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd  __UNUSED__,
+_free_data(E_Config_Dialog *cfd  EINA_UNUSED,
            E_Config_Dialog_Data *cfdata)
 {
    eina_stringshare_del(cfdata->shadow_style);
@@ -172,10 +172,9 @@ _advanced_comp_style_toggle(void *oi, Evas_Object *o)
 static void
 _advanced_matches_edit(void *data, void *d EINA_UNUSED)
 {
-   E_Config_Dialog *md, *cfd = data;
+   E_Config_Dialog *cfd = data;
 
-   md = e_int_config_comp_match(NULL, NULL);
-   e_dialog_parent_set(md->dia, cfd->dia->win);
+   e_int_config_comp_match(cfd->dia->win, NULL);
 }
 
 static Evas_Object *
@@ -184,6 +183,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    Evas_Object *ob,*ol, *of, *otb, *oi, *orec0;
    E_Radio_Group *rg;
 
+   elm_win_center(cfd->dia->win, 1, 1);
    orec0 = evas_object_rectangle_add(evas);
    evas_object_name_set(orec0, "style_shadows");
 
@@ -265,13 +265,12 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    rg = e_widget_radio_group_new(&(cfdata->engine));
    ob = e_widget_radio_add(evas, _("Software"), E_COMP_ENGINE_SW, rg);
    e_widget_framelist_object_append(of, ob);
-   if (!getenv("ECORE_X_NO_XLIB"))
+   ob = e_widget_radio_add(evas, _("OpenGL"), E_COMP_ENGINE_GL, rg);
+   e_widget_framelist_object_append(of, ob);
+   if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (!getenv("ECORE_X_NO_XLIB")))
      {
         if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_OPENGL_X11))
           {
-             ob = e_widget_radio_add(evas, _("OpenGL"), E_COMP_ENGINE_GL, rg);
-             e_widget_framelist_object_append(of, ob);
-
              ob = e_widget_label_add(evas, _("OpenGL options:"));
              e_widget_framelist_object_append(of, ob);
              ob = e_widget_check_add(evas, _("Tear-free updates (VSynced)"), &(cfdata->vsync));
@@ -427,7 +426,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
 }
 
 static int
-_advanced_apply_data(E_Config_Dialog *cfd  __UNUSED__,
+_advanced_apply_data(E_Config_Dialog *cfd  EINA_UNUSED,
                      E_Config_Dialog_Data *cfdata)
 {
    E_Comp_Config *conf = e_comp_config_get();
@@ -534,17 +533,19 @@ _basic_comp_style_toggle(void *data, Evas_Object *o)
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED,
+_basic_create_widgets(E_Config_Dialog *cfd,
                       Evas *evas,
                       E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *ob,*ol, *of, *otb, *oi, *orec0, *tab;
    E_Radio_Group *rg;
 
+   e_dialog_resizable_set(cfd->dia, 0);
+   elm_win_center(cfd->dia->win, 1, 1);
    orec0 = evas_object_rectangle_add(evas);
    evas_object_name_set(orec0, "style_shadows");
 
-   tab = e_widget_table_add(evas, 0);
+   tab = e_widget_table_add(e_win_evas_win_get(evas), 0);
    otb = e_widget_toolbook_add(evas, 48 * e_scale, 48 * e_scale);
 
    ///////////////////////////////////////////
@@ -598,14 +599,8 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED,
    rg = e_widget_radio_group_new(&(cfdata->engine));
    ob = e_widget_radio_add(evas, _("Software"), E_COMP_ENGINE_SW, rg);
    e_widget_framelist_object_append(of, ob);
-   if (!getenv("ECORE_X_NO_XLIB"))
-     {
-        if (ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_OPENGL_X11))
-          {
-             ob = e_widget_radio_add(evas, _("OpenGL"), E_COMP_ENGINE_GL, rg);
-             e_widget_framelist_object_append(of, ob);
-          }
-     }
+   ob = e_widget_radio_add(evas, _("OpenGL"), E_COMP_ENGINE_GL, rg);
+   e_widget_framelist_object_append(of, ob);
    ob = e_widget_label_add(evas, _("To reset compositor:"));
    e_widget_framelist_object_append(of, ob);
    ob = e_widget_label_add(evas, _("Ctrl+Alt+Shift+Home"));
@@ -623,7 +618,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED,
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd  __UNUSED__,
+_basic_apply_data(E_Config_Dialog *cfd  EINA_UNUSED,
                   E_Config_Dialog_Data *cfdata)
 {
    E_Comp_Config *conf = e_comp_config_get();

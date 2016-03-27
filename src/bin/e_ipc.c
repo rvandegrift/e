@@ -4,9 +4,8 @@ EINTERN char *e_ipc_socket = NULL;
 
 #ifdef USE_IPC
 /* local subsystem functions */
-static Eina_Bool _e_ipc_cb_client_add(void *data __UNUSED__, int type __UNUSED__, void *event);
-static Eina_Bool _e_ipc_cb_client_del(void *data __UNUSED__, int type __UNUSED__, void *event);
-static Eina_Bool _e_ipc_cb_client_data(void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_ipc_cb_client_del(void *data EINA_UNUSED, int type EINA_UNUSED, void *event);
+static Eina_Bool _e_ipc_cb_client_data(void *data EINA_UNUSED, int type EINA_UNUSED, void *event);
 
 /* local subsystem globals */
 static Ecore_Ipc_Server *_e_ipc_server = NULL;
@@ -17,7 +16,7 @@ EINTERN int
 e_ipc_init(void)
 {
    char buf[4096], buf2[128], buf3[4096];
-   char *tmp, *user, *disp, *disp2, *base;
+   char *tmp, *user, *base;
    int pid, trynum = 0, id1 = 0;
    struct stat st;
 
@@ -71,15 +70,6 @@ e_ipc_init(void)
           }
      }
 
-   disp = getenv("DISPLAY");
-   if (!disp) disp = ":0";
-   else
-     {
-        /* $DISPLAY may be a path (e.g. Xquartz), keep the basename. */
-        disp2 = strrchr(disp, '/');
-        if (disp2) disp = disp2 + 1;
-     }
-
    e_util_env_set("E_IPC_SOCKET", "");
 
    pid = (int)getpid();
@@ -87,17 +77,11 @@ e_ipc_init(void)
      {
         snprintf(buf, sizeof(buf), "%s/e-%s@%x",
                  base, user, id1);
-        if (mkdir(buf, S_IRWXU) < 0)
-          goto retry;
-        if (stat(buf, &st) < 0)
-          goto retry;
-        if ((st.st_uid == getuid()) &&
-            ((st.st_mode & (S_IFDIR | S_IRWXU | S_IRWXG | S_IRWXO)) ==
-             (S_IRWXU | S_IFDIR)))
+        if (!mkdir(buf, S_IRWXU))
           {
 #ifdef USE_IPC
-             snprintf(buf3, sizeof(buf3), "%s/%s-%i",
-                      buf, disp, pid);
+             snprintf(buf3, sizeof(buf3), "%s/%i",
+                      buf, pid);
              _e_ipc_server = ecore_ipc_server_add
                 (ECORE_IPC_LOCAL_SYSTEM, buf3, 0, NULL);
              if (_e_ipc_server)
@@ -107,7 +91,6 @@ e_ipc_init(void)
                   break;
                }
           }
-retry:
         id1 = rand();
      }
 #ifdef USE_IPC
@@ -119,8 +102,6 @@ retry:
 
    INF("E_IPC_SOCKET=%s", buf3);
    e_util_env_set("E_IPC_SOCKET", buf3);
-   ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_ADD,
-                           _e_ipc_cb_client_add, NULL);
    ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_DEL,
                            _e_ipc_cb_client_del, NULL);
    ecore_event_handler_add(ECORE_IPC_EVENT_CLIENT_DATA,
@@ -149,18 +130,7 @@ e_ipc_shutdown(void)
 #ifdef USE_IPC
 /* local subsystem globals */
 static Eina_Bool
-_e_ipc_cb_client_add(void *data __UNUSED__, int type __UNUSED__, void *event)
-{
-   Ecore_Ipc_Event_Client_Add *e;
-
-   e = event;
-   if (ecore_ipc_client_server_get(e->client) != _e_ipc_server)
-     return ECORE_CALLBACK_PASS_ON;
-   return ECORE_CALLBACK_PASS_ON;
-}
-
-static Eina_Bool
-_e_ipc_cb_client_del(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_ipc_cb_client_del(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Ipc_Event_Client_Del *e;
 
@@ -175,7 +145,7 @@ _e_ipc_cb_client_del(void *data __UNUSED__, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_e_ipc_cb_client_data(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_ipc_cb_client_data(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Ipc_Event_Client_Data *e;
 
@@ -188,57 +158,6 @@ _e_ipc_cb_client_data(void *data __UNUSED__, int type __UNUSED__, void *event)
       case E_IPC_DOMAIN_REQUEST:
       case E_IPC_DOMAIN_REPLY:
       case E_IPC_DOMAIN_EVENT:
-        switch (e->minor)
-          {
-           case E_IPC_OP_EXEC_ACTION:
-           {
-              E_Ipc_2Str *req = NULL;
-
-              if (e_ipc_codec_2str_dec(e->data, e->size, &req))
-                {
-                   Eina_List *m = e_manager_list();
-                   int len, ok = 0;
-                   void *d;
-
-                   if (m)
-                     {
-                        E_Manager *man = eina_list_data_get(m);
-
-                        if (man)
-                          {
-                             E_Action *act = e_action_find(req->str1);
-
-                             if ((act) && (act->func.go))
-                               {
-                                  act->func.go(E_OBJECT(man), req->str2);
-                                  ok = 1;
-                               }
-                          }
-                     }
-
-                   d = e_ipc_codec_int_enc(ok, &len);
-                   if (d)
-                     {
-                        ecore_ipc_client_send(e->client,
-                                              E_IPC_DOMAIN_REPLY,
-                                              E_IPC_OP_EXEC_ACTION_REPLY,
-                                              0, 0, 0, d, len);
-                        free(d);
-                     }
-
-                   if (req)
-                     {
-                        E_FREE(req->str1);
-                        E_FREE(req->str2);
-                        E_FREE(req);
-                     }
-                }
-           }
-           break;
-
-           default:
-             break;
-          }
         break;
 
       case E_IPC_DOMAIN_THUMB:

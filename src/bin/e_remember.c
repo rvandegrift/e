@@ -45,7 +45,16 @@ e_remember_init(E_Startup_Mode mode)
         EINA_LIST_FOREACH(e_config->remembers, l, rem)
           {
              if ((rem->apply & E_REMEMBER_APPLY_RUN) && (rem->prop.command))
-               e_util_head_exec(rem->prop.head, rem->prop.command);
+               {
+                  if (!ecore_exe_run(rem->prop.command, NULL))
+                    {
+                       e_util_dialog_show(_("Run Error"),
+                                          _("Enlightenment was unable to fork a child process:<br>"
+                                            "<br>"
+                                            "%s<br>"),
+                                          rem->prop.command);
+                    }
+               }
           }
      }
    E_EVENT_REMEMBER_UPDATE = ecore_event_type_new();
@@ -89,10 +98,9 @@ e_remember_shutdown(void)
 E_API void
 e_remember_internal_save(void)
 {
-   const Eina_List *l, *ll;
+   const Eina_List *l;
    E_Client *ec;
    E_Remember *rem;
-   E_Comp *c;
 
    //printf("internal save %d\n", restart);
    if (!remembers)
@@ -104,34 +112,33 @@ e_remember_internal_save(void)
         remember_idler_list = eina_list_free(remember_idler_list);
      }
 
-   EINA_LIST_FOREACH(e_comp_list(), l, c)
-     EINA_LIST_FOREACH(c->clients, ll, ec)
-       {
-          if ((!ec->internal) || e_client_util_ignored_get(ec)) continue;
+   EINA_LIST_FOREACH(e_comp->clients, l, ec)
+     {
+        if ((!ec->internal) || e_client_util_ignored_get(ec)) continue;
 
-          rem = E_NEW(E_Remember, 1);
-          if (!rem) break;
+        rem = E_NEW(E_Remember, 1);
+        if (!rem) break;
 
-          e_remember_default_match_set(rem, ec);
-          rem->apply = (E_REMEMBER_APPLY_POS | E_REMEMBER_APPLY_SIZE |
-                        E_REMEMBER_APPLY_BORDER | E_REMEMBER_APPLY_LAYER |
-                        E_REMEMBER_APPLY_SHADE | E_REMEMBER_APPLY_ZONE |
-                        E_REMEMBER_APPLY_DESKTOP | E_REMEMBER_APPLY_LOCKS |
-                        E_REMEMBER_APPLY_SKIP_WINLIST |
-                        E_REMEMBER_APPLY_SKIP_PAGER |
-                        E_REMEMBER_APPLY_SKIP_TASKBAR |
-                        E_REMEMBER_APPLY_OFFER_RESISTANCE |
-                        E_REMEMBER_APPLY_OPACITY);
-          _e_remember_update(ec, rem);
+        e_remember_default_match_set(rem, ec);
+        rem->apply = (E_REMEMBER_APPLY_POS | E_REMEMBER_APPLY_SIZE |
+                      E_REMEMBER_APPLY_BORDER | E_REMEMBER_APPLY_LAYER |
+                      E_REMEMBER_APPLY_SHADE | E_REMEMBER_APPLY_ZONE |
+                      E_REMEMBER_APPLY_DESKTOP | E_REMEMBER_APPLY_LOCKS |
+                      E_REMEMBER_APPLY_SKIP_WINLIST |
+                      E_REMEMBER_APPLY_SKIP_PAGER |
+                      E_REMEMBER_APPLY_SKIP_TASKBAR |
+                      E_REMEMBER_APPLY_OFFER_RESISTANCE |
+                      E_REMEMBER_APPLY_OPACITY);
+        _e_remember_update(ec, rem);
 
-          remembers->list = eina_list_append(remembers->list, rem);
-       }
+        remembers->list = eina_list_append(remembers->list, rem);
+     }
 
    e_config_domain_save("e_remember_restart", e_remember_list_edd, remembers);
 }
 
 static Eina_Bool
-_e_remember_restore_idler_cb(void *d __UNUSED__)
+_e_remember_restore_idler_cb(void *d EINA_UNUSED)
 {
    E_Remember *rem;
    E_Action *act_fm = NULL, *act;
@@ -192,7 +199,7 @@ _e_remember_restore_idler_cb(void *d __UNUSED__)
 }
 
 static Eina_Bool
-_e_remember_restore_cb(void *data __UNUSED__, int type __UNUSED__, void *event __UNUSED__)
+_e_remember_restore_cb(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
 {
    handlers = eina_list_free(handlers);
    if (!remembers->list) return ECORE_CALLBACK_PASS_ON;
@@ -247,18 +254,16 @@ e_remember_unuse(E_Remember *rem)
 E_API void
 e_remember_del(E_Remember *rem)
 {
-   const Eina_List *l, *ll;
+   const Eina_List *l;
    E_Client *ec;
-   E_Comp *c;
 
-   EINA_LIST_FOREACH(e_comp_list(), l, c)
-     EINA_LIST_FOREACH(c->clients, ll, ec)
-       {
-          if (ec->remember != rem) continue;
+   EINA_LIST_FOREACH(e_comp->clients, l, ec)
+     {
+        if (ec->remember != rem) continue;
 
-          ec->remember = NULL;
-          e_remember_unuse(rem);
-       }
+        ec->remember = NULL;
+        e_remember_unuse(rem);
+     }
 
    _e_remember_free(rem);
 }
@@ -298,7 +303,7 @@ e_remember_match_update(E_Remember *rem)
      {
         /* The number of matches for this remember has changed so we
          * need to remove from list and insert back into the appropriate
-         * loction. */
+         * location. */
         Eina_List *l = NULL;
         E_Remember *r;
 
@@ -371,6 +376,10 @@ e_remember_default_match_set(E_Remember *rem, E_Client *ec)
 E_API void
 e_remember_update(E_Client *ec)
 {
+#ifdef HAVE_WAYLAND
+   /* Use this as e_remeber_update is called in all the right places already */
+   e_uuid_store_entry_update(ec->uuid, ec);
+#endif
    if (ec->new_client) return;
    if (!ec->remember) return;
    if (ec->remember->keep_settings) return;
@@ -382,6 +391,7 @@ static void
 _e_remember_event_free(void *d EINA_UNUSED, void *event)
 {
    E_Event_Remember_Update *ev = event;
+   UNREFD(ev->ec, 10);
    e_object_unref(E_OBJECT(ev->ec));
    free(ev);
 }
@@ -455,7 +465,6 @@ _e_remember_update(E_Client *ec, E_Remember *rem)
    if (rem->apply & E_REMEMBER_APPLY_ZONE)
      {
         rem->prop.zone = ec->zone->num;
-        rem->prop.head = ec->zone->comp->num;
      }
    if (rem->apply & E_REMEMBER_APPLY_SKIP_WINLIST)
      rem->prop.skip_winlist = ec->user_skip_winlist;
@@ -489,6 +498,7 @@ _e_remember_update(E_Client *ec, E_Remember *rem)
       ev = malloc(sizeof(E_Event_Remember_Update));
       if (!ev) return;
       ev->ec = ec;
+      REFD(ec, 10);
       e_object_ref(E_OBJECT(ec));
       ecore_event_add(E_EVENT_REMEMBER_UPDATE, ev, _e_remember_event_free, NULL);
    }
@@ -610,7 +620,7 @@ _e_remember_free(E_Remember *rem)
 }
 
 static void
-_e_remember_cb_hook_eval_post_new_client(void *data __UNUSED__, E_Client *ec)
+_e_remember_cb_hook_eval_post_new_client(void *data EINA_UNUSED, E_Client *ec)
 {
    // remember only when window was modified
    // if (!ec->new_client) return;
@@ -646,7 +656,7 @@ _e_remember_cb_hook_eval_post_new_client(void *data __UNUSED__, E_Client *ec)
 }
 
 static void
-_e_remember_cb_hook_pre_post_fetch(void *data __UNUSED__, E_Client *ec)
+_e_remember_cb_hook_pre_post_fetch(void *data EINA_UNUSED, E_Client *ec)
 {
    E_Remember *rem = NULL;
    int temporary = 0;
@@ -690,7 +700,7 @@ _e_remember_cb_hook_pre_post_fetch(void *data __UNUSED__, E_Client *ec)
      {
         E_Zone *zone;
 
-        zone = e_comp_zone_number_get(ec->zone->comp, rem->prop.zone);
+        zone = e_comp_zone_number_get(rem->prop.zone);
         if (zone)
           e_client_zone_set(ec, zone);
      }

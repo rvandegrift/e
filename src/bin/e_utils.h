@@ -14,12 +14,8 @@
 
 E_API void         e_util_wakeup(void);
 E_API void         e_util_env_set(const char *var, const char *val);
-E_API E_Zone      *e_util_zone_current_get(E_Manager *man);
 E_API int          e_util_glob_match(const char *str, const char *glob);
 E_API int          e_util_glob_case_match(const char *str, const char *glob);
-E_API E_Zone      *e_util_comp_zone_id_get(int con_num, int id);
-E_API E_Zone      *e_util_comp_zone_number_get(int con_num, int zone_num);
-E_API int          e_util_head_exec(int head, const char *cmd);
 E_API int          e_util_strcasecmp(const char *s1, const char *s2);
 E_API int          e_util_strcmp(const char *s1, const char *s2);
 E_API int          e_util_both_str_empty(const char *s1, const char *s2);
@@ -45,12 +41,11 @@ E_API void         e_util_desktop_menu_item_icon_add(Efreet_Desktop *desktop, un
 E_API int          e_util_dir_check(const char *dir);
 E_API void         e_util_defer_object_del(E_Object *obj);
 E_API const char  *e_util_winid_str_get(Ecore_X_Window win);
-E_API void         e_util_win_auto_resize_fill(E_Win *win);
+E_API void         e_util_win_auto_resize_fill(Evas_Object *win);
 /* check if loaded config version matches the current version, show a
    dialog warning if loaded version is older or newer than current */
 E_API Eina_Bool    e_util_module_config_check(const char *module_name, int loaded, int current);
 
-E_API int e_util_comp_desk_count_get(E_Comp *con);
 E_API E_Config_Binding_Key *e_util_binding_match(const Eina_List *bindlist, Ecore_Event_Key *ev, unsigned int *num, const E_Config_Binding_Key *skip);
 E_API Eina_Bool e_util_fullscreen_current_any(void);
 E_API Eina_Bool e_util_fullscreen_any(void);
@@ -68,11 +63,7 @@ E_API void e_util_evas_objects_above_print_smart(Evas_Object *o);
 
 E_API void e_util_string_list_free(Eina_List *l);
 
-static inline E_Comp *
-e_util_comp_current_get(void)
-{
-   return e_manager_current_get()->comp;
-}
+E_API void e_util_memclear(void *s, size_t n);
 
 static inline void
 e_util_pointer_center(const E_Client *ec)
@@ -82,7 +73,7 @@ e_util_pointer_center(const E_Client *ec)
    if (ec->zone)
      x = ec->zone->x, y = ec->zone->y;
    if ((e_config->focus_policy != E_FOCUS_CLICK) && (!e_config->disable_all_pointer_warps))
-     ecore_evas_pointer_warp(ec->comp->ee,
+     ecore_evas_pointer_warp(e_comp->ee,
                              x + ec->x + (ec->w / 2),
                              y + ec->y + (ec->h / 2));
 }

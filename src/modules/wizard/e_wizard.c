@@ -34,19 +34,15 @@ static Ecore_Timer *next_timer = NULL;
 E_API int
 e_wizard_init(void)
 {
-   E_Comp *comp;
    E_Zone *zone;
-   const Eina_List *l, *ll;
+   const Eina_List *l;
 
-   EINA_LIST_FOREACH(e_comp_list(), l, comp)
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
      {
-        EINA_LIST_FOREACH(comp->zones, ll, zone)
-          {
-             if (!pop)
-               pop = _e_wizard_main_new(zone);
-             else
-               pops = eina_list_append(pops, _e_wizard_extra_new(zone));
-          }
+        if (!pop)
+          pop = _e_wizard_main_new(zone);
+        else
+          pops = eina_list_append(pops, _e_wizard_extra_new(zone));
      }
 
    E_LIST_HANDLER_APPEND(handlers, EFREET_EVENT_DESKTOP_CACHE_BUILD,
@@ -255,7 +251,7 @@ _e_wizard_next_eval(void)
 static Evas_Object *
 _e_wizard_main_new(E_Zone *zone)
 {
-   o_bg = edje_object_add(zone->comp->evas);
+   o_bg = edje_object_add(e_comp->evas);
 
    e_theme_edje_object_set(o_bg, "base/theme/wizard", "e/wizard/main");
    edje_object_part_text_set(o_bg, "e.text.title", _("Welcome to Enlightenment"));
@@ -277,7 +273,7 @@ _e_wizard_extra_new(E_Zone *zone)
 {
    Evas_Object *o;
 
-   o = edje_object_add(zone->comp->evas);
+   o = edje_object_add(e_comp->evas);
    e_theme_edje_object_set(o, "base/theme/wizard", "e/wizard/extra");
    evas_object_geometry_set(o, zone->x, zone->y, zone->w, zone->h);
    evas_object_layer_set(o, E_LAYER_POPUP);
@@ -314,7 +310,7 @@ _e_wizard_cb_key_down(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 }
 
 static void
-_e_wizard_cb_next(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_e_wizard_cb_next(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    /* TODO: Disable button in theme */
    if (next_can)
@@ -383,7 +379,7 @@ _e_wizard_next_xdg(void)
 }
 
 static Eina_Bool
-_e_wizard_cb_next_page(void *data __UNUSED__)
+_e_wizard_cb_next_page(void *data EINA_UNUSED)
 {
    next_timer = NULL;
    _e_wizard_next_xdg();
@@ -392,7 +388,7 @@ _e_wizard_cb_next_page(void *data __UNUSED__)
 
 
 static Eina_Bool
-_e_wizard_cb_desktops_update(void *data __UNUSED__, int ev_type __UNUSED__, void *ev)
+_e_wizard_cb_desktops_update(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
 {
    Efreet_Event_Cache_Update *e;
 
@@ -401,16 +397,16 @@ _e_wizard_cb_desktops_update(void *data __UNUSED__, int ev_type __UNUSED__, void
    if ((e) && (e->error))
      xdg_error = EINA_TRUE;
    got_desktops = EINA_TRUE;
-   if (curpage && _e_wizard_check_xdg())
+   if (_e_wizard_check_xdg() && curpage)
      _e_wizard_next_xdg();
    return ECORE_CALLBACK_PASS_ON;
 }
 
 static Eina_Bool
-_e_wizard_cb_icons_update(void *data __UNUSED__, int ev_type __UNUSED__, void *ev __UNUSED__)
+_e_wizard_cb_icons_update(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev EINA_UNUSED)
 {
    got_icons = EINA_TRUE;
-   if (curpage && _e_wizard_check_xdg())
+   if (_e_wizard_check_xdg() && curpage)
      _e_wizard_next_xdg();
    return ECORE_CALLBACK_PASS_ON;
 }

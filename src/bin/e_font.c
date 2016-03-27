@@ -2,7 +2,7 @@
 
 #define E_TOK_STYLE ":style="
 
-static Eina_Bool          _font_hash_free_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__);
+static Eina_Bool          _font_hash_free_cb(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *data, void *fdata EINA_UNUSED);
 static Eina_Hash         *_e_font_available_hash_add(Eina_Hash *font_hash, const char *full_name);
 static E_Font_Properties *_e_font_fontconfig_name_parse(Eina_Hash **font_hash, E_Font_Properties *efp, const char *font);
 static char _fn_buf[1024];
@@ -25,9 +25,8 @@ E_API void
 e_font_apply(void)
 {
    char buf[1024];
-   const Eina_List *l, *ll;
+   const Eina_List *l;
    E_Client *ec;
-   E_Comp *c;
    E_Font_Default *efd;
    E_Font_Fallback *eff;
    int blen, len;
@@ -73,9 +72,9 @@ e_font_apply(void)
      }
 
    /* Update clients */
-   EINA_LIST_FOREACH(e_comp_list(), l, c)
-     EINA_LIST_FOREACH(c->clients, ll, ec)
-       e_client_frame_recalc(ec);
+   if (!e_comp) return;
+   EINA_LIST_FOREACH(e_comp->clients, l, ec)
+     e_client_frame_recalc(ec);
 }
 
 E_API Eina_List *
@@ -85,11 +84,8 @@ e_font_available_list(void)
    Eina_List *e_fonts;
    Eina_List *l;
    const char *evas_font;
-   E_Comp *c;
 
-   c = e_util_comp_current_get();
-
-   evas_fonts = evas_font_available_list(c->evas);
+   evas_fonts = evas_font_available_list(e_comp->evas);
 
    e_fonts = NULL;
    EINA_LIST_FOREACH(evas_fonts, l, evas_font)
@@ -101,7 +97,7 @@ e_font_available_list(void)
         e_fonts = eina_list_append(e_fonts, efa);
      }
 
-   evas_font_available_list_free(c->evas, evas_fonts);
+   evas_font_available_list_free(e_comp->evas, evas_fonts);
 
    return e_fonts;
 }
@@ -132,7 +128,7 @@ e_font_properties_free(E_Font_Properties *efp)
 }
 
 static Eina_Bool
-_font_hash_free_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__)
+_font_hash_free_cb(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *data, void *fdata EINA_UNUSED)
 {
    E_Font_Properties *efp;
 
@@ -163,7 +159,7 @@ _e_font_fontconfig_name_parse(Eina_Hash **font_hash, E_Font_Properties *efp, con
    s1 = strchr(font, ':');
    if (s1)
      {
-        char *s2, *name, *style;
+        char *s2, *name, *style, *temp;
         int len;
 
         len = s1 - font;
@@ -175,7 +171,13 @@ _e_font_fontconfig_name_parse(Eina_Hash **font_hash, E_Font_Properties *efp, con
         if (s2)
           {
              len = s2 - name;
+             temp = name;
              name = realloc(name, sizeof(char) * len + 1);
+             if (!name)
+               {
+                  free(temp);
+                  return NULL;
+               }
              memset(name, 0, sizeof(char) * len + 1);
              strncpy(name, font, len);
           }

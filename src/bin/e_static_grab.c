@@ -281,11 +281,11 @@ _e_static_grab_x(E_Static_Grab *grab)
              switch (*current)
                {
                 case 'R':
-                  if (_e_static_grab_string(current, line->end, RELEASE_DATE, &grab->x.release_date)) break;
+                  _e_static_grab_string(current, line->end, RELEASE_DATE, &grab->x.release_date);
                   break;
 
                 case 'B':
-                  if (_e_static_grab_string(current, line->end, BUILD_DATE, &grab->x.build_date)) break;
+                  _e_static_grab_string(current, line->end, BUILD_DATE, &grab->x.build_date);
                   break;
 
                 case '(':
@@ -347,7 +347,7 @@ _e_static_grab_x(E_Static_Grab *grab)
                         break;
                      }
 
-                   buffer = alloca(strlen(MODULE_OF) + strlen(module->name));
+                   buffer = alloca(strlen(MODULE_OF) + strlen(module->name) + 1);
                    sprintf(buffer, MODULE_OF, module->name);
 
                    if (_e_static_grab_string(current, line->end, buffer, &vendor))

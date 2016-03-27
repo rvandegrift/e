@@ -3,13 +3,13 @@
 /* TODO List:
  *
  * * add module types/classes
- * * add list of exclusions that a module can't work withApi
+ * * add list of exclusions that a module can't work with Api
  *
  */
 
 /* local subsystem functions */
 static void      _e_module_free(E_Module *m);
-static void      _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m);
+static void      _e_module_dialog_disable_create(const char *title, const char *body, E_Module *m);
 static void      _e_module_cb_dialog_disable(void *data, E_Dialog *dia);
 static void      _e_module_event_update_free(void *data, void *event);
 static Eina_Bool _e_module_cb_idler(void *data);
@@ -131,6 +131,43 @@ _module_monitor_error(void *d EINA_UNUSED, int type EINA_UNUSED, Eio_Monitor_Err
    return ECORE_CALLBACK_RENEW;
 }
 
+static Eina_Bool
+_module_is_nosave(const char *name)
+{
+   const char *blacklist[] =
+   {
+      "comp",
+      "conf_comp",
+      "xwayland",
+   };
+   unsigned int i;
+
+   for (i = 0; i < EINA_C_ARRAY_LENGTH(blacklist); i++)
+     if (eina_streq(name, blacklist[i])) return EINA_TRUE;
+   return !strncmp(name, "wl_", 3); //block wl_* modules from being saved
+}
+
+static Eina_Bool
+_module_is_important(const char *name)
+{
+   const char *list[] =
+   {
+      "xwayland",
+      "wl_desktop_shell",
+      "wl_drm",
+      "wl_fb",
+      "wl_text_input",
+      "wl_weekeyboard",
+      "wl_wl",
+      "wl_x11",
+   };
+   unsigned int i;
+
+   for (i = 0; i < EINA_C_ARRAY_LENGTH(list); i++)
+     if (eina_streq(name, list[i])) return EINA_TRUE;
+   return EINA_FALSE;
+}
+
 /* externally accessible functions */
 EINTERN int
 e_module_init(void)
@@ -238,11 +275,9 @@ e_module_all_load(void)
 
    EINA_LIST_FOREACH_SAFE(e_config->modules, l, ll, em)
      {
-        if (!em) continue;
+        if ((!em) || (!em->name)) continue;
 
-        if ((!e_util_strcmp(em->name, "comp")) || (!e_util_strcmp(em->name, "conf_comp")) ||
-            (e_comp_get(NULL) && (!strcmp(em->name, "wl_x11"))) //block wl_x11 if we've already created a compositor
-           )
+        if (_module_is_nosave(em->name))
           {
              eina_stringshare_del(em->name);
              e_config->modules = eina_list_remove_list(e_config->modules, l);
@@ -261,7 +296,6 @@ e_module_all_load(void)
           {
              E_Module *m;
 
-             if (!em->name) continue;
              if (eina_hash_find(_e_modules_hash, em->name)) continue;
 
              e_util_env_set("E_MODULE_LOAD", em->name);
@@ -336,7 +370,7 @@ e_module_new(const char *name)
                  _("There was an error loading the module named: %s<br>"
                    "No module named %s could be found in the<br>"
                    "module search directories.<br>"), name, buf);
-        _e_module_dialog_disable_show(_("Error loading Module"), body, m);
+        _e_module_dialog_disable_create(_("Error loading Module"), body, m);
         m->error = 1;
         goto init_done;
      }
@@ -349,7 +383,7 @@ e_module_new(const char *name)
                    "%s<br>"
                    "The error reported was:<br>"
                    "%s<br>"), name, buf, dlerror());
-        _e_module_dialog_disable_show(_("Error loading Module"), body, m);
+        _e_module_dialog_disable_create(_("Error loading Module"), body, m);
         m->error = 1;
         goto init_done;
      }
@@ -367,7 +401,7 @@ e_module_new(const char *name)
                    "The error reported was:<br>"
                    "%s<br>"),
                  name, buf, _("Module does not contain all needed functions"));
-        _e_module_dialog_disable_show(_("Error loading Module"), body, m);
+        _e_module_dialog_disable_create(_("Error loading Module"), body, m);
         m->api = NULL;
         m->func.init = NULL;
         m->func.shutdown = NULL;
@@ -389,7 +423,7 @@ e_module_new(const char *name)
         snprintf(title, sizeof(title), _("Enlightenment %s Module"),
                  _(m->api->name));
 
-        _e_module_dialog_disable_show(title, body, m);
+        _e_module_dialog_disable_create(title, body, m);
         m->api = NULL;
         m->func.init = NULL;
         m->func.shutdown = NULL;
@@ -522,6 +556,7 @@ e_module_disable(E_Module *m)
    E_OBJECT_CHECK_RETURN(m, 0);
    E_OBJECT_TYPE_CHECK_RETURN(m, E_MODULE_TYPE, 0);
    if ((!m->enabled) || (m->error)) return 0;
+   if ((!stopping) && _module_is_important(m->name)) return 0;
    ret = m->func.shutdown ? m->func.shutdown(m) : 1;
    m->data = NULL;
    m->enabled = 0;
@@ -610,10 +645,10 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
                {
                   snprintf(buf, sizeof(buf), "%s/%s.edj",
                            e_module_dir_get(m), desktop->icon);
-                  dia->icon_object = e_util_icon_add(buf, e_win_evas_get(dia->win));
+                  dia->icon_object = e_util_icon_add(buf, evas_object_evas_get(dia->win));
                }
              else
-               dia->icon_object = e_util_icon_add(icon, e_win_evas_get(dia->win));
+               dia->icon_object = e_util_icon_add(icon, evas_object_evas_get(dia->win));
              evas_object_size_hint_min_set(dia->icon_object, 64, 64);
              edje_object_part_swallow(dia->bg_object, "e.swallow.icon", dia->icon_object);
              evas_object_show(dia->icon_object);
@@ -626,11 +661,10 @@ e_module_dialog_show(E_Module *m, const char *title, const char *body)
    e_dialog_text_set(dia, body);
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
    e_dialog_button_focus_num(dia, 0);
-   e_win_centered_set(dia->win, 1);
+   elm_win_center(dia->win, 1, 1);
    e_dialog_show(dia);
    if (!m) return;
-   if (dia->win->client)
-     dia->win->client->internal_icon = eina_stringshare_add(icon);
+   e_win_client_icon_set(dia->win, icon);
 }
 
 E_API void
@@ -747,6 +781,13 @@ _e_module_desktop_list_cb(const Eina_Hash *hash EINA_UNUSED, const void *key EIN
    return EINA_TRUE;
 }
 
+typedef struct Disable_Dialog
+{
+   char *title;
+   char *body;
+   E_Module *m;
+} Disable_Dialog;
+
 static void
 _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m)
 {
@@ -754,8 +795,8 @@ _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m)
    char buf[4096];
 
    printf("MODULE ERR:\n%s\n", body);
+
    dia = e_dialog_new(NULL, "E", "_module_unload_dialog");
-   EINA_SAFETY_ON_NULL_RETURN(dia);
 
    snprintf(buf, sizeof(buf), "%s<br>%s", body,
             _("What action should be taken with this module?<br>"));
@@ -765,9 +806,31 @@ _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m)
    e_dialog_text_set(dia, buf);
    e_dialog_button_add(dia, _("Unload"), NULL, _e_module_cb_dialog_disable, m);
    e_dialog_button_add(dia, _("Keep"), NULL, NULL, NULL);
-   e_win_centered_set(dia->win, 1);
-   dia->win->state.no_remember = 1;
+   elm_win_center(dia->win, 1, 1);
+   e_win_no_remember_set(dia->win, 1);
    e_dialog_show(dia);
+}
+
+static Eina_Bool
+_e_module_dialog_disable_timer(Disable_Dialog *dd)
+{
+   _e_module_dialog_disable_show(dd->title, dd->body, dd->m);
+   free(dd->title);
+   free(dd->body);
+   free(dd);
+   return EINA_FALSE;
+}
+
+static void
+_e_module_dialog_disable_create(const char *title, const char *body, E_Module *m)
+{
+   Disable_Dialog *dd;
+
+   dd = E_NEW(Disable_Dialog, 1);
+   dd->title = strdup(title);
+   dd->body = strdup(body);
+   dd->m = m;
+   ecore_timer_add(1.5, (Ecore_Task_Cb)_e_module_dialog_disable_timer, dd);
 }
 
 static void
@@ -783,7 +846,7 @@ _e_module_cb_dialog_disable(void *data, E_Dialog *dia)
 }
 
 static Eina_Bool
-_e_module_cb_idler(void *data __UNUSED__)
+_e_module_cb_idler(void *data EINA_UNUSED)
 {
    while (_e_modules_delayed)
      {
@@ -838,7 +901,7 @@ _e_module_sort_priority(const void *d1, const void *d2)
 }
 
 static void
-_e_module_event_update_free(void *data __UNUSED__, void *event)
+_e_module_event_update_free(void *data EINA_UNUSED, void *event)
 {
    E_Event_Module_Update *ev;
 
@@ -871,6 +934,41 @@ _ignore_cb(void *data, E_Dialog *dialog)
    e_config_save_queue();
 }
 
+static Eina_Bool
+_e_module_whitelist_dialog_timer(void *badl)
+{
+   E_Dialog *dia;
+   Eina_Strbuf *sbuf;
+   Eina_List *l;
+   const char *s;
+
+   dia = e_dialog_new(NULL,
+                      "E", "_module_whitelist_dialog");
+   sbuf = eina_strbuf_new();
+   eina_strbuf_append
+     (sbuf, _("The following modules are not standard ones for<br>"
+              "Enlightenment and may cause bugs and crashes.<br>"
+              "Please remove them before reporting any bugs.<br>"
+              "<br>"
+              "The module list is as follows:<br>"
+              "<br>"));
+   EINA_LIST_FOREACH(badl, l, s)
+     {
+        eina_strbuf_append(sbuf, s);
+        eina_strbuf_append(sbuf, "<br>");
+     }
+
+   e_dialog_title_set(dia, _("Unstable module tainting"));
+   e_dialog_icon_set(dia, "enlightenment", 64);
+   e_dialog_text_set(dia, eina_strbuf_string_get(sbuf));
+   e_dialog_button_add(dia, _("OK"), NULL, _cleanup_cb, badl);
+   e_dialog_button_add(dia, _("I know"), NULL, _ignore_cb, badl);
+   elm_win_center(dia->win, 1, 1);
+   e_dialog_show(dia);
+   eina_strbuf_free(sbuf);
+   return EINA_FALSE;
+}
+
 static void
 _e_module_whitelist_check(void)
 {
@@ -881,7 +979,6 @@ _e_module_whitelist_check(void)
    const char *s;
    const char *goodmods[] =
    {
-      "access",
       "backlight",
       "battery",
       "bluez4",
@@ -931,8 +1028,8 @@ _e_module_whitelist_check(void)
       "wizard",
       "wl_desktop_shell",
       "wl_x11",
+      "wl_wl",
       "wl_drm",
-      "wl_screenshot",
       "wl_shell",
       "wl_desktop_shell",
       "xkbswitch",
@@ -940,6 +1037,8 @@ _e_module_whitelist_check(void)
       "appmenu",
       "packagekit",
       "policy_mobile",
+      "geolocation",
+      "xwayland",
       NULL   // end marker
    };
 
@@ -985,7 +1084,7 @@ _e_module_whitelist_check(void)
 
       state = badl ? "YES" : "NO";
 
-      if (e_comp_get(NULL)->comp_type == E_PIXMAP_TYPE_X)
+      if (e_comp->comp_type == E_PIXMAP_TYPE_X)
         {
            Ecore_X_Atom _x_tainted;
            unsigned int _e_tainted = badl ? 1 : 0;
@@ -1000,47 +1099,7 @@ _e_module_whitelist_check(void)
 #endif
 
    if (eina_list_count(badl) != known)
-     {
-        E_Dialog *dia;
-        Eina_Strbuf *sbuf;
-
-        dia = e_dialog_new(NULL,
-                           "E", "_module_whitelist_dialog");
-        if (!dia)
-          {
-             eina_list_free(badl);
-             return;
-          }
-
-        sbuf = eina_strbuf_new();
-        if (!sbuf)
-          {
-             eina_list_free(badl);
-             e_object_del(E_OBJECT(dia));
-             return;
-          }
-        eina_strbuf_append
-          (sbuf, _("The following modules are not standard ones for<br>"
-                   "Enlightenment and may cause bugs and crashes.<br>"
-                   "Please remove them before reporting any bugs.<br>"
-                   "<br>"
-                   "The module list is as follows:<br>"
-                   "<br>"));
-        EINA_LIST_FOREACH(badl, l, s)
-          {
-             eina_strbuf_append(sbuf, s);
-             eina_strbuf_append(sbuf, "<br>");
-          }
-
-        e_dialog_title_set(dia, _("Unstable module tainting"));
-        e_dialog_icon_set(dia, "enlightenment", 64);
-        e_dialog_text_set(dia, eina_strbuf_string_get(sbuf));
-        e_dialog_button_add(dia, _("OK"), NULL, _cleanup_cb, badl);
-        e_dialog_button_add(dia, _("I know"), NULL, _ignore_cb, badl);
-        e_win_centered_set(dia->win, 1);
-        e_dialog_show(dia);
-        eina_strbuf_free(sbuf);
-     }
+     ecore_timer_add(1.5, _e_module_whitelist_dialog_timer, badl);
    else
      {
         EINA_LIST_FREE(badl, s)

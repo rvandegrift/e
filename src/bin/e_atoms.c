@@ -13,6 +13,7 @@ E_API Ecore_X_Atom E_ATOM_WINDOW_STATE = 0;
 E_API Ecore_X_Atom E_ATOM_WINDOW_STATE_CENTERED = 0;
 E_API Ecore_X_Atom E_ATOM_DESKTOP_FILE = 0;
 E_API Ecore_X_Atom E_ATOM_ZONE_GEOMETRY = 0;
+E_API Ecore_X_Atom WL_SURFACE_ID = 0;
 #endif
 
 /* externally accessible functions */
@@ -31,11 +32,12 @@ e_atoms_init(void)
       "__E_ATOM_WINDOW_STATE",
       "__E_ATOM_WINDOW_STATE_CENTERED",
       "__E_ATOM_DESKTOP_FILE",
-      "E_ZONE_GEOMETRY"
+      "E_ZONE_GEOMETRY",
+      "WL_SURFACE_ID"
    };
-   Ecore_X_Atom atoms[11];
+   Ecore_X_Atom atoms[EINA_C_ARRAY_LENGTH(atom_names)];
 
-   ecore_x_atoms_get(atom_names, 11, atoms);
+   ecore_x_atoms_get(atom_names, EINA_C_ARRAY_LENGTH(atom_names), atoms);
    E_ATOM_MANAGED = atoms[0];
    E_ATOM_ZONE = atoms[1];
    E_ATOM_DESK = atoms[2];
@@ -47,6 +49,7 @@ e_atoms_init(void)
    E_ATOM_WINDOW_STATE_CENTERED = atoms[8];
    E_ATOM_DESKTOP_FILE = atoms[9];
    E_ATOM_ZONE_GEOMETRY = atoms[10];
+   WL_SURFACE_ID = atoms[11];
 #endif
    return 1;
 }

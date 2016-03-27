@@ -66,7 +66,12 @@ typedef enum
    E_WINDOW_TYPE_TOOLTIP,
    E_WINDOW_TYPE_NOTIFICATION,
    E_WINDOW_TYPE_COMBO,
-   E_WINDOW_TYPE_DND
+   E_WINDOW_TYPE_DND,
+   /* since UNKNOWN was used improperly in comp matching,
+    * this value is a placeholder to indicate that we want
+    * only type UNKNOWN windows
+    */
+   E_WINDOW_TYPE_REAL_UNKNOWN = 999
 } E_Window_Type;
 
 typedef enum _E_Urgency_Policy
@@ -106,7 +111,7 @@ typedef enum _E_Fullscreen
 {
    /* Resize window */
    E_FULLSCREEN_RESIZE,
-   /* Change screen resoultion and resize window */
+   /* Change screen resolution and resize window */
    E_FULLSCREEN_ZOOM
 } E_Fullscreen;
 
@@ -169,7 +174,7 @@ typedef enum _E_Client_Hook_Point
 
 typedef void (*E_Client_Move_Intercept_Cb)(E_Client *, int x, int y);
 typedef void (*E_Client_Hook_Cb)(void *data, E_Client *ec);
-typedef void (*E_Client_Layout_Cb)(void * /* E_Comp */); //< can't use real type because of include order
+typedef void (*E_Client_Layout_Cb)(void);
 #else
 
 #ifndef HAVE_WAYLAND_ONLY
@@ -222,7 +227,6 @@ struct E_Client
    EINA_INLIST;
 
    E_Pixmap *pixmap;
-   E_Comp *comp;
    int depth;
    int x, y, w, h; //frame+client geom
    struct {
@@ -259,8 +263,6 @@ struct E_Client
 
    E_Comp_Client_Data       *comp_data;
 
-   Evas_Object *input_object; //for running wayland clients in X
-
    E_Action                  *cur_mouse_action;
 
    int               border_size; //size of client's border
@@ -272,6 +274,7 @@ struct E_Client
          int x, y, w, h;
          int mx, my;
       } current, last_down[3], last_up[3];
+      Eina_Bool in : 1;
    } mouse;
 
    struct
@@ -566,7 +569,6 @@ struct E_Client
       unsigned char shape : 1;
       unsigned char shape_input : 1;
       unsigned char icon : 1;
-      Eina_Bool internal_props : 1;
       Eina_Bool internal_state : 1;
       Eina_Bool need_maximize : 1;
       Eina_Bool need_unmaximize : 1;
@@ -574,7 +576,6 @@ struct E_Client
 
    unsigned int       visible : 1; // client is set to be visible by display server (never use this)
    unsigned int       hidden : 1; // set when window has been hidden by api and should not be shown
-   unsigned int       await_hide_event;
    unsigned int       moving : 1;
    unsigned int       focused : 1;
    unsigned int       new_client : 1;
@@ -635,9 +636,8 @@ struct E_Client
    unsigned int       internal : 1;
    unsigned int       internal_no_remember : 1;
    unsigned int       internal_no_reopen : 1;
-   Eina_Bool          theme_shadow : 1;
 
-   Ecore_Evas        *internal_ecore_evas;
+   Evas_Object       *internal_elm_win;
 
    double             ping;
 
@@ -653,6 +653,7 @@ struct E_Client
 
    Eina_List       *stick_desks;
    E_Menu          *border_menu;
+   Evas_Object     *color_editor;
    E_Config_Dialog *border_locks_dialog;
    E_Config_Dialog *border_remember_dialog;
    E_Config_Dialog *border_border_dialog;
@@ -694,11 +695,12 @@ struct E_Client
    Eina_Bool ignored : 1; // client is comp-ignored
    Eina_Bool no_shape_cut : 1; // client shape should not be cut
    Eina_Bool maximize_override : 1; // client is doing crazy stuff and should "just do it" when moving/resizing
+   Eina_Bool keyboard_resizing : 1;
 
-#if defined(HAVE_WAYLAND_CLIENTS) || defined(HAVE_WAYLAND_ONLY)
+   Eina_Bool on_post_updates : 1; // client is on the post update list
+#ifdef HAVE_WAYLAND
    uuid_t uuid;
 #endif
-   Eina_Bool mouse_in : 1;
 };
 
 #define e_client_focus_policy_click(ec) \
@@ -717,11 +719,11 @@ struct E_Client
 # define EC_CHANGED(EC) EC->changed = 1
 #endif
 
-#define E_CLIENT_FOREACH(COMP, EC) \
-  for (EC = e_client_bottom_get(COMP); EC; EC = e_client_above_get(EC))
+#define E_CLIENT_FOREACH(EC) \
+  for (EC = e_client_bottom_get(); EC; EC = e_client_above_get(EC))
 
-#define E_CLIENT_REVERSE_FOREACH(COMP, EC) \
-  for (EC = e_client_top_get(COMP); EC; EC = e_client_below_get(EC))
+#define E_CLIENT_REVERSE_FOREACH(EC) \
+  for (EC = e_client_top_get(); EC; EC = e_client_below_get(EC))
 
 
 E_API extern int E_EVENT_CLIENT_ADD;
@@ -745,12 +747,13 @@ E_API extern int E_EVENT_CLIENT_UNFULLSCREEN;
 EINTERN void e_client_idler_before(void);
 EINTERN Eina_Bool e_client_init(void);
 EINTERN void e_client_shutdown(void);
-E_API E_Client *e_client_new(E_Comp *c, E_Pixmap *cp, int first_map, int internal);
+E_API E_Client *e_client_new(E_Pixmap *cp, int first_map, int internal);
+E_API void e_client_unignore(E_Client *ec);
 E_API void e_client_desk_set(E_Client *ec, E_Desk *desk);
 E_API Eina_Bool e_client_comp_grabbed_get(void);
 E_API E_Client *e_client_action_get(void);
 E_API E_Client *e_client_warping_get(void);
-E_API Eina_List *e_clients_immortal_list(const E_Comp *c);
+E_API Eina_List *e_clients_immortal_list(void);
 E_API void e_client_mouse_in(E_Client *ec, int x, int y);
 E_API void e_client_mouse_out(E_Client *ec, int x, int y);
 E_API void e_client_mouse_wheel(E_Client *ec, Evas_Point *output, E_Binding_Event_Wheel *ev);
@@ -763,9 +766,9 @@ E_API void e_client_zone_set(E_Client *ec, E_Zone *zone);
 E_API void e_client_geometry_get(E_Client *ec, int *x, int *y, int *w, int *h);
 E_API E_Client *e_client_above_get(const E_Client *ec);
 E_API E_Client *e_client_below_get(const E_Client *ec);
-E_API E_Client *e_client_bottom_get(const E_Comp *c);
-E_API E_Client *e_client_top_get(const E_Comp *c);
-E_API unsigned int e_clients_count(E_Comp *c);
+E_API E_Client *e_client_bottom_get(void);
+E_API E_Client *e_client_top_get(void);
+E_API unsigned int e_clients_count(void);
 E_API void e_client_move_intercept_cb_set(E_Client *ec, E_Client_Move_Intercept_Cb cb);
 E_API E_Client_Hook *e_client_hook_add(E_Client_Hook_Point hookpoint, E_Client_Hook_Cb func, const void *data);
 E_API void e_client_hook_del(E_Client_Hook *ch);
@@ -820,9 +823,12 @@ E_API int e_client_pointer_warp_to_center_now(E_Client *ec);
 E_API int e_client_pointer_warp_to_center(E_Client *ec);
 E_API void e_client_redirected_set(E_Client *ec, Eina_Bool set);
 E_API Eina_Bool e_client_is_stacking(const E_Client *ec);
+E_API Eina_Bool e_client_has_xwindow(const E_Client *ec);
 E_API Eina_Bool e_client_desk_window_profile_available_check(E_Client *ec, const char *profile);
 E_API void      e_client_desk_window_profile_wait_desk_set(E_Client *ec, E_Desk *desk);
 E_API void      e_client_layout_cb_set(E_Client_Layout_Cb cb);
+
+YOLO E_API void e_client_focus_stack_set(Eina_List *l);
 
 #include "e_client.x"
 #endif

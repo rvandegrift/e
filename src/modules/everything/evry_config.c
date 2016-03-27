@@ -60,7 +60,7 @@ struct _E_Config_Dialog_Data
 };
 
 E_API E_Config_Dialog *
-evry_config_dialog(E_Comp *comp, const char *params __UNUSED__)
+evry_config_dialog(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -74,7 +74,7 @@ evry_config_dialog(E_Comp *comp, const char *params __UNUSED__)
    v->basic.create_widgets = _basic_create_widgets;
    v->advanced.apply_cfdata = NULL;
    v->advanced.create_widgets = NULL;
-   cfd = e_config_dialog_new(comp,
+   cfd = e_config_dialog_new(NULL,
                              _("Everything Settings"),
                              "E", "extensions/run_everything",
                              "system-run", 0, v, NULL);
@@ -108,7 +108,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd __UNUSED__)
+_create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -118,7 +118,7 @@ _create_data(E_Config_Dialog *cfd __UNUSED__)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->page[0].configs) eina_list_free(cfdata->page[0].configs);
    if (cfdata->page[1].configs) eina_list_free(cfdata->page[1].configs);
@@ -128,7 +128,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    int i;
    Plugin_Config *pc;
@@ -185,7 +185,7 @@ _basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static void
-_fill_list(Eina_List *plugins, Evas_Object *obj, int enabled __UNUSED__)
+_fill_list(Eina_List *plugins, Evas_Object *obj, int enabled EINA_UNUSED)
 {
    Evas *evas;
    Evas_Coord w;
@@ -261,13 +261,13 @@ _plugin_move(Plugin_Page *page, int dir)
 }
 
 static void
-_plugin_move_up_cb(void *data, void *data2 __UNUSED__)
+_plugin_move_up_cb(void *data, void *data2 EINA_UNUSED)
 {
    _plugin_move(data, -1);
 }
 
 static void
-_plugin_move_down_cb(void *data, void *data2 __UNUSED__)
+_plugin_move_down_cb(void *data, void *data2 EINA_UNUSED)
 {
    _plugin_move(data, 1);
 }
@@ -341,7 +341,7 @@ _list_select_cb(void *data, Evas_Object *obj)
 }
 
 static void
-_plugin_config_cb(void *data, void *data2 __UNUSED__)
+_plugin_config_cb(void *data, void *data2 EINA_UNUSED)
 {
    Plugin_Page *page = data;
    Evry_Plugin *p = page->cur->plugin;
@@ -353,12 +353,12 @@ _plugin_config_cb(void *data, void *data2 __UNUSED__)
 }
 
 static Evas_Object *
-_create_plugin_page(E_Config_Dialog_Data *cfdata __UNUSED__, Evas *e, Plugin_Page *page)
+_create_plugin_page(E_Config_Dialog_Data *cfdata EINA_UNUSED, Evas *e, Plugin_Page *page)
 {
    Evas_Object *o, *of, *ob;
    E_Radio_Group *rg;
 
-   ob = e_widget_table_add(e, 0);
+   ob = e_widget_table_add(e_win_evas_win_get(e), 0);
    of = e_widget_frametable_add(e, _("Available Plugins"), 0);
    page->list = e_widget_ilist_add(e, 24, 24, NULL);
    e_widget_on_change_hook_set(page->list, _list_select_cb, page);
@@ -408,7 +408,7 @@ _create_plugin_page(E_Config_Dialog_Data *cfdata __UNUSED__, Evas *e, Plugin_Pag
    e_widget_table_object_append(ob, of, 1, 0, 1, 1, 1, 1, 1, 0);
 
    of = e_widget_framelist_add(e, _("Plugin Trigger"), 0);
-   o = e_widget_entry_add(e, &(page->trigger), NULL, NULL, NULL);
+   o = e_widget_entry_add(e_win_evas_win_get(e), &(page->trigger), NULL, NULL, NULL);
    e_widget_disabled_set(o, 1);
    page->o_trigger = o;
    e_widget_framelist_object_append(of, o);
@@ -450,7 +450,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *e, E_Config_Dialog
 
    otb = e_widget_toolbook_add(e, 48 * e_scale, 48 * e_scale);
 
-   o = e_widget_table_add(e, 0);
+   o = e_widget_table_add(e_win_evas_win_get(e), 0);
 
    /// GENERAL SETTNGS ///
    of = e_widget_framelist_add(e, _("Default View"), 0);
@@ -605,7 +605,7 @@ static Evas_Object *_cat_basic_create_widgets(E_Config_Dialog *cfd, Evas *evas,
 static int          _cat_basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 
 E_API E_Config_Dialog *
-evry_collection_conf_dialog(E_Comp *comp, const char *params)
+evry_collection_conf_dialog(Evas_Object *parent EINA_UNUSED, const char *params)
 {
    E_Config_Dialog *cfd = NULL;
    E_Config_Dialog_View *v = NULL;
@@ -628,7 +628,7 @@ evry_collection_conf_dialog(E_Comp *comp, const char *params)
 
    snprintf(title, sizeof(title), "%s: %s", _("Everything Collection"), p->name);
 
-   cfd = e_config_dialog_new(comp, title, p->config_path, p->config_path,
+   cfd = e_config_dialog_new(NULL, title, p->config_path, p->config_path,
                              EVRY_ITEM(p)->icon, 0, v, p);
 
    /* FIXME free dialogs on shutdown
@@ -679,7 +679,7 @@ _cat_create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_cat_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_cat_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->page[0].configs) eina_list_free(cfdata->page[0].configs);
 
@@ -724,7 +724,7 @@ _cat_basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_cat_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *e, E_Config_Dialog_Data *cfdata)
+_cat_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *e, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *ob, *otb;
 

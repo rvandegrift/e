@@ -38,13 +38,13 @@ struct _E_Drag
       void  (*key_up)(E_Drag *drag, Ecore_Event_Key *e);
    } cb;
 
-   E_Comp           *comp;
    Evas              *evas;
    Evas_Object       *comp_object;
    Evas_Object       *object;
 
    int                x, y, w, h;
    int                dx, dy;
+   unsigned int       button_mask;
 
    E_Layer            layer;
    unsigned char      visible : 1;
@@ -67,6 +67,7 @@ struct _E_Drop_Handler
    } cb;
 
    E_Object     *obj;
+   Evas_Object *win;
    Evas_Object *base;
    int           x, y, w, h;
 
@@ -115,7 +116,7 @@ E_API int             e_dnd_active(void);
 
 E_API E_Drag         *e_drag_current_get(void);
 /* x and y are the top left coords of the object that is to be dragged */
-E_API E_Drag         *e_drag_new(E_Comp *comp, int x, int y,
+E_API E_Drag         *e_drag_new(int x, int y,
                                 const char **types, unsigned int num_types,
                                 void *data, int size,
                                 void *(*convert_cb)(E_Drag * drag, const char *type),
@@ -133,7 +134,7 @@ E_API int             e_drag_xdnd_start(E_Drag *drag, int x, int y);
 
 E_API void e_drop_xds_update(Eina_Bool enable, const char *value);
 E_API void e_drop_handler_xds_set(E_Drop_Handler *handler, Eina_Bool (*cb)(void *data, const char *type));
-E_API E_Drop_Handler *e_drop_handler_add(E_Object *obj,
+E_API E_Drop_Handler *e_drop_handler_add(E_Object *obj, Evas_Object *win,
                                         void *data,
                                         void (*enter_cb)(void *data, const char *type, void *event),
                                         void (*move_cb)(void *data, const char *type, void *event),

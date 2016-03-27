@@ -30,8 +30,8 @@ static void         _e_imc_change_enqueue(E_Config_Dialog_Data *cfdata);
 static void         _e_imc_entry_change_cb(void *data, Evas_Object *obj);
 static void         _e_imc_form_fill(E_Config_Dialog_Data *cfdata);
 static const char  *_e_imc_file_name_new_get(void);
-static Eina_Bool    _change_hash_free_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__);
-static Eina_Bool    _change_hash_apply_cb(const Eina_Hash *hash __UNUSED__, const void *key, void *data, void *fdata __UNUSED__);
+static Eina_Bool    _change_hash_free_cb(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *data, void *fdata EINA_UNUSED);
+static Eina_Bool    _change_hash_apply_cb(const Eina_Hash *hash EINA_UNUSED, const void *key, void *data, void *fdata EINA_UNUSED);
 
 struct _E_Config_Dialog_Data
 {
@@ -80,11 +80,11 @@ struct _E_Config_Dialog_Data
       Evas_Object *xmodifiers;
    } gui;
 
-   E_Win *win_import;
+   Evas_Object *win_import;
 };
 
 E_Config_Dialog *
-e_int_config_imc(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_imc(Evas_Object *parent, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -99,7 +99,7 @@ e_int_config_imc(E_Comp *comp, const char *params __UNUSED__)
    v->basic.create_widgets = _basic_create_widgets;
    v->basic.apply_cfdata = _basic_apply_data;
 
-   cfd = e_config_dialog_new(comp,
+   cfd = e_config_dialog_new(parent,
                              _("Input Method Settings"),
                              "E", "language/input_method_settings",
                              "preferences-imc", 0, v, NULL);
@@ -129,12 +129,13 @@ _create_data(E_Config_Dialog *cfd)
 
    cfdata = E_NEW(E_Config_Dialog_Data, 1);
    cfdata->cfd = cfd;
+   cfd->cfdata = cfdata;
    _fill_data(cfdata);
    return cfdata;
 }
 
 static Eina_Bool
-_change_hash_free_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__)
+_change_hash_free_cb(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *data, void *fdata EINA_UNUSED)
 {
    E_Input_Method_Config *imc;
 
@@ -144,10 +145,9 @@ _change_hash_free_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED_
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
-   if (cfdata->win_import)
-     e_int_config_imc_import_del(cfdata->win_import);
+   E_FREE_FUNC(cfdata->win_import, evas_object_del);
    eina_stringshare_del(cfdata->imc_current);
 
    if (cfdata->imc_basic_map)
@@ -174,7 +174,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 
 /*** Start Basic Dialog Logic ***/
 static int
-_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    eina_stringshare_replace(&e_config->input_method, NULL);
    if (!cfdata->imc_disable)
@@ -210,7 +210,7 @@ _e_imc_setup_button_toggle(Evas_Object *button, E_Input_Method_Config *imc)
 }
 
 static void
-_e_imc_list_change_cb(void *data, Evas_Object *obj __UNUSED__)
+_e_imc_list_change_cb(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    E_Input_Method_Config *imc;
@@ -226,7 +226,7 @@ _e_imc_list_change_cb(void *data, Evas_Object *obj __UNUSED__)
 }
 
 static void
-_e_imc_imc_toggle(void *data, Evas_Object *obj __UNUSED__)
+_e_imc_imc_toggle(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -246,7 +246,7 @@ _e_imc_imc_toggle(void *data, Evas_Object *obj __UNUSED__)
 }
 
 static void
-_e_imc_setup_cb(void *data, void *data2 __UNUSED__)
+_e_imc_setup_cb(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -391,7 +391,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
 
 /*** Start Advanced Dialog Logic ***/
 static Eina_Bool
-_change_hash_apply_cb(const Eina_Hash *hash __UNUSED__, const void *key, void *data, void *fdata __UNUSED__)
+_change_hash_apply_cb(const Eina_Hash *hash EINA_UNUSED, const void *key, void *data, void *fdata EINA_UNUSED)
 {
    E_Input_Method_Config *imc;
    Eet_File *ef;
@@ -436,7 +436,7 @@ _advanced_apply_data(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
 
 /* Radio Toggled */
 static void
-_cb_dir(void *data, Evas_Object *obj __UNUSED__)
+_cb_dir(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    const char *path;
@@ -451,7 +451,7 @@ _cb_dir(void *data, Evas_Object *obj __UNUSED__)
 
 /* Directory Navigator */
 static void
-_cb_button_up(void *data, void *data2 __UNUSED__)
+_cb_button_up(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -464,7 +464,7 @@ _cb_button_up(void *data, void *data2 __UNUSED__)
 
 /* Entry chagned */
 static void
-_e_imc_entry_change_cb(void *data, Evas_Object *obj __UNUSED__)
+_e_imc_entry_change_cb(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -474,7 +474,7 @@ _e_imc_entry_change_cb(void *data, Evas_Object *obj __UNUSED__)
 
 /* Creating a new IMC */
 static void
-_cb_new(void *data, void *data2 __UNUSED__)
+_cb_new(void *data, void *data2 EINA_UNUSED)
 {
    E_Input_Method_Config *imc_new;
    Eet_File *ef;
@@ -501,7 +501,7 @@ _cb_new(void *data, void *data2 __UNUSED__)
 }
 
 static void
-_e_imc_adv_setup_cb(void *data, void *data2 __UNUSED__)
+_e_imc_adv_setup_cb(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -528,7 +528,7 @@ _e_imc_adv_setup_cb(void *data, void *data2 __UNUSED__)
 
 /** Start IMC FM2 Callbacks **/
 static void
-_cb_files_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_files_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -549,7 +549,7 @@ _cb_files_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UN
 }
 
 static void
-_cb_files_selection_change(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_files_selection_change(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    Eina_List *selected;
@@ -583,7 +583,7 @@ _cb_files_selection_change(void *data, Evas_Object *obj __UNUSED__, void *event_
 }
 
 static void
-_cb_files_files_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_files_files_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    const char *buf;
    const char *p;
@@ -613,7 +613,7 @@ _cb_files_files_changed(void *data, Evas_Object *obj __UNUSED__, void *event_inf
 }
 
 static void
-_cb_files_files_deleted(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_files_files_deleted(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    Eina_List *sel, *all, *n;
@@ -766,13 +766,13 @@ e_int_config_imc_import_done(E_Config_Dialog *dia)
 }
 
 static void
-_cb_import(void *data1, void *data2 __UNUSED__)
+_cb_import(void *data1, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
    cfdata = data1;
    if (cfdata->win_import)
-     e_win_raise(cfdata->win_import);
+     elm_win_raise(cfdata->win_import);
    else
      cfdata->win_import = e_int_config_imc_import(cfdata->cfd);
 }
@@ -796,7 +796,7 @@ e_int_config_imc_update(E_Config_Dialog *dia, const char *file)
 }
 
 static Evas_Object *
-_advanced_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
+_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *rt, *ot;
    Evas_Object *ow, *of;
@@ -807,8 +807,8 @@ _advanced_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_
    o = e_widget_list_add(evas, 0, 1);
 
    rg = e_widget_radio_group_new(&(cfdata->fmdir));
-   ot = e_widget_table_add(evas, 0);
-   rt = e_widget_table_add(evas, 1);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), 0);
+   rt = e_widget_table_add(e_win_evas_win_get(evas), 1);
 
    ow = e_widget_radio_add(evas, _("Personal"), 0, rg);
    cfdata->o_personal = ow;
@@ -875,7 +875,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_
    e_widget_table_object_append(ot, of, 0, 2, 1, 1, 1, 1, 1, 1);
    e_widget_list_object_append(o, ot, 1, 1, 0.0);
 
-   ot = e_widget_table_add(evas, 0);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), 0);
 
    ow = e_widget_check_add(evas, _("Use No Input Method"),
                            &(cfdata->imc_disable));
@@ -895,21 +895,21 @@ _advanced_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_
 
    ow = e_widget_label_add(evas, _("Name"));
    e_widget_frametable_object_append(of, ow, 0, 0, 1, 1, 1, 1, 0, 0);
-   ow = e_widget_entry_add(evas, &(cfdata->imc.e_im_name), NULL, NULL, NULL);
+   ow = e_widget_entry_add(cfd->dia->win, &(cfdata->imc.e_im_name), NULL, NULL, NULL);
    e_widget_on_change_hook_set(ow, _e_imc_entry_change_cb, cfdata);
    cfdata->gui.e_im_name = ow;
    e_widget_frametable_object_append(of, ow, 1, 0, 1, 1, 1, 1, 1, 0);
 
    ow = e_widget_label_add(evas, _("Execute Command"));
    e_widget_frametable_object_append(of, ow, 0, 1, 1, 1, 1, 1, 0, 0);
-   ow = e_widget_entry_add(evas, &(cfdata->imc.e_im_exec), NULL, NULL, NULL);
+   ow = e_widget_entry_add(cfd->dia->win, &(cfdata->imc.e_im_exec), NULL, NULL, NULL);
    e_widget_on_change_hook_set(ow, _e_imc_entry_change_cb, cfdata);
    cfdata->gui.e_im_exec = ow;
    e_widget_frametable_object_append(of, ow, 1, 1, 1, 1, 1, 1, 1, 0);
 
    ow = e_widget_label_add(evas, _("Setup Command"));
    e_widget_frametable_object_append(of, ow, 0, 2, 1, 1, 1, 1, 0, 0);
-   ow = e_widget_entry_add(evas, &(cfdata->imc.e_im_setup_exec), NULL, NULL, NULL);
+   ow = e_widget_entry_add(cfd->dia->win, &(cfdata->imc.e_im_setup_exec), NULL, NULL, NULL);
    e_widget_on_change_hook_set(ow, _e_imc_entry_change_cb, cfdata);
    cfdata->gui.e_im_setup_exec = ow;
    e_widget_frametable_object_append(of, ow, 1, 2, 1, 1, 1, 1, 1, 0);
@@ -921,21 +921,21 @@ _advanced_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_
 
    ow = e_widget_label_add(evas, "GTK_IM_MODULE");
    e_widget_frametable_object_append(of, ow, 0, 0, 1, 1, 1, 1, 0, 0);
-   ow = e_widget_entry_add(evas, &(cfdata->imc.gtk_im_module), NULL, NULL, NULL);
+   ow = e_widget_entry_add(cfd->dia->win, &(cfdata->imc.gtk_im_module), NULL, NULL, NULL);
    e_widget_on_change_hook_set(ow, _e_imc_entry_change_cb, cfdata);
    cfdata->gui.gtk_im_module = ow;
    e_widget_frametable_object_append(of, ow, 1, 0, 1, 1, 1, 1, 1, 0);
 
    ow = e_widget_label_add(evas, "QT_IM_MODULE");
    e_widget_frametable_object_append(of, ow, 0, 1, 1, 1, 1, 1, 0, 0);
-   ow = e_widget_entry_add(evas, &(cfdata->imc.qt_im_module), NULL, NULL, NULL);
+   ow = e_widget_entry_add(cfd->dia->win, &(cfdata->imc.qt_im_module), NULL, NULL, NULL);
    e_widget_on_change_hook_set(ow, _e_imc_entry_change_cb, cfdata);
    cfdata->gui.qt_im_module = ow;
    e_widget_frametable_object_append(of, ow, 1, 1, 1, 1, 1, 1, 1, 0);
 
    ow = e_widget_label_add(evas, "XMODIFIERS");
    e_widget_frametable_object_append(of, ow, 0, 2, 1, 1, 1, 1, 0, 0);
-   ow = e_widget_entry_add(evas, &(cfdata->imc.xmodifiers), NULL, NULL, NULL);
+   ow = e_widget_entry_add(cfd->dia->win, &(cfdata->imc.xmodifiers), NULL, NULL, NULL);
    e_widget_on_change_hook_set(ow, _e_imc_entry_change_cb, cfdata);
    cfdata->gui.xmodifiers = ow;
    e_widget_frametable_object_append(of, ow, 1, 2, 1, 1, 1, 1, 1, 0);

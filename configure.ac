@@ -1,15 +1,15 @@
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_define([v_maj], [0])
-m4_define([v_min], [19])
-m4_define([v_mic], [14])
+m4_define([v_min], [20])
+m4_define([v_mic], [6])
 m4_define([v_rev], m4_esyscmd([(git rev-list --count HEAD 2>/dev/null || echo 0) | tr -d '\n']))dnl
 ##--   When released, remove the dnl on the below line
 m4_undefine([v_rev])
-m4_define([relname], [0.19.14])
+m4_define([relname], [0.20.6])
 ##--   When doing snapshots - change soname. remove dnl on below line
-m4_define([relname], [ver-serious-0.19])
-m4_define([v_rel], [-release relname])
+m4_define([relname], [ver-autocannoli-0.20])
+dnl m4_define([v_rel], [-release relname])
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_ifdef([v_rev], [m4_define([v_ver], [v_maj.v_min.v_mic.v_rev])], [m4_define([v_ver], [v_maj.v_min.v_mic])])
 m4_define([lt_cur], m4_eval(v_maj + v_min))
@@ -43,7 +43,6 @@ AC_C_BIGENDIAN
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
 AC_FUNC_ALLOCA
-AC_C___ATTRIBUTE__
 
 LT_INIT([disable-static])
 
@@ -92,13 +91,9 @@ extern char **environ;
 AC_DEFINE(HAVE_ENVIRON, 1, [Have environ var])
     ])
 
-efl_version="1.11"
+efl_version="1.15.2"
 AC_SUBST(efl_version)
-PKG_CHECK_EXISTS([ecore < 1.15.2], [
-  PKG_CHECK_EXISTS([ecore >= 1.12], [
-    AC_MSG_ERROR([your version of efl has been blacklisted due to T2745])
-  ], [])
-], [])
+
 AC_CHECK_HEADERS([sys/timerfd.h sys/ptrace.h arpa/inet.h netinet/in.h])
 
 dnl AC_CHECK_HEADERS(X11/extensions/shape.h,, AC_MSG_ERROR([Cannot find X11/extensions/shape.h. Make sure your CFLAGS environment variable contains include lines for the location of this file]))
@@ -310,7 +305,7 @@ ALL_LINGUAS="bg ca cs da de el eo es fi fr fr_CH he hu it ja ko nb nl pl pt_BR r
 AC_SUBST([ALL_LINGUAS])
 
 m4_ifdef([AM_GNU_GETTEXT_VERSION], [
-AM_GNU_GETTEXT_VERSION([0.17])
+AM_GNU_GETTEXT_VERSION([0.18])
 ])
 
 m4_ifdef([AC_GNU_GETTEXT], [
@@ -350,7 +345,7 @@ AM_CONDITIONAL(INSTALL_SYSACTIONS, test x${e_cv_enable_install_sysactions} = xye
 
 AC_MSG_CHECKING([whether to install enlightenment.menu])
 AC_ARG_ENABLE([install-enlightenment-menu],
-  AS_HELP_STRING([--disable-install-enlightenment-menu],[disable installing /etc/xdg/menus/enlightenment.menu @<:@default=enabled@:>@]),
+  AS_HELP_STRING([--disable-install-enlightenment-menu],[disable installing /etc/xdg/menus/e-applications.menu @<:@default=enabled@:>@]),
     [e_cv_enable_install_enlightenment_menu=$enableval],
     AC_CACHE_VAL([e_cv_enable_install_enlightenment_menu], [e_cv_enable_install_enlightenment_menu=yes]))
 AC_MSG_RESULT([$e_cv_enable_install_enlightenment_menu])
@@ -365,14 +360,6 @@ if test "[${e_cv_enable_files}]" = yes; then
   AC_DEFINE_UNQUOTED([ENABLE_FILES],[1],[enable Files menu item])
 fi
 AC_MSG_RESULT([$e_cv_enable_files])
-
-AC_ARG_ENABLE([device-hal],
-  AS_HELP_STRING([--enable-device-hal],[enable hal device backend @<:@default=disabled@:>@]),
-  [e_cv_want_device_hal=$enableval],
-  [e_cv_want_device_hal=no])
-
-AC_MSG_CHECKING([whether the HAL device backend is enabled])
-AC_MSG_RESULT([${e_cv_want_device_hal}])
 
 AC_ARG_ENABLE([device-udev],
   AS_HELP_STRING([--enable-device-udev],[enable udev device backend @<:@default=enabled@:>@]),
@@ -398,13 +385,6 @@ AC_MSG_CHECKING([which device backend to use])
 AC_MSG_RESULT($device_backend)
 
 AM_CONDITIONAL([HAVE_EEZE], [test "x${device_backend}" = "xeeze"])
-
-if test "x${device_backend}" != "xeeze"; then
-  device_backend=hal
-  device_libs=eldbus
-  AC_DEFINE_UNQUOTED([HAVE_HAL],[1],[enable HAL support])
-fi
-
 
 DBUS_MOUNT_CONFIG=1
 dbus_mount="dbus-1"
@@ -462,6 +442,16 @@ AM_CONDITIONAL([HAVE_EEZE_MOUNT], [false])
 test -n "$dbus_mount" && AC_DEFINE_UNQUOTED([HAVE_UDISKS_MOUNT], [1], [enable Udisks mounting])
 AM_CONDITIONAL([HAVE_UDISKS_MOUNT], [test -n "$dbus_mount"])
 AM_CONDITIONAL([HAVE_EEZE_MOUNT], [test -n "$eeze_mount"])
+
+# verify "wayland-only" early to adapt dependencies
+
+have_wayland_only=no
+AC_ARG_ENABLE([wayland],
+  AS_HELP_STRING([--enable-wayland],[enable wayland support in enlightenment @<:@default=disabled@:>@]),
+  [e_cv_want_wayland_only=$enableval],
+  [e_cv_want_wayland_only=no])
+AC_MSG_CHECKING([whether wayland support is enabled])
+AC_MSG_RESULT([${e_cv_want_wayland_only}])
 
 # doxygen program for documentation building
 
@@ -542,62 +532,30 @@ PKG_CHECK_MODULES(E_SYS, [
   ecore >= ${efl_version}
 ])
 
-PKG_CHECK_MODULES(E_ALERT, [
-  xcb
-  xcb-shape
-  xcb-keysyms
-  eina >= ${efl_version}
-  ecore >= ${efl_version}
-  ecore-ipc >= ${efl_version}
-])
+e_requires="\
+  evas >= $efl_version \
+  ecore >= $efl_version \
+  ecore-evas >= $efl_version \
+  ecore-input >= $efl_version \
+  ecore-input-evas >= $efl_version \
+  ecore-con >= $efl_version \
+  ecore-ipc >= $efl_version \
+  ecore-file >= $efl_version \
+  eet >= $efl_version \
+  edje >= $efl_version \
+  efreet >= $efl_version \
+  efreet-mime >= $efl_version \
+  efreet-trash >= $efl_version \
+  eina >= $efl_version \
+  eldbus >= $efl_version \
+  eio >= $efl_version \
+  eo >= $efl_version \
+  elementary >= $efl_version \
+  emotion >= $efl_version \
+  $eeze_mount \
+  $udisks_mount \
+  $device_libs"
 
-PKG_CHECK_MODULES(E, [
-  evas >= ${efl_version}
-  ecore >= ${efl_version}
-  ecore-x >= ${efl_version}
-  ecore-evas >= ${efl_version}
-  ecore-input >= ${efl_version}
-  ecore-input-evas >= ${efl_version}
-  ecore-con >= ${efl_version}
-  ecore-ipc >= ${efl_version}
-  ecore-file >= ${efl_version}
-  eet >= ${efl_version}
-  edje >= ${efl_version}
-  efreet >= ${efl_version}
-  efreet-mime >= ${efl_version}
-  efreet-trash >= ${efl_version}
-  eina >= ${efl_version}
-  eldbus >= ${efl_version}
-  eio >= ${efl_version}
-  eo >= ${efl_version}
-  elementary >= ${efl_version}
-  emotion >= ${efl_version}
-  $eeze_mount
-  $udisks_mount
-  $device_libs
-])
-requirements_e="\
-evas >= ${efl_version} \
-ecore >= ${efl_version} \
-ecore-x >= ${efl_version} \
-ecore-evas >= ${efl_version} \
-ecore-con >= ${efl_version} \
-ecore-ipc >= ${efl_version} \
-ecore-file >= ${efl_version} \
-eet >= ${efl_version} \
-edje >= ${efl_version} \
-efreet >= ${efl_version} \
-efreet-mime >= ${efl_version} \
-efreet-trash >= ${efl_version} \
-eina >= ${efl_version} \
-eldbus >= ${efl_version} \
-eio >= ${efl_version} \
-eo >= ${efl_version} \
-elementary >= ${efl_version} \
-emotion >= ${efl_version} \
-$udisks_mount \
-$eeze_mount \
-$device_libs"
 
 PKG_CHECK_MODULES(E_OPEN, [
   eina >= ${efl_version}
@@ -605,15 +563,6 @@ PKG_CHECK_MODULES(E_OPEN, [
   efreet >= ${efl_version}
   efreet-mime >= ${efl_version}
 ])
-
-e_libs="$E_LIBS $LIBINTL $fnmatch_libs $execinfo_libs"
-e_cflags="-DUSE_E_CONFIG_H $E_CFLAGS"
-e_configflags="-DUSE_E_CONFIG_H"
-
-AC_SUBST([e_libs])
-AC_SUBST([e_cflags])
-AC_SUBST([e_configflags])
-AC_SUBST([requirements_e])
 
 PKG_CHECK_EXISTS([xkeyboard-config],[
   xkb_base=`$PKG_CONFIG --variable=xkb_base xkeyboard-config 2>/dev/null`
@@ -631,28 +580,10 @@ EDJE_DEF="-DLOWRES_PDA=1 -DMEDIUMRES_PDA=2 -DHIRES_PDA=3 -DSLOW_PC=4 -DMEDIUM_PC
 EDJE_DEF=$EDJE_DEF" -DE_PROFILE"=$profile
 AC_SUBST([EDJE_DEF])
 
-AC_ARG_WITH(edje-cc,
-[  --with-edje-cc=PATH              specify a specific path to edje_cc],
-[
-  v=$withval;
-  edje_cc=$v
-  echo "  Enlightenment edje_cc explicitly set to "$edje_cc;
-],[
-  edje_cc=$(pkg-config --variable=prefix edje)/bin/edje_cc
-])
-AC_SUBST([edje_cc])
-
 PKG_CHECK_MODULES(EET, [eet >= ${efl_version}])
-AC_ARG_WITH(eet-eet,
-[  --with-eet-eet=PATH              specify a specific path to eet utility],
-[
-  v=$withval;
-  eet_eet=$v
-  echo "  Enlightenment eet explicitly set to "$eet_eet;
-],[
-  eet_eet=$(pkg-config --variable=prefix eet)/bin/eet
-])
-AC_SUBST([eet_eet])
+EFL_WITH_BIN([edje], [edje-cc], [edje_cc])
+EFL_WITH_BIN([eet], [eet-eet], [eet])
+EFL_WITH_BIN([eldbus], [eldbus_codegen], [eldbus-codegen])
 
 AC_DEFINE(E_INTERNAL, 1, "This define can be used to wrap internal E stuff, as config.h isn't exported")
 
@@ -667,7 +598,8 @@ have_freebsd="no"
 BATTERY_LDFLAGS=
 case "$host_os" in
   darwin*)
-    BATTERY_LDFLAGS="-framework Foundation -framework IOKit"
+    BATTERY_LDFLAGS="${cf_libs}"
+    BATTERY_CFLAGS="${BATTERY_CFLAGS} ${cf_cflags}"
   ;;
   openbsd*)
     have_openbsd="yes"
@@ -744,28 +676,13 @@ define([CHECK_MODULE_NOTIFICATION],
 
 
 AM_CONDITIONAL(HAVE_ALSA, false)
+AM_CONDITIONAL(HAVE_PULSE, false)
 define([CHECK_MODULE_MIXER],
 [
-  if test "x$enable_alsa" = "x" || test "x$enable_alsa" = "xdefault" || test "x$enable_alsa" = "xyes"; then
-    AC_E_CHECK_PKG(ALSA, [alsa >= 1.0.8],
-    [ SOUND_CFLAGS="$ALSA_CFLAGS -DHAVE_ALSA $SOUND_CFLAGS"
-      SOUND_LIBS="$ALSA_LIBS $SOUND_LDFLAGS"
-    ],
-    [ if test "x$enable_alsa" = "xyes"; then
-        AC_MSG_ERROR([alsa library >= 1.0.8 not found])
-      else
-        AC_MSG_WARN([alsa library development files not present. no alsa support.])
-      fi
-    ])
-  else
-    have_alsa=no
-  fi
-
-  if test "$have_alsa" = "yes"; then
-    AC_DEFINE(HAVE_ALSA, 1, [Define if the ALSA output plugin should be built])
-  else
-    have_alsa=no
-  fi
+  AC_E_CHECK_PKG(ALSA, [alsa >= 1.0.8],
+    [ ], [ ])
+ AC_E_CHECK_PKG([PULSE], [libpulse-simple libpulse],
+    [AC_DEFINE_UNQUOTED([HAVE_PULSE], [1], [have pulseaudio])], [ ])
 ])
 
 SHM_OPEN_LIBS=""
@@ -816,12 +733,138 @@ define([CHECK_MODULE_BLUEZ4],
 AC_SUBST([EBLUEZ4_CFLAGS])
 AC_SUBST([EBLUEZ4_LIBS])
 
-PKG_CHECK_MODULES([ECORE_X], [ecore-x >= ${efl_version}])
-if test -n "$ECORE_X_CFLAGS" ; then
-   ecore_x=true
+have_wayland_egl=no
+AC_ARG_ENABLE([wayland-egl],
+  AS_HELP_STRING([--enable-wayland-egl],[enable wayland to render using EGL @<:@default=disabled@:>@]),
+  [e_cv_want_wayland_egl=$enableval],
+  [e_cv_want_wayland_egl=no])
+AC_MSG_CHECKING([whether wayland EGL support is enabled])
+AC_MSG_RESULT([${e_cv_want_wayland_egl}])
+
+if test "x${e_cv_want_wayland_only}" != "xno" ;then
+  PKG_CHECK_MODULES([WAYLAND], [ecore-wl2 wayland-server >= 1.10.0 wayland-client >= 1.10.0 xkbcommon uuid],
+    [
+      have_wayland=yes
+      AC_DEFINE_UNQUOTED([HAVE_WAYLAND],[1],[enable wayland support])
+    ])
 else
-   ecore_x=false
+  have_wayland=no
 fi
+
+if test "x${have_wayland}" = "xyes"; then
+  if test "x${e_cv_want_wayland_egl}" != "xno";then
+    PKG_CHECK_MODULES([WAYLAND_EGL], [egl >= 7.10],
+      [
+        have_wayland_egl=yes
+        AC_DEFINE_UNQUOTED([HAVE_WAYLAND_EGL],[1],[enable wayland client EGL support])
+      ],
+      [have_wayland_egl=no])
+  else
+    have_wayland_egl=no
+  fi
+fi
+
+AM_CONDITIONAL([HAVE_WAYLAND], [test "x${have_wayland}" = "xyes"])
+AM_CONDITIONAL([HAVE_WAYLAND_EGL], [test "x${have_wayland_egl}" = "xyes"])
+
+if test "x${have_wayland_only}" != "xyes"; then
+  PKG_CHECK_MODULES([ECORE_X], [ecore-x >= ${efl_version}])
+  if test -n "$ECORE_X_CFLAGS" ; then
+     ecore_x=true
+  else
+     ecore_x=false
+  fi
+else
+  ecore_x=false
+fi
+
+WL_X11=false
+define([CHECK_MODULE_WL_X11],
+[
+  if test "x${have_wayland}" = "xyes"; then
+    AC_E_CHECK_PKG(WL_X11, [ ecore >= ${efl_version} ecore-x >= ${efl_version} ecore-evas >= ${efl_version} ], [WL_X11=true], [WL_X11=false])
+  else
+    WL_X11=false
+  fi
+])
+AM_CONDITIONAL([HAVE_WL_X11], [test "x${WL_X11}" = "xtrue"])
+
+WL_WL=false
+define([CHECK_MODULE_WL_WL],
+[
+  if test "x${have_wayland}" = "xyes"; then
+    WL_WL=true
+  else
+    WL_WL=false
+  fi
+])
+AM_CONDITIONAL([HAVE_WL_WL], [test "x${WL_WL}" = "xtrue"])
+
+WL_DESKTOP_SHELL=false
+define([CHECK_MODULE_WL_DESKTOP_SHELL],
+[
+  if test "x${have_wayland}" = "xyes"; then
+    AC_E_CHECK_PKG(WL_DESKTOP_SHELL, [ ecore >= $efl_version eina >= $efl_version ], [WL_DESKTOP_SHELL=true], [WL_DESKTOP_SHELL=false])
+  else
+    WL_DESKTOP_SHELL=false
+  fi
+])
+AM_CONDITIONAL([HAVE_WL_DESKTOP_SHELL], [test "x${WL_DESKTOP_SHELL}" = "xtrue"])
+
+WL_FB=false
+define([CHECK_MODULE_WL_FB],
+[
+  if test "x${have_wayland}" = "xyes"; then
+    AC_E_CHECK_PKG(WL_FB, [ ecore-fb >= $efl_version ecore >= $efl_version eina >= $efl_version ], [WL_FB=true], [WL_FB=false])
+  else
+    WL_FB=false
+  fi
+])
+AM_CONDITIONAL([HAVE_WL_FB], [test "x${WL_FB}" = "xtrue"])
+
+WL_DRM=false
+define([CHECK_MODULE_WL_DRM],
+[
+  if test "x${have_wayland}" = "xyes" ; then
+    AC_E_CHECK_PKG(WL_DRM, [ ecore-drm >= $efl_version ecore >= $efl_version eina >= $efl_version ], [WL_DRM=true], [WL_DRM=false])
+  else
+    WL_DRM=false
+  fi
+])
+AM_CONDITIONAL([HAVE_WL_DRM], [test "x${WL_DRM}" = "xtrue"])
+
+HAVE_XWAYLAND_DEPS=false
+define([CHECK_MODULE_XWAYLAND],
+[
+  if test "x${have_wayland}" = "xyes"; then
+    AC_E_CHECK_PKG(XWAYLAND, [ ecore >= ${efl_version} ecore-x >= ${efl_version} ecore-audio >= ${efl_version}  ], [HAVE_XWAYLAND_DEPS=true], [HAVE_XWAYLAND_DEPS=false])
+    AC_PATH_PROG([XWAYLAND_BIN], [Xwayland], [false])
+  else
+    HAVE_XWAYLAND_DEPS=false
+  fi
+])
+AM_CONDITIONAL([HAVE_XWAYLAND], [test "x${HAVE_XWAYLAND}" != "xno"])
+
+define([CHECK_MODULE_WL_TEXT_INPUT],
+[
+  if test "x${have_wayland}" = "xyes"; then
+    AC_E_CHECK_PKG(WL_TEXT_INPUT, [ ecore >= $efl_version eina >= $efl_version ], [WL_TEXT_INPUT=true], [WL_TEXT_INPUT=false])
+  else
+    WL_TEXT_INPUT=false
+  fi
+])
+AM_CONDITIONAL([HAVE_WL_TEXT_INPUT], [test "x${WL_TEXT_INPUT}" = "xtrue"])
+
+WL_WEEKEYBOARD=false
+define([CHECK_MODULE_WL_WEEKEYBOARD],
+[
+   if test "x${have_wayland}" = "xyes" ; then
+      AC_E_CHECK_PKG(WL_WEEKEYBOARD, [ eina >= 1.8.0 evas >= 1.8.0 ecore >= 1.8.0 ecore-evas >= 1.8.0 ecore-wl2 >= 1.8.0 edje >= 1.8.0 ], [WL_WEEKEYBOARD=true], [WL_WEEKEYBOARD=false])
+   else
+      WL_WEEKEYBOARD=false
+   fi
+])
+AM_CONDITIONAL([HAVE_WL_WEEKEYBOARD], [test "x${WL_WEEKEYBOARD}" = "xtrue"])
 
 AC_E_OPTIONAL_MODULE([ibar], true)
 AC_E_OPTIONAL_MODULE([clock], true)
@@ -856,7 +899,6 @@ AC_E_OPTIONAL_MODULE([gadman], true)
 AC_E_OPTIONAL_MODULE([mixer], true, [CHECK_MODULE_MIXER])
 AC_E_OPTIONAL_MODULE([connman], true, [CHECK_MODULE_CONNMAN])
 AC_E_OPTIONAL_MODULE([bluez4], true, [CHECK_MODULE_BLUEZ4])
-#AC_E_OPTIONAL_MODULE([illume2], true)
 AC_E_OPTIONAL_MODULE([syscon], true)
 AC_E_OPTIONAL_MODULE([everything], true)
 AC_E_OPTIONAL_MODULE([systray], true)
@@ -867,24 +909,99 @@ AC_E_OPTIONAL_MODULE([lokker], true)
 AC_E_OPTIONAL_MODULE([shot], true, $ecore_x)
 AC_E_OPTIONAL_MODULE([backlight], true)
 AC_E_OPTIONAL_MODULE([tasks], true)
-AC_E_OPTIONAL_MODULE([conf_randr], true, $ecore_x)
+AC_E_OPTIONAL_MODULE([conf_randr], true)
 AC_E_OPTIONAL_MODULE([xkbswitch], true, $ecore_x)
 AC_E_OPTIONAL_MODULE([tiling], true)
-#AC_E_OPTIONAL_MODULE([access], false, $ecore_x)
 AC_E_OPTIONAL_MODULE([music_control], true, [CHECK_MODULE_MUSIC_CONTROL])
 AC_E_OPTIONAL_MODULE([packagekit], true)
+AC_E_OPTIONAL_MODULE([wl_desktop_shell], $have_wayland, [CHECK_MODULE_WL_DESKTOP_SHELL])
+AC_E_OPTIONAL_MODULE([wl_x11], $have_wayland, [CHECK_MODULE_WL_X11])
+AC_E_OPTIONAL_MODULE([wl_wl], $have_wayland, [CHECK_MODULE_WL_WL])
+#AC_E_OPTIONAL_MODULE([wl_fb], $have_wayland, [CHECK_MODULE_WL_FB])
+AC_E_OPTIONAL_MODULE([wl_drm], $have_wayland, [CHECK_MODULE_WL_DRM])
+AC_E_OPTIONAL_MODULE([wl_text_input], $have_wayland, [CHECK_MODULE_WL_TEXT_INPUT])
+AC_E_OPTIONAL_MODULE([wl_weekeyboard], $have_wayland, [CHECK_MODULE_WL_WEEKEYBOARD])
 AC_E_OPTIONAL_MODULE([policy_mobile], true)
+AC_E_OPTIONAL_MODULE([geolocation], true)
+AC_E_OPTIONAL_MODULE([xwayland], $have_wayland, [CHECK_MODULE_XWAYLAND])
+
+if test "x${HAVE_WL_X11}" != "xyes" && test "x${have_wayland}" = "xyes" && test "x${HAVE_XWAYLAND}" != "xyes"; then
+  AC_DEFINE_UNQUOTED([HAVE_WAYLAND_ONLY],[1],[enable wayland-only version of enlightenment])
+  have_wayland_only=yes
+else
+  have_wayland_only=no
+fi
+
+AM_CONDITIONAL([HAVE_WAYLAND_ONLY], [test "x${have_wayland_only}" = "xyes"])
+
+if test "x${have_wayland_only}" != "xyes"; then
+  PKG_CHECK_MODULES(E_ALERT, [
+    xcb
+    xcb-shape
+    xcb-keysyms
+    eina >= ${efl_version}
+    ecore >= ${efl_version}
+    ecore-ipc >= ${efl_version}
+  ])
+fi
+
+if test "x${have_wayland_only}" != "xyes"; then
+  e_requires="$e_requires ecore-x >= $efl_version"
+fi
+
+PKG_CHECK_MODULES(E, [$e_requires])
+requirements_e="\
+evas >= ${efl_version} \
+ecore >= ${efl_version} \
+ecore-evas >= ${efl_version} \
+ecore-con >= ${efl_version} \
+ecore-ipc >= ${efl_version} \
+ecore-file >= ${efl_version} \
+eet >= ${efl_version} \
+edje >= ${efl_version} \
+efreet >= ${efl_version} \
+efreet-mime >= ${efl_version} \
+efreet-trash >= ${efl_version} \
+eina >= ${efl_version} \
+eldbus >= ${efl_version} \
+eio >= ${efl_version} \
+eo >= ${efl_version} \
+elementary >= ${efl_version} \
+emotion >= ${efl_version} \
+$udisks_mount \
+$eeze_mount \
+$device_libs"
+if test "x${have_wayland_only}" != "xyes"; then
+  requirements_e="$requirements_e ecore-x >= $efl_version"
+fi
+
+e_libs="$E_LIBS $LIBINTL $fnmatch_libs $execinfo_libs"
+e_cflags="-DUSE_E_CONFIG_H $E_CFLAGS"
+e_configflags="-DUSE_E_CONFIG_H"
+
+AC_SUBST([e_libs])
+AC_SUBST([e_cflags])
+AC_SUBST([e_configflags])
+AC_SUBST([requirements_e])
 
 HALT="/sbin/shutdown -h now"
 REBOOT="/sbin/shutdown -r now"
 SUSPEND=""
 HIBERNATE=""
+MOUNT="/bin/mount"
+UMOUNT="/bin/umount"
+EJECT="/usr/bin/eject"
 case "$host_os" in
    freebsd*|pcbsd*)
-      SUSPEND="acpiconf -s3"
+      #SUSPEND="acpiconf -s3"
+      SUSPEND="/usr/sbin/zzz"
       AC_MSG_NOTICE([use suspend method: $SUSPEND])
       HIBERNATE="acpiconf -s4"
       AC_MSG_NOTICE([use hibernate method: $HIBERNATE])
+      HALT="/sbin/shutdown -p now"
+      MOUNT="/sbin/mount"
+      UMOUNT="/sbin/umount"
+      EJECT="/usr/sbin/cdcontrol eject"
       ;;
    *)
       if test "x${have_systemd_user_session}" = "xyes"; then
@@ -912,6 +1029,9 @@ AC_SUBST([HALT])
 AC_SUBST([REBOOT])
 AC_SUBST([SUSPEND])
 AC_SUBST([HIBERNATE])
+AC_SUBST([MOUNT])
+AC_SUBST([UMOUNT])
+AC_SUBST([EJECT])
 
 m4_ifndef([v_rel],
    [
@@ -929,6 +1049,12 @@ m4_ifndef([v_rel],
 
 SUID_CFLAGS=-fPIE
 SUID_LDFLAGS=-pie
+case "$host_os" in
+   freebsd*|pcbsd*)
+      SUID_CFLAGS=
+      SUID_LDFLAGS=
+      ;;
+esac
 AC_SUBST([SUID_CFLAGS])
 AC_SUBST([SUID_LDFLAGS])
 
@@ -979,11 +1105,13 @@ src/modules/quickaccess/module.desktop
 src/modules/teamwork/module.desktop
 src/modules/shot/module.desktop
 src/modules/backlight/module.desktop
+src/modules/geolocation/module.desktop
 src/modules/tasks/module.desktop
 src/modules/xkbswitch/module.desktop
 src/modules/tiling/module.desktop
 src/modules/music-control/module.desktop
 src/modules/packagekit/module.desktop
+src/modules/wl_desktop_shell/module.desktop
 data/xsession/enlightenment.desktop
 data/etc/sysactions.conf
 data/units/enlightenment.service
@@ -991,17 +1119,6 @@ doc/Doxyfile
 doc/e.dox
 $po_makefile_in
 ])
-#src/modules/access/module.desktop
-#src/modules/illume2/doc/illume.dox
-#src/modules/illume2/module.desktop
-#src/modules/illume-home/module.desktop
-#src/modules/illume-home-toggle/module.desktop
-#src/modules/illume-softkey/module.desktop
-#src/modules/illume-keyboard/module.desktop
-#src/modules/illume-indicator/module.desktop
-#src/modules/illume-kbd-toggle/module.desktop
-#src/modules/illume-mode-toggle/module.desktop
-#src/modules/illume-bluetooth/module.desktop
 
 # report
 txt_strip() {
@@ -1015,6 +1132,9 @@ Summary:
  * prefix..........: $(txt_strip $prefix)
  * CFLAGS..........: $(txt_strip $CFLAGS)
  * LDFLAGS.........: $(txt_strip $LDFLAGS)
+ * edje_cc.........: ${edje_cc}
+ * eet.............: ${eet_eet}
+ * eldbus-codegen..: ${eldbus_codegen}
 SUMMARY_EOF
 
 if test "$have_systemd_user_session" = "yes"; then

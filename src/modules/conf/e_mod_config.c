@@ -13,7 +13,7 @@ static int          _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfd
 static int          _basic_check_changed(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata);
 
 E_Config_Dialog *
-e_int_config_conf_module(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_conf_module(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd = NULL;
    E_Config_Dialog_View *v = NULL;
@@ -32,7 +32,7 @@ e_int_config_conf_module(E_Comp *comp, const char *params __UNUSED__)
    v->basic.check_changed = _basic_check_changed;
 
    snprintf(buf, sizeof(buf), "%s/e-module-conf.edj", conf->module->dir);
-   cfd = e_config_dialog_new(comp, _("Configuration Panel"), "Conf",
+   cfd = e_config_dialog_new(NULL, _("Configuration Panel"), "Conf",
                              "advanced/conf", buf, 0, v, NULL);
 
    conf->cfd = cfd;
@@ -40,7 +40,7 @@ e_int_config_conf_module(E_Comp *comp, const char *params __UNUSED__)
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd __UNUSED__)
+_create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = E_NEW(E_Config_Dialog_Data, 1);
    if (!cfdata) return NULL;
@@ -49,14 +49,14 @@ _create_data(E_Config_Dialog *cfd __UNUSED__)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    conf->cfd = NULL;
    E_FREE(cfdata);
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *o, *ow;
 
@@ -70,7 +70,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
 }
 
 static int
-_basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    conf->menu_augmentation = cfdata->menu_augmentation;
    if (conf->aug)
@@ -91,7 +91,7 @@ _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    return conf->menu_augmentation != cfdata->menu_augmentation;
 }

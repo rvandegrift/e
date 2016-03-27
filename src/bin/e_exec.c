@@ -55,7 +55,7 @@ static void        _e_exec_cb_exec_new_free(void *data, void *event);
 static void _e_exec_cb_exec_new_client_free(void *data, void *ev);
 static void        _e_exec_cb_exec_del_free(void *data, void *event);
 static void _e_exe_instance_watchers_call(E_Exec_Instance *inst, E_Exec_Watch_Type type);
-static Eina_Bool        _e_exec_startup_id_pid_find(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *value, void *data);
+static Eina_Bool        _e_exec_startup_id_pid_find(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *value, void *data);
 
 static void             _e_exec_error_dialog(Efreet_Desktop *desktop, const char *exec, Ecore_Exe_Event_Del *event, Ecore_Exe_Event_Data *error, Ecore_Exe_Event_Data *read);
 static void             _fill_data(E_Config_Dialog_Data *cfdata);
@@ -159,22 +159,20 @@ e_exec(E_Zone *zone, Efreet_Desktop *desktop, const char *exec,
 
              if (dosingle)
                {
-                  const Eina_List *l, *ll;
+                  const Eina_List *l;
                   E_Client *ec;
-                  E_Comp *c;
 
-                  EINA_LIST_FOREACH(e_comp_list(), l, c)
-                    EINA_LIST_FOREACH(c->clients, ll, ec)
-                      {
-                         if (ec && (ec->desktop == desktop))
-                           {
-                              if (!ec->focused)
-                                e_client_activate(ec, EINA_TRUE);
-                              else
-                                evas_object_raise(ec->frame);
-                              return NULL;
-                           }
-                      }
+                  EINA_LIST_FOREACH(e_comp->clients, l, ec)
+                    {
+                       if (ec && (ec->desktop == desktop))
+                         {
+                            if (!ec->focused)
+                              e_client_activate(ec, EINA_TRUE);
+                            else
+                              evas_object_raise(ec->frame);
+                            return NULL;
+                         }
+                    }
                }
           }
      }
@@ -360,8 +358,9 @@ e_exec_instance_found(E_Exec_Instance *inst)
 E_API void
 e_exec_instance_client_add(E_Exec_Instance *inst, E_Client *ec)
 {
-   e_object_ref(E_OBJECT(ec));
    inst->clients = eina_list_append(inst->clients, ec);
+   REFD(ec, 2);
+   e_object_ref(E_OBJECT(ec));
    ec->exe_inst = inst;
    inst->ref++;
    ecore_event_add(E_EVENT_EXEC_NEW_CLIENT, inst, _e_exec_cb_exec_new_client_free, ec);
@@ -412,7 +411,6 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    E_Exec_Launch *launch;
    Eina_List *l, *lnew;
    Ecore_Exe *exe = NULL;
-   const char *penv_display;
    char buf[4096];
 
    launch = data;
@@ -426,60 +424,10 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
         if (startup_id < 0) startup_id = 0;
      }
    if (++startup_id < 1) startup_id = 1;
-   /* save previous env vars we need to save */
-   penv_display = getenv("DISPLAY");
-   if ((penv_display) && (launch->zone))
-     {
-        const char *p1, *p2;
-        char buf2[32];
-        char *buf3 = NULL;
-        int head;
-        int head_length;
-        int penv_display_length;
-
-        head = launch->zone->comp->num;
-
-        penv_display_length = strlen(penv_display);
-        /* Check for insane length for DISPLAY env */
-        if (penv_display_length + 32 > 4096)
-          {
-             free(inst);
-             return NULL;
-          }
-
-        /* buf2 = '.%i' */
-        *buf2 = '.';
-        head_length = eina_convert_itoa(head, buf2 + 1) + 2;
-
-        /* set env vars */
-        p1 = strrchr(penv_display, ':');
-        p2 = strrchr(penv_display, '.');
-        if ((p1) && (p2) && (p2 > p1)) /* "blah:x.y" */
-          {
-             buf3 = alloca((p2 - penv_display) + head_length + 1);
-
-             memcpy(buf3, penv_display, p2 - penv_display);
-             memcpy(buf3 + (p2 - penv_display), buf2, head_length);
-          }
-        else if (p1) /* "blah:x */
-          {
-             buf3 = alloca(penv_display_length + head_length);
-
-             memcpy(buf3, penv_display, penv_display_length);
-             memcpy(buf3 + penv_display_length, buf2, head_length);
-          }
-        else
-          {
-             buf3 = alloca(penv_display_length + 1);
-             memcpy(buf3, penv_display, penv_display_length + 1);
-          }
-
-        e_util_env_set("DISPLAY", buf3);
-     }
    snprintf(buf, sizeof(buf), "E_START|%i", startup_id);
    e_util_env_set("DESKTOP_STARTUP_ID", buf);
 
-   // dont set vsync for clients - maybe inherited from compositore. fixme:
+   // don't set vsync for clients - maybe inherited from compositor. fixme:
    // need a way to still inherit from parent env of wm.
    e_util_env_set("__GL_SYNC_TO_VBLANK", NULL);
 
@@ -569,8 +517,6 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
           exe = ecore_exe_run(exec, inst);
      }
 
-   if (penv_display)
-     e_util_env_set("DISPLAY", penv_display);
    if (!exe)
      {
         free(inst);
@@ -664,7 +610,7 @@ _e_exec_instance_free(E_Exec_Instance *inst)
    if (!inst->deleted)
      {
         inst->deleted = 1;
-        E_LIST_FOREACH(inst->clients, e_object_ref);
+        inst->ref++;
         ecore_event_add(E_EVENT_EXEC_DEL, inst, _e_exec_cb_exec_del_free, inst);
         return;
      }
@@ -675,7 +621,6 @@ _e_exec_instance_free(E_Exec_Instance *inst)
    EINA_LIST_FREE(inst->clients, ec)
      {
         ec->exe_inst = NULL;
-        e_object_unref(E_OBJECT(ec));
      }
    if (inst->desktop) efreet_desktop_free(inst->desktop);
    if (!inst->phony)
@@ -698,10 +643,12 @@ static void
 _e_exec_cb_exec_new_client_free(void *data, void *ev)
 {
    E_Exec_Instance *inst = ev;
+   E_Client *ec = data;
 
    inst->ref--;
    _e_exec_instance_free(inst);
-   e_object_unref(data);
+   UNREFD(ec, 1);
+   e_object_unref(E_OBJECT(ec));
 }
 
 static void
@@ -716,11 +663,14 @@ _e_exec_cb_exec_new_free(void *data, void *ev EINA_UNUSED)
 static void
 _e_exec_cb_exec_del_free(void *data, void *ev EINA_UNUSED)
 {
-   _e_exec_instance_free(data);
+   E_Exec_Instance *inst = data;
+
+   inst->ref--;
+   _e_exec_instance_free(inst);
 }
 
 static Eina_Bool
-_e_exec_cb_exit(void *data __UNUSED__, int type __UNUSED__, void *event)
+_e_exec_cb_exit(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Exe_Event_Del *ev;
    E_Exec_Instance *inst;
@@ -765,7 +715,7 @@ _e_exec_cb_exit(void *data __UNUSED__, int type __UNUSED__, void *event)
                   e_dialog_text_set(dia, buf);
                   e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
                   e_dialog_button_focus_num(dia, 1);
-                  e_win_centered_set(dia->win, 1);
+                  elm_win_center(dia->win, 1, 1);
                   e_dialog_show(dia);
                }
           }
@@ -841,7 +791,7 @@ _e_exec_cb_desktop_update(void *data EINA_UNUSED, int type EINA_UNUSED, void *ev
 }
 
 static Eina_Bool
-_e_exec_startup_id_pid_find(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *value, void *data)
+_e_exec_startup_id_pid_find(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *value, void *data)
 {
    E_Exec_Search *search;
    E_Exec_Instance *inst;
@@ -992,7 +942,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    if (cfdata->error) ecore_exe_event_data_free(cfdata->error);
    if (cfdata->read) ecore_exe_event_data_free(cfdata->read);
@@ -1054,7 +1004,7 @@ _dialog_scrolltext_create(Evas *evas, char *title, Ecore_Exe_Event_Data_Line *li
 }
 
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    char buf[4096];
    int error_length = 0;
@@ -1097,7 +1047,7 @@ _basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dial
 }
 
 static Evas_Object *
-_advanced_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_advanced_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    char buf[4096];
    int read_length = 0;
@@ -1107,7 +1057,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_D
    _fill_data(cfdata);
 
    o = e_widget_list_add(evas, 0, 0);
-   ot = e_widget_table_add(evas, 0);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), 0);
 
    ob = e_widget_label_add(evas, cfdata->label);
    e_widget_list_object_append(o, ob, 1, 1, 0.5);
@@ -1180,7 +1130,7 @@ _advanced_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_D
 }
 
 static void
-_dialog_save_cb(void *data __UNUSED__, void *data2)
+_dialog_save_cb(void *data EINA_UNUSED, void *data2)
 {
    E_Config_Dialog_Data *cfdata;
    FILE *f;

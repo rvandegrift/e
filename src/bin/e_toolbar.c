@@ -24,7 +24,7 @@ static Eina_List *toolbars = NULL;
 static E_Gadcon_Location *tb_location = NULL;
 
 static void
-_tb_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *info __UNUSED__)
+_tb_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *info EINA_UNUSED)
 {
    E_Toolbar *tbar = data;
    Evas_Coord w, h;
@@ -150,7 +150,7 @@ e_toolbar_shutdown(void)
 }
 
 E_API E_Toolbar *
-e_toolbar_new(Evas *evas, const char *name, E_Win *fwin, Evas_Object *fm2)
+e_toolbar_new(Evas *evas, const char *name, Evas_Object *fwin, Evas_Object *fm2)
 {
    E_Toolbar *tbar = NULL;
 
@@ -201,7 +201,7 @@ e_toolbar_new(Evas *evas, const char *name, E_Win *fwin, Evas_Object *fm2)
 
    e_gadcon_toolbar_set(tbar->gadcon, tbar);
    tbar->gadcon->location = tb_location;
-   e_gadcon_ecore_evas_set(tbar->gadcon, tbar->fwin->ecore_evas);
+   e_gadcon_ecore_evas_set(tbar->gadcon, ecore_evas_ecore_evas_get(evas_object_evas_get(tbar->fwin)));
    e_gadcon_util_menu_attach_func_set(tbar->gadcon,
                                       _e_toolbar_menu_items_append, tbar);
    e_gadcon_populate(tbar->gadcon);
@@ -212,14 +212,14 @@ e_toolbar_new(Evas *evas, const char *name, E_Win *fwin, Evas_Object *fm2)
 }
 
 E_API void
-e_toolbar_fwin_set(E_Toolbar *tbar, E_Win *fwin)
+e_toolbar_fwin_set(E_Toolbar *tbar, Evas_Object *fwin)
 {
    E_OBJECT_CHECK(tbar);
    E_OBJECT_TYPE_CHECK(tbar, E_TOOLBAR_TYPE);
    tbar->fwin = fwin;
 }
 
-E_API E_Win *
+E_API Evas_Object *
 e_toolbar_fwin_get(E_Toolbar *tbar)
 {
    E_OBJECT_CHECK_RETURN(tbar, NULL);
@@ -298,7 +298,7 @@ _e_toolbar_free(E_Toolbar *tbar)
 }
 
 static void
-_e_toolbar_cb_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_e_toolbar_cb_mouse_down(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Event_Mouse_Down *ev;
    E_Toolbar *tbar;
@@ -313,14 +313,14 @@ _e_toolbar_cb_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj __U
    e_menu_post_deactivate_callback_set(mn, _e_toolbar_menu_cb_post, tbar);
    tbar->menu = mn;
    _e_toolbar_menu_append(tbar, mn);
-   zone = e_util_zone_current_get(e_manager_current_get());
-   ecore_evas_pointer_xy_get(zone->comp->ee, &x, &y);
+   zone = e_zone_current_get();
+   ecore_evas_pointer_xy_get(e_comp->ee, &x, &y);
    e_menu_activate_mouse(mn, zone, x, y, 1, 1,
                          E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
 }
 
 static void
-_e_toolbar_menu_cb_post(void *data, E_Menu *mn __UNUSED__)
+_e_toolbar_menu_cb_post(void *data, E_Menu *mn EINA_UNUSED)
 {
    E_Toolbar *tbar;
 
@@ -363,7 +363,7 @@ _e_toolbar_menu_cb_pre(void *data, E_Menu *mn)
 }
 
 static void
-_e_toolbar_menu_items_append(void *data, E_Gadcon_Client *gcc __UNUSED__, E_Menu *mn)
+_e_toolbar_menu_items_append(void *data, E_Gadcon_Client *gcc EINA_UNUSED, E_Menu *mn)
 {
    E_Toolbar *tbar;
 
@@ -387,7 +387,7 @@ _e_toolbar_menu_append(E_Toolbar *tbar, E_Menu *mn)
 }
 /*
 static void
-_e_toolbar_menu_cb_edit(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_toolbar_menu_cb_edit(void *data, E_Menu *mn EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Toolbar *tbar;
 
@@ -399,7 +399,7 @@ _e_toolbar_menu_cb_edit(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi __UNU
 }
 */
 static void
-_e_toolbar_menu_cb_config(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_toolbar_menu_cb_config(void *data, E_Menu *mn EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Toolbar *tbar;
 
@@ -408,7 +408,7 @@ _e_toolbar_menu_cb_config(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi __U
 }
 /*
 static void
-_e_toolbar_menu_cb_contents(void *data, E_Menu *mn __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_e_toolbar_menu_cb_contents(void *data, E_Menu *mn EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Toolbar *tbar;
 
@@ -486,7 +486,7 @@ _e_toolbar_orient_string_get(E_Toolbar *tbar)
 }
 
 static void
-_e_toolbar_fm2_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_toolbar_fm2_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Toolbar *tbar;
    Eina_List *l = NULL;
@@ -502,7 +502,7 @@ _e_toolbar_fm2_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info
 }
 
 static void
-_e_toolbar_fm2_dir_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_toolbar_fm2_dir_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Toolbar *tbar;
    Eina_List *l = NULL;
@@ -518,7 +518,7 @@ _e_toolbar_fm2_dir_changed(void *data, Evas_Object *obj __UNUSED__, void *event_
 }
 
 static void
-_e_toolbar_fm2_dir_deleted(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_toolbar_fm2_dir_deleted(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Toolbar *tbar;
    Eina_List *l = NULL;
@@ -534,7 +534,7 @@ _e_toolbar_fm2_dir_deleted(void *data, Evas_Object *obj __UNUSED__, void *event_
 }
 
 static void
-_e_toolbar_fm2_files_deleted(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_toolbar_fm2_files_deleted(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Toolbar *tbar;
    Eina_List *l = NULL;
@@ -550,7 +550,7 @@ _e_toolbar_fm2_files_deleted(void *data, Evas_Object *obj __UNUSED__, void *even
 }
 
 static void
-_e_toolbar_fm2_selected(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_toolbar_fm2_selected(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Toolbar *tbar;
    Eina_List *l = NULL;
@@ -566,7 +566,7 @@ _e_toolbar_fm2_selected(void *data, Evas_Object *obj __UNUSED__, void *event_inf
 }
 
 static void
-_e_toolbar_fm2_selection_changed(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_toolbar_fm2_selection_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Toolbar *tbar;
    Eina_List *l = NULL;

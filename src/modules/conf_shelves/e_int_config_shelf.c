@@ -39,7 +39,7 @@ struct _E_Config_Dialog_Data
 static E_Config_Dialog_Data *_cfdata;
 
 E_Config_Dialog *
-e_int_config_shelf(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_shelf(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -52,14 +52,14 @@ e_int_config_shelf(E_Comp *comp, const char *params __UNUSED__)
    v->free_cfdata = _free_data;
    v->basic.create_widgets = _basic_create;
 
-   cfd = e_config_dialog_new(comp, _("Shelf Settings"), "E",
+   cfd = e_config_dialog_new(NULL, _("Shelf Settings"), "E",
                              "extensions/shelves",
                              "preferences-desktop-shelf", 0, v, NULL);
    return cfd;
 }
 
 static Eina_Bool
-_shelf_handler_rename_cb(E_Config_Dialog_Data *cfdata, int type __UNUSED__, E_Event_Shelf *ev)
+_shelf_handler_rename_cb(E_Config_Dialog_Data *cfdata, int type EINA_UNUSED, E_Event_Shelf *ev)
 {
    const Eina_List *l;
    E_Ilist_Item *ili;
@@ -74,12 +74,12 @@ _shelf_handler_rename_cb(E_Config_Dialog_Data *cfdata, int type __UNUSED__, E_Ev
 }
 
 static Eina_Bool
-_shelf_handler_cb(E_Config_Dialog_Data *cfdata, int type __UNUSED__, E_Event_Shelf_Add *ev)
+_shelf_handler_cb(E_Config_Dialog_Data *cfdata, int type EINA_UNUSED, E_Event_Shelf_Add *ev)
 {
    E_Zone *zone;
 
-   if (!cfdata->cfd->dia->win->client) return ECORE_CALLBACK_RENEW;
-   zone = cfdata->cfd->dia->win->client->zone;
+   zone = e_comp_object_util_zone_get(cfdata->cfd->dia->win);
+   if (!zone) return ECORE_CALLBACK_RENEW;
    if (ev->shelf->zone == zone)
    _ilist_item_new(cfdata, 1, ev->shelf);
    return ECORE_CALLBACK_RENEW;
@@ -95,13 +95,13 @@ _create_data(E_Config_Dialog *cfd)
    E_LIST_HANDLER_APPEND(cfdata->handlers, E_EVENT_SHELF_ADD, _shelf_handler_cb, cfdata);
    E_LIST_HANDLER_APPEND(cfdata->handlers, E_EVENT_SHELF_RENAME, _shelf_handler_rename_cb, cfdata);
    cfdata->cfd = cfd;
-   cfd->dia->win->state.no_reopen = EINA_TRUE;
+   e_win_no_reopen_set(cfd->dia->win, 1);
    _cfdata = cfdata;
    return cfdata;
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    E_Shelf *es;
    EINA_LIST_FREE(cfdata->shelves, es)
@@ -116,15 +116,16 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static Evas_Object *
-_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    Evas_Object *ol, *ow, *ot, *of;
    char buf[64];
    E_Zone *zone;
 
+   e_dialog_resizable_set(cfd->dia, 1);
    
    ol = e_widget_list_add(evas, 0, 0);
-   zone = cfdata->cfd->dia->win->client ? cfdata->cfd->dia->win->client->zone : e_zone_current_get(cfdata->cfd->comp);
+   zone = e_zone_current_get();
    snprintf(buf, sizeof(buf), _("Configured Shelves: Display %d"), zone->num);
    of = e_widget_framelist_add(evas, buf, 0);
    cfdata->o_list = e_widget_ilist_add(evas, 24, 24, &(cfdata->cur_shelf));
@@ -132,7 +133,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
    e_widget_framelist_object_append(of, cfdata->o_list);
    e_widget_list_object_append(ol, of, 1, 1, 0.5);
 
-   ot = e_widget_table_add(evas, 0);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), 0);
    cfdata->o_add = ow = e_widget_button_add(evas, _("Add"), "list-add", _cb_add, cfdata, NULL);
    e_widget_table_object_append(ot, ow, 0, 0, 1, 1, 1, 1, 0, 0);
    cfdata->o_delete = e_widget_button_add(evas, _("Delete"), "list-remove",
@@ -160,7 +161,7 @@ _basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data 
 
 /* private functions */
 static void
-_ilist_refresh(E_Shelf *es __UNUSED__)
+_ilist_refresh(E_Shelf *es EINA_UNUSED)
 {
    _ilist_empty(_cfdata);
    _ilist_fill(_cfdata);
@@ -211,10 +212,10 @@ _ilist_empty(E_Config_Dialog_Data *cfdata)
    E_Desk *desk;
    E_Zone *zone;
 
-   if ((!cfdata) || (!cfdata->cfd) || (!cfdata->cfd->comp) || (!cfdata->cfd->comp->man)) return;
-   zone = cfdata->cfd->dia->win->client ? cfdata->cfd->dia->win->client->zone : e_zone_current_get(cfdata->cfd->comp);
+   if ((!cfdata) || (!cfdata->cfd)) return;
+   zone = e_comp_object_util_zone_get(cfdata->cfd->dia->win);
    if (!zone) return;
-   desk = cfdata->cfd->dia->win->client ? cfdata->cfd->dia->win->client->desk : e_desk_current_get(zone);
+   desk = e_desk_current_get(zone);
    EINA_LIST_FOREACH(e_shelf_list(), l, es)
      {
         if (es->zone != zone) continue;
@@ -264,7 +265,7 @@ _ilist_fill(E_Config_Dialog_Data *cfdata)
    e_widget_ilist_freeze(cfdata->o_list);
    e_widget_ilist_clear(cfdata->o_list);
    e_widget_ilist_go(cfdata->o_list);
-   zone = cfdata->cfd->dia->win->client ? cfdata->cfd->dia->win->client->zone : e_zone_current_get(cfdata->cfd->comp);
+   zone = e_comp_object_util_zone_get(cfdata->cfd->dia->win);
    desk = e_desk_current_get(zone);
 
    EINA_LIST_FOREACH(e_shelf_list(), l, es)
@@ -315,7 +316,7 @@ _ilist_fill(E_Config_Dialog_Data *cfdata)
 }
 
 static void
-_ilist_cb_selected(void *data __UNUSED__)
+_ilist_cb_selected(void *data EINA_UNUSED)
 {
    _widgets_disable(_cfdata, 0, EINA_TRUE);
 }
@@ -337,7 +338,7 @@ _new_shelf_cb_close(void *data)
 }
 
 static void
-_cb_add(void *data, void *data2 __UNUSED__)
+_cb_add(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    E_Zone *zone;
@@ -345,7 +346,7 @@ _cb_add(void *data, void *data2 __UNUSED__)
    cfdata = data;
    if (!cfdata) return;
 
-   zone = cfdata->cfd->dia->win->client ? cfdata->cfd->dia->win->client->zone : e_zone_current_get(cfdata->cfd->comp);
+   zone = e_comp_object_util_zone_get(cfdata->cfd->dia->win);
    cfdata->dia_new_shelf = e_shelf_new_dialog(zone);
    e_object_data_set(E_OBJECT(cfdata->dia_new_shelf), cfdata);
    e_object_del_attach_func_set(E_OBJECT(cfdata->dia_new_shelf), _new_shelf_cb_close);
@@ -354,7 +355,7 @@ _cb_add(void *data, void *data2 __UNUSED__)
 }
 
 static void
-_cb_rename(void *data, void *d __UNUSED__)
+_cb_rename(void *data, void *d EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = data;
    E_Shelf *es;
@@ -363,7 +364,7 @@ _cb_rename(void *data, void *d __UNUSED__)
 }
 
 static void
-_cb_delete(void *data, void *data2 __UNUSED__)
+_cb_delete(void *data, void *data2 EINA_UNUSED)
 {
    char buf[1024];
    E_Config_Dialog_Data *cfdata = data;
@@ -423,13 +424,13 @@ _cb_dialog_destroy(void *data)
 }
 
 static void
-_cb_config_end(void *data __UNUSED__)
+_cb_config_end(void *data EINA_UNUSED)
 {
    e_widget_disabled_set(_cfdata->o_list, 0);
 }
 
 static void
-_cb_config(void *data, void *data2 __UNUSED__)
+_cb_config(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    E_Shelf *es;
@@ -445,13 +446,13 @@ _cb_config(void *data, void *data2 __UNUSED__)
 }
 
 static void
-_cb_contents_end(void *data __UNUSED__)
+_cb_contents_end(void *data EINA_UNUSED)
 {
    e_widget_disabled_set(_cfdata->o_list, 0);
 }
 
 static void
-_cb_contents(void *data, void *data2 __UNUSED__)
+_cb_contents(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    E_Shelf *es;

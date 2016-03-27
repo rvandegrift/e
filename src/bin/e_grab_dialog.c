@@ -8,7 +8,7 @@
                                              "<br>Press <hilight>Escape</hilight> to abort.")
 
 static Eina_Bool
-_e_grab_dialog_key_handler(void *data, int type __UNUSED__, Ecore_Event_Key *ev)
+_e_grab_dialog_key_handler(void *data, int type EINA_UNUSED, Ecore_Event_Key *ev)
 {
    E_Grab_Dialog *eg = data;
 
@@ -33,7 +33,7 @@ _e_grab_dialog_key_handler(void *data, int type __UNUSED__, Ecore_Event_Key *ev)
 }
 
 static Eina_Bool
-_e_grab_dialog_wheel_handler(void *data, int type __UNUSED__, Ecore_Event_Mouse_Wheel *ev)
+_e_grab_dialog_wheel_handler(void *data, int type EINA_UNUSED, Ecore_Event_Mouse_Wheel *ev)
 {
    E_Grab_Dialog *eg = data;
 
@@ -49,7 +49,7 @@ _e_grab_dialog_wheel_handler(void *data, int type __UNUSED__, Ecore_Event_Mouse_
 }
 
 static Eina_Bool
-_e_grab_dialog_mouse_handler(void *data, int type __UNUSED__, Ecore_Event_Mouse_Button *ev)
+_e_grab_dialog_mouse_handler(void *data, int type EINA_UNUSED, Ecore_Event_Mouse_Button *ev)
 {
    E_Grab_Dialog *eg = data;
 
@@ -73,24 +73,23 @@ _e_grab_dialog_free(E_Grab_Dialog *eg)
      {
         e_grabinput_release(eg->grab_win, eg->grab_win);
 #ifndef HAVE_WAYLAND_ONLY
-        ecore_x_window_free(eg->grab_win);
+        if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+          ecore_x_window_free(eg->grab_win);
+        else
 #endif
+          e_comp_ungrab_input(1, 1);
      }
    E_FREE_LIST(eg->handlers, ecore_event_handler_del);
+   e_bindings_disabled_set(0);
 
    e_object_del(E_OBJECT(eg->dia));
    free(eg);
 }
 
 static void
-_e_grab_dialog_delete(E_Win *win)
+_e_grab_dialog_delete(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   E_Dialog *dia;
-   E_Grab_Dialog *eg;
-
-   dia = win->data;
-   eg = dia->data;
-   e_object_del(E_OBJECT(eg));
+   e_object_del(data);
 }
 
 static void
@@ -102,48 +101,51 @@ _e_grab_dialog_dia_del(void *data)
 }
 
 E_API E_Grab_Dialog *
-e_grab_dialog_show(E_Win *parent, Eina_Bool is_mouse, Ecore_Event_Handler_Cb key, Ecore_Event_Handler_Cb mouse, Ecore_Event_Handler_Cb wheel, const void *data)
+e_grab_dialog_show(Evas_Object *parent, Eina_Bool is_mouse, Ecore_Event_Handler_Cb key, Ecore_Event_Handler_Cb mouse, Ecore_Event_Handler_Cb wheel, const void *data)
 {
-   E_Comp *c = NULL;
    E_Grab_Dialog *eg;
    Ecore_Event_Handler *eh;
 
    if (parent)
-     {
-        c = parent->comp;
-        evas_object_focus_set(parent->client->frame, 0);
-     }
-   else
-     c = e_comp_get(NULL);
+     evas_object_focus_set(e_win_client_get(parent)->frame, 0);
 
    eg = E_OBJECT_ALLOC(E_Grab_Dialog, E_GRAB_DIALOG_TYPE, _e_grab_dialog_free);
    if (!eg) return NULL;
 
    if (is_mouse)
      {
-        eg->dia = e_dialog_new(c, "E", "_mousebind_getmouse_dialog");
+        eg->dia = e_dialog_new(parent, "E", "_mousebind_getmouse_dialog");
         e_dialog_title_set(eg->dia, _("Mouse Binding Combination"));
         e_dialog_icon_set(eg->dia, "preferences-desktop-mouse", 48);
         e_dialog_text_set(eg->dia, TEXT_PRESS_MOUSE_BINIDING_SEQUENCE);
      }
    else
      {
-        eg->dia = e_dialog_new(c, "E", "_keybind_getkey_dialog");
+        eg->dia = e_dialog_new(parent, "E", "_keybind_getkey_dialog");
         e_dialog_title_set(eg->dia, _("Key Binding Combination"));
         e_dialog_icon_set(eg->dia, "preferences-desktop-keyboard-shortcuts", 48);
         e_dialog_text_set(eg->dia, TEXT_PRESS_KEY_SEQUENCE);
      }
    eg->dia->data = eg;
-   e_win_centered_set(eg->dia->win, 1);
-   e_win_borderless_set(eg->dia->win, 1);
+   elm_win_center(eg->dia->win, 1, 1);
+   elm_win_borderless_set(eg->dia->win, 1);
+   e_dialog_resizable_set(eg->dia, 0);
    e_object_del_attach_func_set(E_OBJECT(eg->dia), _e_grab_dialog_dia_del);
-   e_win_delete_callback_set(eg->dia->win, _e_grab_dialog_delete);
+   evas_object_event_callback_add(eg->dia->win, EVAS_CALLBACK_DEL, _e_grab_dialog_delete, eg);
 
 #ifndef HAVE_WAYLAND_ONLY
-   eg->grab_win = ecore_x_window_input_new(c->man->root, 0, 0, 1, 1);
-   ecore_x_window_show(eg->grab_win);
-   e_grabinput_get(eg->grab_win, 0, eg->grab_win);
+   if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+     {
+        eg->grab_win = ecore_x_window_input_new(e_comp->root, 0, 0, 1, 1);
+        ecore_x_window_show(eg->grab_win);
+        e_grabinput_get(eg->grab_win, 0, eg->grab_win);
+     }
+   else
 #endif
+     {
+        e_comp_grab_input(1, 1);
+        eg->grab_win = e_comp->ee_win;
+     }
 
    eg->key = key;
    eg->mouse = mouse;
@@ -160,9 +162,8 @@ e_grab_dialog_show(E_Win *parent, Eina_Bool is_mouse, Ecore_Event_Handler_Cb key
         eg->handlers = eina_list_append(eg->handlers, eh);
      }
    e_dialog_show(eg->dia);
-   evas_object_layer_set(eg->dia->win->client->frame, E_LAYER_CLIENT_ABOVE);
-   if (parent)
-     e_dialog_parent_set(eg->dia, parent);
+   evas_object_layer_set(e_win_client_get(eg->dia->win)->frame, E_LAYER_CLIENT_PRIO);
+   e_bindings_disabled_set(1);
    return eg;
 }
 

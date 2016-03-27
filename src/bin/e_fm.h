@@ -6,12 +6,12 @@ typedef enum _E_Fm2_View_Mode
 {
    E_FM2_VIEW_MODE_ICONS, /* regular layout row by row like text */
    E_FM2_VIEW_MODE_GRID_ICONS, /* regular grid layout */
-   E_FM2_VIEW_MODE_CUSTOM_ICONS, /* icons go anywhere u drop them (desktop) */
+   E_FM2_VIEW_MODE_CUSTOM_ICONS, /* icons go anywhere you drop them (desktop) */
 
    /* FIXME: not going to implement this at this stage */
-   E_FM2_VIEW_MODE_CUSTOM_GRID_ICONS, /* icons go anywhere u drop them but align to a grid */
+   E_FM2_VIEW_MODE_CUSTOM_GRID_ICONS, /* icons go anywhere you drop them but align to a grid */
    /* FIXME: not going to implement this at this stage */
-   E_FM2_VIEW_MODE_CUSTOM_SMART_GRID_ICONS, /* icons go anywhere u drop them but try align to icons nearby */
+   E_FM2_VIEW_MODE_CUSTOM_SMART_GRID_ICONS, /* icons go anywhere you drop them but try align to icons nearby */
    /* FIXME: not going to implement this at this stage */
    E_FM2_VIEW_MODE_LIST /* vertical fileselector list */
 } E_Fm2_View_Mode;
@@ -181,6 +181,7 @@ E_API void             e_fm2_view_flags_set(Evas_Object *obj, E_Fm2_View_Flags f
 E_API E_Fm2_View_Flags e_fm2_view_flags_get(Evas_Object *obj);
 E_API E_Object         *e_fm2_window_object_get(Evas_Object *obj);
 E_API void             e_fm2_window_object_set(Evas_Object *obj, E_Object *eobj);
+E_API void             e_fm2_window_set(Evas_Object *obj, Evas_Object *win);
 E_API void             e_fm2_icons_update(Evas_Object *obj);
 
 E_API void             e_fm2_pan_set(Evas_Object *obj, Evas_Coord x, Evas_Coord y);
@@ -221,5 +222,6 @@ E_API int              _e_fm2_client_mount(const char *udi, const char *mountpoi
 E_API int              _e_fm2_client_unmount(const char *udi);
 E_API void             _e_fm2_file_force_update(const char *path);
 
+E_API E_Fm2_Icon      *e_fm2_icon_editing_get(Evas_Object *obj);
 #endif
 #endif

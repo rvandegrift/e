@@ -32,7 +32,7 @@ struct _E_Widget_Data
 
 /* Externally accessible functions */
 E_API Evas_Object *
-e_widget_config_list_add(Evas *evas, Evas_Object * (*func_entry_add)(Evas * evas, char **val, void (*func)(void *data, void *data2), void *data, void *data2), const char *label, int listspan __UNUSED__)
+e_widget_config_list_add(Evas *evas, Evas_Object * (*func_entry_add)(Evas_Object *, char **val, void (*func)(void *data, void *data2), void *data, void *data2), const char *label, int listspan EINA_UNUSED)
 {
    Evas_Object *obj, *o;
    E_Widget_Data *wd;
@@ -44,14 +44,14 @@ e_widget_config_list_add(Evas *evas, Evas_Object * (*func_entry_add)(Evas * evas
    wd = E_NEW(E_Widget_Data, 1);
    e_widget_data_set(obj, wd);
 
-   o = e_widget_table_add(evas, 0);
+   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
    wd->gui.table = o;
    e_widget_sub_object_add(obj, o);
 
    o = e_widget_label_add(evas, label);
    e_widget_table_object_append(wd->gui.table, o, 0, 1, 2, 1, 1, 0, 1, 0);
 
-   o = func_entry_add(evas, &(wd->cur_entry), NULL, NULL, NULL);
+   o = func_entry_add(e_win_evas_win_get(evas), &(wd->cur_entry), NULL, NULL, NULL);
    wd->gui.entry = o;
    e_widget_disabled_set(o, 1);
    e_widget_size_min_set(o, 100, 25);
@@ -153,7 +153,7 @@ e_widget_config_list_object_append(Evas_Object *obj, Evas_Object *sobj, int col,
 
 /* Private Function defs */
 static void
-_list_cb_change(void *data, Evas_Object *obj __UNUSED__)
+_list_cb_change(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Widget_Data *wd;
    int indx;
@@ -195,7 +195,7 @@ _button_cb_add(void *data, void *obj)
 }
 
 static void
-_button_cb_remove(void *data, void *obj __UNUSED__)
+_button_cb_remove(void *data, void *obj EINA_UNUSED)
 {
    E_Widget_Data *wd;
    int indx, count;
@@ -213,7 +213,7 @@ _button_cb_remove(void *data, void *obj __UNUSED__)
 }
 
 static void
-_button_cb_up(void *data, void *obj __UNUSED__)
+_button_cb_up(void *data, void *obj EINA_UNUSED)
 {
    E_Widget_Data *wd;
    int idx_sel;
@@ -234,7 +234,7 @@ _button_cb_up(void *data, void *obj __UNUSED__)
 }
 
 static void
-_button_cb_down(void *data, void *obj __UNUSED__)
+_button_cb_down(void *data, void *obj EINA_UNUSED)
 {
    E_Widget_Data *wd;
    int idx_sel;

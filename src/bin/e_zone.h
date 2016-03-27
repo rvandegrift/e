@@ -15,13 +15,15 @@ typedef enum _E_Zone_Edge
 
 typedef struct _E_Zone                      E_Zone;
 
-typedef struct _E_Event_Zone_Desk_Count_Set E_Event_Zone_Desk_Count_Set;
-typedef struct _E_Event_Zone_Move_Resize    E_Event_Zone_Move_Resize;
-typedef struct _E_Event_Zone_Add            E_Event_Zone_Add;
-typedef struct _E_Event_Zone_Del            E_Event_Zone_Del;
+typedef struct _E_Event_Zone_Generic        E_Event_Zone_Desk_Count_Set;
+typedef struct _E_Event_Zone_Generic        E_Event_Zone_Move_Resize;
+typedef struct _E_Event_Zone_Generic        E_Event_Zone_Add;
+typedef struct _E_Event_Zone_Generic        E_Event_Zone_Del;
 /* TODO: Move this to a general place? */
 typedef struct _E_Event_Pointer_Warp        E_Event_Pointer_Warp;
 typedef struct _E_Event_Zone_Edge           E_Event_Zone_Edge;
+typedef struct _E_Event_Zone_Generic        E_Event_Zone_Stow;
+typedef struct _E_Event_Zone_Generic        E_Event_Zone_Unstow;
 
 #else
 #ifndef E_ZONE_H
@@ -38,7 +40,6 @@ struct _E_Zone
    /* num matches the id of the xinerama screen
     * this zone belongs to. */
    unsigned int num;
-   E_Comp *comp;
    int          fullscreen;
 
    Evas_Object *bg_object;
@@ -87,24 +88,11 @@ struct _E_Zone
       int       x, y, w, h;
       Eina_Bool dirty : 1;
    } useful_geometry;
+   Eina_Bool      stowed : 1;
+   char *randr2_id; // same id we get from randr2 so look it up there
 };
 
-struct _E_Event_Zone_Desk_Count_Set
-{
-   E_Zone *zone;
-};
-
-struct _E_Event_Zone_Move_Resize
-{
-   E_Zone *zone;
-};
-
-struct _E_Event_Zone_Add
-{
-   E_Zone *zone;
-};
-
-struct _E_Event_Zone_Del
+struct _E_Event_Zone_Generic
 {
    E_Zone *zone;
 };
@@ -133,12 +121,12 @@ struct _E_Event_Zone_Edge
 
 EINTERN int    e_zone_init(void);
 EINTERN int    e_zone_shutdown(void);
-E_API E_Zone   *e_zone_new(E_Comp *con, int num, int id, int x, int y, int w, int h);
+E_API E_Zone   *e_zone_new(int num, int id, int x, int y, int w, int h);
 E_API void      e_zone_name_set(E_Zone *zone, const char *name);
 E_API void      e_zone_move(E_Zone *zone, int x, int y);
 E_API void      e_zone_resize(E_Zone *zone, int w, int h);
 E_API Eina_Bool  e_zone_move_resize(E_Zone *zone, int x, int y, int w, int h);
-E_API E_Zone   *e_zone_current_get(E_Comp *c);
+E_API E_Zone   *e_zone_current_get(void);
 E_API void      e_zone_bg_reconfigure(E_Zone *zone);
 E_API void      e_zone_flip_coords_handle(E_Zone *zone, int x, int y);
 E_API void      e_zone_desk_count_set(E_Zone *zone, int x_count, int y_count);
@@ -159,8 +147,10 @@ E_API void      e_zone_edge_win_layer_set(E_Zone *zone, E_Layer layer);
 E_API void      e_zone_useful_geometry_dirty(E_Zone *zone);
 E_API void      e_zone_useful_geometry_get(E_Zone *zone, int *x, int *y, int *w, int *h);
 E_API void      e_zone_desk_useful_geometry_get(const E_Zone *zone, const E_Desk *desk, int *x, int *y, int *w, int *h);
+E_API void      e_zone_stow(E_Zone *zone);
+E_API void      e_zone_unstow(E_Zone *zone);
 
-E_API void e_zone_fade_handle(E_Zone *zone, int out, double tim);
+E_API void      e_zone_fade_handle(E_Zone *zone, int out, double tim);
 
 extern E_API int E_EVENT_ZONE_DESK_COUNT_SET;
 extern E_API int E_EVENT_ZONE_MOVE_RESIZE;
@@ -170,6 +160,8 @@ extern E_API int E_EVENT_POINTER_WARP;
 extern E_API int E_EVENT_ZONE_EDGE_IN;
 extern E_API int E_EVENT_ZONE_EDGE_OUT;
 extern E_API int E_EVENT_ZONE_EDGE_MOVE;
+extern E_API int E_EVENT_ZONE_STOW;
+extern E_API int E_EVENT_ZONE_UNSTOW;
 
 #endif
 #endif

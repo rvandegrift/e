@@ -11,15 +11,15 @@ typedef struct _E_Widget_Desk_Data E_Widget_Desk_Data;
 struct _E_Widget_Desk_Data
 {
    Evas_Object         *icon, *thumb, *live;
-   int                  zone, manager, x, y;
+   int                  zone, x, y;
    Ecore_Event_Handler *bg_upd_hdl;
    Ecore_Job           *resize_job;
    Eina_Bool            configurable : 1;
 };
 
 /* local function prototypes */
-static void      _e_wid_data_del(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__);
-static void      _e_wid_livethumb_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj EINA_UNUSED, void *event_info __UNUSED__);
+static void      _e_wid_data_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED);
+static void      _e_wid_livethumb_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED);
 static void      _e_wid_del_hook(Evas_Object *obj);
 static void      _e_wid_reconfigure(E_Widget_Data *wd);
 static void      _e_wid_desk_cb_config(void *data, Evas *evas, Evas_Object *obj, void *event);
@@ -86,10 +86,9 @@ e_widget_bgpreview_desk_add(Evas *e, E_Zone *zone, int x, int y)
    E_Widget_Desk_Data *dd;
    const char *bgfile;
 
-   bgfile = e_bg_file_get(zone->comp->num, zone->num, x, y);
+   bgfile = e_bg_file_get(zone->num, x, y);
 
    dd = E_NEW(E_Widget_Desk_Data, 1);
-   dd->manager = zone->comp->num;
    dd->zone = zone->num;
    dd->x = x;
    dd->y = y;
@@ -124,10 +123,10 @@ e_widget_bgpreview_desk_configurable_set(Evas_Object *obj, Eina_Bool enable)
    enable = !!enable;
    if (dd->configurable == enable) return;
    if (enable)
-     evas_object_event_callback_add(dd->icon, EVAS_CALLBACK_MOUSE_DOWN,
+     evas_object_event_callback_add(dd->icon, EVAS_CALLBACK_MOUSE_UP,
                                     _e_wid_desk_cb_config, dd);
    else
-     evas_object_event_callback_del_full(dd->icon, EVAS_CALLBACK_MOUSE_DOWN,
+     evas_object_event_callback_del_full(dd->icon, EVAS_CALLBACK_MOUSE_UP,
                                          _e_wid_desk_cb_config, dd);
    dd->configurable = enable;
 }
@@ -141,7 +140,7 @@ _e_wid_livethumb_resize_job(void *data)
    int w, h;
 
    zone = e_comp_object_util_zone_get(dd->live);
-   if (!zone) zone = eina_list_data_get(e_comp_get(NULL)->zones);
+   if (!zone) zone = eina_list_data_get(e_comp->zones);
    evas_object_geometry_get(dd->live, NULL, NULL, &w, &h);
    if ((w != zone->w) || (h != zone->h))
      {
@@ -163,7 +162,7 @@ _e_wid_livethumb_resize_job(void *data)
 }
 
 static void
-_e_wid_livethumb_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj EINA_UNUSED, void *event_info __UNUSED__)
+_e_wid_livethumb_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Widget_Desk_Data *dd = data;
 
@@ -172,7 +171,7 @@ _e_wid_livethumb_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj EINA_UN
 }
 
 static void
-_e_wid_data_del(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_e_wid_data_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Widget_Desk_Data *dd;
    dd = data;
@@ -207,7 +206,7 @@ _e_wid_reconfigure(E_Widget_Data *wd)
    E_Widget_Desk_Data *dd;
    double zone_ratio, desk_ratio;
 
-   zone = e_util_zone_current_get(e_manager_current_get());
+   zone = e_zone_current_get();
 
    evas_object_geometry_get(wd->table, NULL, NULL, &tw, &th);
    if ((tw == 0) || (th == 0))
@@ -268,7 +267,7 @@ _e_wid_reconfigure(E_Widget_Data *wd)
 
              edje_object_part_swallow(dd->icon, "e.swallow.content", dd->live);
              dd->configurable = EINA_TRUE;
-             evas_object_event_callback_add(dd->icon, EVAS_CALLBACK_MOUSE_DOWN,
+             evas_object_event_callback_add(dd->icon, EVAS_CALLBACK_MOUSE_UP,
                                             _e_wid_desk_cb_config, dd);
              evas_object_show(dd->icon);
              evas_object_data_set(dd->icon, "desk_data", dd);
@@ -285,7 +284,7 @@ _e_wid_reconfigure(E_Widget_Data *wd)
 }
 
 static void
-_e_wid_desk_cb_config(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUSED__, void *event)
+_e_wid_desk_cb_config(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event)
 {
    E_Widget_Desk_Data *dd;
    Evas_Event_Mouse_Down *ev;
@@ -296,14 +295,14 @@ _e_wid_desk_cb_config(void *data, Evas *evas __UNUSED__, Evas_Object *obj __UNUS
      {
         char buff[256];
 
-        snprintf(buff, sizeof(buff), "%i %i %i %i",
-                 dd->manager, dd->zone, dd->x, dd->y);
-        e_configure_registry_call("internal/desk", e_util_comp_current_get(), buff);
+        snprintf(buff, sizeof(buff), "%i %i %i",
+                 dd->zone, dd->x, dd->y);
+        e_configure_registry_call("internal/desk", NULL, buff);
      }
 }
 
 static void
-_e_wid_cb_resize(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, void *event __UNUSED__)
+_e_wid_cb_resize(void *data EINA_UNUSED, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event EINA_UNUSED)
 {
    E_Widget_Data *wd;
 
@@ -321,16 +320,17 @@ _e_wid_cb_bg_update(void *data, int type, void *event)
    if (!(dd = data)) return ECORE_CALLBACK_PASS_ON;
    ev = event;
 
-   if (((ev->manager < 0) || (dd->manager == ev->manager)) &&
-       ((ev->zone < 0) || (dd->zone == ev->zone)) &&
+   if (((ev->zone < 0) || (dd->zone == ev->zone)) &&
        ((ev->desk_x < 0) || (dd->x == ev->desk_x)) &&
        ((ev->desk_y < 0) || (dd->y == ev->desk_y)))
      {
+        E_Zone *zone;
         const char *bgfile;
 
-        bgfile = e_bg_file_get(dd->manager, dd->zone, dd->x, dd->y);
+        zone = e_comp_zone_number_get(dd->zone);
+        bgfile = e_bg_file_get(dd->zone, dd->x, dd->y);
         edje_object_file_set(dd->thumb, bgfile, "e/desktop/background");
-        _bgpreview_viewport_update(dd->thumb, e_comp_zone_number_get(e_comp_get(NULL), dd->zone), dd->x, dd->y);
+        if (zone) _bgpreview_viewport_update(dd->thumb, zone, dd->x, dd->y);
         eina_stringshare_del(bgfile);
      }
 

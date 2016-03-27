@@ -33,8 +33,8 @@ struct _E_Desktop_Edit
 };
 
 E_API Efreet_Desktop *e_desktop_client_create(E_Client *ec);
-E_API E_Desktop_Edit *e_desktop_border_edit(E_Comp *c, E_Client *ec);
-E_API E_Desktop_Edit *e_desktop_edit(E_Comp *c, Efreet_Desktop *desktop);
+E_API E_Desktop_Edit *e_desktop_client_edit(E_Client *ec);
+E_API E_Desktop_Edit *e_desktop_edit(Efreet_Desktop *desktop);
 
 #endif
 #endif

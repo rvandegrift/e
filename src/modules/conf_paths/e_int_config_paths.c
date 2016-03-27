@@ -43,7 +43,7 @@ struct _E_Config_Dialog_Data
 };
 
 E_Config_Dialog *
-e_int_config_paths(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_paths(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -56,7 +56,7 @@ e_int_config_paths(E_Comp *comp, const char *params __UNUSED__)
    v->basic.create_widgets    = _basic_create_widgets;
    v->basic.apply_cfdata      = _basic_apply_data;
    
-   cfd = e_config_dialog_new(comp, _("Search Path Settings"),
+   cfd = e_config_dialog_new(NULL, _("Search Path Settings"),
 			     "E", "advanced/search_directories",
 			     "preferences-directories", 0, v, NULL);
    return cfd;
@@ -97,7 +97,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    while (cfdata->pcd_list)
      {
@@ -122,7 +122,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {	 
    Eina_List *l;
    Eina_List *ll;
@@ -158,7 +158,8 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    Evas_Object *o, *of, *ob;
    int i;
 
-   o = e_widget_table_add(evas, 0);
+   e_dialog_resizable_set(cfd->dia, 1);
+   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
 
    of = e_widget_framelist_add(evas, _("Enlightenment Paths"), 0);
    ob = e_widget_ilist_add(evas, 0, 0, NULL);

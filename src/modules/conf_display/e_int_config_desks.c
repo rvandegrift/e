@@ -28,7 +28,7 @@ struct _E_Config_Dialog_Data
 
 /* a nice easy setup function that does the dirty work */
 E_Config_Dialog *
-e_int_config_desks(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_desks(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -46,7 +46,7 @@ e_int_config_desks(E_Comp *comp, const char *params __UNUSED__)
    v->advanced.create_widgets = NULL;
    v->advanced.check_changed = NULL;
    /* create config diaolg for NULL object/data */
-   cfd = e_config_dialog_new(comp, _("Virtual Desktops Settings"),
+   cfd = e_config_dialog_new(NULL, _("Virtual Desktops Settings"),
 			     "E", "screen/virtual_desktops",
 			     "preferences-desktop", 0, v, NULL);
    return cfd;
@@ -92,7 +92,7 @@ _fill_data(E_Config_Dialog_Data *cfdata)
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd __UNUSED__)
+_create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -102,7 +102,7 @@ _create_data(E_Config_Dialog *cfd __UNUSED__)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    E_FREE_LIST(cfdata->comp_effects, eina_stringshare_del);
    free(cfdata);
@@ -111,19 +111,17 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 /**--APPLY--**/
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    /* Actually take our cfdata settings and apply them in real life */
    if ((cfdata->x != e_config->zone_desks_x_count) ||
        (cfdata->y != e_config->zone_desks_y_count))
      {
-        const Eina_List *l, *ll;
-        E_Comp *comp;
+        const Eina_List *l;
         E_Zone *zone;
 
-        EINA_LIST_FOREACH(e_comp_list(), l, comp)
-          EINA_LIST_FOREACH(comp->zones, ll, zone)
-            e_zone_desk_count_set(zone, cfdata->x, cfdata->y);
+        EINA_LIST_FOREACH(e_comp->zones, l, zone)
+          e_zone_desk_count_set(zone, cfdata->x, cfdata->y);
      }
 
    eina_stringshare_replace(&e_config->desk_flip_animate_type, NULL);
@@ -144,21 +142,19 @@ _basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static int
-_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
-   const Eina_List *l, *ll;
-   E_Comp *comp;
+   const Eina_List *l;
    E_Zone *zone;
 
-   EINA_LIST_FOREACH(e_comp_list(), l, comp)
-     EINA_LIST_FOREACH(comp->zones, ll, zone)
-       {
-          int x, y;
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
+     {
+        int x, y;
 
-          e_zone_desk_count_get(zone, &x, &y);
-          if ((x != cfdata->x) || (y != cfdata->y))
-          return 1;
-       }
+        e_zone_desk_count_get(zone, &x, &y);
+        if ((x != cfdata->x) || (y != cfdata->y))
+        return 1;
+     }
 
    return ((e_util_strcasecmp(eina_list_nth(cfdata->comp_effects, cfdata->flip_mode), e_config->desk_flip_animate_type)) ||
 	   (e_config->desk_flip_animate_interpolation != cfdata->flip_interp) ||
@@ -170,7 +166,7 @@ _basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfda
 
 /**--GUI--**/
 static Evas_Object *
-_basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata)
+_basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata)
 {
    /* generate the core widget layout for a basic dialog */
    Evas_Object *o, *ob, *of, *otb;
@@ -231,10 +227,11 @@ _basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dial
      {
         char *p;
         const char *pp;
+        char buf[PATH_MAX];
 
         pp = strchr(s, '/');
         pp = pp ? pp + 1 : s;
-        p = strdupa(pp);
+        p = memcpy(buf, pp, strlen(pp) + 1);
         p[0] = toupper(p[0]);
         ob = e_widget_radio_add(evas, _(p), mode, rg);
         e_widget_list_object_append(o, ob, 1, 0, 0.5);
@@ -249,7 +246,7 @@ _basic_create_widgets(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dial
 }
 
 static void
-_cb_slider_change(void *data, Evas_Object *obj __UNUSED__)
+_cb_slider_change(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = data;
 

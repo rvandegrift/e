@@ -19,7 +19,6 @@ extern E_API int E_EVENT_BG_UPDATE;
 
 struct _E_Event_Bg_Update
 {
-   int manager;
    int zone;
    int desk_x;
    int desk_y;
@@ -28,11 +27,11 @@ struct _E_Event_Bg_Update
 EINTERN int e_bg_init(void);
 EINTERN int e_bg_shutdown(void);
 
-E_API const E_Config_Desktop_Background *e_bg_config_get(int manager_num, int zone_num, int desk_x, int desk_y);
-E_API Eina_Stringshare *e_bg_file_get(int manager_num, int zone_num,  int desk_x, int desk_y);
+E_API const E_Config_Desktop_Background *e_bg_config_get(int zone_num, int desk_x, int desk_y);
+E_API Eina_Stringshare *e_bg_file_get(int zone_num, int desk_x, int desk_y);
 E_API void e_bg_zone_update(E_Zone *zone, E_Bg_Transition transition);
-E_API void e_bg_add(int manager, int zone, int desk_x, int desk_y, const char *file);
-E_API void e_bg_del(int manager, int zone, int desk_x, int desk_y);
+E_API void e_bg_add(int zone, int desk_x, int desk_y, const char *file);
+E_API void e_bg_del(int zone, int desk_x, int desk_y);
 E_API void e_bg_default_set(const char *file);
 E_API void e_bg_update(void);
 

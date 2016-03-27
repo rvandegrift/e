@@ -211,7 +211,10 @@ _opinfo_op_registry_listener(void *data, const E_Fm2_Op_Registry_Entry *ere)
 
    // resize element to fit the box
    edje_object_size_min_calc(o, &mw, &mh);
-   e_box_pack_options_set(o, 1, 0, 1, 0, 0.0, 0.0, mw, mh, 9999, mh);
+   E_WEIGHT(o, 0, 1);
+   E_ALIGN(o, -1, 0);
+   evas_object_size_hint_min_set(o, mw, mh);
+   evas_object_size_hint_max_set(o, 9999, mh);
    evas_object_show(o);
 }
 
@@ -228,7 +231,6 @@ _opinfo_op_registry_free_data_delayed(void *data)
    
    if (o)
      {
-        e_box_unpack(o);
         evas_object_del(o);
      }
    
@@ -236,7 +238,7 @@ _opinfo_op_registry_free_data_delayed(void *data)
 }
 
 static void 
-_opinfo_op_registry_abort_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_opinfo_op_registry_abort_cb(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    int id;
    
@@ -247,11 +249,12 @@ _opinfo_op_registry_abort_cb(void *data, Evas_Object *obj __UNUSED__, const char
 }
 
 static void 
-_opinfo_op_registry_window_jump_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_opinfo_op_registry_window_jump_cb(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    int id = (long)data;
    E_Fm2_Op_Registry_Entry *ere;
-   E_Win *win;
+   Evas_Object *win;
+   E_Client *ec;
    
    if (!id) return;
    ere = e_fm2_op_registry_entry_get(id);
@@ -261,27 +264,17 @@ _opinfo_op_registry_window_jump_cb(void *data, Evas_Object *obj __UNUSED__, cons
    win = (ere->needs_attention && ere->dialog) ? ere->dialog->win
                                                : e_win_evas_object_win_get(ere->e_fm);
    if (!win) return;
-   
-   if (win->client)
-     {
-        if (win->client->iconic)
-           e_client_uniconify(win->client);
-        if (win->client->shaded)
-           e_client_unshade(win->client, win->client->shade_dir);
-     }
+
+   ec = e_win_client_get(win);
+   if (ec)
+     e_client_activate(ec, 1);
    else
-     e_win_show(win);
-   e_win_raise(win);
-   if (!win->client) return;
-   e_desk_show(win->client->desk);
-   e_client_focus_set_with_pointer(win->client);
-   
-   if (ere->needs_attention && e_config->pointer_slide)
-      e_client_pointer_warp_to_center(win->client);
+     evas_object_show(win);
+   elm_win_raise(win);
 }
 
 static Eina_Bool
-_opinfo_op_registry_entry_add_cb(void *data, __UNUSED__ int type, void *event)
+_opinfo_op_registry_entry_add_cb(void *data, EINA_UNUSED int type, void *event)
 {
    E_Fm2_Op_Registry_Entry *ere = event;
    Instance *inst = data;
@@ -301,7 +294,7 @@ _opinfo_op_registry_entry_add_cb(void *data, __UNUSED__ int type, void *event)
                                    _opinfo_op_registry_abort_cb, (void*)(long)ere->id);
    edje_object_signal_callback_add(o, "e,fm,window,jump", "", 
                                    _opinfo_op_registry_window_jump_cb, (void*)(long)ere->id); 
-   e_box_pack_end(inst->o_box, o);
+   elm_box_pack_end(inst->o_box, o);
    
    e_fm2_op_registry_entry_listener_add(ere, _opinfo_op_registry_listener,
                                         o, _opinfo_op_registry_free_data);
@@ -310,7 +303,7 @@ _opinfo_op_registry_entry_add_cb(void *data, __UNUSED__ int type, void *event)
 }
 
 static Eina_Bool
-_opinfo_op_registry_entry_del_cb(void *data, __UNUSED__ int type, __UNUSED__ void *event)
+_opinfo_op_registry_entry_del_cb(void *data, EINA_UNUSED int type, EINA_UNUSED void *event)
 {
    Instance *inst = data;
    
@@ -374,20 +367,23 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
      }
 
    // main object
-   inst->o_box = e_box_add(gc->evas);
-   e_box_homogenous_set(inst->o_box, 0);
-   e_box_orientation_set(inst->o_box, 0);
-   e_box_align_set(inst->o_box, 0, 0);
+   inst->o_box = elm_box_add(e_win_evas_object_win_get(gc->o_container));
+   elm_box_homogeneous_set(inst->o_box, 0);
+   elm_box_horizontal_set(inst->o_box, 0);
+   elm_box_align_set(inst->o_box, 0, 0);
 
    // status line
    inst->o_status = edje_object_add(evas_object_evas_get(inst->o_box));
    if (!e_theme_edje_object_set(inst->o_status, "base/theme/modules/fileman_opinfo",
                                 "modules/fileman_opinfo/status"))
       edje_object_file_set(inst->o_status, inst->theme_file, "modules/fileman_opinfo/status");
-   e_box_pack_end(inst->o_box, inst->o_status);
+   elm_box_pack_end(inst->o_box, inst->o_status);
    evas_object_show(inst->o_status);
    edje_object_size_min_get(inst->o_status, &mw, &mh);
-   e_box_pack_options_set(inst->o_status, 1, 0, 1, 0, 0.0, 0.0, mw, mh, 9999, mh);
+   E_WEIGHT(inst->o_status, 1, 0);
+   E_ALIGN(inst->o_status, -1, 0);
+   evas_object_size_hint_min_set(inst->o_status, mw, mh);
+   evas_object_size_hint_max_set(inst->o_status, 9999, mh);
 
    _opinfo_op_registry_update_all(inst);
 
@@ -416,7 +412,6 @@ _gc_shutdown(E_Gadcon_Client *gcc)
      ecore_event_handler_del(inst->fm_op_entry_add_handler);
    if (inst->fm_op_entry_del_handler)
      ecore_event_handler_del(inst->fm_op_entry_del_handler);
-   e_box_unpack(inst->o_status);
    evas_object_del(inst->o_status);
    evas_object_del(inst->o_box);
    free(inst->theme_file);
@@ -424,7 +419,7 @@ _gc_shutdown(E_Gadcon_Client *gcc)
 }
 
 static void
-_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
+_gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient EINA_UNUSED)
 {
    Instance *inst = gcc->data;
    Evas_Coord mw = 200, mh = 100;
@@ -435,13 +430,13 @@ _gc_orient(E_Gadcon_Client *gcc, E_Gadcon_Orient orient __UNUSED__)
 }
 
 static const char *
-_gc_label(const E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_label(const E_Gadcon_Client_Class *client_class EINA_UNUSED)
 {
    return _("EFM Operation Info");
 }
 
 static Evas_Object *
-_gc_icon(const E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
+_gc_icon(const E_Gadcon_Client_Class *client_class EINA_UNUSED, Evas *evas)
 {
    Evas_Object *o;
    char buf[PATH_MAX];
@@ -455,7 +450,7 @@ _gc_icon(const E_Gadcon_Client_Class *client_class __UNUSED__, Evas *evas)
 }
 
 static const char *
-_gc_id_new(const E_Gadcon_Client_Class *client_class __UNUSED__)
+_gc_id_new(const E_Gadcon_Client_Class *client_class EINA_UNUSED)
 {
    return _gadcon_class.name;
 }
@@ -477,7 +472,7 @@ e_modapi_init(E_Module *m)
 }
 
 E_API int
-e_modapi_shutdown(E_Module *m __UNUSED__)
+e_modapi_shutdown(E_Module *m EINA_UNUSED)
 {
    opinfo_module = NULL;
    e_gadcon_provider_unregister(&_gadcon_class);
@@ -485,7 +480,7 @@ e_modapi_shutdown(E_Module *m __UNUSED__)
 }
 
 E_API int
-e_modapi_save(E_Module *m __UNUSED__)
+e_modapi_save(E_Module *m EINA_UNUSED)
 {
    return 1;
 }

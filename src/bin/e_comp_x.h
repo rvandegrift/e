@@ -1,8 +1,4 @@
 #ifdef E_TYPEDEFS
-# include <Ecore_X.h>
-# include "e_atoms.h"
-# include "e_hints.h"
-# include "e_randr.h"
 
 typedef struct _E_Comp_X_Client_Data E_Comp_X_Client_Data;
 
@@ -12,7 +8,6 @@ typedef struct _E_Comp_X_Client_Data E_Comp_X_Client_Data;
 #  include <Ecore_X.h>
 #  include "e_atoms.h"
 #  include "e_hints.h"
-#  include "e_randr.h"
 
 struct _E_Comp_X_Client_Data
 {
@@ -40,6 +35,8 @@ struct _E_Comp_X_Client_Data
 
    Ecore_Timer *first_draw_delay; //configurable placebo
    Eina_Bool first_damage : 1; //ignore first damage on non-re_manage clients
+
+   unsigned int parent_activate_count; //number of times a win has activated itself when parent was focused
 
    struct
    {
@@ -92,6 +89,9 @@ struct _E_Comp_X_Client_Data
          Ecore_X_Illume_Window_State state;
       } win_state;
    } illume;
+#ifdef HAVE_WAYLAND
+   uint32_t surface_id;
+#endif
 
    Eina_Bool moving : 1;
    Eina_Bool first_map : 1;
@@ -105,15 +105,18 @@ struct _E_Comp_X_Client_Data
    Eina_Bool frame_update : 1;
    Eina_Bool evas_init : 1;
    Eina_Bool unredirected_single : 1;
-   unsigned int parent_activate_count; //number of times a win has activated itself when parent was focused
    Eina_Bool fetch_gtk_frame_extents : 1;
    Eina_Bool iconic : 1;
 };
 
-EINTERN Eina_Bool e_comp_x_init(void);
-EINTERN void e_comp_x_shutdown(void);
+E_API Eina_Bool e_comp_x_init(void);
+E_API void e_comp_x_shutdown(void);
 
 E_API void e_alert_composite_win(Ecore_X_Window root, Ecore_X_Window win);
-EINTERN void e_comp_x_nocomp_end(E_Comp *comp);
+EINTERN void e_comp_x_nocomp_end(void);
+EINTERN void e_comp_x_xwayland_client_setup(E_Client *ec, E_Client *wc);
+
+E_API E_Pixmap *e_comp_x_client_pixmap_get(const E_Client *ec);
+
 # endif
 #endif

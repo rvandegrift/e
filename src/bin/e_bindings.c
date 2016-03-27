@@ -20,6 +20,8 @@ static Eina_List *signal_bindings = NULL;
 static Eina_List *wheel_bindings = NULL;
 static Eina_List *acpi_bindings = NULL;
 
+static unsigned int bindings_disabled = 0;
+
 typedef struct _E_Binding_Edge_Data E_Binding_Edge_Data;
 
 struct _E_Binding_Edge_Data
@@ -122,8 +124,8 @@ e_bindings_ecore_event_mouse_wheel_convert(const Ecore_Event_Mouse_Wheel *ev, E_
    memset(event, 0, sizeof(E_Binding_Event_Wheel));
    event->direction = ev->direction;
    event->z = ev->z;
-   event->canvas.x = e_comp_canvas_x_root_adjust(e_comp_get(NULL), ev->root.x);
-   event->canvas.y = e_comp_canvas_x_root_adjust(e_comp_get(NULL), ev->root.y);
+   event->canvas.x = e_comp_canvas_x_root_adjust(ev->root.x);
+   event->canvas.y = e_comp_canvas_x_root_adjust(ev->root.y);
    event->timestamp = ev->timestamp;
    event->modifiers = _e_bindings_modifiers(ev->modifiers);
 }
@@ -133,8 +135,8 @@ e_bindings_ecore_event_mouse_button_convert(const Ecore_Event_Mouse_Button *ev, 
 {
    memset(event, 0, sizeof(E_Binding_Event_Mouse_Button));
    event->button = ev->buttons;
-   event->canvas.x = e_comp_canvas_x_root_adjust(e_comp_get(NULL), ev->root.x);
-   event->canvas.y = e_comp_canvas_x_root_adjust(e_comp_get(NULL), ev->root.y);
+   event->canvas.x = e_comp_canvas_x_root_adjust(ev->root.x);
+   event->canvas.y = e_comp_canvas_x_root_adjust(ev->root.y);
    event->timestamp = ev->timestamp;
    event->modifiers = _e_bindings_modifiers(ev->modifiers);
 
@@ -313,13 +315,13 @@ e_bindings_key_reset(void)
    E_Config_Binding_Key *ebk;
    Eina_List *l;
 
-   e_managers_keys_ungrab();
+   e_comp_canvas_keys_ungrab();
    E_FREE_LIST(key_bindings, _e_bindings_key_free);
 
    EINA_LIST_FOREACH(e_bindings->key_bindings, l, ebk)
      e_bindings_key_add(ebk->context, ebk->key, ebk->modifiers,
                         ebk->any_mod, ebk->action, ebk->params);
-   e_managers_keys_grab();
+   e_comp_canvas_keys_grab();
 }
 
 E_API void
@@ -391,6 +393,9 @@ e_bindings_mouse_grab(E_Binding_Context ctxt, Ecore_X_Window win)
 #endif
           }
      }
+#ifdef HAVE_WAYLAND_ONLY
+   (void)win;
+#endif
 }
 
 E_API void
@@ -409,6 +414,9 @@ e_bindings_mouse_ungrab(E_Binding_Context ctxt, Ecore_X_Window win)
 #endif
           }
      }
+#ifdef HAVE_WAYLAND_ONLY
+   (void)win;
+#endif
 }
 
 E_API E_Action *
@@ -441,6 +449,7 @@ e_bindings_mouse_down_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Bind
    E_Action *act;
    E_Binding_Mouse *binding;
 
+   if (bindings_disabled) return NULL;
    act = e_bindings_mouse_button_find(ctxt, ev, &binding);
    if (act)
      {
@@ -479,6 +488,7 @@ e_bindings_mouse_up_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Bindin
    E_Action *act;
    E_Binding_Mouse *binding;
 
+   if (bindings_disabled) return NULL;
    act = e_bindings_mouse_button_find(ctxt, ev, &binding);
    if (act)
      {
@@ -601,6 +611,9 @@ e_bindings_key_grab(E_Binding_Context ctxt, Ecore_X_Window win)
                }
           }
      }
+#ifdef HAVE_WAYLAND_ONLY
+   (void)win;
+#endif
 }
 
 E_API void
@@ -622,6 +635,9 @@ e_bindings_key_ungrab(E_Binding_Context ctxt, Ecore_X_Window win)
                }
           }
      }
+#ifdef HAVE_WAYLAND_ONLY
+   (void)win;
+#endif
 }
 
 E_API E_Action *
@@ -631,6 +647,7 @@ e_bindings_key_down_event_handle(E_Binding_Context ctxt, E_Object *obj, Ecore_Ev
    E_Binding_Key *binding;
    Eina_List *l;
 
+   if (bindings_disabled) return NULL;
    mod = _e_bindings_modifiers(ev->modifiers);
    EINA_LIST_FOREACH(key_bindings, l, binding)
      {
@@ -664,6 +681,7 @@ e_bindings_key_up_event_handle(E_Binding_Context ctxt, E_Object *obj, Ecore_Even
    E_Binding_Key *binding;
    Eina_List *l;
 
+   if (bindings_disabled) return NULL;
    mod = _e_bindings_modifiers(ev->modifiers);
    EINA_LIST_FOREACH(key_bindings, l, binding)
      {
@@ -882,6 +900,7 @@ e_bindings_edge_in_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Z
    E_Action *act = NULL;
    Eina_List *l;
 
+   if (bindings_disabled) return NULL;
    current = e_desk_at_xy_get(ev->zone, ev->zone->desk_x_current, ev->zone->desk_y_current);
    if (current->fullscreen_clients && (!e_config->fullscreen_flip)) return NULL;
 
@@ -931,6 +950,7 @@ e_bindings_edge_out_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_
    E_Action *act = NULL;
    Eina_List *l;
 
+   if (bindings_disabled) return NULL;
    if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT) mod |= E_BINDING_MODIFIER_SHIFT;
    if (ev->modifiers & ECORE_EVENT_MODIFIER_CTRL) mod |= E_BINDING_MODIFIER_CTRL;
    if (ev->modifiers & ECORE_EVENT_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
@@ -974,6 +994,7 @@ e_bindings_edge_down_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event
    E_Action *act = NULL;
    Eina_List *l;
 
+   if (bindings_disabled) return NULL;
    current = e_desk_at_xy_get(ev->zone, ev->zone->desk_x_current, ev->zone->desk_y_current);
    if (current->fullscreen_clients && (!e_config->fullscreen_flip)) return NULL;
 
@@ -1010,6 +1031,7 @@ e_bindings_edge_up_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Z
    E_Action *act = NULL;
    Eina_List *l;
 
+   if (bindings_disabled) return NULL;
    if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT) mod |= E_BINDING_MODIFIER_SHIFT;
    if (ev->modifiers & ECORE_EVENT_MODIFIER_CTRL) mod |= E_BINDING_MODIFIER_CTRL;
    if (ev->modifiers & ECORE_EVENT_MODIFIER_ALT) mod |= E_BINDING_MODIFIER_ALT;
@@ -1109,6 +1131,7 @@ e_bindings_signal_handle(E_Binding_Context ctxt, E_Object *obj, const char *sig,
    E_Action *act;
    E_Binding_Signal *binding;
 
+   if (bindings_disabled) return NULL;
    if ((!sig) || (sig && (sig[0] == 0)))
      return NULL;
    if (src && (src[0] == 0)) src = NULL;
@@ -1189,14 +1212,19 @@ e_bindings_wheel_grab(E_Binding_Context ctxt, Ecore_X_Window win)
                   else if (binding->z > 0)
                     button = 7;
                }
-#ifndef HAVE_WAYLAND_ONLY
              if (button != 0)
-               ecore_x_window_button_grab(win, button,
-                                          ECORE_X_EVENT_MASK_MOUSE_DOWN,
-                                          e_bindings_modifiers_to_ecore_convert(binding->mod), binding->any_mod);
+               {
+#ifndef HAVE_WAYLAND_ONLY
+                  ecore_x_window_button_grab(win, button,
+                                             ECORE_X_EVENT_MASK_MOUSE_DOWN,
+                                             e_bindings_modifiers_to_ecore_convert(binding->mod), binding->any_mod);
 #endif
+               }
           }
      }
+#ifdef HAVE_WAYLAND_ONLY
+   (void)win;
+#endif
 }
 
 E_API void
@@ -1223,13 +1251,18 @@ e_bindings_wheel_ungrab(E_Binding_Context ctxt, Ecore_X_Window win)
                   else if (binding->z > 0)
                     button = 7;
                }
-#ifndef HAVE_WAYLAND_ONLY
              if (button != 0)
-               ecore_x_window_button_ungrab(win, button,
-                                            e_bindings_modifiers_to_ecore_convert(binding->mod), binding->any_mod);
+               {
+#ifndef HAVE_WAYLAND_ONLY
+                  ecore_x_window_button_ungrab(win, button,
+                                               e_bindings_modifiers_to_ecore_convert(binding->mod), binding->any_mod);
 #endif
+               }
           }
      }
+#ifdef HAVE_WAYLAND_ONLY
+   (void)win;
+#endif
 }
 
 E_API E_Action *
@@ -1263,6 +1296,7 @@ e_bindings_wheel_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Binding_E
    E_Action *act;
    E_Binding_Wheel *binding;
 
+   if (bindings_disabled) return NULL;
    act = e_bindings_wheel_find(ctxt, ev, &binding);
    if (act)
      {
@@ -1376,6 +1410,40 @@ e_bindings_acpi_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Acpi
         return act;
      }
    return act;
+}
+
+E_API void
+e_bindings_disabled_set(Eina_Bool disabled)
+{
+   E_Client *ec;
+   Ecore_Window win;
+
+   if (disabled)
+     {
+        if ((!bindings_disabled) && (e_comp->comp_type == E_PIXMAP_TYPE_X))
+          {
+             e_bindings_key_ungrab(E_BINDING_CONTEXT_ANY, e_comp->root);
+             E_CLIENT_FOREACH(ec)
+               {
+                  if (e_client_util_ignored_get(ec)) continue;
+                  win = e_client_util_win_get(ec);
+                  e_bindings_mouse_ungrab(E_BINDING_CONTEXT_WINDOW, win);
+                  e_bindings_wheel_ungrab(E_BINDING_CONTEXT_WINDOW, win);
+               }
+          }
+        bindings_disabled++;
+     }
+   else if (bindings_disabled)
+     bindings_disabled--;
+   if (bindings_disabled || (e_comp->comp_type != E_PIXMAP_TYPE_X)) return;
+   e_bindings_key_grab(E_BINDING_CONTEXT_ANY, e_comp->root);
+   E_CLIENT_FOREACH(ec)
+     {
+        if (e_client_util_ignored_get(ec)) continue;
+        win = e_client_util_win_get(ec);
+        e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, win);
+        e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, win);
+     }
 }
 
 static void

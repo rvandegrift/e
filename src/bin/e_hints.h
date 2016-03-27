@@ -4,11 +4,11 @@
 #define E_HINTS_H
 
 EINTERN void e_hints_init(Ecore_Window win, Ecore_Window propwin);
-EINTERN void e_hints_manager_init(E_Manager *man);
+//EINTERN void e_hints_manager_init(E_Manager *man);
 E_API void e_hints_client_list_set(void);
 E_API void e_hints_client_stacking_set(void);
 
-E_API void e_hints_active_window_set(E_Manager *man, E_Client *ec);
+E_API void e_hints_active_window_set(E_Client *ec);
 
 EINTERN void e_hints_window_init(E_Client *ec);
 E_API void e_hints_window_state_set(E_Client *ec);
@@ -55,7 +55,8 @@ extern E_API Ecore_X_Atom ATM_GNOME_SM_PROXY;
 extern E_API Ecore_X_Atom ATM_ENLIGHTENMENT_COMMS;
 extern E_API Ecore_X_Atom ATM_ENLIGHTENMENT_VERSION;
 extern E_API Ecore_X_Atom ATM_ENLIGHTENMENT_SCALE;
-
+extern E_API Ecore_X_Atom ATM_NETWM_SHOW_WINDOW_MENU;
+extern E_API Ecore_X_Atom ATM_NETWM_PERFORM_BUTTON_ACTION;
 extern E_API Ecore_X_Atom ATM_GTK_FRAME_EXTENTS;
 #endif
 #endif

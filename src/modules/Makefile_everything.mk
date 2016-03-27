@@ -15,7 +15,7 @@ EVRYHEADERS = src/modules/everything/evry_api.h \
 	      src/modules/everything/evry_types.h
 
 src_modules_everything_module_la_LIBADD = $(MOD_LIBS)
-src_modules_everything_module_la_CPPFLAGS = $(MOD_CPPFLAGS) -DNEED_X=1
+src_modules_everything_module_la_CPPFLAGS = $(MOD_CPPFLAGS)
 src_modules_everything_module_la_LDFLAGS = $(MOD_LDFLAGS)
 src_modules_everything_module_la_SOURCES = $(EVRYHEADERS) \
 			       src/modules/everything/e_mod_main.c \
@@ -31,6 +31,7 @@ src_modules_everything_module_la_SOURCES = $(EVRYHEADERS) \
 			       src/modules/everything/evry_view_tabs.c \
 			       src/modules/everything/evry_view_help.c \
 			       src/modules/everything/evry_plug_text.c \
+			       src/modules/everything/evry_plug_clipboard.c \
 			       src/modules/everything/evry_plug_collection.c \
 			       src/modules/everything/evry_gadget.c \
 			       src/modules/everything/md5.c \
@@ -40,8 +41,6 @@ src_modules_everything_module_la_SOURCES = $(EVRYHEADERS) \
 			       src/modules/everything/evry_plug_windows.c \
 			       src/modules/everything/evry_plug_settings.c \
 			       src/modules/everything/evry_plug_calc.c
-
-src_modules_everything_module_la_SOURCES += src/modules/everything/evry_plug_clipboard.c
 
 everything_headersdir = $(pkgincludedir)
 dist_everything_headers_DATA = $(EVRYHEADERS)

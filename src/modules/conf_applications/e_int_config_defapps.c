@@ -43,11 +43,11 @@ struct _E_Config_Dialog_Data
 
 /* local function prototypes */
 static void        *_create_data(E_Config_Dialog *cfd);
-static void         _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata);
-static int          _basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
+static void         _free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata);
+static Evas_Object *_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata);
+static int          _basic_apply(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata);
 
-static Eina_Bool    _desks_update(void *data, int ev_type __UNUSED__, void *ev __UNUSED__);
+static Eina_Bool    _desks_update(void *data, int ev_type EINA_UNUSED, void *ev EINA_UNUSED);
 static void         _load_mimes(E_Config_Dialog_Data *cfdata, char *file);
 static void         _load_globs(E_Config_Dialog_Data *cfdata, char *file);
 static int          _sort_mimes(const void *data1, const void *data2);
@@ -57,7 +57,7 @@ static int          _cb_desks_sort(const void *data1, const void *data2);
 static void         _fill_apps_list(E_Config_Dialog_Data *cfdata, Evas_Object *il, const char **desktop, int general);
 
 E_Config_Dialog *
-e_int_config_defapps(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_defapps(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -71,14 +71,14 @@ e_int_config_defapps(E_Comp *comp, const char *params __UNUSED__)
    v->basic.create_widgets = _basic_create;
    v->basic.apply_cfdata = _basic_apply;
 
-   cfd = e_config_dialog_new(comp, _("Default Applications"),
+   cfd = e_config_dialog_new(NULL, _("Default Applications"),
                              "E", "applications/default_applications",
                              "preferences-desktop-default-applications", 0, v, NULL);
    return cfd;
 }
 
 static void *
-_create_data(E_Config_Dialog *cfd __UNUSED__)
+_create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    Efreet_Ini *ini, *myini;
@@ -173,7 +173,7 @@ _create_data(E_Config_Dialog *cfd __UNUSED__)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    Config_Mime *m;
    Efreet_Desktop *desk;
@@ -209,7 +209,7 @@ _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
 }
 
 static Eina_Bool
-_desks_update(void *data, int ev_type __UNUSED__, void *ev __UNUSED__)
+_desks_update(void *data, int ev_type EINA_UNUSED, void *ev EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = data;
    Efreet_Desktop *desk;
@@ -289,14 +289,15 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    Eina_List *l;
    Config_Mime *m;
 
+   e_dialog_resizable_set(cfd->dia, 1);
    otb = e_widget_toolbook_add(evas, 24, 24);
 
-   ot = e_widget_table_add(evas, EINA_FALSE);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), EINA_FALSE);
 
    ob = e_widget_label_add(evas, _("Custom Browser Command"));
    e_widget_table_object_append(ot, ob, 0, 0, 1, 1, 1, 1, 0, 0);
 
-   ob = e_widget_entry_add(evas, &(cfdata->browser_custom), NULL, NULL, NULL);
+   ob = e_widget_entry_add(cfd->dia->win, &(cfdata->browser_custom), NULL, NULL, NULL);
    cfdata->obj.entry = ob;
    e_widget_table_object_append(ot, ob, 1, 0, 1, 1, 1, 1, 1, 0);
 
@@ -329,7 +330,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_toolbook_page_append(otb, NULL, _("Core"), ot,
                                  1, 1, 1, 1, 0.5, 0.0);
 
-   ot = e_widget_table_add(evas, EINA_FALSE);
+   ot = e_widget_table_add(e_win_evas_win_get(evas), EINA_FALSE);
 
    of = e_widget_framelist_add(evas, _("Types"), 0);
    il = e_widget_ilist_add(evas, 24, 24, &(cfdata->selmime));
@@ -359,12 +360,12 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
 
    e_widget_toolbook_page_show(otb, 0);
 
-   e_win_centered_set(cfd->dia->win, 1);
+   elm_win_center(cfd->dia->win, 1, 1);
    return otb;
 }
 
 static int
-_basic_apply(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    Eina_List *l;
    E_Config_Env_Var *evr = NULL;

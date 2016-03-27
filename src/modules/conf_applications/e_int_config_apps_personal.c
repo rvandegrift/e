@@ -13,17 +13,17 @@ struct _E_Config_Dialog_Data
 
 /* local function prototypes */
 static void        *_create_data(E_Config_Dialog *cfd);
-static void         _free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata);
-static Evas_Object *_basic_create(E_Config_Dialog *cfd __UNUSED__, Evas *evas, E_Config_Dialog_Data *cfdata);
-static Eina_Bool    _desks_update(void *data, int ev_type __UNUSED__, void *ev __UNUSED__);
+static void         _free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata);
+static Evas_Object *_basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *cfdata);
+static Eina_Bool    _desks_update(void *data, int ev_type EINA_UNUSED, void *ev EINA_UNUSED);
 static int          _cb_desks_sort(const void *data1, const void *data2);
 static void         _fill_apps_list(E_Config_Dialog_Data *cfdata, Evas_Object *il);
 static void         _btn_cb_add(void *data, void *data2);
 static void         _btn_cb_del(void *data, void *data2);
-static void         _widget_list_selection_changed(void *data, Evas_Object *obj __UNUSED__);
+static void         _widget_list_selection_changed(void *data, Evas_Object *obj EINA_UNUSED);
 
 E_Config_Dialog *
-e_int_config_apps_personal(E_Comp *comp, const char *params __UNUSED__)
+e_int_config_apps_personal(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -36,7 +36,7 @@ e_int_config_apps_personal(E_Comp *comp, const char *params __UNUSED__)
    v->free_cfdata = _free_data;
    v->basic.create_widgets = _basic_create;
 
-   cfd = e_config_dialog_new(comp, _("Personal Application Launchers"),
+   cfd = e_config_dialog_new(NULL, _("Personal Application Launchers"),
                              "E", "applications/personal_applications",
                              "preferences-applications-personal", 0, v, NULL);
    return cfd;
@@ -44,7 +44,7 @@ e_int_config_apps_personal(E_Comp *comp, const char *params __UNUSED__)
 
 /* local function prototypes */
 static void *
-_create_data(E_Config_Dialog *cfd __UNUSED__)
+_create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -56,7 +56,7 @@ _create_data(E_Config_Dialog *cfd __UNUSED__)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    Efreet_Desktop *desk;
 
@@ -73,8 +73,9 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    Evas_Object *of, *li, *ob;
    Evas_Coord mw, mh;
 
+   e_dialog_resizable_set(cfd->dia, 1);
    
-   of = e_widget_table_add(evas, 0);
+   of = e_widget_table_add(e_win_evas_win_get(evas), 0);
 
    li = e_widget_ilist_add(evas, 24, 24, NULL);
    cfdata->obj.list = li;
@@ -98,12 +99,12 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_disabled_set(ob, 1);
    e_widget_table_object_append(of, ob, 1, 2, 1, 1, 1, 1, 1, 0);
 
-   e_win_centered_set(cfd->dia->win, 1);
+   elm_win_center(cfd->dia->win, 1, 1);
    return of;
 }
 
 static Eina_Bool
-_desks_update(void *data, int ev_type __UNUSED__, void *ev __UNUSED__)
+_desks_update(void *data, int ev_type EINA_UNUSED, void *ev EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = data;
    Efreet_Desktop *desk;
@@ -179,13 +180,13 @@ _fill_apps_list(E_Config_Dialog_Data *cfdata, Evas_Object *il)
 }
 
 static void
-_btn_cb_add(void *data __UNUSED__, void *data2 __UNUSED__)
+_btn_cb_add(void *data EINA_UNUSED, void *data2 EINA_UNUSED)
 {
-   e_desktop_edit(NULL, NULL);   
+   e_desktop_edit(NULL);   
 }
 
 static void
-_btn_cb_del(void *data, void *data2 __UNUSED__)
+_btn_cb_del(void *data, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = data;
    const Eina_List *l;
@@ -207,7 +208,7 @@ _btn_cb_del(void *data, void *data2 __UNUSED__)
 }
 
 static void
-_widget_list_selection_changed(void *data, Evas_Object *obj __UNUSED__)
+_widget_list_selection_changed(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata = data;
 

@@ -101,7 +101,7 @@ wizard_page_show(E_Wizard_Page *pg)
 }
 
 E_API int
-wizard_page_hide(E_Wizard_Page *pg __UNUSED__)
+wizard_page_hide(E_Wizard_Page *pg EINA_UNUSED)
 {
    E_Comp_Config *conf = NULL;
 

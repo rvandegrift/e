@@ -114,7 +114,7 @@ image_load(const char *name, const char *path, uint32_t *imgdata, int w, int h, 
 }
 
 static void
-_sub_item_clicked_cb(void *data, E_Menu *m __UNUSED__, E_Menu_Item *mi __UNUSED__)
+_sub_item_clicked_cb(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_DBusMenu_Item *item = data;
    e_dbusmenu_event_send(item, E_DBUSMENU_ITEM_EVENT_CLICKED);
@@ -175,7 +175,7 @@ _item_submenu_new(E_DBusMenu_Item *item, E_Menu_Item *mi)
 }
 
 void
-_clicked_item_cb(void *data, Evas *evas, Evas_Object *obj __UNUSED__, void *event)
+_clicked_item_cb(void *data, Evas *evas, Evas_Object *obj EINA_UNUSED, void *event)
 {
    Notifier_Item_Icon *ii = data;
    Evas_Event_Mouse_Down *ev = event;
@@ -197,7 +197,7 @@ _clicked_item_cb(void *data, Evas *evas, Evas_Object *obj __UNUSED__, void *even
    e_menu_post_deactivate_callback_set(m, _menu_post_deactivate, gadcon);
 
    zone = e_gadcon_zone_get(gadcon);
-   ecore_evas_pointer_xy_get(zone->comp->ee, &x, &y);
+   ecore_evas_pointer_xy_get(e_comp->ee, &x, &y);
    e_menu_activate_mouse(m, zone, x, y, 1, 1, E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
    evas_event_feed_mouse_up(evas, ev->button,
                          EVAS_BUTTON_NONE, ev->timestamp, NULL);

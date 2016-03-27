@@ -36,7 +36,7 @@ static void         _cb_fm_sel_change(void *data, Evas_Object *obj, void *event_
 static void         _cb_button_up(void *data1, void *data2);
 
 static int
-_basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    Eina_List *sel;
 
@@ -57,7 +57,7 @@ _basic_check_changed(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfda
 }
 
 E_Config_Dialog *
-_config_gadman_module(E_Comp *comp, const char *params __UNUSED__)
+_config_gadman_module(Evas_Object *parent EINA_UNUSED, const char *params EINA_UNUSED)
 {
    E_Config_Dialog *cfd;
    E_Config_Dialog_View *v;
@@ -76,7 +76,7 @@ _config_gadman_module(E_Comp *comp, const char *params __UNUSED__)
    v->basic.check_changed = _basic_check_changed;
 
    snprintf(buf, sizeof(buf), "%s/e-module-gadman.edj", Man->module->dir);
-   cfd = e_config_dialog_new(comp, _("Desktop Gadgets"),
+   cfd = e_config_dialog_new(NULL, _("Desktop Gadgets"),
                              "E", "extensions/gadman",
                              buf, 0, v, Man);
 
@@ -112,7 +112,7 @@ _create_data(E_Config_Dialog *cfd)
 }
 
 static void
-_free_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    Man->config_dialog = NULL;
    E_FREE(cfdata->color);
@@ -139,7 +139,7 @@ _cb_config_del(void *data)
 }
 
 static void
-_cb_config(void *data, void *data2 __UNUSED__)
+_cb_config(void *data, void *data2 EINA_UNUSED)
 {
    int x;
    E_Config_Dialog_Data *cfdata = data;
@@ -151,7 +151,7 @@ _cb_config(void *data, void *data2 __UNUSED__)
 
    EINA_LIST_FOREACH(Man->gadcons[x], l, gc)
      {
-        if (gc->zone != cfdata->cfd->dia->win->client->zone) continue;
+        if (gc->zone != e_win_client_get(cfdata->cfd->dia->win)->zone) continue;
         if (gc->config_dialog) return;
         e_int_gadcon_config_hook(gc, _("Desktop Gadgets"), E_GADCON_SITE_DESKTOP);
         if (!Man->add)
@@ -189,7 +189,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    ob = e_widget_button_add(evas, _("Configure Layer"), NULL, _cb_config, cfdata, NULL);
    e_widget_disabled_set(ob, 1);
    cfdata->o_config = ob;
-   e_widget_size_min_get(ob, &mw, &mh);
+   evas_object_size_hint_min_get(ob, &mw, &mh);
    e_widget_framelist_object_append_full(of, ob,
                                          1, 1, /* fill */
                                          1, 0, /* expand */
@@ -202,7 +202,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
 
    e_widget_toolbook_page_append(otb, NULL, _("Layers"), o, 1, 1, 1, 1, 0.5, 0.0);
    /////////////////////////////////////////////////////////////////////
-   ft = e_widget_table_add(evas, 0);
+   ft = e_widget_table_add(e_win_evas_win_get(evas), 0);
 
    //Background mode
    of = e_widget_frametable_add(evas, _("Mode"), 0);
@@ -306,7 +306,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
 }
 
 static int
-_basic_apply_data(E_Config_Dialog *cfd __UNUSED__, E_Config_Dialog_Data *cfdata)
+_basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
    Eina_List *sel;
    const char *p = NULL;
@@ -353,7 +353,7 @@ _avail_list_cb_change(void *data)
 
 //Advanced Callbacks
 static void
-_cb_color_changed(void *data, Evas_Object *o __UNUSED__)
+_cb_color_changed(void *data, Evas_Object *o EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    cfdata = data;
@@ -362,7 +362,7 @@ _cb_color_changed(void *data, Evas_Object *o __UNUSED__)
 }
 
 static void
-_cb_fm_radio_change(void *data, Evas_Object *obj __UNUSED__)
+_cb_fm_radio_change(void *data, Evas_Object *obj EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    char path[PATH_MAX];
@@ -377,7 +377,7 @@ _cb_fm_radio_change(void *data, Evas_Object *obj __UNUSED__)
 }
 
 static void
-_cb_fm_change(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_fm_change(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
    const char *p;
@@ -410,7 +410,7 @@ _cb_fm_change(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED
 }
 
 static void
-_cb_fm_sel_change(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cb_fm_sel_change(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 
@@ -419,7 +419,7 @@ _cb_fm_sel_change(void *data, Evas_Object *obj __UNUSED__, void *event_info __UN
 }
 
 static void
-_cb_button_up(void *data1, void *data2 __UNUSED__)
+_cb_button_up(void *data1, void *data2 EINA_UNUSED)
 {
    E_Config_Dialog_Data *cfdata;
 

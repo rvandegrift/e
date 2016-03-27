@@ -233,7 +233,7 @@ e_flowlayout_pack_end(Evas_Object *obj, Evas_Object *child)
    sd->items = eina_list_append(sd->items, child);
    sd->changed = 1;
    if (sd->frozen <= 0) _e_flowlayout_smart_reconfigure(sd);
-   return eina_list_count(sd->items) - 1;
+   return (int)(eina_list_count(sd->items) - 1);
 }
 
 E_API int
@@ -290,7 +290,7 @@ e_flowlayout_pack_count_get(Evas_Object *obj)
    if (evas_object_smart_smart_get(obj) != _e_smart) SMARTERR(0);
    sd = evas_object_smart_data_get(obj);
    if (!sd) return 0;
-   return eina_list_count(sd->items);
+   return (int)eina_list_count(sd->items);
 }
 
 E_API Evas_Object *
@@ -512,7 +512,7 @@ _e_flowlayout_smart_disown(Evas_Object *obj)
 }
 
 static void
-_e_flowlayout_smart_item_del_hook(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_e_flowlayout_smart_item_del_hook(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    e_flowlayout_unpack(obj);
 }
