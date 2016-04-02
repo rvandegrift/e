@@ -1,3 +1,10 @@
+e17 (0.20.6-1~bpo8+1) jessie-backports; urgency=medium
+
+  * Rebuild for jessie-backports.
+  * Point gbp to jessie-backports branch
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 02 Apr 2016 12:42:58 -0400
+
 e17 (0.20.6-1) UNRELEASED; urgency=medium
 
   * Non-maintainer upload.
