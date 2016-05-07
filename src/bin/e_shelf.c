@@ -503,7 +503,8 @@ e_shelf_move(E_Shelf *es, int x, int y)
    es->x = x;
    es->y = y;
    evas_object_move(es->comp_object, es->zone->x + es->x, es->zone->y + es->y);
-   _e_shelf_remaximize(es);
+   if (!es->hide_animator)
+     _e_shelf_remaximize(es);
 }
 
 E_API void
@@ -515,7 +516,8 @@ e_shelf_resize(E_Shelf *es, int w, int h)
    es->w = w;
    es->h = h;
    evas_object_resize(es->comp_object, es->w, es->h);
-   _e_shelf_remaximize(es);
+   if (!es->hide_animator)
+     _e_shelf_remaximize(es);
 }
 
 E_API void
@@ -530,7 +532,8 @@ e_shelf_move_resize(E_Shelf *es, int x, int y, int w, int h)
    es->h = h;
    evas_object_move(es->comp_object, es->zone->x + es->x, es->zone->y + es->y);
    evas_object_resize(es->comp_object, es->w, es->h);
-   _e_shelf_remaximize(es);
+   if (!es->hide_animator)
+     _e_shelf_remaximize(es);
 }
 
 E_API void
@@ -1386,7 +1389,6 @@ _e_shelf_gadcon_frame_request(void *data, E_Gadcon_Client *gcc, const char *styl
 static void
 _e_shelf_toggle_client_fix(E_Shelf *es)
 {
-   Eina_List *l;
    E_Client *ec;
 
    if (!e_config->border_fix_on_shelf_toggle)
@@ -1394,8 +1396,10 @@ _e_shelf_toggle_client_fix(E_Shelf *es)
    if (es->cfg->overlap)
      return;
 
-   EINA_LIST_FOREACH(e_comp->clients, l, ec)
+   E_CLIENT_FOREACH(ec)
      {
+        if ((!ec->sticky) && (!e_shelf_desk_visible(es, ec->desk ?: e_desk_current_get(es->zone))))
+          continue;
         if ((ec->maximized & E_MAXIMIZE_TYPE) == E_MAXIMIZE_NONE)
           {
              if (ec->lock_client_location) continue;

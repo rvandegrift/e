@@ -1,3 +1,28 @@
+/*
+ * Copyright © 2011 Kristian Høgsberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #define EXECUTIVE_MODE_ENABLED
 #define E_COMP_WL
 #include "e.h"
@@ -244,19 +269,8 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
    struct wl_resource *offer_res, *data_device_res, *focus = NULL;
 
    sel_source = (E_Comp_Wl_Data_Source*)e_comp_wl->selection.data_source;
-
-   if ((sel_source) &&
-       (e_comp_wl->selection.serial - serial < UINT32_MAX / 2))
-     {
-        /* TODO: elm_entry is sending too many request on now,
-         * for those requests, selection.signal is being emitted also a lot.
-         * when it completes to optimize the entry, it should be checked more.
-         */
-        if (e_comp_wl->clipboard.source)
-          wl_signal_emit(&e_comp_wl->selection.signal, e_comp->wl_comp_data);
-
-        return;
-     }
+   if (sel_source && (e_comp_wl->selection.serial - serial < UINT32_MAX / 2))
+     return;
 
    if (sel_source)
      {
@@ -950,10 +964,15 @@ e_comp_wl_clipboard_source_create(const char *mime_type, uint32_t serial, int fd
    if (fd > 0)
      {
         source->fd_handler =
-          ecore_main_fd_handler_add(fd, ECORE_FD_READ,
-                                    _e_comp_wl_clipboard_source_save,
-                                    e_comp->wl_comp_data, NULL, NULL);
-        if (!source->fd_handler) return NULL;
+          ecore_main_fd_handler_file_add(fd, ECORE_FD_READ | ECORE_FD_ERROR,
+                                         _e_comp_wl_clipboard_source_save,
+                                         e_comp->wl_comp_data, NULL, NULL);
+        if (!source->fd_handler)
+          {
+             _mime_types_free(&source->data_source);
+             free(source);
+             return NULL;
+          }
      }
 
    source->fd = fd;

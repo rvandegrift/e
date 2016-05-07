@@ -238,9 +238,9 @@ _e_comp_wl_input_cb_touch_get(struct wl_client *client EINA_UNUSED, struct wl_re
 }
 
 static void
-_e_comp_wl_input_cb_release(struct wl_client *client EINA_UNUSED, struct wl_resource *resource EINA_UNUSED)
+_e_comp_wl_input_cb_release(struct wl_client *client EINA_UNUSED, struct wl_resource *resource)
 {
-   /* TODO: implement */
+   wl_resource_destroy(resource);
 }
 
 static const struct wl_seat_interface _e_seat_interface =
@@ -543,7 +543,7 @@ e_comp_wl_input_keyboard_modifiers_update(void)
 
    if (!e_comp_wl_input_keyboard_modifiers_serialize()) return;
 
-   if (!e_comp_wl->kbd.focused) return;
+   if ((!e_comp_wl->kbd.focused) || e_comp->input_key_grabs) return;
 
    serial = wl_display_next_serial(e_comp_wl->wl.disp);
    EINA_LIST_FOREACH(e_comp_wl->kbd.focused, l, res)

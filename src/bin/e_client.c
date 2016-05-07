@@ -1460,6 +1460,8 @@ _e_client_cb_evas_move(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UN
    if (ec->moving || (ecmove == ec))
      _e_client_hook_call(E_CLIENT_HOOK_MOVE_UPDATE, ec);
    e_remember_update(ec);
+   if (ec->fullscreen || (ec->maximized & E_MAXIMIZE_DIRECTION))
+     e_hints_window_size_set(ec);
    ec->pre_cb.x = x; ec->pre_cb.y = y;
 }
 
@@ -1500,6 +1502,8 @@ _e_client_cb_evas_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_
    if (e_client_util_resizing_get(ec) || (ecresize == ec))
      _e_client_hook_call(E_CLIENT_HOOK_RESIZE_UPDATE, ec);
    e_remember_update(ec);
+   if (ec->fullscreen || (ec->maximized & E_MAXIMIZE_DIRECTION))
+     e_hints_window_size_set(ec);
    ec->pre_cb.w = w; ec->pre_cb.h = h;
 }
 
@@ -1878,7 +1882,7 @@ _e_client_eval(E_Client *ec)
              ec->placed = 1;
              ec->pre_cb.x = ec->x; ec->pre_cb.y = ec->y;
           }
-        else if (!E_INSIDE(ec->x, ec->y, zx, zy, zw, zh))
+        else if (!E_INTERSECTS(ec->x, ec->y, ec->w, ec->h, zx, zy, zw, zh))
           {
              /* If an ec is placed out of bound, fix it! */
              ec->x = zx + ((zw - ec->w) / 2);
@@ -2307,7 +2311,7 @@ _e_client_frame_update(E_Client *ec)
      bordername = "nofocus";
    else if (ec->urgent)
      bordername = "urgent";
-   else if (((ec->icccm.transient_for != 0) || (ec->dialog)) && 
+   else if (((ec->icccm.transient_for && (!ec->netwm.type)) || (ec->dialog)) && 
             (e_pixmap_is_x(ec->pixmap)))
      bordername = "dialog";
    else if (ec->netwm.state.modal)
@@ -2579,13 +2583,14 @@ e_client_new(E_Pixmap *cp, int first_map, int internal)
    ec->netwm.action.close = 0;
    ec->netwm.opacity = 255;
 
-   EC_CHANGED(ec);
-
    e_comp->clients = eina_list_append(e_comp->clients, ec);
    eina_hash_add(clients_hash[e_pixmap_type_get(cp)], &ec->pixmap, ec);
 
    if (!ec->ignored)
-     _e_client_event_simple(ec, E_EVENT_CLIENT_ADD);
+     {
+        EC_CHANGED(ec);
+        _e_client_event_simple(ec, E_EVENT_CLIENT_ADD);
+     }
    e_comp_object_client_add(ec);
    if (ec->frame)
      {
@@ -2865,6 +2870,20 @@ e_client_mouse_down(E_Client *ec, int button, Evas_Point *output, E_Binding_Even
           {
              did_act = EINA_TRUE;
              e_object_ref(E_OBJECT(ec->cur_mouse_action));
+             if (ec->internal)
+               {
+                  int button_mask, i;
+                  Evas *e;
+
+                  e = evas_object_evas_get(ec->internal_elm_win);
+                  button_mask = evas_pointer_button_down_mask_get(e);
+                  evas_event_feed_mouse_out(e, 0, NULL);
+                  for (i = 0; i < 32; i++)
+                    {
+                      if ((button_mask & (1 << i)))
+                        evas_event_feed_mouse_up(e, i + 1, EVAS_BUTTON_NONE, 0, NULL);
+                    }
+               }
           }
      }
    if ((!did_act) || (((pfocus == e_client_focused_get()) || (ec == e_client_focused_get())) && (ec->layer >= player)))
@@ -3113,7 +3132,9 @@ e_client_res_change_geometry_restore(E_Client *ec)
           x = zx + zw - w;
         if ((y + h) > (zy + zh))
           y = zy + zh - h;
-        evas_object_geometry_set(ec->frame, x, y, w, h);
+        evas_object_move(ec->frame, x, y);
+        if (w && h)
+          evas_object_resize(ec->frame, w, h);
      }
    memcpy(&ec->pre_res_change, &pre_res_change, sizeof(pre_res_change));
 }
@@ -3719,10 +3740,11 @@ e_client_maximize(E_Client *ec, E_Maximize max)
    E_OBJECT_TYPE_CHECK(ec, E_CLIENT_TYPE);
 
    if (!ec->zone) return;
+   if (ec->maximized == max) return;
    if (!(max & E_MAXIMIZE_DIRECTION)) max |= E_MAXIMIZE_BOTH;
 
    if ((ec->shaded) || (ec->shading)) return;
-   evas_object_smart_callback_call(ec->frame, "maximize_pre", NULL);
+
    /* Only allow changes in vertical/ horizontal maximization */
    if (((ec->maximized & E_MAXIMIZE_DIRECTION) == (max & E_MAXIMIZE_DIRECTION)) ||
        ((ec->maximized & E_MAXIMIZE_DIRECTION) == E_MAXIMIZE_BOTH)) return;
@@ -3734,7 +3756,7 @@ e_client_maximize(E_Client *ec, E_Maximize max)
         EC_CHANGED(ec);
         return;
      }
-
+   evas_object_smart_callback_call(ec->frame, "maximize_pre", NULL);
    if (ec->fullscreen)
      e_client_unfullscreen(ec);
    ec->pre_res_change.valid = 0;
@@ -3752,7 +3774,6 @@ e_client_maximize(E_Client *ec, E_Maximize max)
      }
 
    ec->saved.zone = ec->zone->num;
-   e_hints_window_size_set(ec);
 
    _e_client_maximize(ec, max);
 
@@ -3793,9 +3814,10 @@ e_client_unmaximize(E_Client *ec, E_Maximize max)
      }
 
    if ((ec->shaded) || (ec->shading)) return;
-   evas_object_smart_callback_call(ec->frame, "unmaximize_pre", NULL);
+
    /* Remove directions not used */
    max &= (ec->maximized & E_MAXIMIZE_DIRECTION);
+   evas_object_smart_callback_call(ec->frame, "unmaximize_pre", NULL);
    /* Can only remove existing maximization directions */
    if (!max) return;
    if (ec->maximized & E_MAXIMIZE_TYPE)
@@ -3872,7 +3894,6 @@ e_client_unmaximize(E_Client *ec, E_Maximize max)
                   evas_object_smart_callback_call(ec->frame, "unmaximize", NULL);
                   e_client_resize_limit(ec, &w, &h);
                   e_client_util_move_resize_without_frame(ec, x, y, w, h);
-                  e_hints_window_size_set(ec);
                }
              if (vert)
                ec->saved.h = ec->saved.y = 0;
@@ -3933,7 +3954,6 @@ e_client_fullscreen(E_Client *ec, E_Fullscreen policy)
         ec->saved.w = w;
         ec->saved.h = h;
      }
-   e_hints_window_size_set(ec);
 
    ec->saved.layer = ec->layer;
    if (!e_config->allow_above_fullscreen)
@@ -4962,12 +4982,13 @@ e_client_has_xwindow(const E_Client *ec)
 #ifdef HAVE_WAYLAND_ONLY
    (void)ec;
    return EINA_FALSE;
-#endif
-#ifdef HAVE_WAYLAND
+#else
+# ifdef HAVE_WAYLAND
    if (!e_pixmap_is_x(ec->pixmap))
      return !!e_comp_wl_client_xwayland_pixmap(ec);
-#endif
+# endif
    return e_pixmap_is_x(ec->pixmap);
+#endif
 }
 
 ////////////////////////////////////////////

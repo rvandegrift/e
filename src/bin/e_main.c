@@ -501,14 +501,6 @@ main(int argc, char **argv)
      }
    TS("Ecore_Evas Engine Check Done");
 
-   TS("Edje Init");
-   if (!edje_init())
-     {
-        e_error_message_show(_("Enlightenment cannot initialize Edje!\n"));
-        _e_main_shutdown(-1);
-     }
-   TS("Edje Init Done");
-   _e_main_shutdown_push(edje_shutdown);
    edje_freeze();
 
    /*** Initialize E Subsystems We Need ***/
@@ -1019,9 +1011,9 @@ main(int argc, char **argv)
    if (!nostartup)
      {
         if (after_restart)
-          e_startup(E_STARTUP_RESTART);
+          e_startup_mode_set(E_STARTUP_RESTART);
         else
-          e_startup(E_STARTUP_START);
+          e_startup_mode_set(E_STARTUP_START);
      }
    TS("Run Startup Apps Done");
 

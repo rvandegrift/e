@@ -15,6 +15,9 @@ struct E_Shell_Data
    Eina_Bool activated : 1;
 };
 
+static Eina_Hash *shell_resources;
+static Eina_Hash *xdg_shell_resources;
+
 static void
 _e_shell_surface_parent_set(E_Client *ec, struct wl_resource *parent_resource)
 {
@@ -63,6 +66,8 @@ _e_shell_surface_parent_set(E_Client *ec, struct wl_resource *parent_resource)
      {
         pc->transients = eina_list_append(pc->transients, ec);
         ec->parent = pc;
+        evas_object_layer_set(ec->frame, evas_object_layer_get(pc->frame));
+        evas_object_stack_above(ec->frame, pc->frame);
      }
 
    ec->icccm.fetch.transient_for = EINA_TRUE;
@@ -165,6 +170,7 @@ _e_shell_surface_cb_move(struct wl_client *client EINA_UNUSED, struct wl_resourc
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if ((ec->maximized) || (ec->fullscreen)) return;
 
@@ -206,6 +212,7 @@ _e_shell_surface_cb_resize(struct wl_client *client EINA_UNUSED, struct wl_resou
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if ((edges == 0) || (edges > 15) ||
        ((edges & 3) == 3) || ((edges & 12) == 12)) return;
@@ -256,6 +263,7 @@ _e_shell_surface_cb_toplevel_set(struct wl_client *client EINA_UNUSED, struct wl
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* set toplevel client properties */
    if (!ec->internal)
@@ -284,6 +292,7 @@ _e_shell_surface_cb_transient_set(struct wl_client *client EINA_UNUSED, struct w
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* set this client as a transient for parent */
    _e_shell_surface_parent_set(ec, parent_resource);
@@ -302,6 +311,7 @@ _e_shell_surface_cb_fullscreen_set(struct wl_client *client EINA_UNUSED, struct 
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (!ec->lock_user_fullscreen)
      e_client_fullscreen(ec, e_config->fullscreen_policy);
@@ -318,12 +328,10 @@ _e_shell_surface_cb_popup_set(struct wl_client *client EINA_UNUSED, struct wl_re
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
-   if (ec->comp_data)
-     {
-        ec->comp_data->popup.x = x;
-        ec->comp_data->popup.y = y;
-     }
+   ec->comp_data->popup.x = x;
+   ec->comp_data->popup.y = y;
 
    if (!ec->internal)
      ec->borderless = !ec->internal_elm_win;
@@ -356,6 +364,7 @@ _e_shell_surface_cb_maximized_set(struct wl_client *client EINA_UNUSED, struct w
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* tell E to maximize this client */
    if (!ec->lock_user_maximize)
@@ -383,6 +392,7 @@ _e_shell_surface_cb_title_set(struct wl_client *client EINA_UNUSED, struct wl_re
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* set title */
    eina_stringshare_replace(&ec->icccm.title, title);
@@ -402,6 +412,7 @@ _e_shell_surface_cb_class_set(struct wl_client *client EINA_UNUSED, struct wl_re
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* use the wl_client to get the pid * and set it in the netwm props */
    wl_client_get_credentials(client, &ec->netwm.pid, NULL, NULL);
@@ -448,6 +459,7 @@ _e_shell_surface_configure(struct wl_resource *resource, Evas_Coord x, Evas_Coor
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (ec->parent)
      {
@@ -483,6 +495,7 @@ _e_shell_surface_ping(struct wl_resource *resource)
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    serial = wl_display_next_serial(e_comp_wl->wl.disp);
    wl_shell_surface_send_ping(ec->comp_data->shell.surface, serial);
@@ -501,6 +514,7 @@ _e_shell_surface_map(struct wl_resource *resource)
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* map this surface if needed */
    if ((!ec->comp_data->mapped) && (e_pixmap_usable_get(ec->pixmap)))
@@ -525,6 +539,7 @@ _e_shell_surface_unmap(struct wl_resource *resource)
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (ec->comp_data->mapped)
      {
@@ -548,20 +563,9 @@ _e_shell_cb_shell_surface_get(struct wl_client *client, struct wl_resource *reso
                                "No Pixmap Set On Surface");
         return;
      }
-
-   EC_CHANGED(ec);
-   ec->new_client = ec->netwm.ping = EINA_TRUE;
-   e_comp->new_clients++;
-   e_client_unignore(ec);
-
-   /* get the client data */
-   if (!(cdata = ec->comp_data))
-     {
-        wl_resource_post_error(surface_resource,
-                               WL_DISPLAY_ERROR_INVALID_OBJECT,
-                               "No Data For Client");
-        return;
-     }
+   if (e_object_is_del(E_OBJECT(ec))) return;
+   cdata = ec->comp_data;
+   ec->netwm.ping = 1;
 
    /* check for existing shell surface */
    if (cdata->shell.surface)
@@ -591,6 +595,8 @@ _e_shell_cb_shell_surface_get(struct wl_client *client, struct wl_resource *reso
    cdata->shell.ping = _e_shell_surface_ping;
    cdata->shell.map = _e_shell_surface_map;
    cdata->shell.unmap = _e_shell_surface_unmap;
+   if (!ec->internal)
+     e_client_ping(ec);
 }
 
 static void
@@ -624,6 +630,7 @@ _e_xdg_shell_surface_configure_send(struct wl_resource *resource, uint32_t edges
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    shd = ec->comp_data->shell.data;
    if ((shd->edges == edges) && (shd->width == width) && (shd->height == height) &&
@@ -674,6 +681,7 @@ _e_xdg_shell_surface_cb_parent_set(struct wl_client *client EINA_UNUSED, struct 
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* set this client as a transient for parent */
    _e_shell_surface_parent_set(ec, parent_resource);
@@ -692,6 +700,7 @@ _e_xdg_shell_surface_cb_title_set(struct wl_client *client EINA_UNUSED, struct w
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* set title */
    eina_stringshare_replace(&ec->icccm.title, title);
@@ -711,6 +720,7 @@ _e_xdg_shell_surface_cb_app_id_set(struct wl_client *client EINA_UNUSED, struct 
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    /* use the wl_client to get the pid * and set it in the netwm props */
    wl_client_get_credentials(client, &ec->netwm.pid, NULL, NULL);
@@ -736,6 +746,7 @@ _e_xdg_shell_surface_cb_window_menu_show(struct wl_client *client EINA_UNUSED, s
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    timestamp = ecore_loop_time_get();
    e_int_client_menu_show(ec, x, y, 0, timestamp);
@@ -755,6 +766,7 @@ _e_xdg_shell_surface_cb_move(struct wl_client *client EINA_UNUSED, struct wl_res
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if ((ec->maximized) || (ec->fullscreen)) return;
 
@@ -799,6 +811,7 @@ _e_xdg_shell_surface_cb_resize(struct wl_client *client EINA_UNUSED, struct wl_r
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if ((edges == 0) || (edges > 15) ||
        ((edges & 3) == 3) || ((edges & 12) == 12)) return;
@@ -852,6 +865,7 @@ _e_xdg_shell_surface_cb_window_geometry_set(struct wl_client *client EINA_UNUSED
                                 "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
    EINA_RECTANGLE_SET(&ec->comp_data->shell.window, x, y, w, h);
    //DBG("XDG_SHELL: Window Geom Set: %d \t%d %d, %d %d", wl_resource_get_id(resource), x, y, w, h);
 }
@@ -869,6 +883,7 @@ _e_xdg_shell_surface_cb_maximized_set(struct wl_client *client EINA_UNUSED, stru
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (!ec->lock_user_maximize)
      {
@@ -890,6 +905,7 @@ _e_xdg_shell_surface_cb_maximized_unset(struct wl_client *client EINA_UNUSED, st
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    e_client_unmaximize(ec, E_MAXIMIZE_BOTH);
    _e_xdg_shell_surface_configure_send(resource, 0, ec->w, ec->h);
@@ -926,6 +942,7 @@ _e_xdg_shell_surface_cb_fullscreen_unset(struct wl_client *client EINA_UNUSED, s
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (!ec->lock_user_fullscreen)
      e_client_unfullscreen(ec);
@@ -944,6 +961,7 @@ _e_xdg_shell_surface_cb_minimized_set(struct wl_client *client EINA_UNUSED, stru
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (!ec->lock_client_iconify)
      e_client_iconify(ec);
@@ -996,6 +1014,7 @@ _e_xdg_shell_surface_configure(struct wl_resource *resource, Evas_Coord x, Evas_
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (ec->parent)
      {
@@ -1003,19 +1022,12 @@ _e_xdg_shell_surface_configure(struct wl_resource *resource, Evas_Coord x, Evas_
             (ec->netwm.type == E_WINDOW_TYPE_POPUP_MENU) ||
             (ec->netwm.type == E_WINDOW_TYPE_DROPDOWN_MENU))
           {
-             x = E_CLAMP(ec->parent->client.x + ec->comp_data->popup.x,
-                         ec->parent->client.x,
-                         ec->parent->client.x + 
-                         ec->parent->client.w - ec->client.w);
-             y = E_CLAMP(ec->parent->client.y + ec->comp_data->popup.y,
-                         ec->parent->client.y,
-                         ec->parent->client.y + 
-                         ec->parent->client.h - ec->client.h);
+             x = ec->parent->client.x + ec->comp_data->popup.x;
+             y = ec->parent->client.y + ec->comp_data->popup.y;
           }
      }
 
    e_client_util_move_resize_without_frame(ec, x, y, w, h);
-   /* TODO: ack configure ?? */
 }
 
 static void
@@ -1023,6 +1035,8 @@ _e_xdg_shell_surface_ping(struct wl_resource *resource)
 {
    E_Client *ec;
    uint32_t serial;
+   struct wl_client *client;
+   struct wl_resource *xdg_shell;
 
    /* get the client for this resource */
    if (!(ec = wl_resource_get_user_data(resource)))
@@ -1032,12 +1046,13 @@ _e_xdg_shell_surface_ping(struct wl_resource *resource)
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
+   client = wl_resource_get_client(resource);
+   xdg_shell = eina_hash_find(xdg_shell_resources, &client);
 
-   if (e_comp_wl->shell_interface.xdg_shell)
-     {
-        serial = wl_display_next_serial(e_comp_wl->wl.disp);
-        xdg_shell_send_ping(e_comp_wl->shell_interface.xdg_shell, serial);
-     }
+   if (!xdg_shell) return;
+   serial = wl_display_next_serial(e_comp_wl->wl.disp);
+   xdg_shell_send_ping(xdg_shell, serial);
 }
 
 static void
@@ -1055,6 +1070,7 @@ _e_xdg_shell_surface_map(struct wl_resource *resource)
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if ((!ec->comp_data->mapped) && (e_pixmap_usable_get(ec->pixmap)))
      {
@@ -1085,6 +1101,7 @@ _e_xdg_shell_surface_unmap(struct wl_resource *resource)
                                "No Client For Shell Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (ec->comp_data->mapped)
      {
@@ -1110,20 +1127,10 @@ _e_xdg_shell_cb_surface_get(struct wl_client *client, struct wl_resource *resour
                                "No Pixmap Set On Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
-   EC_CHANGED(ec);
-   ec->new_client = ec->netwm.ping = EINA_TRUE;
-   e_comp->new_clients++;
-   e_client_unignore(ec);
-
-   /* get the client data */
-   if (!(cdata = ec->comp_data))
-     {
-        wl_resource_post_error(surface_resource,
-                               WL_DISPLAY_ERROR_INVALID_OBJECT,
-                               "No Data For Client");
-        return;
-     }
+   ec->netwm.ping = 1;
+   cdata = ec->comp_data;
 
    /* check for existing shell surface */
    if (cdata->shell.surface)
@@ -1168,6 +1175,8 @@ _e_xdg_shell_cb_surface_get(struct wl_client *client, struct wl_resource *resour
 
    if (ec->internal_elm_win && evas_object_visible_get(ec->internal_elm_win))
      _e_xdg_shell_surface_map(surface_resource);
+   if (!ec->internal)
+     e_client_ping(ec);
 }
 
 static void
@@ -1200,15 +1209,9 @@ _e_xdg_shell_cb_popup_get(struct wl_client *client, struct wl_resource *resource
                                "No Pixmap Set On Surface");
         return;
      }
+   if (e_object_is_del(E_OBJECT(ec))) return;
 
-   /* get the client data */
-   if (!(cdata = ec->comp_data))
-     {
-        wl_resource_post_error(surface_resource,
-                               WL_DISPLAY_ERROR_INVALID_OBJECT,
-                               "No Data For Client");
-        return;
-     }
+   cdata = ec->comp_data;
 
    /* check for existing shell surface */
    if (cdata->shell.surface)
@@ -1238,7 +1241,7 @@ _e_xdg_shell_cb_popup_get(struct wl_client *client, struct wl_resource *resource
      }
 
    wl_resource_set_implementation(cdata->shell.surface,
-                                  &_e_xdg_popup_interface, ec, NULL);
+                                  &_e_xdg_popup_interface, ec, _e_shell_surface_destroy);
 
    e_object_ref(E_OBJECT(ec));
 
@@ -1249,10 +1252,6 @@ _e_xdg_shell_cb_popup_get(struct wl_client *client, struct wl_resource *resource
    cdata->shell.unmap = _e_xdg_shell_surface_unmap;
    cdata->shell.data = E_NEW(E_Shell_Data, 1);
 
-   EC_CHANGED(ec);
-   ec->new_client = ec->want_focus = ec->override = 1;
-   e_client_unignore(ec);
-   e_comp->new_clients++;
    if (!ec->internal)
      ec->borderless = !ec->internal_elm_win;
    ec->lock_border = EINA_TRUE;
@@ -1260,8 +1259,7 @@ _e_xdg_shell_cb_popup_get(struct wl_client *client, struct wl_resource *resource
      ec->border.changed = ec->changes.border = !ec->borderless;
    ec->changes.icon = !!ec->icccm.class;
    ec->netwm.type = E_WINDOW_TYPE_POPUP_MENU;
-   ec->comp_data->set_win_type = EINA_TRUE;
-   evas_object_layer_set(ec->frame, E_LAYER_CLIENT_POPUP);
+   ec->placed = ec->comp_data->set_win_type = EINA_TRUE;
 
    /* set this client as a transient for parent */
    _e_shell_surface_parent_set(ec, parent_resource);
@@ -1307,9 +1305,10 @@ static const struct xdg_shell_interface _e_xdg_shell_interface =
 };
 
 static void
-_e_xdg_shell_cb_unbind(struct wl_resource *resource EINA_UNUSED)
+_e_xdg_shell_cb_unbind(struct wl_resource *resource)
 {
-   e_comp_wl->shell_interface.xdg_shell = NULL;
+   struct wl_client *client = wl_resource_get_client(resource);
+   eina_hash_set(shell_resources, &client, NULL);
 }
 
 static int
@@ -1336,16 +1335,16 @@ _e_xdg_shell_cb_dispatch(const void *implementation EINA_UNUSED, void *target, u
      }
 
    wl_resource_set_implementation(res, &_e_xdg_shell_interface,
-                                  e_comp->wl_comp_data,
-                                  _e_xdg_shell_cb_unbind);
+                                  NULL, _e_xdg_shell_cb_unbind);
 
    return 1;
 }
 
 static void
-_e_shell_cb_unbind(struct wl_resource *resource EINA_UNUSED)
+_e_shell_cb_unbind(struct wl_resource *resource)
 {
-   e_comp_wl->shell_interface.shell = NULL;
+   struct wl_client *client = wl_resource_get_client(resource);
+   eina_hash_set(shell_resources, &client, NULL);
 }
 
 static void
@@ -1359,10 +1358,9 @@ _e_shell_cb_bind(struct wl_client *client, void *data EINA_UNUSED, uint32_t vers
         return;
      }
 
-   e_comp_wl->shell_interface.shell = res;
+   eina_hash_set(shell_resources, &client, res);
    wl_resource_set_implementation(res, &_e_shell_interface,
-                                  e_comp->wl_comp_data,
-                                  _e_shell_cb_unbind);
+                                  NULL, _e_shell_cb_unbind);
 }
 
 static void
@@ -1376,9 +1374,9 @@ _e_xdg_shell_cb_bind(struct wl_client *client, void *data EINA_UNUSED, uint32_t 
         return;
      }
 
-   e_comp_wl->shell_interface.xdg_shell = res;
+   eina_hash_set(xdg_shell_resources, &client, res);
    wl_resource_set_dispatcher(res, _e_xdg_shell_cb_dispatch, NULL,
-                              e_comp->wl_comp_data, NULL);
+                              NULL, NULL);
 }
 
 E_API E_Module_Api e_modapi = { E_MODULE_API_VERSION, "Wl_Desktop_Shell" };
@@ -1386,18 +1384,9 @@ E_API E_Module_Api e_modapi = { E_MODULE_API_VERSION, "Wl_Desktop_Shell" };
 E_API void *
 e_modapi_init(E_Module *m)
 {
-   /* try to get the current compositor */
-   if (!e_comp) return NULL;
-
-   /* make sure it's a wayland compositor */
-   /* if (e_comp->comp_type != E_PIXMAP_TYPE_WL) return NULL; */
-
-   /* try to get the compositor data */
-   if (!e_comp->wl_comp_data) return NULL;
-
    /* try to create global shell interface */
    if (!wl_global_create(e_comp_wl->wl.disp, &wl_shell_interface, 1,
-                         e_comp->wl_comp_data, _e_shell_cb_bind))
+                         NULL, _e_shell_cb_bind))
      {
         ERR("Could not create shell global: %m");
         return NULL;
@@ -1405,7 +1394,7 @@ e_modapi_init(E_Module *m)
 
    /* try to create global xdg_shell interface */
    if (!wl_global_create(e_comp_wl->wl.disp, &xdg_shell_interface, 1,
-                         e_comp->wl_comp_data, _e_xdg_shell_cb_bind))
+                         NULL, _e_xdg_shell_cb_bind))
      {
         ERR("Could not create xdg_shell global: %m");
         return NULL;
@@ -1418,6 +1407,10 @@ e_modapi_init(E_Module *m)
         return NULL;
      }
 #endif
+   e_startup();
+
+   shell_resources = eina_hash_pointer_new(NULL);
+   xdg_shell_resources = eina_hash_pointer_new(NULL);
 
    return m;
 }
@@ -1426,6 +1419,8 @@ E_API int
 e_modapi_shutdown(E_Module *m EINA_UNUSED)
 {
    e_input_panel_shutdown();
+   eina_hash_free(shell_resources);
+   eina_hash_free(xdg_shell_resources);
 
    return 1;
 }
