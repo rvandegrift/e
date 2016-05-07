@@ -996,8 +996,7 @@ linux_acpi_init(void)
                   FILE *f;
 
                   if (info->name_length + sizeof("/state") >= sizeof(buf)) continue;
-                  strcpy(buf, info->path);
-                  strcat(buf, "/state");
+                  snprintf(buf, sizeof(buf), "%s/state", info->path);
                   f = fopen(buf, "r");
                   if (f)
                     {
@@ -1025,8 +1024,7 @@ linux_acpi_init(void)
              char buf[PATH_MAX + 6];
              FILE *f;
 
-             strcpy(buf, info->path);
-             strcat(buf, "/info");
+             snprintf(buf, sizeof(buf), "%s/info", info->path);
              f = fopen(buf, "r");
              if (f)
                {

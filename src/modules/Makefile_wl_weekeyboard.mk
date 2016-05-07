@@ -1,5 +1,5 @@
 EXTRA_DIST += \
-   src/modules/wl_weekeyboard/themes/default/default_600.edc \
+   src/modules/wl_weekeyboard/themes/default/default_600.edj \
    src/modules/wl_weekeyboard/themes/default/default_720.edj \
    src/modules/wl_weekeyboard/themes/default/default_1080.edj
 
@@ -16,10 +16,9 @@ wl_weekeyboardpkg_LTLIBRARIES = src/modules/wl_weekeyboard/module.la
 src_modules_wl_weekeyboard_module_la_DEPENDENCIES = $(MDEPENDENCIES)
 src_modules_wl_weekeyboard_module_la_CPPFLAGS  = \
    $(MOD_CPPFLAGS)               \
-   @WL_WEEKEYBOARD_CFLAGS@       \
    @WAYLAND_CFLAGS@              \
    -DPKGDATADIR='"$pkgdatadir)"'
-src_modules_wl_weekeyboard_module_la_LIBADD   = $(LIBS) @WL_WEEKEYBOARD_LIBS@ @WAYLAND_LIBS@
+src_modules_wl_weekeyboard_module_la_LIBADD   = $(MOD_LIBS) @WAYLAND_LIBS@
 src_modules_wl_weekeyboard_module_la_LDFLAGS = $(MOD_LDFLAGS)
 src_modules_wl_weekeyboard_module_la_SOURCES =                 \
    src/modules/wl_weekeyboard/e_mod_main.c                     \

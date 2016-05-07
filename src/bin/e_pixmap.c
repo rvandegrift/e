@@ -209,6 +209,11 @@ _e_pixmap_free(E_Pixmap *cp)
       case E_PIXMAP_TYPE_WL:
 #ifdef HAVE_WAYLAND
         _e_pixmap_wayland_image_clear(cp);
+        if (cp->buffer_destroy_listener.notify)
+          {
+             wl_list_remove(&cp->buffer_destroy_listener.link);
+             cp->buffer_destroy_listener.notify = NULL;
+          }
 #endif
         break;
       default:
@@ -238,7 +243,7 @@ _e_pixmap_find(E_Pixmap_Type type, va_list *l)
    Ecore_X_Window xwin;
 #endif
 #ifdef HAVE_WAYLAND
-   intptr_t id;
+   int64_t id;
 #endif
    E_Pixmap *cp;
    

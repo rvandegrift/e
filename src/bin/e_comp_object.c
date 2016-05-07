@@ -93,6 +93,8 @@ typedef struct _E_Comp_Object
 
    Evas_Native_Surface *ns; //for custom gl rendering
 
+   double               action_client_loop_time; //loop time when client's action ended
+
    unsigned int         update_count;  // how many updates have happened to this obj
 
    unsigned int         opacity;  // opacity set with _NET_WM_WINDOW_OPACITY
@@ -304,6 +306,7 @@ _e_comp_object_updates_init(E_Comp_Object *cw)
    pw = cw->ec->client.w, ph = cw->ec->client.h;
    if ((!pw) || (!ph))
      e_pixmap_size_get(cw->ec->pixmap, &pw, &ph);
+   if ((!pw) || (!ph)) return;
    cw->updates = eina_tiler_new(pw, ph);
    if (cw->updates)
      eina_tiler_tile_size_set(cw->updates, 1, 1);
@@ -342,8 +345,9 @@ _e_comp_object_cb_signal_bind(void *data, Evas_Object *obj EINA_UNUSED, const ch
    if (e_dnd_active()) return;
 #endif
    if (cw->ec->iconic || cw->ec->cur_mouse_action) return;
-   e_bindings_signal_handle(E_BINDING_CONTEXT_WINDOW, E_OBJECT(cw->ec),
-                            emission, source);
+   if (!dblequal(cw->action_client_loop_time, ecore_loop_time_get()))
+     e_bindings_signal_handle(E_BINDING_CONTEXT_WINDOW, E_OBJECT(cw->ec),
+                              emission, source);
 }
 
 /////////////////////////////////////
@@ -409,11 +413,15 @@ _e_comp_object_cb_mouse_up(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EIN
    Evas_Event_Mouse_Down *ev = event_info;
    E_Comp_Object *cw = data;
    E_Binding_Event_Mouse_Button ev2;
+   Eina_Bool acting;
 
    if (!cw->ec) return;
    if (e_client_action_get() && (e_client_action_get() != cw->ec)) return;
    e_bindings_evas_event_mouse_button_convert(ev, &ev2);
+   acting = !!cw->ec->cur_mouse_action;
    e_client_mouse_up(cw->ec, ev->button, &ev->output, &ev2);
+   if (acting && (!e_client_action_get()))
+     cw->action_client_loop_time = ecore_loop_time_get();
 }
 
 /* handle evas mouse movement events on client object */
@@ -529,17 +537,19 @@ _e_comp_object_shadow_setup(E_Comp_Object *cw)
    Eina_List *list = NULL, *l;
    E_Comp_Match *m;
    Eina_Stringshare *reshadow_group = NULL;
-   Eina_Bool focus = EINA_FALSE, urgent = EINA_FALSE, skip = EINA_FALSE, fast = EINA_FALSE, reshadow = EINA_FALSE, no_shadow = EINA_FALSE;
+   Eina_Bool focus = EINA_FALSE, urgent = EINA_FALSE, skip = EINA_FALSE,
+             fast = EINA_FALSE, reshadow = EINA_FALSE, no_shadow = EINA_FALSE, override;
    Eina_Stringshare *name, *title;
    E_Comp_Config *conf = e_comp_config_get();
 
    edje_object_file_get(cw->shobj, NULL, &reshadow_group);
+   override = cw->ec->override || (cw->ec->netwm.type == E_WINDOW_TYPE_POPUP_MENU);
    /* match correct client type */
-   list = cw->ec->override ? conf->match.overrides : conf->match.borders;
+   list = override ? conf->match.overrides : conf->match.borders;
    name = cw->ec->icccm.name;
    title = cw->ec->icccm.title;
-   skip = (cw->ec->override ? conf->match.disable_overrides : conf->match.disable_borders) || (title && (!strncmp(title, "noshadow", 8)));
-   fast = cw->ec->override ? conf->fast_overrides : conf->fast_borders;
+   skip = (override ? conf->match.disable_overrides : conf->match.disable_borders) || (title && (!strncmp(title, "noshadow", 8)));
+   fast = override ? conf->fast_overrides : conf->fast_borders;
 
    /* skipping here is mostly a hack for systray because I hate it */
    if (!skip)
@@ -633,7 +643,7 @@ _e_comp_object_shadow_setup(E_Comp_Object *cw)
              if (cw->frame_object && (edje_object_part_swallow_get(cw->shobj, "e.swallow.content") == cw->frame_object)) return EINA_FALSE;
           }
      }
-   if (cw->ec->override)
+   if (override)
      {
         if ((!cw->ec->shaped) && (!no_shadow) && (!cw->ec->argb))
           edje_object_signal_emit(cw->shobj, "e,state,shadow,on", "e");
@@ -652,7 +662,7 @@ _e_comp_object_shadow_setup(E_Comp_Object *cw)
           _e_comp_object_shadow(cw);
      }
 
-   if (focus || cw->ec->focused || cw->ec->override)
+   if (focus || cw->ec->focused || override)
      e_comp_object_signal_emit(cw->smart_obj, "e,state,focused", "e");
    else
      e_comp_object_signal_emit(cw->smart_obj, "e,state,unfocused", "e");
@@ -672,7 +682,10 @@ _e_comp_object_shadow_setup(E_Comp_Object *cw)
     * stuck as hidden
     */
    if (cw->visible || cw->ec->iconic || cw->ec->re_manage)
-     e_comp_object_signal_emit(cw->smart_obj, "e,state,visible", "e");
+     {
+        if ((cw->w > 0) && (cw->h > 0))
+          e_comp_object_signal_emit(cw->smart_obj, "e,state,visible", "e");
+     }
    else
      e_comp_object_signal_emit(cw->smart_obj, "e,state,hidden", "e");
 
@@ -726,6 +739,7 @@ _e_comp_object_animating_begin(E_Comp_Object *cw)
         e_comp->animating++;
         REFD(cw->ec, 2);
         e_object_ref(E_OBJECT(cw->ec));
+        evas_object_image_border_center_fill_set(cw->obj, EVAS_BORDER_FILL_DEFAULT);
      }
 }
 
@@ -739,6 +753,7 @@ _e_comp_object_animating_end(E_Comp_Object *cw)
           {
              e_comp->animating--;
              cw->showing = 0;
+             evas_object_image_border_center_fill_set(cw->obj, EVAS_BORDER_FILL_SOLID);
              UNREFD(cw->ec, 2);
              /* remove ref from animation start, account for possibility of deletion from unref */
              return !!e_object_unref(E_OBJECT(cw->ec));
@@ -856,15 +871,18 @@ _e_comp_object_setup(E_Comp_Object *cw)
 
 /* for fast path evas rendering; only called during render */
 static void
-_e_comp_object_pixels_get(void *data, Evas_Object *obj EINA_UNUSED)
+_e_comp_object_pixels_get(void *data, Evas_Object *obj)
 {
    E_Comp_Object *cw = data;
    E_Client *ec = cw->ec;
    int pw, ph;
    int bx, by, bxx, byy;
 
-   if (!ec->pixmap) return;
-   if (!e_pixmap_size_get(ec->pixmap, &pw, &ph)) return;
+   if ((!ec->pixmap) || (!e_pixmap_size_get(ec->pixmap, &pw, &ph)))
+     {
+        evas_object_image_data_set(obj, NULL);
+        return;
+     }
    //INF("PIXEL GET %p: %dx%d || %dx%d", ec, ec->w, ec->h, pw, ph);
    e_pixmap_image_opaque_get(cw->ec->pixmap, &bx, &by, &bxx, &byy);
    if (bxx && byy)
@@ -872,15 +890,15 @@ _e_comp_object_pixels_get(void *data, Evas_Object *obj EINA_UNUSED)
         bxx = pw - (bx + bxx), byy = ph - (by + byy);
         evas_object_image_border_set(cw->obj, bx, bxx, by, byy);
      }
-   else if (cw->client_inset.calc && (!cw->frame_object)) //CSD
-     {
-        bx = -cw->client_inset.l + 4, by = -cw->client_inset.t + 4;
-        bxx = -cw->client_inset.r, byy = -cw->client_inset.b;
-     }
    else
      {
         bx = by = bxx = byy = 0;
         evas_object_image_border_set(cw->obj, bx, bxx, by, byy);
+        if (cw->client_inset.calc && (!cw->frame_object)) //CSD
+          {
+             bx = -cw->client_inset.l + 4, by = -cw->client_inset.t + 4;
+             bxx = -cw->client_inset.r, byy = -cw->client_inset.b;
+          }
      }
    {
       Edje_Message_Int_Set *msg;
@@ -900,10 +918,7 @@ _e_comp_object_pixels_get(void *data, Evas_Object *obj EINA_UNUSED)
    if (cw->native)
      {
         E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
-        cw->ec->on_post_updates = EINA_TRUE;
-        e_comp->post_updates = eina_list_append(e_comp->post_updates, cw->ec);
-        REFD(cw->ec, 111);
-        e_object_ref(E_OBJECT(cw->ec));
+        e_comp_client_post_update_add(cw->ec);
      }
    else if (e_comp_object_render(ec->frame))
      {
@@ -1006,7 +1021,8 @@ _e_comp_intercept_move(void *data, Evas_Object *obj, int x, int y)
    if (cw->ec->new_client)
      {
         /* don't actually do anything until first client idler loop */
-        cw->ec->placed = ((!cw->ec->dialog) && (!cw->ec->parent));
+        if (!cw->ec->placed)
+          cw->ec->placed = ((!cw->ec->dialog) && (!cw->ec->parent));
         cw->ec->changes.pos = 1;
         EC_CHANGED(cw->ec);
      }
@@ -1123,10 +1139,17 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
        (!e_pixmap_size_get(cw->ec->pixmap, &pw, &ph))))
      {
         if (e_comp->comp_type != E_PIXMAP_TYPE_X) return;
-        /* client can't be resized if its pixmap isn't usable, try again */
-        e_pixmap_dirty(cw->ec->pixmap);
-        e_comp_object_render_update_add(obj);
-        e_comp_render_queue();
+        if (e_object_is_del(E_OBJECT(cw->ec))) return;
+        /* shapeless clients smh */
+        if (cw->ec->shaped && (!cw->ec->shape_rects)) return;
+        /* pending shape change gtfo */
+        if (!cw->ec->changes.shape)
+          {
+             /* client can't be resized if its pixmap isn't usable, try again */
+             e_pixmap_dirty(cw->ec->pixmap);
+             e_comp_object_render_update_add(obj);
+             e_comp_render_queue();
+          }
         cw->ec->changes.size = 1;
         EC_CHANGED(cw->ec);
         return;
@@ -1679,7 +1702,10 @@ _e_comp_intercept_focus(void *data, Evas_Object *obj, Eina_Bool focus)
      }
    if (focus && ec->lock_focus_out) return;
    if (e_object_is_del(E_OBJECT(ec)) && focus)
-     CRI("CAN'T FOCUS DELETED CLIENT!");
+     {
+        CRI("CAN'T FOCUS DELETED CLIENT!");
+        return;
+     }
 
    /* filter focus setting based on current state */
    if (focus)
@@ -3004,12 +3030,9 @@ e_comp_object_frame_geometry_set(Evas_Object *obj, int l, int r, int t, int b)
      }
    else if (cw->ec->maximized || cw->ec->fullscreen)
      {
-        if (e_client_has_xwindow(cw->ec))
-          {
-             cw->ec->saved.x += l - cw->client_inset.l;
-             cw->ec->saved.y += t - cw->client_inset.t;
-          }
-        else
+        cw->ec->saved.x += l - cw->client_inset.l;
+        cw->ec->saved.y += t - cw->client_inset.t;
+        if (!e_client_has_xwindow(cw->ec))
           {
              cw->ec->saved.w -= ((l + r) - (cw->client_inset.l + cw->client_inset.r));
              cw->ec->saved.h -= ((t + b) - (cw->client_inset.t + cw->client_inset.b));
@@ -3017,10 +3040,14 @@ e_comp_object_frame_geometry_set(Evas_Object *obj, int l, int r, int t, int b)
      }
    if (!cw->ec->new_client)
      {
-        if ((calc || (!e_client_has_xwindow(cw->ec))) && cw->client_inset.calc)
+        if (calc && cw->client_inset.calc)
           {
-             cw->ec->x -= l - cw->client_inset.l;
-             cw->ec->y -= t - cw->client_inset.t;
+             E_Zone *zone = e_comp_object_util_zone_get(obj);
+
+             if (cw->ec->x != zone->x)
+               cw->ec->x -= l - cw->client_inset.l;
+             if (cw->ec->y != zone->y)
+               cw->ec->y -= t - cw->client_inset.t;
           }
         cw->ec->changes.pos = cw->ec->changes.size = 1;
         EC_CHANGED(cw->ec);
@@ -3303,7 +3330,8 @@ e_comp_object_damage(Evas_Object *obj, int x, int y, int w, int h)
    if (cw->updates_full)
      {
         RENDER_DEBUG("IGNORED %p: %d,%d %dx%d", cw->ec, x, y, w, h);
-        e_comp_object_render_update_add(obj);
+        if (!e_object_is_del(E_OBJECT(cw->ec)))
+          e_comp_object_render_update_add(obj);
         return;
      }
    /* clip rect to client surface */
@@ -3635,7 +3663,8 @@ e_comp_object_dirty(Evas_Object *obj)
      }
    if (!dirty)
      {
-        ERR("ERROR FETCHING PIXMAP FOR %p", cw->ec);
+        if (!e_object_is_del(E_OBJECT(cw->ec)))
+          ERR("ERROR FETCHING PIXMAP FOR %p", cw->ec);
         return;
      }
    e_comp_object_native_surface_set(obj, e_comp->gl);
@@ -3703,9 +3732,7 @@ e_comp_object_render(Evas_Object *obj)
      {
         Eina_Bool alpha = e_pixmap_image_is_argb(cw->ec->pixmap);
 
-        it = NULL;
         pix = e_pixmap_image_data_get(cw->ec->pixmap);
-        evas_object_image_data_set(cw->obj, cw->blanked ? NULL : pix);
         evas_object_image_alpha_set(cw->obj, alpha);
         ret = EINA_TRUE;
         goto end;
@@ -3715,32 +3742,27 @@ e_comp_object_render(Evas_Object *obj)
    if (e_pixmap_image_is_argb(cw->ec->pixmap))
      {
         pix = e_pixmap_image_data_get(cw->ec->pixmap);
-        if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+        EINA_ITERATOR_FOREACH(it, r)
           {
-             EINA_ITERATOR_FOREACH(it, r)
+             E_RECTS_CLIP_TO_RECT(r->x, r->y, r->w, r->h, 0, 0, pw, ph);
+             /* get pixmap data from rect region on display server into memory */
+             ret = e_pixmap_image_draw(cw->ec->pixmap, r);
+             if (!ret)
                {
-                  E_RECTS_CLIP_TO_RECT(r->x, r->y, r->w, r->h, 0, 0, pw, ph);
-                  /* get pixmap data from rect region on display server into memory */
-                  ret = e_pixmap_image_draw(cw->ec->pixmap, r);
-                  if (!ret)
+                  WRN("UPDATE [%p]: %i %i %ix%i FAIL(%u)!!!!!!!!!!!!!!!!!", cw->ec, r->x, r->y, r->w, r->h, cw->failures);
+                  if (++cw->failures < FAILURE_MAX)
+                    e_comp_object_damage(obj, 0, 0, pw, ph);
+                  else
                     {
-                       WRN("UPDATE [%p]: %i %i %ix%i FAIL(%u)!!!!!!!!!!!!!!!!!", cw->ec, r->x, r->y, r->w, r->h, cw->failures);
-                       if (++cw->failures < FAILURE_MAX)
-                         e_comp_object_damage(obj, 0, 0, pw, ph);
-                       else
-                         {
-                            DELD(cw->ec, 2);
-                            e_object_del(E_OBJECT(cw->ec));
-                            return EINA_FALSE;
-                         }
-                       break;
+                       DELD(cw->ec, 2);
+                       e_object_del(E_OBJECT(cw->ec));
+                       return EINA_FALSE;
                     }
-                  RENDER_DEBUG("UPDATE [%p] %i %i %ix%i", cw->ec, r->x, r->y, r->w, r->h);
+                  break;
                }
+             RENDER_DEBUG("UPDATE [%p] %i %i %ix%i", cw->ec, r->x, r->y, r->w, r->h);
           }
-        else
-          ret = EINA_TRUE;
-        evas_object_image_data_set(cw->obj, cw->blanked ? NULL : pix);
+        if (!it) pix = NULL;
         goto end;
      }
 
@@ -3767,23 +3789,19 @@ e_comp_object_render(Evas_Object *obj)
         e_pixmap_image_data_argb_convert(cw->ec->pixmap, pix, srcpix, r, stride);
         RENDER_DEBUG("UPDATE [%p]: %d %d %dx%d -- pix = %p", cw->ec, r->x, r->y, r->w, r->h, pix);
      }
-   evas_object_image_data_set(cw->obj, cw->blanked ? NULL : pix);
+   if (!it) pix = NULL;
+   eina_iterator_free(it);
 end:
+   evas_object_image_data_set(cw->obj, cw->blanked ? NULL : pix);
    EINA_LIST_FOREACH(cw->obj_mirror, l, o)
      {
         evas_object_image_data_set(o, pix);
         evas_object_image_pixels_dirty_set(o, EINA_FALSE);
      }
 
-   eina_iterator_free(it);
    E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
    if (ret)
-     {
-        cw->ec->on_post_updates = EINA_TRUE;
-        e_comp->post_updates = eina_list_append(e_comp->post_updates, cw->ec);
-        REFD(cw->ec, 111);
-        e_object_ref(E_OBJECT(cw->ec));
-     }
+     e_comp_client_post_update_add(cw->ec);
    return ret;
 }
 

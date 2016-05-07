@@ -137,12 +137,6 @@ struct _E_Comp_Wl_Data
 
    struct
      {
-        struct wl_resource *shell;
-        struct wl_resource *xdg_shell;
-     } shell_interface;
-
-   struct
-     {
         Eina_List *resources;
         Eina_List *focused;
         Eina_Bool enabled : 1;
@@ -294,7 +288,6 @@ struct _E_Comp_Wl_Client_Data
    Eina_Bool evas_init : 1;
    Eina_Bool set_win_type : 1;
    Eina_Bool frame_update : 1;
-   Eina_Bool maximize_pre : 1;
    Eina_Bool cursor : 1;
 };
 

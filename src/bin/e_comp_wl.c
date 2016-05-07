@@ -47,6 +47,7 @@ _e_comp_wl_configure_send(E_Client *ec, Eina_Bool edges)
 {
    int w, h;
 
+   if (e_object_is_del(E_OBJECT(ec))) return;
    if (e_comp_object_frame_exists(ec->frame))
      w = ec->client.w, h = ec->client.h;
    else
@@ -106,49 +107,33 @@ _e_comp_wl_cb_module_idle(void *data EINA_UNUSED)
 static void
 _e_comp_wl_evas_cb_show(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
 {
-   E_Client *ec, *tmp;
-   Eina_List *l;
+   E_Client *ec = data;
 
-   if (!(ec = data)) return;
    if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (!ec->override) e_hints_window_visible_set(ec);
 
-
-   if ((!ec->ignored) && (!ec->comp_data->cursor))
-     {
-        if (ec->new_client)
-          ec->take_focus = !starting;
-        else
-          evas_object_focus_set(ec->frame, !starting);
-     }
-
-   EINA_LIST_FOREACH(ec->e.state.video_child, l, tmp)
-     evas_object_show(tmp->frame);
+   if (ec->ignored || ec->comp_data->cursor) return;
+   if (ec->parent && (!ec->parent->focused)) return;
+   if (ec->new_client)
+     ec->take_focus = !starting;
+   else
+     evas_object_focus_set(ec->frame, !starting);
 }
 
 static void
 _e_comp_wl_evas_cb_hide(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
 {
-   E_Client *ec, *tmp;
-   Eina_List *l;
-
-   if (!(ec = data)) return;
-
-   EINA_LIST_FOREACH(ec->e.state.video_child, l, tmp)
-     evas_object_hide(tmp->frame);
+   E_Client *ec = data;
 
    if (!e_object_is_del(E_OBJECT(ec))) return;
+   if (!e_object_ref_get(E_OBJECT(ec))) return;
 
-   e_comp_object_dirty(ec->frame);
    e_comp_object_damage(ec->frame, 0, 0, ec->w, ec->h);
-   if (!e_comp_object_render(ec->frame)) return;
-   if (!ec->on_post_updates)
-     {
-        ec->on_post_updates = EINA_TRUE;
-        e_comp->post_updates = eina_list_append(e_comp->post_updates, ec);
-     }
-   else e_object_unref(E_OBJECT(ec));
+   e_comp_object_dirty(ec->frame);
+   if (e_comp_object_render(ec->frame))
+     e_comp_client_post_update_add(ec);
+   e_object_unref(E_OBJECT(ec));
 }
 
 static void
@@ -196,7 +181,6 @@ _e_comp_wl_evas_cb_mouse_out(void *data, Evas *evas EINA_UNUSED, Evas_Object *ob
    uint32_t serial;
 
    if (!(ec = data)) return;
-   if (e_object_is_del(E_OBJECT(ec))) return;
    if (ec->cur_mouse_action) return;
    /* FIXME? this is a hack to just reset the cursor whenever we mouse out. not sure if accurate */
    {
@@ -473,6 +457,7 @@ _e_comp_wl_evas_cb_focus_in_timer(E_Client *ec)
    ec->comp_data->on_focus_timer = NULL;
 
    if (!e_comp_wl->kbd.focused) return EINA_FALSE;
+   e_comp_wl_input_keyboard_modifiers_update();
    serial = wl_display_next_serial(e_comp_wl->wl.disp);
    t = ecore_time_unix_get();
    EINA_LIST_FOREACH(e_comp_wl->kbd.focused, l, res)
@@ -513,39 +498,43 @@ _e_comp_wl_evas_cb_focus_in(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj
 }
 
 static void
-_e_comp_wl_evas_cb_focus_out(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
+_e_comp_wl_keyboard_leave(E_Client *ec)
 {
-   E_Client *ec;
    struct wl_resource *res;
-   uint32_t serial, *k;
+   struct wl_client *wc;
    Eina_List *l, *ll;
+   uint32_t serial, *k;
    double t;
 
-   if (!(ec = data)) return;
-   if (e_object_is_del(E_OBJECT(ec))) return;
+   if (!eina_list_count(e_comp_wl->kbd.resources)) return;
+   if (!ec->comp_data) return;
+   if (!ec->comp_data->surface) return;
+
+   wc = wl_resource_get_client(ec->comp_data->surface);
+   serial = wl_display_next_serial(e_comp_wl->wl.disp);
+   t = ecore_time_unix_get();
+   EINA_LIST_FOREACH_SAFE(e_comp_wl->kbd.focused, l, ll, res)
+     {
+        if (wl_resource_get_client(res) != wc) continue;
+        wl_array_for_each(k, &e_comp_wl->kbd.keys)
+          wl_keyboard_send_key(res, serial, t,
+                               *k, WL_KEYBOARD_KEY_STATE_RELEASED);
+        wl_keyboard_send_leave(res, serial, ec->comp_data->surface);
+        e_comp_wl->kbd.focused = eina_list_remove_list(e_comp_wl->kbd.focused, l);
+     }
+}
+
+static void
+_e_comp_wl_evas_cb_focus_out(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
+{
+   E_Client *ec = data;
 
    E_FREE_FUNC(ec->comp_data->on_focus_timer, ecore_timer_del);
 
    /* lower client priority */
    if (!e_object_is_del(data))
      _e_comp_wl_client_priority_normal(ec);
-
-   if (!ec->comp_data->surface) return;
-
-   if (!eina_list_count(e_comp_wl->kbd.resources)) return;
-
-   /* send keyboard_leave to all keyboard resources */
-   serial = wl_display_next_serial(e_comp_wl->wl.disp);
-   t = ecore_time_unix_get();
-   EINA_LIST_FOREACH_SAFE(e_comp_wl->kbd.focused, l, ll, res)
-     {
-        wl_array_for_each(k, &e_comp_wl->kbd.keys)
-          wl_keyboard_send_key(res, serial, t,
-                               *k, WL_KEYBOARD_KEY_STATE_RELEASED);
-        wl_keyboard_send_leave(res, serial, ec->comp_data->surface);
-        e_comp_wl->kbd.focused =
-          eina_list_remove_list(e_comp_wl->kbd.focused, l);
-     }
+   _e_comp_wl_keyboard_leave(ec);
 }
 
 static void
@@ -555,6 +544,12 @@ _e_comp_wl_evas_cb_restack(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EIN
    Eina_List *l, *ll;
 
    if (e_object_is_del(E_OBJECT(ec))) return;
+   if (e_client_has_xwindow(ec)) return;
+   EINA_LIST_FOREACH(ec->transients, l, sec)
+     {
+        evas_object_layer_set(sec->frame, evas_object_layer_get(ec->frame));
+        evas_object_stack_above(sec->frame, ec->frame);
+     }
    if (!ec->comp_data->sub.list) return;
    EINA_LIST_FOREACH(ec->comp_data->sub.list, l, sec)
      evas_object_layer_set(sec->frame, evas_object_layer_get(ec->frame));
@@ -641,8 +636,7 @@ _e_comp_wl_evas_cb_resize(void *data, Evas_Object *obj EINA_UNUSED, void *event 
                                             e_comp_wl->resize.edges,
                                             x, y);
      }
-   else if ((!ec->fullscreen) && (!ec->maximized) &&
-            (!ec->comp_data->maximize_pre))
+   else
      _e_comp_wl_configure_send(ec, 1);
 }
 
@@ -657,33 +651,23 @@ _e_comp_wl_evas_cb_state_update(void *data, Evas_Object *obj EINA_UNUSED, void *
 
    if (ec->comp_data->shell.configure_send)
      _e_comp_wl_configure_send(ec, 0);
-   ec->comp_data->maximize_pre = 0;
-}
-
-static void
-_e_comp_wl_evas_cb_maximize_pre(void *data, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
-{
-   E_Client *ec = data;
-
-   ec->comp_data->maximize_pre = 1;
 }
 
 static void
 _e_comp_wl_evas_cb_delete_request(void *data, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
 {
-   E_Client *ec;
-
-   if (!(ec = data)) return;
-   if (ec->netwm.ping) e_client_ping(ec);
+   E_Client *ec = data;
 
    e_comp_ignore_win_del(E_PIXMAP_TYPE_WL, e_pixmap_window_get(ec->pixmap));
 
-   e_object_del(E_OBJECT(ec));
+   if (!e_client_has_xwindow(ec))
+     {
+        if (ec->internal_elm_win)
+          E_FREE_FUNC(ec->internal_elm_win, evas_object_del);
+        e_object_del(E_OBJECT(ec));
+     }
 
    _e_comp_wl_focus_check();
-
-   /* TODO: Delete request send ??
-    * NB: No such animal wrt wayland */
 }
 
 static void
@@ -692,7 +676,6 @@ _e_comp_wl_evas_cb_kill_request(void *data, Evas_Object *obj EINA_UNUSED, void *
    E_Client *ec;
 
    if (!(ec = data)) return;
-   /* if (ec->netwm.ping) e_client_ping(ec); */
 
    e_comp_ignore_win_del(E_PIXMAP_TYPE_WL, e_pixmap_window_get(ec->pixmap));
 
@@ -794,13 +777,7 @@ _e_comp_wl_client_evas_init(E_Client *ec)
                                        _e_comp_wl_evas_cb_state_update, ec);
         evas_object_smart_callback_add(ec->frame, "unmaximize_done",
                                        _e_comp_wl_evas_cb_state_update, ec);
-        evas_object_smart_callback_add(ec->frame, "maximize_pre",
-                                       _e_comp_wl_evas_cb_maximize_pre, ec);
-        evas_object_smart_callback_add(ec->frame, "unmaximize_pre",
-                                       _e_comp_wl_evas_cb_maximize_pre, ec);
         evas_object_smart_callback_add(ec->frame, "fullscreen",
-                                       _e_comp_wl_evas_cb_state_update, ec);
-        evas_object_smart_callback_add(ec->frame, "unfullscreen",
                                        _e_comp_wl_evas_cb_state_update, ec);
      }
    evas_object_event_callback_priority_add(ec->frame, EVAS_CALLBACK_MOVE,
@@ -1037,7 +1014,7 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
 {
    Eina_Bool first = EINA_FALSE;
    Eina_Rectangle *dmg;
-   Eina_Bool ignored, placed = EINA_TRUE;
+   Eina_Bool placed = EINA_TRUE;
    int x = 0, y = 0, w, h;
 
    first = !e_pixmap_usable_get(ec->pixmap);
@@ -1045,7 +1022,14 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
    if (first && e_client_has_xwindow(ec))
      first = !e_pixmap_usable_get(e_comp_x_client_pixmap_get(ec));
 #endif
-   ignored = ec->ignored;
+
+   if (ec->ignored && (ec->comp_data->shell.surface || ec->internal))
+     {
+        EC_CHANGED(ec);
+        ec->new_client = 1;
+        e_comp->new_clients++;
+        e_client_unignore(ec);
+     }
 
    if (state->new_attach)
      _e_comp_wl_surface_state_attach(ec, state);
@@ -1057,7 +1041,11 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
         if (ec->changes.pos)
           e_comp_object_frame_xy_unadjust(ec->frame, ec->x, ec->y, &x, &y);
         else
-          x = ec->client.x, y = ec->client.y;
+          {
+             x = ec->client.x, y = ec->client.y;
+             if (ec->new_client)
+               x -= ec->comp_data->shell.window.x, y -= ec->comp_data->shell.window.y;
+          }
 
         if (ec->new_client) placed = ec->placed;
 
@@ -1081,7 +1069,7 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
           {
              if ((ec->comp_data->shell.surface) && (ec->comp_data->shell.unmap))
                ec->comp_data->shell.unmap(ec->comp_data->shell.surface);
-             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) ||
+             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) || ec->internal ||
                       (ec->comp_data->sub.data && ec->comp_data->sub.data->parent->comp_data->mapped) ||
                       (ec == e_comp_wl->drag_client))
                {
@@ -1097,7 +1085,7 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
           {
              if ((ec->comp_data->shell.surface) && (ec->comp_data->shell.map))
                ec->comp_data->shell.map(ec->comp_data->shell.surface);
-             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) ||
+             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) || ec->internal ||
                       (ec->comp_data->sub.data && ec->comp_data->sub.data->parent->comp_data->mapped) ||
                       (ec == e_comp_wl->drag_client))
                {
@@ -1160,12 +1148,6 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
              ec->placed = placed;
              ec->want_focus |= ec->icccm.accepts_focus && (!ec->override);
           }
-        else if ((first) && (ec->placed) && (!ec->internal) && (!ec->override))
-          {
-             ec->x = ec->y = 0;
-             ec->placed = EINA_FALSE;
-             ec->new_client = EINA_TRUE;
-          }
      }
    state->sx = 0;
    state->sy = 0;
@@ -1176,8 +1158,6 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
    ec->comp_data->frames = eina_list_merge(ec->comp_data->frames,
                                            state->frames);
    state->frames = NULL;
-
-   ec->ignored = ignored;
 
    /* put state damages into surface */
    if ((!e_comp->nocomp) && (ec->frame))
@@ -1449,8 +1429,8 @@ _e_comp_wl_surface_destroy(struct wl_resource *resource)
 
    if (!(ec = wl_resource_get_user_data(resource))) return;
 
-   evas_object_hide(ec->frame);
    e_object_del(E_OBJECT(ec));
+   evas_object_hide(ec->frame);
 }
 
 static void
@@ -1481,7 +1461,11 @@ _e_comp_wl_compositor_cb_surface_create(struct wl_client *client, struct wl_reso
    wl_client_get_credentials(client, &pid, NULL, NULL);
    if (pid == getpid()) //internal!
      ec = e_pixmap_find_client(E_PIXMAP_TYPE_WL, (uintptr_t)id);
-   if (!ec)
+   if (ec)
+     {
+        if (e_object_is_del(E_OBJECT(ec))) return;
+     }
+   else
      {
         E_Pixmap *ep = NULL;
 
@@ -2157,6 +2141,7 @@ _e_comp_wl_screenshooter_cb_shoot(struct wl_client *client EINA_UNUSED, struct w
    wl_shm_buffer_begin_access(shm_buffer);
    memcpy(d, pixels, buffer->h * stride);
    wl_shm_buffer_end_access(shm_buffer);
+   free(pixels);
 
    screenshooter_send_done(resource);
 }
@@ -2241,9 +2226,6 @@ _e_comp_wl_client_cb_del(void *data EINA_UNUSED, E_Client *ec)
    /* make sure this is a wayland client */
    if (e_pixmap_type_get(ec->pixmap) != E_PIXMAP_TYPE_WL) return;
 
-   /* remove focus timer */
-   E_FREE_FUNC(ec->comp_data->on_focus_timer, ecore_timer_del);
-
    /* remove sub list */
    EINA_LIST_FREE(ec->comp_data->sub.list, subc)
      subc->comp_data->sub.data->parent = NULL;
@@ -2253,6 +2235,7 @@ _e_comp_wl_client_cb_del(void *data EINA_UNUSED, E_Client *ec)
         ec->parent->lock_close = EINA_FALSE;
         ec->parent->modal = NULL;
      }
+   _e_comp_wl_keyboard_leave(ec);
 
    wl_signal_emit(&ec->comp_data->destroy_signal, &ec->comp_data->surface);
 
@@ -2319,7 +2302,7 @@ _e_comp_wl_client_cb_focus_unset(void *data EINA_UNUSED, E_Client *ec)
 static void
 _e_comp_wl_client_cb_resize_begin(void *data EINA_UNUSED, E_Client *ec)
 {
-   if (e_pixmap_type_get(ec->pixmap) != E_PIXMAP_TYPE_WL) return;
+   if (e_client_has_xwindow(ec)) return;
 
    e_comp_wl->resize.edges = 0;
    if (ec->keyboard_resizing) return;
@@ -2352,16 +2335,23 @@ _e_comp_wl_client_cb_resize_begin(void *data EINA_UNUSED, E_Client *ec)
       default:
         break;
      }
+   ec->comp_data->shell.configure_send(ec->comp_data->shell.surface,
+                                       e_comp_wl->resize.edges,
+                                       0, 0);
 }
 
 static void
 _e_comp_wl_client_cb_resize_end(void *data EINA_UNUSED, E_Client *ec)
 {
    if (e_object_is_del(E_OBJECT(ec))) return;
-   if (e_pixmap_type_get(ec->pixmap) != E_PIXMAP_TYPE_WL) return;
+   if (e_client_has_xwindow(ec)) return;
 
    e_comp_wl->resize.edges = 0;
    e_comp_wl->resize.resource = NULL;
+
+   ec->comp_data->shell.configure_send(ec->comp_data->shell.surface,
+                                       e_comp_wl->resize.edges,
+                                       0, 0);
 
    if (ec->pending_resize)
      {
@@ -2670,6 +2660,7 @@ e_comp_wl_init(void)
           e_randr2_screens_setup(-1, -1);
         elm_config_preferred_engine_set("wayland_shm");
      }
+   e_util_env_set("WAYLAND_DEBUG", "0");
    e_util_env_set("ELM_DISPLAY", "wl");
    if (e_comp_gl_get())
      ecore_job_add(_e_comp_wl_gl_init, NULL);

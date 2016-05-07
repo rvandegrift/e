@@ -1,6 +1,4 @@
-#include <e.h>
-#include <Eldbus.h>
-#include <Efreet.h>
+#include "e.h"
 #include "e_mod_main.h"
 #include "e_mod_packagekit.h"
 
@@ -525,7 +523,6 @@ packagekit_dbus_connect(E_PackageKit_Module_Context *ctxt)
    Eldbus_Object *obj;
 
    //DBG("PKGKIT: dbus_init()");
-   eldbus_init();
 
    ctxt->conn = eldbus_connection_get(ELDBUS_CONNECTION_TYPE_SYSTEM);
    if (!ctxt->conn)
@@ -570,5 +567,4 @@ packagekit_dbus_disconnect(E_PackageKit_Module_Context *ctxt)
    E_FREE_FUNC(obj, eldbus_object_unref);
 
    eldbus_connection_unref(ctxt->conn);
-   eldbus_shutdown();
 }
