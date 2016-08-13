@@ -234,6 +234,7 @@ struct E_Client
    } pre_cb;
    Eina_Rectangle client; //client geom
    Evas_Object *frame; //comp object
+   Evas_Object *agent; //resize agent;
    E_Zone *zone;
    E_Desk *desk;
 
@@ -309,6 +310,7 @@ struct E_Client
       E_Layer      layer;
       int          zone;
       E_Maximize   maximized;
+      Eina_Bool    frame : 1;
    } saved;
 
    struct
@@ -684,6 +686,8 @@ struct E_Client
 
    E_Focus_Policy             focus_policy_override;
 
+   Eina_Stringshare *uuid;
+
    Eina_Bool override : 1;
    Eina_Bool input_only : 1;
    Eina_Bool dialog : 1;
@@ -695,12 +699,10 @@ struct E_Client
    Eina_Bool ignored : 1; // client is comp-ignored
    Eina_Bool no_shape_cut : 1; // client shape should not be cut
    Eina_Bool maximize_override : 1; // client is doing crazy stuff and should "just do it" when moving/resizing
+   Eina_Bool maximize_anims_disabled : 1; // client cannot invoke anims or it will break
    Eina_Bool keyboard_resizing : 1;
 
    Eina_Bool on_post_updates : 1; // client is on the post update list
-#ifdef HAVE_WAYLAND
-   uuid_t uuid;
-#endif
 };
 
 #define e_client_focus_policy_click(ec) \
@@ -786,7 +788,9 @@ E_API Eina_List *e_client_raise_stack_get(void);
 E_API Eina_List *e_client_lost_windows_get(E_Zone *zone);
 E_API void e_client_shade(E_Client *ec, E_Direction dir);
 E_API void e_client_unshade(E_Client *ec, E_Direction dir);
+E_API Eina_Bool e_client_maximize_geometry_get(const E_Client *ec, E_Maximize max, int *mx, int *my, int *mw, int *mh);
 E_API void e_client_maximize(E_Client *ec, E_Maximize max);
+E_API Eina_Bool e_client_unmaximize_geometry_get(const E_Client *ec, E_Maximize max, int *mx, int *my, int *mw, int *mh);
 E_API void e_client_unmaximize(E_Client *ec, E_Maximize max);
 E_API void e_client_fullscreen(E_Client *ec, E_Fullscreen policy);
 E_API void e_client_unfullscreen(E_Client *ec);
@@ -817,7 +821,7 @@ E_API void e_client_signal_move_begin(E_Client *ec, const char *sig, const char 
 E_API void e_client_signal_move_end(E_Client *ec, const char *sig EINA_UNUSED, const char *src EINA_UNUSED);
 E_API void e_client_signal_resize_begin(E_Client *ec, const char *dir, const char *sig, const char *src EINA_UNUSED);
 E_API void e_client_signal_resize_end(E_Client *ec, const char *dir EINA_UNUSED, const char *sig EINA_UNUSED, const char *src EINA_UNUSED);
-E_API void e_client_resize_limit(E_Client *ec, int *w, int *h);
+E_API void e_client_resize_limit(const E_Client *ec, int *w, int *h);
 E_API E_Client *e_client_under_pointer_get(E_Desk *desk, E_Client *exclude);
 E_API int e_client_pointer_warp_to_center_now(E_Client *ec);
 E_API int e_client_pointer_warp_to_center(E_Client *ec);

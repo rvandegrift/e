@@ -1,9 +1,11 @@
-#include <Eina.h>
-#include <Ecore.h>
-#include <pulse/pulseaudio.h>
-
+#include "e.h"
 #include "emix.h"
 
+#include <pulse/pulseaudio.h>
+
+#undef ERR
+#undef DBG
+#undef WRN
 #define ERR(...)      EINA_LOG_ERR(__VA_ARGS__)
 #define DBG(...)      EINA_LOG_DBG(__VA_ARGS__)
 #define WRN(...)      EINA_LOG_WARN(__VA_ARGS__)
@@ -255,11 +257,11 @@ _sink_remove_cb(int index, void *data EINA_UNUSED)
      {
         if (sink->idx == index)
           {
+             ctx->sinks = eina_list_remove_list(ctx->sinks, l);
              if (ctx->cb)
                ctx->cb((void *)ctx->userdata, EMIX_SINK_REMOVED_EVENT,
                             (Emix_Sink *)sink);
              _sink_del(sink);
-             ctx->sinks = eina_list_remove_list(ctx->sinks, l);
              break;
           }
      }
@@ -349,6 +351,7 @@ _sink_input_changed_cb(pa_context *c EINA_UNUSED,
                        void *userdata EINA_UNUSED)
 {
    Sink_Input *input = NULL, *i;
+   Sink *s = NULL;
    Eina_List *l;
 
    EINA_SAFETY_ON_NULL_RETURN(ctx);
@@ -385,6 +388,12 @@ _sink_input_changed_cb(pa_context *c EINA_UNUSED,
    input->base.volume = _pa_cvolume_convert(&info->volume);
    input->base.mute = !!info->mute;
 
+   EINA_LIST_FOREACH(ctx->sinks, l, s)
+     {
+        if (s->idx == (int)info->sink)
+          input->base.sink = (Emix_Sink *)s;
+     }
+
    if (ctx->cb)
      ctx->cb((void *)ctx->userdata, EMIX_SINK_INPUT_CHANGED_EVENT,
              (Emix_Sink_Input *)input);
@@ -403,13 +412,13 @@ _sink_input_remove_cb(int index, void *data EINA_UNUSED)
      {
         if (input->idx == index)
           {
+             ctx->inputs = eina_list_remove_list(ctx->inputs, l);
              if (ctx->cb)
                ctx->cb((void *)ctx->userdata,
                        EMIX_SINK_INPUT_REMOVED_EVENT,
                        (Emix_Sink_Input *)input);
              _sink_input_del(input);
 
-             ctx->inputs = eina_list_remove_list(ctx->inputs, l);
              break;
           }
      }
@@ -508,12 +517,12 @@ _source_remove_cb(int index, void *data EINA_UNUSED)
      {
         if (source->idx == index)
           {
+             ctx->sources = eina_list_remove_list(ctx->sources, l);
              if (ctx->cb)
                ctx->cb((void *)ctx->userdata, EMIX_SOURCE_REMOVED_EVENT,
                        (Emix_Source *)source);
 
              _source_del(source);
-             ctx->sources = eina_list_remove_list(ctx->sources, l);
              break;
           }
      }
@@ -779,6 +788,16 @@ _pulse_connect(void *data)
    pa_proplist_sets(proplist, PA_PROP_APPLICATION_ID,
                     "org.enlightenment.volumecontrol");
    pa_proplist_sets(proplist, PA_PROP_APPLICATION_ICON_NAME, "audio-card");
+#if !defined(EMIXER_BUILD) && defined(HAVE_WAYLAND) && !defined(HAVE_WAYLAND_ONLY)
+   char *display;
+
+   if (e_comp->comp_type != E_PIXMAP_TYPE_X)
+     {
+        display = getenv("DISPLAY");
+        if (display) display = strdup(display);
+        e_env_unset("DISPLAY");
+     }
+#endif
    c->context = pa_context_new_with_proplist(&(c->api), NULL, proplist);
    if (!c->context)
      {
@@ -792,6 +811,13 @@ _pulse_connect(void *data)
         WRN("Could not connect to pulse");
         goto err;
      }
+#if !defined(EMIXER_BUILD) && defined(HAVE_WAYLAND) && !defined(HAVE_WAYLAND_ONLY)
+   if (e_comp->comp_type != E_PIXMAP_TYPE_X)
+     {
+        e_env_set("DISPLAY", display);
+        free(display);
+     }
+#endif
 
    pa_proplist_free(proplist);
    return ECORE_CALLBACK_DONE;

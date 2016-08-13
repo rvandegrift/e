@@ -21,7 +21,12 @@ _cb_sync_done(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
    ecore_evas_screen_geometry_get(e_comp->ee, NULL, NULL, &w, &h);
    if ((w < 1) || (h < 1)) return ECORE_CALLBACK_PASS_ON;
 
-   e_comp_canvas_resize(w / 4, h / 4);
+   e_comp_canvas_resize(w * 2 / 3, h * 2 / 3);
+
+   if (!ecore_wl2_display_dmabuf_get(e_comp_wl->wl.client_disp))
+     e_comp_wl->dmabuf_disable = EINA_TRUE;
+   else
+     e_comp_wl->dmabuf_proxy = EINA_TRUE;
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -71,8 +76,6 @@ e_modapi_init(E_Module *m)
    /*   e_pointer_window_new(ecore_evas_window_get(e_comp->ee), EINA_TRUE); */
    e_comp->pointer = e_pointer_canvas_new(e_comp->ee, EINA_TRUE);
    e_comp->pointer->color = EINA_TRUE;
-
-   e_comp_wl_input_keymap_set(NULL, NULL, NULL);
 
    ecore_evas_pointer_xy_get(e_comp->ee, &e_comp_wl->ptr.x,
                              &e_comp_wl->ptr.y);

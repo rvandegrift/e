@@ -3,6 +3,7 @@ MOD_LDFLAGS = -module -avoid-version
 MOD_CPPFLAGS = -I. \
 -I$(top_srcdir) \
 -I$(top_srcdir)/src/bin \
+-I$(top_srcdir)/src/bin/efx \
 -I$(top_builddir)/src/bin \
 -I$(top_srcdir)/src/modules \
 @e_cflags@ \
@@ -126,3 +127,6 @@ include src/modules/Makefile_wl_weekeyboard.mk
 include src/modules/Makefile_policy_mobile.mk
 
 include src/modules/Makefile_geolocation.mk
+
+include src/modules/Makefile_wireless.mk
+include src/modules/Makefile_time.mk

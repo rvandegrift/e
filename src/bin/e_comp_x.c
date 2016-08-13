@@ -152,6 +152,100 @@ _e_comp_x_client_frame_update(E_Client *ec, int l, int r, int t, int b)
    _e_comp_x_client_data_get(ec)->frame_update = 0;
 }
 
+static Eina_List *iconshare = NULL;
+
+typedef struct _E_Client_Icon_Entry E_Client_Icon_Entry;
+
+struct _E_Client_Icon_Entry
+{
+   Ecore_X_Icon *icons;
+   int num_icons;
+   int ref;
+};
+
+static Ecore_X_Icon *
+_e_comp_x_client_icon_deduplicate(Ecore_X_Icon *icons, int num_icons)
+{
+   int i;
+   Eina_List *l;
+   E_Client_Icon_Entry *ie;
+
+   // unless the rest of e uses border icons OTHER than icon #0
+   // then free the rest that we don't need anymore.
+   for (i = 1; i < num_icons; i++)
+     {
+        E_FREE(icons[i].data);
+     }
+   // lookup icon data in icons cache/share
+   EINA_LIST_FOREACH(iconshare, l, ie)
+     {
+        if ((ie->num_icons == num_icons) &&
+            (num_icons  > 0) &&
+            (ie->icons[0].width == icons[0].width) &&
+            (ie->icons[0].height == icons[0].height) &&
+            (!memcmp(ie->icons[0].data, icons[0].data,
+                     icons[0].width * icons[0].height * 4)))
+          {
+             // found so free the input icons
+             for (i = 0; i < num_icons; i++)
+               free(icons[i].data);
+             free(icons);
+             // ref the shared/cached one
+             ie->ref++;
+             iconshare = eina_list_promote_list(iconshare, l);
+             // and return that
+             return ie->icons;
+          }
+     }
+   // no hit - new entry to cache. add it
+   ie = calloc(1, sizeof(E_Client_Icon_Entry));
+   if (ie)
+     {
+        ie->icons = icons;
+        ie->num_icons = num_icons;
+        ie->ref = 1;
+        iconshare = eina_list_prepend(iconshare, ie);
+     }
+   return icons;
+}
+
+static void
+_e_comp_x_client_icon_free(Ecore_X_Icon *icons, int num_icons)
+{
+   int i;
+   Eina_List *l;
+   E_Client_Icon_Entry *ie;
+
+   // lookup in icon share cache
+   EINA_LIST_FOREACH(iconshare, l, ie)
+     {
+        if ((ie->num_icons == num_icons) &&
+            (num_icons  > 0) &&
+            (ie->icons[0].width == icons[0].width) &&
+            (ie->icons[0].height == icons[0].height) &&
+            (!memcmp(ie->icons[0].data, icons[0].data,
+                     icons[0].width * icons[0].height * 4)))
+          {
+             // found so deref
+             ie->ref--;
+             if (ie->ref <= 0)
+               {
+                  // no refs left - free the icon from the share/cache
+                  iconshare = eina_list_remove_list(iconshare, l);
+                  for (i = 0; i < ie->num_icons; i++)
+                    free(ie->icons[i].data);
+                  free(ie->icons);
+                  free(ie);
+               }
+             return;
+          }
+     }
+   // not found - so just free it ... odd - we should never be here
+   for (i = 0; i < num_icons; i++)
+     free(icons[i].data);
+   free(icons);
+}
+
 static void
 _e_comp_x_client_event_free(void *d EINA_UNUSED, void *e)
 {
@@ -216,20 +310,21 @@ _e_comp_x_focus_setup(E_Client *ec)
 static void
 _e_comp_x_focus_setdown(E_Client *ec)
 {
-   Ecore_X_Window win;
+   Ecore_X_Window win, pwin;
 
    if (!_e_comp_x_client_data_get(ec)->button_grabbed) return;
    if ((!e_client_focus_policy_click(ec)) ||
        (e_config->always_click_to_raise) ||
        (e_config->always_click_to_focus)) return;
    win = e_client_util_win_get(ec);
-   e_bindings_mouse_ungrab(E_BINDING_CONTEXT_WINDOW, win);
-   e_bindings_wheel_ungrab(E_BINDING_CONTEXT_WINDOW, win);
+   pwin = e_client_util_pwin_get(ec);
+   e_bindings_mouse_ungrab(E_BINDING_CONTEXT_WINDOW, pwin);
+   e_bindings_wheel_ungrab(E_BINDING_CONTEXT_WINDOW, pwin);
    ecore_x_window_button_ungrab(win, 1, 0, 1);
    ecore_x_window_button_ungrab(win, 2, 0, 1);
    ecore_x_window_button_ungrab(win, 3, 0, 1);
-   e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, win);
-   e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, win);
+   e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, pwin);
+   e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, pwin);
    _e_comp_x_client_data_get(ec)->button_grabbed = 0;
 }
 
@@ -988,6 +1083,12 @@ _e_comp_x_evas_hide_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UN
    E_Client *ec = data, *tmp;
    Eina_List *l;
 
+   if (ec == mouse_client)
+     {
+        mouse_client = NULL;
+        E_FREE_FUNC(mouse_in_job, ecore_job_del);
+     }
+
    if (!_e_comp_x_client_data_get(ec)) return; // already deleted, happens with internal wins
    _e_comp_x_client_hide(ec);
 
@@ -1648,7 +1749,7 @@ _e_comp_x_configure_request(void *data  EINA_UNUSED, int type EINA_UNUSED, Ecore
 
    if (resize && (!ec->lock_client_size) && (move || ((!ec->maximized) && (!ec->fullscreen))))
      {
-        if ((ec->maximized & E_MAXIMIZE_TYPE) != E_MAXIMIZE_NONE)
+        if (ec->shaded || ((ec->maximized & E_MAXIMIZE_TYPE) != E_MAXIMIZE_NONE))
           e_comp_object_frame_wh_unadjust(ec->frame, w, h, &ec->saved.w, &ec->saved.h);
         else if (!ec->maximize_override)
           {
@@ -2234,10 +2335,7 @@ _e_comp_x_mapping_change(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_E
    e_comp_canvas_keys_ungrab();
    EINA_LIST_FOREACH(e_comp->clients, l, ec)
      {
-        Ecore_X_Window win;
-
         if (e_pixmap_type_get(ec->pixmap) != E_PIXMAP_TYPE_X) continue;
-        win = e_client_util_win_get(ec);
         if ((!_e_comp_x_client_data_get(ec)->first_map) || (!_e_comp_x_client_data_get(ec)->reparented)) continue;
         if (ec->focused)
           {
@@ -2248,8 +2346,8 @@ _e_comp_x_mapping_change(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_E
           {
              _e_comp_x_focus_setdown(ec);
              _e_comp_x_focus_setup(ec);
-             e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, win);
-             e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, win);
+             e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, e_client_util_pwin_get(ec));
+             e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, e_client_util_pwin_get(ec));
           }
      }
    e_comp_canvas_keys_grab();
@@ -3155,8 +3253,8 @@ _e_comp_x_hook_client_pre_frame_assign(void *d EINA_UNUSED, E_Client *ec)
      ecore_x_window_show(pwin);
 
    _e_comp_x_focus_init(ec);
-   e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, win);
-   e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, win);
+   e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, pwin);
+   e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, pwin);
    _e_comp_x_client_evas_init(ec);
    if (ec->netwm.ping && (!ec->ping_poller))
      e_client_ping(ec);
@@ -3397,8 +3495,8 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
              ec->focus_policy_override = E_FOCUS_CLICK;
              _e_comp_x_focus_setdown(ec);
              _e_comp_x_focus_setup(ec);
-             e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, win);
-             e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, win);
+             e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, pwin);
+             e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, pwin);
              if (!ec->netwm.state.skip_pager)
                {
                   ec->netwm.state.skip_pager = 1;
@@ -3798,30 +3896,16 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
      }
    if (ec->netwm.fetch.icon)
      {
-        int i;
-        if (ec->netwm.icons)
-          {
-             for (i = 0; i < ec->netwm.num_icons; i++)
-               {
-                  free(ec->netwm.icons[i].data);
-                  ec->netwm.icons[i].data = NULL;
-               }
-             free(ec->netwm.icons);
-          }
+        _e_comp_x_client_icon_free(ec->netwm.icons, ec->netwm.num_icons);
         ec->netwm.icons = NULL;
         ec->netwm.num_icons = 0;
         if (ecore_x_netwm_icons_get(win,
                                     &ec->netwm.icons,
                                     &ec->netwm.num_icons))
           {
-             // unless the rest of e uses border icons OTHER than icon #0
-             // then free the rest that we don't need anymore.
-             for (i = 1; i < ec->netwm.num_icons; i++)
-               {
-                  free(ec->netwm.icons[i].data);
-                  ec->netwm.icons[i].data = NULL;
-               }
-             ec->netwm.num_icons = 1;
+             if (ec->netwm.icons)
+               ec->netwm.icons = _e_comp_x_client_icon_deduplicate
+                 (ec->netwm.icons, ec->netwm.num_icons);
              ec->changes.icon = 1;
           }
         ec->netwm.fetch.icon = 0;
@@ -4314,9 +4398,9 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
                     ecl = ec->leader;
                   if (!ecl)
                     {
-                       E_Client *child = e_client_bottom_get();
+                       E_Client *child;
 
-                       do
+                       E_CLIENT_FOREACH(child)
                          {
                             if (child == ec) continue;
                             if (e_object_is_del(E_OBJECT(child))) continue;
@@ -4327,8 +4411,7 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
                                  ecl = child;
                                  break;
                               }
-                            child = e_client_above_get(child);
-                         } while (child);
+                         }
                     }
                   if (ecl)
                     {
@@ -4344,7 +4427,7 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
         cd->fetch_exe = 0;
      }
 
-   if ((e_config->use_desktop_window_profile) && (need_desk_set))
+   if (need_desk_set)
      {
         E_Desk *desk = NULL;
         const char *p, *p2;
@@ -4435,6 +4518,10 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
               */
              e_comp_object_frame_geometry_set(ec->frame,
                -extents[0], -extents[1], -extents[2], -extents[3]);
+             if (ec->override &&
+                (ec->x == ec->comp_data->initial_attributes.x) &&
+                (ec->y == ec->comp_data->initial_attributes.y))
+               e_comp_object_frame_xy_adjust(ec->frame, ec->x, ec->y, &ec->x, &ec->y);
              free(data);
           }
         cd->fetch_gtk_frame_extents = 0;
@@ -4626,8 +4713,8 @@ _e_comp_x_hook_client_del(void *d EINA_UNUSED, E_Client *ec)
    if ((!ec->already_unparented) && cd && cd->reparented)
      {
         _e_comp_x_focus_setdown(ec);
-        e_bindings_mouse_ungrab(E_BINDING_CONTEXT_WINDOW, win);
-        e_bindings_wheel_ungrab(E_BINDING_CONTEXT_WINDOW, win);
+        e_bindings_mouse_ungrab(E_BINDING_CONTEXT_WINDOW, pwin);
+        e_bindings_wheel_ungrab(E_BINDING_CONTEXT_WINDOW, pwin);
         if (!cd->deleted)
           {
              if (stopping)
@@ -4704,6 +4791,12 @@ _e_comp_x_hook_client_del(void *d EINA_UNUSED, E_Client *ec)
         if (e_pixmap_free(ec->pixmap))
           e_pixmap_client_set(ec->pixmap, NULL);
         ec->pixmap = NULL;
+     }
+   if (ec->netwm.icons)
+     {
+        _e_comp_x_client_icon_free(ec->netwm.icons, ec->netwm.num_icons);
+        ec->netwm.icons = NULL;
+        ec->netwm.num_icons = 0;
      }
 
    if (post_clients)
@@ -5165,8 +5258,8 @@ _e_comp_x_bindings_grab_cb(void)
         else
           {
              _e_comp_x_focus_setup(ec);
-             e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, e_client_util_win_get(ec));
-             e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, e_client_util_win_get(ec));
+             e_bindings_mouse_grab(E_BINDING_CONTEXT_WINDOW, e_client_util_pwin_get(ec));
+             e_bindings_wheel_grab(E_BINDING_CONTEXT_WINDOW, e_client_util_pwin_get(ec));
           }
      }
 }
@@ -5186,8 +5279,8 @@ _e_comp_x_bindings_ungrab_cb(void)
         ecore_x_window_button_ungrab(win, 1, 0, 1);
         ecore_x_window_button_ungrab(win, 2, 0, 1);
         ecore_x_window_button_ungrab(win, 3, 0, 1);
-        e_bindings_mouse_ungrab(E_BINDING_CONTEXT_WINDOW, win);
-        e_bindings_wheel_ungrab(E_BINDING_CONTEXT_WINDOW, win);
+        e_bindings_mouse_ungrab(E_BINDING_CONTEXT_WINDOW, e_client_util_pwin_get(ec));
+        e_bindings_wheel_ungrab(E_BINDING_CONTEXT_WINDOW, e_client_util_pwin_get(ec));
         _e_comp_x_client_data_get(ec)->button_grabbed = 0;
      }
 }
@@ -5283,7 +5376,7 @@ _e_comp_x_setup(Ecore_X_Window root, int w, int h)
 
    E_OBJECT_DEL_SET(e_comp, _e_comp_x_del);
    e_comp_x = e_comp->x_comp_data = E_NEW(E_Comp_X_Data, 1);
-   ecore_x_e_window_profile_supported_set(root, e_config->use_desktop_window_profile);
+   ecore_x_e_window_profile_supported_set(root, EINA_TRUE);
    e_comp->cm_selection = ecore_x_window_input_new(root, 0, 0, 1, 1);
    if (!e_comp->cm_selection) return EINA_FALSE;
    ecore_x_icccm_name_class_set(e_comp->cm_selection, "comp", "cm_selection");
@@ -5392,6 +5485,7 @@ _e_comp_x_screens_setup(void)
 {
    Ecore_X_Window root;
    int rw, rh;
+   Eina_Bool ret;
 
    if (e_comp->comp_type == E_PIXMAP_TYPE_NONE)
      {
@@ -5407,7 +5501,12 @@ _e_comp_x_screens_setup(void)
    ecore_x_window_size_get(root, &rw, &rh);
    if (e_comp->comp_type == E_PIXMAP_TYPE_NONE)
      e_randr2_screens_setup(rw, rh);
-   return _e_comp_x_setup(root, rw, rh);
+   ret = _e_comp_x_setup(root, rw, rh);
+   if (ret) return EINA_TRUE;
+   e_randr2_shutdown();
+   e_xinerama_screens_set(NULL);
+   e_comp->screen = NULL;
+   return EINA_FALSE;
 }
 
 E_API Eina_Bool

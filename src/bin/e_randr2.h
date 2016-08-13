@@ -83,6 +83,9 @@ struct _E_Randr2_Screen
       int                   priority; // larger num == more important
       Eina_Bool             enabled : 1; // should this monitor be enabled?
       Eina_Bool             configured : 1; // has screen been configured by e?
+
+      char                 *profile; // profile name to use on this screen
+      double                scale_multiplier; // if 0.0 - then dont multiply scale
    } config;
 };
 
@@ -97,31 +100,38 @@ struct _E_Config_Randr2
 
 struct _E_Config_Randr2_Screen
 {
-   const char   *id;
-   const char   *rel_to;
-   double        rel_align;
-   double        mode_refresh;
-   int           mode_w;
-   int           mode_h;
-   int           rotation;
-   int           priority;
-   unsigned char rel_mode;
-   unsigned char enabled;
+   const char    *id;
+   const char    *rel_to;
+   double         rel_align;
+   double         mode_refresh;
+   int            mode_w;
+   int            mode_h;
+   int            rotation;
+   int            priority;
+   unsigned char  rel_mode;
+   unsigned char  enabled;
+
+   const char    *profile;
+   double         scale_multiplier;
 };
 
 extern E_API E_Config_Randr2 *e_randr2_cfg;
-extern E_API E_Randr2 *e_randr2;
+extern E_API E_Randr2        *e_randr2;
 
-extern E_API int E_EVENT_RANDR_CHANGE;
+extern E_API int              E_EVENT_RANDR_CHANGE;
 
-EINTERN Eina_Bool e_randr2_init(void);
-EINTERN int       e_randr2_shutdown(void);
-E_API    Eina_Bool e_randr2_config_save(void);
-E_API    void      e_randr2_config_apply(void);
-E_API    void      e_randr2_screeninfo_update(void);
+EINTERN Eina_Bool             e_randr2_init(void);
+EINTERN int                   e_randr2_shutdown(void);
 
-E_API void e_randr2_screen_refresh_queue(Eina_Bool lid_event);
+E_API    Eina_Bool            e_randr2_config_save(void);
+E_API    void                 e_randr2_config_apply(void);
+E_API    void                 e_randr2_screeninfo_update(void);
+
+E_API void                    e_randr2_screen_refresh_queue(Eina_Bool lid_event);
 E_API E_Config_Randr2_Screen *e_randr2_config_screen_find(E_Randr2_Screen *s, E_Config_Randr2 *cfg);
-E_API void e_randr2_screens_setup(int rw, int rh);
+E_API void                    e_randr2_screens_setup(int rw, int rh);
+E_API E_Randr2_Screen        *e_randr2_screen_id_find(const char *id);
+E_API double                  e_randr2_screen_dpi_get(E_Randr2_Screen *s);
+
 #endif
 #endif

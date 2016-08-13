@@ -11,7 +11,8 @@ typedef enum _E_Binding_Context
    E_BINDING_CONTEXT_MENU,
    E_BINDING_CONTEXT_WINLIST,
    E_BINDING_CONTEXT_POPUP,
-   E_BINDING_CONTEXT_ANY
+   E_BINDING_CONTEXT_ANY,
+   E_BINDING_CONTEXT_LAST,
 } E_Binding_Context;
 
 /* why do we do this? config stored bindings must be fixed. x's modifier masks
@@ -160,14 +161,14 @@ E_API void        e_bindings_key_grab(E_Binding_Context ctxt, Ecore_X_Window win
 E_API void        e_bindings_key_ungrab(E_Binding_Context ctxt, Ecore_X_Window win);
 E_API E_Action   *e_bindings_key_down_event_handle(E_Binding_Context ctxt, E_Object *obj, Ecore_Event_Key *ev);
 E_API E_Action   *e_bindings_key_up_event_handle(E_Binding_Context ctxt, E_Object *obj, Ecore_Event_Key *ev);
-E_API E_Action   *e_bindings_key_down_event_find(E_Binding_Context ctxt, Ecore_Event_Key *ev);
-E_API E_Action   *e_bindings_key_up_event_find(E_Binding_Context ctxt, Ecore_Event_Key *ev);
+E_API E_Action   *e_bindings_key_event_find(E_Binding_Context ctxt, Ecore_Event_Key *ev, E_Binding_Key **bind_ret);
 
 E_API Eina_Bool   e_bindings_key_allowed(const char *key);
 
 E_API void        e_bindings_edge_add(E_Binding_Context ctxt, E_Zone_Edge edge, Eina_Bool drag_only, E_Binding_Modifier mod, int any_mod, const char *action, const char *params, float delay);
 E_API Eina_Bool   e_bindings_edge_flippable_get(E_Zone_Edge edge);
 E_API Eina_Bool   e_bindings_edge_non_flippable_get(E_Zone_Edge edge);
+E_API E_Action *e_bindings_edge_event_find(E_Binding_Context ctxt, E_Event_Zone_Edge *ev, Eina_Bool click, E_Binding_Edge **bind_ret);
 E_API E_Binding_Edge *e_bindings_edge_get(const char *action, E_Zone_Edge edge, int click);
 E_API void        e_bindings_edge_del(E_Binding_Context ctxt, E_Zone_Edge edge, Eina_Bool drag_only, E_Binding_Modifier mod, int any_mod, const char *action, const char *params, float delay);
 E_API E_Action   *e_bindings_edge_in_event_handle(E_Binding_Context ctxt, E_Object *obj, E_Event_Zone_Edge *ev);

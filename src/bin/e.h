@@ -1,7 +1,7 @@
 #ifndef E_H
 # define E_H
 
-# define E_VERSION_MAJOR 20
+# define E_VERSION_MAJOR 21
 
 /**
  * @defgroup API Enlightenment API
@@ -129,10 +129,10 @@ void *alloca (size_t);
 # include <Eio.h>
 # include <Emotion.h>
 # include <Elementary.h>
+# include "e_Efx.h"
 
 # ifdef HAVE_WAYLAND
 #  include <Ecore_Wl2.h>
-#  include <uuid.h>
 # endif
 
 # ifdef E_API
@@ -293,6 +293,10 @@ typedef struct _E_Rect         E_Rect;
 # include "e_includes.h"
 
 E_API double          e_main_ts(const char *str);
+
+#define E_EFL_VERSION_MINIMUM(MAJ, MIN, MIC) \
+  ((eina_version->major > MAJ) || (eina_version->minor > MIN) ||\
+   ((eina_version->minor == MIN) && (eina_version->micro >= MIC)))
 
 struct _E_Rect
 {

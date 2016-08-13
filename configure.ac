@@ -1,14 +1,14 @@
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_define([v_maj], [0])
-m4_define([v_min], [20])
-m4_define([v_mic], [7])
+m4_define([v_min], [21])
+m4_define([v_mic], [1])
 m4_define([v_rev], m4_esyscmd([(git rev-list --count HEAD 2>/dev/null || echo 0) | tr -d '\n']))dnl
 ##--   When released, remove the dnl on the below line
 m4_undefine([v_rev])
-m4_define([relname], [0.20.7])
+m4_define([relname], [0.21.0])
 ##--   When doing snapshots - change soname. remove dnl on below line
-m4_define([relname], [ver-autocannoli-0.20])
+m4_define([relname], [ver-0.21])
 dnl m4_define([v_rel], [-release relname])
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_ifdef([v_rev], [m4_define([v_ver], [v_maj.v_min.v_mic.v_rev])], [m4_define([v_ver], [v_maj.v_min.v_mic])])
@@ -91,7 +91,7 @@ extern char **environ;
 AC_DEFINE(HAVE_ENVIRON, 1, [Have environ var])
     ])
 
-efl_version="1.15.2"
+efl_version="1.17.0"
 AC_SUBST(efl_version)
 
 AC_CHECK_HEADERS([sys/timerfd.h sys/ptrace.h arpa/inet.h netinet/in.h])
@@ -674,7 +674,7 @@ AC_MSG_CHECKING([whether wayland EGL support is enabled])
 AC_MSG_RESULT([${e_cv_want_wayland_egl}])
 
 if test "x${e_cv_want_wayland_only}" != "xno" ;then
-  PKG_CHECK_MODULES([WAYLAND], [ecore-wl2 wayland-server >= 1.10.0 wayland-client >= 1.10.0 xkbcommon uuid],
+  PKG_CHECK_MODULES([WAYLAND], [ecore-wl2 >= 1.17.99 wayland-server >= 1.11.0 wayland-client >= 1.11.0 xkbcommon uuid],
     [
       have_wayland=yes
       have_wayland_dep=true
@@ -759,7 +759,16 @@ WL_DRM=false
 define([CHECK_MODULE_WL_DRM],
 [
   if test "x${have_wayland}" = "xyes" ; then
-    AC_E_CHECK_PKG(WL_DRM, [ ecore-drm >= $efl_version ], [WL_DRM=true], [WL_DRM=false])
+    PKG_CHECK_EXISTS([ecore-drm2 >= $efl_version], [have_ecore_drm2="yes"], [have_ecore_drm2="no"])
+    if test "x${have_ecore_drm2}" = "xyes"; then
+      AC_E_CHECK_PKG(WL_DRM, [ ecore-drm2 >= $efl_version ecore >= $efl_version eina >= $efl_version ],
+        [
+          WL_DRM=true
+          AC_DEFINE_UNQUOTED([HAVE_DRM2],[1],[enable ecore-drm2 support])
+        ], [WL_DRM=false])
+    else
+      AC_E_CHECK_PKG(WL_DRM, [ ecore-drm >= $efl_version ], [WL_DRM=true], [WL_DRM=false])
+    fi
   else
     WL_DRM=false
   fi
@@ -771,8 +780,8 @@ define([CHECK_MODULE_XWAYLAND],
 [
   if test "x${have_wayland}" = "xyes"; then
     AC_E_CHECK_PKG(XWAYLAND, [ ecore-x >= ${efl_version} ecore-audio >= ${efl_version}  ], [HAVE_XWAYLAND_DEPS=true], [HAVE_XWAYLAND_DEPS=false])
-    AC_PATH_PROG([XWAYLAND_BIN], [Xwayland], [false])
-    if test "x${XWAYLAND_BIN}" = "xfalse"; then
+    EFL_WITH_BIN([Xwayland], [Xwayland], [Xwayland])
+    if test -z "x${Xwayland}" ; then
       HAVE_XWAYLAND_DEPS=false
     fi
   else
@@ -842,11 +851,11 @@ AC_E_OPTIONAL_MODULE([appmenu], true)
 AC_E_OPTIONAL_MODULE([quickaccess], true)
 AC_E_OPTIONAL_MODULE([teamwork], true)
 AC_E_OPTIONAL_MODULE([lokker], true)
-AC_E_OPTIONAL_MODULE([shot], true, $ecore_x)
+AC_E_OPTIONAL_MODULE([shot], true, true)
 AC_E_OPTIONAL_MODULE([backlight], true)
 AC_E_OPTIONAL_MODULE([tasks], true)
 AC_E_OPTIONAL_MODULE([conf_randr], true)
-AC_E_OPTIONAL_MODULE([xkbswitch], true, $ecore_x)
+AC_E_OPTIONAL_MODULE([xkbswitch], true, true)
 AC_E_OPTIONAL_MODULE([tiling], true)
 AC_E_OPTIONAL_MODULE([music_control], true)
 AC_E_OPTIONAL_MODULE([packagekit], true)
@@ -860,6 +869,8 @@ AC_E_OPTIONAL_MODULE([wl_weekeyboard], $have_wayland_dep)
 AC_E_OPTIONAL_MODULE([policy_mobile], true)
 AC_E_OPTIONAL_MODULE([geolocation], true)
 AC_E_OPTIONAL_MODULE([xwayland], $have_wayland_dep, [CHECK_MODULE_XWAYLAND])
+AC_E_OPTIONAL_MODULE([wireless], true)
+AC_E_OPTIONAL_MODULE([time], true)
 
 if test "x${HAVE_WL_X11}" != "xyes" && test "x${have_wayland}" = "xyes" && test "x${HAVE_XWAYLAND}" != "xyes"; then
   AC_DEFINE_UNQUOTED([HAVE_WAYLAND_ONLY],[1],[enable wayland-only version of enlightenment])
@@ -870,15 +881,36 @@ fi
 
 AM_CONDITIONAL([HAVE_WAYLAND_ONLY], [test "x${have_wayland_only}" = "xyes"])
 
+e_alert_requires="\
+  evas >= $efl_version \
+  ecore >= $efl_version \
+  xcb \
+  xcb-shape \
+  xcb-keysyms \
+  eina >= ${efl_version} \
+  ecore >= ${efl_version} \
+  ecore-ipc >= ${efl_version}"
+
+if test "x${have_wayland}" = "xyes"; then
+  if test "x${HAVE_WL_DRM}" = "xyes"; then
+    if test "x${have_ecore_drm2}" = "xyes"; then
+      e_alert_requires="\
+        $e_alert_requires \
+        ecore-input >= ${efl_version} \
+        ecore-drm2 >= ${efl_version} \
+        evas >= ${efl_version}"
+    else
+      e_alert_requires="\
+        $e_alert_requires \
+        ecore-input >= ${efl_version} \
+        ecore-drm >= ${efl_version} \
+        evas >= ${efl_version}"
+    fi
+ fi
+fi
+
 if test "x${have_wayland_only}" != "xyes"; then
-  PKG_CHECK_MODULES(E_ALERT, [
-    xcb
-    xcb-shape
-    xcb-keysyms
-    eina >= ${efl_version}
-    ecore >= ${efl_version}
-    ecore-ipc >= ${efl_version}
-  ])
+  PKG_CHECK_MODULES(E_ALERT, [$e_alert_requires])
 fi
 
 if test "x${have_wayland_only}" != "xyes"; then
@@ -1048,6 +1080,8 @@ src/modules/tiling/module.desktop
 src/modules/music-control/module.desktop
 src/modules/packagekit/module.desktop
 src/modules/wl_desktop_shell/module.desktop
+src/modules/wireless/module.desktop
+src/modules/time/module.desktop
 data/xsession/enlightenment.desktop
 data/etc/sysactions.conf
 data/units/enlightenment.service

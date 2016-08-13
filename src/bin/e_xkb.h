@@ -3,8 +3,9 @@
 #ifndef E_XKB_H
 #define E_XKB_H
 
-E_API int e_xkb_init(void);
+E_API int e_xkb_init(E_Pixmap_Type comp_type);
 E_API int e_xkb_shutdown(void);
+E_API void e_xkb_reconfig(void);
 E_API void e_xkb_update(int);
 E_API void e_xkb_layout_next(void);
 E_API void e_xkb_layout_prev(void);

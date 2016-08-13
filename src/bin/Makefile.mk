@@ -1,10 +1,27 @@
 DISTCLEANFILES += src/bin/e_fm_shared_types.h
 
+efx_files = \
+src/bin/efx/efx_bumpmapping.c \
+src/bin/efx/efx.c \
+src/bin/efx/efx_fade.c \
+src/bin/efx/efx_helpers.c \
+src/bin/efx/efx_move.c \
+src/bin/efx/efx_pan.c \
+src/bin/efx/e_efx_private.h \
+src/bin/efx/efx_queue.c \
+src/bin/efx/efx_resize.c \
+src/bin/efx/efx_rotate.c \
+src/bin/efx/efx_spin.c \
+src/bin/efx/efx_util.c \
+src/bin/efx/efx_zoom.c
+
 E_CPPFLAGS = \
 -I$(top_builddir) \
 -I$(top_builddir)/src/bin \
 -I$(top_srcdir) \
 -I$(top_srcdir)/src/bin \
+-I$(top_srcdir)/src/bin/efx \
+-I$(top_srcdir)/src/bin/generated \
 @e_cflags@ \
 @cf_cflags@ \
 @VALGRIND_CFLAGS@ \
@@ -31,6 +48,7 @@ src/bin/enlightenment_backlight \
 src/bin/enlightenment_fm_op \
 src/bin/enlightenment_sys \
 src/bin/enlightenment_thumb \
+src/bin/enlightenment_elm_cfgtool \
 src/bin/enlightenment_static_grabber
 
 if ! HAVE_WAYLAND_ONLY
@@ -41,6 +59,7 @@ internal_bin_PROGRAMS += src/bin/enlightenment_ckpasswd
 endif
 
 ENLIGHTENMENTHEADERS = \
+src/bin/efx/e_Efx.h \
 src/bin/e_about.h \
 src/bin/e_acpi.h \
 src/bin/e_actions.h \
@@ -50,6 +69,7 @@ src/bin/e_auth.h \
 src/bin/e_backlight.h \
 src/bin/e_bg.h \
 src/bin/e_bindings.h \
+src/bin/e_bryce.h \
 src/bin/e_client.h \
 src/bin/e_client.x \
 src/bin/e_color_dialog.h  \
@@ -95,6 +115,7 @@ src/bin/e_focus.h \
 src/bin/e_font.h \
 src/bin/e_gadcon.h \
 src/bin/e_gadcon_popup.h \
+src/bin/e_gadget.h \
 src/bin/e_grabinput.h \
 src/bin/e_grab_dialog.h \
 src/bin/e.h \
@@ -163,6 +184,7 @@ src/bin/e_toolbar.h \
 src/bin/e_update.h \
 src/bin/e_user.h \
 src/bin/e_utils.h \
+src/bin/e_video.h \
 src/bin/e_widget_aspect.h \
 src/bin/e_widget_button.h \
 src/bin/e_widget_check.h \
@@ -199,8 +221,8 @@ src/bin/e_zone.h
 
 if HAVE_WAYLAND
 ENLIGHTENMENTHEADERS += \
-src/bin/e_uuid_store.h \
 src/bin/e_comp_wl_data.h \
+src/bin/e_comp_wl_dmabuf.h \
 src/bin/e_comp_wl_input.h \
 src/bin/e_comp_wl.h
 endif
@@ -215,6 +237,8 @@ src/bin/e_auth.c \
 src/bin/e_backlight.c \
 src/bin/e_bg.c \
 src/bin/e_bindings.c \
+src/bin/e_bryce.c \
+src/bin/e_bryce_editor.c \
 src/bin/e_client.c \
 src/bin/e_color.c \
 src/bin/e_color_dialog.c \
@@ -256,6 +280,7 @@ src/bin/e_focus.c \
 src/bin/e_font.c \
 src/bin/e_gadcon.c \
 src/bin/e_gadcon_popup.c \
+src/bin/e_gadget.c \
 src/bin/e_grabinput.c \
 src/bin/e_grab_dialog.c \
 src/bin/e_hints.c \
@@ -323,6 +348,7 @@ src/bin/e_toolbar.c \
 src/bin/e_update.c \
 src/bin/e_user.c \
 src/bin/e_utils.c \
+src/bin/e_video.c \
 src/bin/e_widget_aspect.c \
 src/bin/e_widget_button.c \
 src/bin/e_widget.c \
@@ -355,7 +381,8 @@ src/bin/e_xkb.c \
 src/bin/e_xinerama.c \
 src/bin/e_zoomap.c \
 src/bin/e_zone.c \
-$(ENLIGHTENMENTHEADERS)
+$(ENLIGHTENMENTHEADERS) \
+$(efx_files)
 
 if ! HAVE_WAYLAND_ONLY
 enlightenment_src += \
@@ -367,14 +394,19 @@ endif
 
 if HAVE_WAYLAND
 enlightenment_src += \
-src/bin/e_uuid_store.c \
-src/bin/session-recovery-protocol.c \
-src/bin/session-recovery-server-protocol.h \
-src/bin/e_comp_wl_screenshooter_server.c \
-src/bin/e_comp_wl_screenshooter_server.h \
+src/bin/generated/linux-dmabuf-unstable-v1-server-protocol.h \
+src/bin/generated/linux-dmabuf-unstable-v1-protocol.c \
+src/bin/generated/www-protocol.c \
+src/bin/generated/www-protocol.h \
+src/bin/generated/session-recovery.c \
+src/bin/generated/session-recovery.h \
+src/bin/generated/e_comp_wl_screenshooter_server.c \
+src/bin/generated/e_comp_wl_screenshooter_server.h \
 src/bin/e_comp_wl_data.c \
 src/bin/e_comp_wl_input.c \
-src/bin/e_comp_wl.c
+src/bin/e_comp_wl_dmabuf.c \
+src/bin/e_comp_wl.c \
+src/bin/e_comp_wl_extensions.c
 endif
 
 src_bin_enlightenment_CPPFLAGS = $(E_CPPFLAGS) -DE_LOGGING=1 @WAYLAND_CFLAGS@ @WAYLAND_EGL_CFLAGS@ @ECORE_X_CFLAGS@
@@ -406,6 +438,12 @@ src/bin/e_user.c
 
 src_bin_enlightenment_thumb_LDADD = @E_THUMB_LIBS@
 src_bin_enlightenment_thumb_CPPFLAGS = $(E_CPPFLAGS)
+
+src_bin_enlightenment_elm_cfgtool_SOURCES = \
+src/bin/e_elm_cfgtool_main.c
+
+src_bin_enlightenment_elm_cfgtool_LDADD = @e_libs@ -lm
+src_bin_enlightenment_elm_cfgtool_CPPFLAGS = $(E_CPPFLAGS)
 
 src_bin_enlightenment_fm_op_SOURCES = \
 src/bin/e_fm_op.c

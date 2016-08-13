@@ -2,8 +2,23 @@
 #define E_COMP_WL
 #include "e.h"
 #include <sys/mman.h>
+#ifdef HAVE_WL_DRM
+# ifdef HAVE_DRM2
+#  include <Ecore_Drm2.h>
+# else
+#  include <Ecore_Drm.h>
+# endif
+#endif
 
 E_API int E_EVENT_TEXT_INPUT_PANEL_VISIBILITY_CHANGE = -1;
+static xkb_keycode_t (*_xkb_keymap_key_by_name)(void *, const char *);
+static void _e_comp_wl_input_context_keymap_set(struct xkb_keymap *keymap, struct xkb_context *context);
+
+
+//the following two fields are just set by e_comp_wl_input_keymap_set if it is called before e_comp_wl is valid.
+//when then later init is called those two fields are used in the keymap of the e_comp_wl struct
+static struct xkb_context *cached_context;
+static struct xkb_keymap *cached_keymap;
 
 static void
 _e_comp_wl_input_update_seat_caps(void)
@@ -109,7 +124,7 @@ _e_comp_wl_input_cb_pointer_get(struct wl_client *client, struct wl_resource *re
                             wl_resource_get_version(resource), id);
    if (!res)
      {
-        ERR("Could not create pointer on seat %s: %m",
+        ERR("Could not create pointer on seat %s",
             e_comp_wl->seat.name);
         wl_client_post_no_memory(client);
         return;
@@ -178,7 +193,7 @@ _e_comp_wl_input_cb_keyboard_get(struct wl_client *client, struct wl_resource *r
                             wl_resource_get_version(resource), id);
    if (!res)
      {
-        ERR("Could not create keyboard on seat %s: %m", e_comp_wl->seat.name);
+        ERR("Could not create keyboard on seat %s", e_comp_wl->seat.name);
         wl_client_post_no_memory(client);
         return;
      }
@@ -224,7 +239,7 @@ _e_comp_wl_input_cb_touch_get(struct wl_client *client EINA_UNUSED, struct wl_re
                             wl_resource_get_version(resource), id);
    if (!res)
      {
-        ERR("Could not create touch on seat %s: %m",
+        ERR("Could not create touch on seat %s",
             e_comp_wl->seat.name);
         wl_client_post_no_memory(client);
         return;
@@ -266,7 +281,7 @@ _e_comp_wl_input_cb_bind_seat(struct wl_client *client, void *data EINA_UNUSED, 
    res = wl_resource_create(client, &wl_seat_interface, version, id);
    if (!res)
      {
-        ERR("Could not create seat resource: %m");
+        ERR("Could not create seat resource");
         return;
      }
 
@@ -434,13 +449,20 @@ e_comp_wl_input_init(void)
                       e_comp->wl_comp_data, _e_comp_wl_input_cb_bind_seat);
    if (!e_comp_wl->seat.global)
      {
-        ERR("Could not create global for seat: %m");
+        ERR("Could not create global for seat");
         return EINA_FALSE;
      }
 
    wl_array_init(&e_comp_wl->kbd.keys);
 
    E_EVENT_TEXT_INPUT_PANEL_VISIBILITY_CHANGE = ecore_event_type_new();
+
+   _xkb_keymap_key_by_name = dlsym(NULL, "xkb_keymap_key_by_name");
+
+    if (cached_keymap)
+      _e_comp_wl_input_context_keymap_set(cached_keymap, cached_context);
+    else
+      e_comp_wl_input_keymap_set(NULL, NULL, NULL, NULL, NULL);
 
    return EINA_TRUE;
 }
@@ -598,42 +620,89 @@ e_comp_wl_input_keyboard_enabled_set(Eina_Bool enabled)
    _e_comp_wl_input_update_seat_caps();
 }
 
+static void
+_e_comp_wl_input_context_keymap_set(struct xkb_keymap *keymap, struct xkb_context *context)
+{
+   if (e_comp_wl)
+     {
+        //we have a initializied and running compositor here
+        if (e_comp_wl->xkb.context)
+          xkb_context_unref(e_comp_wl->xkb.context);
+        e_comp_wl->xkb.context = context;
+
+        /* update compositor keymap */
+        _e_comp_wl_input_keymap_update(keymap);
+     }
+   else
+     {
+        //we dont have a running compositor here, cache the values, init will pick them
+        cached_context = context;
+        cached_keymap = keymap;
+     }
+
+//set the values to the drm devices
+#ifdef HAVE_WL_DRM
+# ifdef HAVE_DRM2
+   if (e_config->xkb.use_cache)
+     {
+        Ecore_Drm2_Device *dev;
+
+        dev = ecore_evas_data_get(e_comp->ee, "device");
+        if (dev)
+          {
+             ecore_drm2_device_keyboard_cached_context_set(dev, context);
+             ecore_drm2_device_keyboard_cached_keymap_set(dev, keymap);
+          }
+     }
+# else
+   if (e_config->xkb.use_cache)
+     ecore_drm_device_keyboard_cached_context_set(context);
+   if (e_config->xkb.use_cache)
+     ecore_drm_device_keyboard_cached_keymap_set(keymap);
+# endif
+#endif
+}
+
 E_API void
-e_comp_wl_input_keymap_set(const char *rules, const char *model, const char *layout)
+e_comp_wl_input_keymap_set(const char *rules, const char *model, const char *layout, const char *variant, const char *options)
 {
    struct xkb_keymap *keymap;
+   struct xkb_context *context;
    struct xkb_rule_names names;
 
    /* DBG("COMP_WL: Keymap Set: %s %s %s", rules, model, layout); */
 
    /* assemble xkb_rule_names so we can fetch keymap */
    memset(&names, 0, sizeof(names));
-   if (rules) names.rules = strdup(rules);
-   else names.rules = strdup("evdev");
-   if (model) names.model = strdup(model);
-   else names.model = strdup("pc105");
-   if (layout) names.layout = strdup(layout);
-   else names.layout = strdup("us");
 
-   /* unreference any existing context */
-   if (e_comp_wl->xkb.context)
-     xkb_context_unref(e_comp_wl->xkb.context);
+   if (rules) names.rules = rules;
+   else names.rules = "evdev";
+
+   if (model) names.model = model;
+   else names.model = "pc105";
+
+   if (layout) names.layout = layout;
+   else names.layout = "us";
+
+   if (variant) names.variant = variant;
+   else names.variant = NULL;
+
+   if (options) names.options = options;
+   else names.options = NULL;
 
    /* create a new xkb context */
-   e_comp_wl->xkb.context = xkb_context_new(0);
+   context = xkb_context_new(0);
 
    /* fetch new keymap based on names */
-   keymap = xkb_map_new_from_names(e_comp_wl->xkb.context, &names, 0);
-   if (keymap)
+   keymap = xkb_map_new_from_names(context, &names, 0);
+
+   if (!keymap)
      {
-        /* update compositor keymap */
-        _e_comp_wl_input_keymap_update(keymap);
+        ERR("Failed to compile keymap");
+        return;
      }
 
-   /* cleanup */
-   free((char *)names.rules);
-   free((char *)names.model);
-   free((char *)names.layout);
+   _e_comp_wl_input_context_keymap_set(keymap, context);
 }
 
 E_API void
@@ -655,4 +724,78 @@ e_comp_wl_input_touch_check(struct wl_resource *res)
 {
    return wl_resource_instance_of(res, &wl_touch_interface,
                                   &_e_touch_interface);
+}
+
+EINTERN void
+e_comp_wl_input_keyboard_modifers_clear(void)
+{
+   e_comp_wl->kbd.mod_depressed = 0;
+   e_comp_wl->kbd.mod_latched = 0;
+   e_comp_wl->kbd.mod_locked = 0;
+   e_comp_wl->kbd.mod_group = 0;
+
+   e_comp_wl_input_keyboard_modifiers_serialize();
+}
+
+static void
+_event_generate(const char *key, const char *keyname, int mods, Eina_Bool up)
+{
+   Ecore_Event_Key *ev;
+   int keycode;
+
+   /* "key" here is the platform-specific key name;
+    * /usr/share/X11/xkb/keycodes/evdev is probably what your system is using
+    */
+   keycode = _xkb_keymap_key_by_name(e_comp_wl->xkb.keymap, keyname ?: key);
+   if (!keycode)
+     {
+        ERR("no keycode found for key '%s'", key);
+        return;
+     }
+   ev = calloc(1, sizeof(Ecore_Event_Key) + (2 * (strlen(key) + 1)));
+
+   ev->keyname = (char *)(ev + 1);
+   ev->key = ev->keyname + strlen(key) + 1;
+
+   strcpy((char *)ev->keyname, key);
+   strcpy((char *)ev->key, key);
+
+   ev->window = e_comp->ee_win;
+   ev->event_window = e_comp->ee_win;
+   ev->timestamp = 0;
+   ev->modifiers = mods;
+   ev->keycode = keycode;
+   ecore_event_add(up ? ECORE_EVENT_KEY_UP : ECORE_EVENT_KEY_DOWN, ev, NULL, NULL);
+}
+
+static void
+_event_generate_mods(int mods, Eina_Bool up)
+{
+   if (!mods) return;
+   if (mods & ECORE_EVENT_MODIFIER_SHIFT)
+     _event_generate("Shift", "LFSH", mods, up);
+   if (mods & ECORE_EVENT_MODIFIER_CTRL)
+     _event_generate("Control_L", "LCTL", mods, up);
+   if (mods & ECORE_EVENT_MODIFIER_ALT)
+     _event_generate("Alt_L", "LALT", mods, up);
+   if (mods & ECORE_EVENT_MODIFIER_WIN)
+     _event_generate("Super_L", "LWIN", mods, up);
+   if (mods & ECORE_EVENT_MODIFIER_ALTGR)
+     _event_generate("Mode_switch", "ALGR", mods, up);
+}
+
+E_API void
+e_comp_wl_input_keyboard_event_generate(const char *key, int mods, Eina_Bool up)
+{
+   if (!_xkb_keymap_key_by_name)
+     {
+        ERR("xkbcommon >= 0.6.0 required for keyboard event generation!");
+        return;
+     }
+
+   if (!up)
+     _event_generate_mods(mods, up);
+   _event_generate(key, NULL, mods, up);
+   if (up)
+     _event_generate_mods(mods, up);
 }

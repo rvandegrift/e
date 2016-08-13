@@ -16,6 +16,7 @@ static Evas_Object *pop = NULL;
 static Eina_List *pops = NULL;
 static Evas_Object *o_bg = NULL;
 static Evas_Object *o_content = NULL;
+static Evas_Object *o_box = NULL;
 static E_Wizard_Page *pages = NULL;
 static E_Wizard_Page *curpage = NULL;
 static int next_ok = 1;
@@ -122,7 +123,7 @@ e_wizard_next(void)
         e_wizard_next();
         return;
      }
-
+   fprintf(stderr, "WIZARD PAGE: %s\n", curpage->name);
    e_wizard_button_next_enable_set(1);
    need_xdg_desktops = EINA_FALSE;
    need_xdg_icons = EINA_FALSE;
@@ -140,23 +141,18 @@ e_wizard_next(void)
 E_API void
 e_wizard_page_show(Evas_Object *obj)
 {
-   if (o_content) evas_object_del(o_content);
+   evas_object_del(o_content);
    o_content = obj;
-   if (obj)
-     {
-        Evas_Coord minw = 0, minh = 0;
-
-        e_widget_size_min_get(obj, &minw, &minh);
-        evas_object_size_hint_min_set(obj, minw, minh);
-        edje_object_part_swallow(o_bg, "e.swallow.content", obj);
-        evas_object_show(obj);
-        e_widget_focus_set(obj, 1);
-        edje_object_signal_emit(o_bg, "e,action,page,new", "e");
-     }
+   if (!obj) return;
+   elm_box_pack_end(o_box, obj);
+   evas_object_show(obj);
+   
+   elm_object_focus_set(obj, 1);
+   edje_object_signal_emit(o_bg, "e,action,page,new", "e");
 }
 
 E_API E_Wizard_Page *
-e_wizard_page_add(void *handle,
+e_wizard_page_add(void *handle, const char *name,
                   int (*init_cb)(E_Wizard_Page *pg, Eina_Bool *need_xdg_desktops, Eina_Bool *need_xdg_icons),
                   int (*shutdown_cb)(E_Wizard_Page *pg),
                   int (*show_cb)(E_Wizard_Page *pg),
@@ -168,6 +164,7 @@ e_wizard_page_add(void *handle,
 
    pg = E_NEW(E_Wizard_Page, 1);
    if (!pg) return NULL;
+   pg->name = eina_stringshare_add(name);
 
    pg->handle = handle;
    pg->evas = evas_object_evas_get(pop);
@@ -191,6 +188,7 @@ e_wizard_page_del(E_Wizard_Page *pg)
 // once only then e restarts itself with final wizard page
 //   if (pg->handle) dlclose(pg->handle);
    if (pg->shutdown) pg->shutdown(pg);
+   eina_stringshare_del(pg->name);
    pages = (E_Wizard_Page*)eina_inlist_remove(EINA_INLIST_GET(pages), EINA_INLIST_GET(pg));
    free(pg);
 }
@@ -266,6 +264,9 @@ _e_wizard_main_new(E_Zone *zone)
 //   edje_object_signal_emit(o_bg, "e,state,next,disable", "e");
    e_wizard_labels_update();
 
+   o_box = elm_box_add(e_comp->elm);
+   edje_object_part_swallow(o_bg, "e.swallow.content", o_box);
+
    evas_object_show(o_bg);
    return o_bg;
 }
@@ -292,21 +293,14 @@ _e_wizard_cb_key_down(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
    if (!strcmp(ev->key, "Tab"))
      {
         if (ev->modifiers & ECORE_EVENT_MODIFIER_SHIFT)
-          e_widget_focus_jump(o_content, 0);
+          elm_object_focus_next(o_content, ELM_FOCUS_PREVIOUS);
         else
-          e_widget_focus_jump(o_content, 1);
+          elm_object_focus_next(o_content, ELM_FOCUS_NEXT);
      }
    else if ((!strcmp(ev->key, "Return")) || (!strcmp(ev->key, "KP_Enter")))
      {
         if (next_can)
           e_wizard_next();
-     }
-   else if (!strcmp(ev->key, "space"))
-     {
-        Evas_Object *o;
-
-        o = e_widget_focused_object_get(o_content);
-        if (o) e_widget_activate(o);
      }
    return ECORE_CALLBACK_RENEW;
 }

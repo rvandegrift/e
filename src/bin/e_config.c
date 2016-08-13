@@ -38,7 +38,6 @@ static E_Config_DD *_e_config_path_append_edd = NULL;
 static E_Config_DD *_e_config_desktop_bg_edd = NULL;
 static E_Config_DD *_e_config_desklock_bg_edd = NULL;
 static E_Config_DD *_e_config_desktop_name_edd = NULL;
-static E_Config_DD *_e_config_desktop_window_profile_edd = NULL;
 static E_Config_DD *_e_config_menu_applications_edd = NULL;
 static E_Config_DD *_e_config_color_class_edd = NULL;
 static E_Config_DD *_e_config_gadcon_edd = NULL;
@@ -65,6 +64,37 @@ typedef struct _E_Color_Class
    int		  r2, g2, b2, a2;
    int		  r3, g3, b3, a3;
 } E_Color_Class;
+
+static void
+_e_config_binding_mouse_add(E_Binding_Context ctxt, int button, E_Binding_Modifier mod, int any_mod, const char *action, const char *params)
+{
+   E_Config_Binding_Mouse *binding;
+
+   binding = calloc(1, sizeof(E_Config_Binding_Mouse));
+   binding->context = ctxt;
+   binding->button = button;
+   binding->modifiers = mod;
+   binding->any_mod = any_mod;
+   binding->action = eina_stringshare_add(action);
+   binding->params = eina_stringshare_add(params);
+   e_bindings->mouse_bindings = eina_list_append(e_bindings->mouse_bindings, binding);
+}
+
+static void
+_e_config_binding_wheel_add(E_Binding_Context ctxt, int direction, int z, E_Binding_Modifier mod, int any_mod, const char *action, const char *params)
+{
+   E_Config_Binding_Wheel *binding;
+
+   binding = calloc(1, sizeof(E_Config_Binding_Wheel));
+   binding->context = ctxt;
+   binding->direction = direction;
+   binding->z = z;
+   binding->modifiers = mod;
+   binding->any_mod = any_mod;
+   binding->action = eina_stringshare_add(action);
+   binding->params = eina_stringshare_add(params);
+   e_bindings->wheel_bindings = eina_list_append(e_bindings->wheel_bindings, binding);
+}
 
 static Eina_Bool
 _e_config_cb_efreet_cache_update(void *data EINA_UNUSED, int type EINA_UNUSED, void *ev EINA_UNUSED)
@@ -135,7 +165,6 @@ _e_config_edd_shutdown(void)
    E_CONFIG_DD_FREE(_e_config_desktop_bg_edd);
    E_CONFIG_DD_FREE(_e_config_desklock_bg_edd);
    E_CONFIG_DD_FREE(_e_config_desktop_name_edd);
-   E_CONFIG_DD_FREE(_e_config_desktop_window_profile_edd);
    E_CONFIG_DD_FREE(e_remember_edd);
    E_CONFIG_DD_FREE(_e_config_menu_applications_edd);
    E_CONFIG_DD_FREE(_e_config_gadcon_edd);
@@ -243,16 +272,6 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, desk_y, INT);
    E_CONFIG_VAL(D, T, name, STR);
 
-   _e_config_desktop_window_profile_edd = E_CONFIG_DD_NEW("E_Config_Desktop_Window_Profile", E_Config_Desktop_Window_Profile);
-#undef T
-#undef D
-#define T E_Config_Desktop_Window_Profile
-#define D _e_config_desktop_window_profile_edd
-   E_CONFIG_VAL(D, T, zone, INT);
-   E_CONFIG_VAL(D, T, desk_x, INT);
-   E_CONFIG_VAL(D, T, desk_y, INT);
-   E_CONFIG_VAL(D, T, profile, STR);
-
    _e_config_path_append_edd = E_CONFIG_DD_NEW("E_Path_Dir", E_Path_Dir);
 #undef T
 #undef D
@@ -327,6 +346,7 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, prop.w, INT);
    E_CONFIG_VAL(D, T, prop.h, INT);
    E_CONFIG_VAL(D, T, prop.layer, INT);
+   E_CONFIG_VAL(D, T, prop.maximize, UINT);
    E_CONFIG_VAL(D, T, prop.lock_user_location, UCHAR);
    E_CONFIG_VAL(D, T, prop.lock_client_location, UCHAR);
    E_CONFIG_VAL(D, T, prop.lock_user_size, UCHAR);
@@ -365,6 +385,8 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, prop.desktop_file, STR);
    E_CONFIG_VAL(D, T, prop.offer_resistance, UCHAR);
    E_CONFIG_VAL(D, T, prop.opacity, UCHAR);
+   E_CONFIG_VAL(D, T, uuid, STR);
+   E_CONFIG_VAL(D, T, pid, INT);
 
    _e_config_color_class_edd = E_CONFIG_DD_NEW("E_Color_Class", E_Color_Class);
 #undef T
@@ -445,13 +467,14 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, show_splash, INT); /**/
    E_CONFIG_VAL(D, T, desktop_default_background, STR); /**/
    E_CONFIG_VAL(D, T, desktop_default_name, STR); /**/
-   E_CONFIG_VAL(D, T, desktop_default_window_profile, STR); /**/
    E_CONFIG_LIST(D, T, desktop_backgrounds, _e_config_desktop_bg_edd); /**/
    E_CONFIG_LIST(D, T, desktop_names, _e_config_desktop_name_edd); /**/
-   E_CONFIG_LIST(D, T, desktop_window_profiles, _e_config_desktop_window_profile_edd);
    E_CONFIG_VAL(D, T, menus_scroll_speed, DOUBLE); /**/
    E_CONFIG_VAL(D, T, menus_fast_mouse_move_threshhold, DOUBLE); /**/
    E_CONFIG_VAL(D, T, menus_click_drag_timeout, DOUBLE); /**/
+   E_CONFIG_VAL(D, T, window_maximize_animate, INT); /**/
+   E_CONFIG_VAL(D, T, window_maximize_transition, INT); /**/
+   E_CONFIG_VAL(D, T, window_maximize_time, DOUBLE); /**/
    E_CONFIG_VAL(D, T, border_shade_animate, INT); /**/
    E_CONFIG_VAL(D, T, border_shade_transition, INT); /**/
    E_CONFIG_VAL(D, T, border_shade_speed, DOUBLE); /**/
@@ -544,6 +567,7 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, resize_info_visible, INT); /**/
    E_CONFIG_VAL(D, T, focus_last_focused_per_desktop, INT); /**/
    E_CONFIG_VAL(D, T, focus_revert_on_hide_or_close, INT); /**/
+   E_CONFIG_VAL(D, T, focus_revert_allow_sticky, INT); /**/
    E_CONFIG_VAL(D, T, pointer_slide, INT); /**/
    E_CONFIG_VAL(D, T, disable_all_pointer_warps, INT); /**/
    E_CONFIG_VAL(D, T, pointer_warp_speed, DOUBLE); /**/
@@ -751,6 +775,7 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, xkb.only_label, INT);
    E_CONFIG_VAL(D, T, xkb.dont_touch_my_damn_keyboard, UCHAR);
    E_CONFIG_VAL(D, T, xkb.default_model, STR);
+   E_CONFIG_VAL(D, T, xkb.use_cache, UCHAR);
 
    E_CONFIG_VAL(D, T, keyboard.repeat_delay, INT);
    E_CONFIG_VAL(D, T, keyboard.repeat_rate, INT);
@@ -773,8 +798,6 @@ _e_config_edd_init(Eina_Bool old)
    //E_CONFIG_VAL(D, T, xkb.cur_group, INT);
 
    E_CONFIG_VAL(D, T, exe_always_single_instance, UCHAR);
-
-   E_CONFIG_VAL(D, T, use_desktop_window_profile, INT);
 }
 
 /* externally accessible functions */
@@ -1365,6 +1388,65 @@ e_config_load(void)
              e_config->keyboard.repeat_delay = 400;
              e_config->keyboard.repeat_rate = 25;
           }
+        CONFIG_VERSION_CHECK(20)
+          {
+             Eina_List *l;
+             E_Config_Binding_Mouse *ebm;
+             E_Config_Module *em, *module;
+
+             CONFIG_VERSION_UPDATE_INFO(20);
+
+             EINA_LIST_FOREACH(e_bindings->mouse_bindings, l, ebm)
+               {
+                  if (eina_streq(ebm->action, "window_move"))
+                    {
+                       _e_config_binding_mouse_add(E_BINDING_CONTEXT_ANY, ebm->button, ebm->modifiers,
+                                            ebm->any_mod, "gadget_move", NULL);
+                    }
+                  else if (eina_streq(ebm->action, "window_resize"))
+                    {
+                       _e_config_binding_mouse_add(E_BINDING_CONTEXT_ANY, ebm->button, ebm->modifiers,
+                                            ebm->any_mod, "gadget_resize", NULL);
+                    }
+                  else if (eina_streq(ebm->action, "window_menu"))
+                    {
+                       _e_config_binding_mouse_add(E_BINDING_CONTEXT_ANY, ebm->button, ebm->modifiers,
+                                            ebm->any_mod, "gadget_menu", NULL);
+                       _e_config_binding_mouse_add(E_BINDING_CONTEXT_ANY, ebm->button, ebm->modifiers,
+                                            ebm->any_mod, "bryce_menu", NULL);
+                    }
+               }
+             _e_config_binding_wheel_add(E_BINDING_CONTEXT_ANY, 0, 1, E_BINDING_MODIFIER_CTRL, 0, "bryce_resize", NULL);
+             _e_config_binding_wheel_add(E_BINDING_CONTEXT_ANY, 0, -1, E_BINDING_MODIFIER_CTRL, 0, "bryce_resize", NULL);
+
+             EINA_LIST_FOREACH(e_config->modules, l, em)
+               {
+                  if (!em->enabled) continue;
+                  if (eina_streq(em->name, "connman"))
+                    {
+                       module = E_NEW(E_Config_Module, 1);
+                       module->name = eina_stringshare_add("wireless");
+                       module->enabled = 1;
+                       e_config->modules = eina_list_append(e_config->modules, module);
+                    }
+                  else if (eina_streq(em->name, "clock"))
+                    {
+                       module = E_NEW(E_Config_Module, 1);
+                       module->name = eina_stringshare_add("time");
+                       module->enabled = 1;
+                       e_config->modules = eina_list_append(e_config->modules, module);
+                    }
+               }
+          }
+
+          CONFIG_VERSION_CHECK(21)
+            {
+               CONFIG_VERSION_UPDATE_INFO(21);
+
+               e_config->window_maximize_animate = 1;
+               e_config->window_maximize_transition = E_EFX_EFFECT_SPEED_SINUSOIDAL;
+               e_config->window_maximize_time = 0.15;
+            }
      }
    if (!e_config->remember_internal_fm_windows)
      e_config->remember_internal_fm_windows = !!(e_config->remember_internal_windows & E_REMEMBER_INTERNAL_FM_WINS);
@@ -1377,6 +1459,9 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->show_splash, 0, 1);
    E_CONFIG_LIMIT(e_config->menus_fast_mouse_move_threshhold, 1.0, 2000.0);
    E_CONFIG_LIMIT(e_config->menus_click_drag_timeout, 0.0, 10.0);
+   E_CONFIG_LIMIT(e_config->window_maximize_animate, 0, 1);
+   E_CONFIG_LIMIT(e_config->window_maximize_transition, 0, E_EFX_EFFECT_SPEED_SINUSOIDAL);
+   E_CONFIG_LIMIT(e_config->window_maximize_time, 0.0, 1.0);
    E_CONFIG_LIMIT(e_config->border_shade_animate, 0, 1);
    E_CONFIG_LIMIT(e_config->border_shade_transition, 0, 8);
    E_CONFIG_LIMIT(e_config->border_shade_speed, 1.0, 20000.0);
@@ -1438,6 +1523,7 @@ e_config_load(void)
    E_CONFIG_LIMIT(e_config->resize_info_visible, 0, 1);
    E_CONFIG_LIMIT(e_config->focus_last_focused_per_desktop, 0, 1);
    E_CONFIG_LIMIT(e_config->focus_revert_on_hide_or_close, 0, 1);
+   E_CONFIG_LIMIT(e_config->focus_revert_allow_sticky, 0, 1);
    E_CONFIG_LIMIT(e_config->pointer_slide, 0, 1);
    E_CONFIG_LIMIT(e_config->disable_all_pointer_warps, 0, 1);
    E_CONFIG_LIMIT(e_config->pointer_warp_speed, 0.0, 1.0);
@@ -2160,10 +2246,19 @@ e_config_bindings_free(E_Config_Bindings *ecb)
 static void
 _e_config_save_cb(void *data EINA_UNUSED)
 {
+   EINTERN void e_gadget_save(void);
+   EINTERN void e_bryce_save(void);
+
    e_config_profile_save();
    e_module_save_all();
+   elm_config_save();
    e_config_domain_save("e", _e_config_edd, e_config);
    e_config_domain_save("e_bindings", _e_config_binding_edd, e_bindings);
+   if (E_EFL_VERSION_MINIMUM(1, 17, 99))
+     {
+        e_gadget_save();
+        e_bryce_save();
+     }
    _e_config_save_defer = NULL;
 }
 
@@ -2179,16 +2274,9 @@ _e_config_free(E_Config *ecf)
    E_Remember *rem;
    E_Config_Env_Var *evr;
    E_Config_XKB_Option *op;
-   E_Config_Desktop_Window_Profile *wp;
    E_Int_Menu_Applications *ema;
 
    if (!ecf) return;
-
-   EINA_LIST_FREE(ecf->desktop_window_profiles, wp)
-     {
-        eina_stringshare_del(wp->profile);
-        E_FREE(wp);
-     }
 
    eina_stringshare_del(ecf->xkb.default_model);
 
@@ -2279,7 +2367,6 @@ _e_config_free(E_Config *ecf)
      }
    if (ecf->desktop_default_background) eina_stringshare_del(ecf->desktop_default_background);
    if (ecf->desktop_default_name) eina_stringshare_del(ecf->desktop_default_name);
-   if (ecf->desktop_default_window_profile) eina_stringshare_del(ecf->desktop_default_window_profile);
    if (ecf->language) eina_stringshare_del(ecf->language);
    eina_stringshare_del(ecf->desklock_language);
    eina_stringshare_del(ecf->xkb.selected_layout);

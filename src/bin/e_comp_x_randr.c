@@ -646,6 +646,7 @@ e_comp_x_randr_create(void)
 {
    Ecore_X_Randr_Crtc *crtcs = NULL;
    Ecore_X_Randr_Output *outputs = NULL;
+   E_Zone *zone;
    int crtcs_num = 0, outputs_num = 0, i, j, k;
    Ecore_X_Window root = ecore_x_window_root_first_get();
    E_Randr2 *r = calloc(1, sizeof(E_Randr2));
@@ -824,10 +825,20 @@ e_comp_x_randr_create(void)
                          s->info.can_rot_180 = EINA_TRUE;
                        if (info->rotations & ECORE_X_RANDR_ORIENTATION_ROT_270)
                          s->info.can_rot_270 = EINA_TRUE;
+                       if (cs)
+                         {
+                            if (cs->profile)
+                              s->config.profile = strdup(cs->profile);
+                            else
+                              s->config.profile = NULL;
+                            s->config.scale_multiplier = cs->scale_multiplier;
+                         }
                     }
                   ecore_x_randr_crtc_info_free(info);
                }
           }
+        zone = e_zone_for_id_get(s->id);
+        if (zone && !zone->output) zone->output = s;
         r->screens = eina_list_append(r->screens, s);
      }
 

@@ -365,12 +365,21 @@ main(int argc, char **argv)
      }
    TS("Ecore Init Done");
    _e_main_shutdown_push(ecore_shutdown);
-
+   e_comp_canvas_intercept();
    e_first_frame = getenv("E_FIRST_FRAME");
    if (e_first_frame && e_first_frame[0])
      e_first_frame_start_time = ecore_time_get();
    else
      e_first_frame = NULL;
+
+   TS("EFX Init");
+   if (!e_efx_init())
+     {
+        e_error_message_show(_("Enlightenment cannot initialize EFX!\n"));
+        _e_main_shutdown(-1);
+     }
+   TS("EFX Init Done");
+   _e_main_shutdown_push((void*)e_efx_shutdown);
 
    TS("EIO Init");
    if (!eio_init())
@@ -527,19 +536,6 @@ main(int argc, char **argv)
    _e_main_shutdown_push(e_alert_shutdown);
 #endif
 
-#if 0
-//#ifdef HAVE_WAYLAND
-   /* init uuid store for window/surface properties */
-   TS("E_UUID_Store Init");
-   if (!e_uuid_store_init())
-     {
-        e_error_message_show(_("Enlightenment cannot initialize its UUID store.\n"));
-        _e_main_shutdown(-1);
-     }
-   TS("E_UUID_Store Init Done");
-   _e_main_shutdown_push(e_uuid_store_shutdown);
-#endif
-
    TS("E Directories Init");
    /* setup directories we will be using for configurations storage etc. */
    if (!_e_main_dirs_init())
@@ -633,7 +629,17 @@ main(int argc, char **argv)
    if (e_config->show_splash)
      e_init_status_set(_("Setup Message Bus"));
    TS("E_Msgbus Init");
-   if (e_msgbus_init())
+   if (!e_msgbus_init())
+     {
+        if (!getenv("E_NO_DBUS_SESSION"))
+          {
+             e_error_message_show(_("Enlightenment cannot create a dbus session connection.\n"
+                                    "At best this will break many things, at worst it will hard lock your machine.\n"
+                                    "If you're sure you know what you're doing, export E_NO_DBUS_SESSION=1"));
+             _e_main_shutdown(-1);
+          }
+     }
+   else
      _e_main_shutdown_push(e_msgbus_shutdown);
    TS("E_Msgbus Init Done");
 
@@ -892,6 +898,17 @@ main(int argc, char **argv)
    TS("E_Remember Init Done");
    _e_main_shutdown_push(e_remember_shutdown);
 
+   if (E_EFL_VERSION_MINIMUM(1, 17, 99))
+     {
+        if (e_config->show_splash)
+          e_init_status_set(_("Setup Gadgets"));
+        TS("E_Gadget Init");
+        e_gadget_init();
+        TS("E_Gadget Init Done");
+        _e_main_shutdown_push((void*)e_gadget_shutdown);
+     }
+
+
    if (e_config->show_splash)
      e_init_status_set(_("Setup Gadcon"));
    TS("E_Gadcon Init");
@@ -1027,6 +1044,16 @@ main(int argc, char **argv)
    TS("E_Test Init");
    e_test();
    TS("E_Test Done");
+
+   if (E_EFL_VERSION_MINIMUM(1, 17, 99))
+     {
+        if (e_config->show_splash)
+          e_init_status_set(_("Setup Bryces"));
+        TS("Bryce Init");
+        e_bryce_init();
+        TS("Bryce Init Done");
+        _e_main_shutdown_push((void*)e_bryce_shutdown);
+     }
 
    if (e_config->show_splash)
      e_init_status_set(_("Setup Shelves"));
@@ -1577,16 +1604,6 @@ _e_main_screens_init(void)
    if (!e_client_init()) return 0;
    TS("\tscreens: win");
    if (!e_win_init()) return 0;
-#ifndef HAVE_WAYLAND_ONLY
-   TS("E_Xkb Init");
-   if (!e_xkb_init())
-     {
-        e_error_message_show(_("Enlightenment cannot setup XKB Keyboard layouts.\n"));
-        _e_main_shutdown(-1);
-     }
-   TS("E_Xkb Init Done");
-#endif
-
    TS("Compositor Init");
    if (!e_comp_init())
      {

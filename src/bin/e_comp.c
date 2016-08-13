@@ -1100,6 +1100,7 @@ e_comp_init(void)
            char buf[128];
 
            snprintf(buf, sizeof(buf), "wl_%s", eng);
+           e_xkb_init(E_PIXMAP_TYPE_WL);
            if (e_module_enable(e_module_new(buf)))
              {
                 e_comp->comp_type = E_PIXMAP_TYPE_WL;
@@ -1110,7 +1111,10 @@ e_comp_init(void)
 
 #ifndef HAVE_WAYLAND_ONLY
    if (e_comp_x_init())
-     e_comp->comp_type = E_PIXMAP_TYPE_X;
+     {
+        e_comp->comp_type = E_PIXMAP_TYPE_X;
+        e_xkb_init(E_PIXMAP_TYPE_X);
+     }
    else
 #endif
      {
@@ -1132,6 +1136,7 @@ e_comp_init(void)
            NULL
         };
 
+        e_xkb_init(E_PIXMAP_TYPE_WL);
         e_util_env_set("HYBRIS_EGLPLATFORM", "wayland");
         for (test = eng; *test; test++)
           {
@@ -1156,6 +1161,8 @@ out:
    e_comp->elm = elm_win_fake_add(e_comp->ee);
    evas_object_event_callback_add(e_comp->elm, EVAS_CALLBACK_RESIZE, _e_comp_resize, NULL);
    elm_win_fullscreen_set(e_comp->elm, 1);
+   ecore_evas_focus_set(e_comp->ee, 0);
+   ecore_evas_focus_set(e_comp->ee, 1);
    evas_object_show(e_comp->elm);
    e_util_env_set("HYBRIS_EGLPLATFORM", NULL);
    E_LIST_HANDLER_APPEND(handlers, E_EVENT_SCREENSAVER_ON, _e_comp_screensaver_on, NULL);
@@ -1661,7 +1668,7 @@ e_comp_grab_input(Eina_Bool mouse, Eina_Bool kbd)
         e_comp->input_key_grabs += kbd;
         if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
           {
-             if (ec)
+             if (ec && (!e_object_is_del(E_OBJECT(ec))))
                evas_object_focus_set(ec->frame, 1);
           }
      }
@@ -1694,8 +1701,15 @@ e_comp_ungrab_input(Eina_Bool mouse, Eina_Bool kbd)
 
         if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
           {
+             Eina_Bool mouse_in = ec->mouse.in;
+             int x, y;
+
+             x = ec->mouse.current.mx;
+             y = ec->mouse.current.my;
              evas_object_focus_set(ec->frame, 0);
              evas_object_focus_set(ec->frame, 1);
+             if (mouse_in)
+               e_client_mouse_in(ec, x, y);
           }
         return;
      }

@@ -88,6 +88,7 @@ typedef struct _E_Comp_Object
    Evas_Object         *effect_obj; // effects object
    unsigned int         layer; //e_comp_canvas_layer_map(cw->ec->layer)
    Eina_List           *obj_mirror;  // extra mirror objects
+   Eina_List           *obj_agent;  // extra agent objects
    Eina_Tiler          *updates; //render update regions
    Eina_Tiler          *pending_updates; //render update regions which are about to render
 
@@ -128,6 +129,8 @@ typedef struct _E_Comp_Object
    Eina_Bool            force_move : 1;
    Eina_Bool            frame_extends : 1; //frame may extend beyond object size
    Eina_Bool            blanked : 1; //window is rendering blank content (externally composited)
+
+   Eina_Bool            agent_updating : 1; //updating agents
 } E_Comp_Object;
 
 
@@ -182,6 +185,38 @@ _e_comp_object_event_add(Evas_Object *obj)
         e_object_ref(E_OBJECT(ec));
      }
    ecore_event_add(E_EVENT_COMP_OBJECT_ADD, ev, _e_comp_object_event_free, NULL);
+}
+
+/////////////////////////////////////
+
+static void
+_e_comp_object_cb_agent_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   E_Comp_Object *cw = data;
+
+   cw->obj_agent = eina_list_remove(cw->obj_agent, obj);
+}
+
+static void
+_e_comp_object_cb_agent_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   E_Comp_Object *cw = data;
+   int w, h;
+
+   if (cw->agent_updating) return;
+   evas_object_geometry_get(obj, NULL, NULL, &w, &h);
+   evas_object_resize(cw->smart_obj, w, h);
+}
+
+static void
+_e_comp_object_cb_agent_move(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   E_Comp_Object *cw = data;
+   int x, y;
+
+   if (cw->agent_updating) return;
+   evas_object_geometry_get(obj, &x, &y, NULL, NULL);
+   evas_object_move(cw->smart_obj, x, y);
 }
 
 /////////////////////////////////////
@@ -316,7 +351,12 @@ _e_comp_object_updates_init(E_Comp_Object *cw)
 static void
 _e_comp_object_alpha_set(E_Comp_Object *cw)
 {
-   Eina_Bool alpha = cw->ec->argb;
+   Eina_Bool alpha;
+
+   if (!e_pixmap_is_x(cw->ec->pixmap))
+     alpha = e_pixmap_image_is_argb(cw->ec->pixmap);
+   else
+     alpha = cw->ec->argb;
 
    if (cw->blanked || cw->ns || cw->ec->shaped) alpha = EINA_TRUE;
 
@@ -365,6 +405,8 @@ _e_comp_object_cb_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, vo
         if (E_INSIDE(ev->output.x, ev->output.y, cw->ec->client.x, cw->ec->client.y,
             cw->ec->client.w, cw->ec->client.h)) return;
      }
+   if (e_grabinput_mouse_win_get() && (e_grabinput_mouse_win_get() != e_client_util_win_get(cw->ec)))
+     return;
    e_client_mouse_in(cw->ec, ev->output.x, ev->output.y);
 }
 
@@ -375,6 +417,8 @@ _e_comp_object_cb_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EI
    Evas_Event_Mouse_Out *ev = event_info;
    E_Comp_Object *cw = data;
 
+   if (e_grabinput_mouse_win_get() && (e_grabinput_mouse_win_get() != e_client_util_win_get(cw->ec)))
+     return;
    e_client_mouse_out(cw->ec, ev->output.x, ev->output.y);
 }
 
@@ -688,6 +732,10 @@ _e_comp_object_shadow_setup(E_Comp_Object *cw)
      }
    else
      e_comp_object_signal_emit(cw->smart_obj, "e,state,hidden", "e");
+   if (e_comp_object_frame_allowed(cw->smart_obj))
+     e_comp_object_signal_emit(cw->smart_obj, "e,state,focus,enabled", "e");
+   else
+     e_comp_object_signal_emit(cw->smart_obj, "e,state,focus,disabled", "e");
 
    /* breaks animation counter */
    //if (cw->ec->iconic)
@@ -867,6 +915,26 @@ _e_comp_object_setup(E_Comp_Object *cw)
      }
 }
 
+static void
+_e_comp_object_mirror_pixels_get(void *data, Evas_Object *obj)
+{
+   E_Comp_Object *cw = data;
+   E_Client *ec = cw->ec;
+   int pw, ph;
+
+   if ((!ec->pixmap) || (!e_pixmap_size_get(ec->pixmap, &pw, &ph)))
+     {
+        evas_object_image_data_set(obj, NULL);
+        return;
+     }
+
+   if (cw->native) return;
+
+   evas_object_image_data_set(obj, e_pixmap_image_data_get(cw->ec->pixmap));
+   evas_object_image_alpha_set(obj, evas_object_image_alpha_get(cw->obj));
+   evas_object_image_pixels_dirty_set(obj, EINA_FALSE);
+}
+
 /////////////////////////////////////////////
 
 /* for fast path evas rendering; only called during render */
@@ -943,6 +1011,24 @@ _e_comp_object_pixels_get(void *data, Evas_Object *obj)
         //ec->changes.size = 1;
         //EC_CHANGED(ec);
      //}
+}
+
+/////////////////////////////////////////////
+
+static void
+_e_comp_object_internal_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+   E_Comp_Object *cw = data;
+
+   evas_object_smart_callback_call(cw->smart_obj, "mouse_in", event_info);
+}
+
+static void
+_e_comp_object_internal_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+   E_Comp_Object *cw = data;
+
+   evas_object_smart_callback_call(cw->smart_obj, "mouse_out", event_info);
 }
 
 /////////////////////////////////////////////
@@ -1218,7 +1304,7 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
         break;
      }
    if (cw->ec->internal_elm_win && (!cw->ec->moving) && (!e_client_util_resizing_get(cw->ec)) &&
-       (!cw->ec->fullscreen) && (!cw->ec->maximized == E_MAXIMIZE_NONE) &&
+       (!cw->ec->fullscreen) && (!cw->ec->maximized) &&
        e_win_centered_get(cw->ec->internal_elm_win))
      e_comp_object_util_center(obj);
    cw->force_move = 0;
@@ -1671,6 +1757,11 @@ _e_comp_intercept_show(void *data, Evas_Object *obj EINA_UNUSED)
         evas_object_name_set(cw->obj, "cw->obj");
         evas_object_image_colorspace_set(cw->obj, EVAS_COLORSPACE_ARGB8888);
         _e_comp_object_alpha_set(cw);
+        if (cw->ec->internal)
+          {
+             evas_object_event_callback_add(cw->obj, EVAS_CALLBACK_MOUSE_IN, _e_comp_object_internal_mouse_in, cw);
+             evas_object_event_callback_add(cw->obj, EVAS_CALLBACK_MOUSE_OUT, _e_comp_object_internal_mouse_out, cw);
+          }
 #ifdef BORDER_ZOOMAPS
         e_comp_object_zoomap_set(o, 1);
 #else
@@ -1808,7 +1899,7 @@ static void
 _e_comp_smart_cb_frame_recalc(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    E_Comp_Object *cw = data;
-   int w, h, pw, ph;
+   int w = 0, h = 0, pw = 0, ph = 0;
 
    /* - get current size
     * - calc new size
@@ -2187,6 +2278,9 @@ _e_comp_smart_color_set(Evas_Object *obj, int r, int g, int b, int a)
 {
    INTERNAL_ENTRY;
    evas_object_color_set(cw->clip, r, g, b, a);
+   cw->ec->netwm.opacity = a;
+   if (cw->ec->remember && (cw->ec->remember->apply & E_REMEMBER_APPLY_OPACITY))
+     e_remember_update(cw->ec);
    evas_object_smart_callback_call(obj, "color_set", NULL);
 }
 
@@ -2287,6 +2381,7 @@ static void
 _e_comp_smart_del(Evas_Object *obj)
 {
    Eina_List *l;
+   Evas_Object *o;
 
    INTERNAL_ENTRY;
 
@@ -2295,17 +2390,18 @@ _e_comp_smart_del(Evas_Object *obj)
    E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
    free(cw->ns);
 
-   if (cw->obj_mirror)
+   EINA_LIST_FREE(cw->obj_mirror, o)
      {
-        Evas_Object *o;
-
-        EINA_LIST_FREE(cw->obj_mirror, o)
-          {
-             evas_object_image_data_set(o, NULL);
-             evas_object_freeze_events_set(o, 1);
-             evas_object_event_callback_del_full(o, EVAS_CALLBACK_DEL, _e_comp_object_cb_mirror_del, cw);
-             evas_object_del(o);
-          }
+        evas_object_image_data_set(o, NULL);
+        evas_object_freeze_events_set(o, 1);
+        evas_object_event_callback_del_full(o, EVAS_CALLBACK_DEL, _e_comp_object_cb_mirror_del, cw);
+        evas_object_del(o);
+     }
+   EINA_LIST_FREE(cw->obj_agent, o)
+     {
+        evas_object_freeze_events_set(o, 1);
+        evas_object_event_callback_del_full(o, EVAS_CALLBACK_DEL, _e_comp_object_cb_agent_del, cw);
+        evas_object_del(o);
      }
    _e_comp_object_layers_remove(cw);
    l = evas_object_data_get(obj, "comp_object-to_del");
@@ -2336,9 +2432,16 @@ _e_comp_smart_del(Evas_Object *obj)
 static void
 _e_comp_smart_move(Evas_Object *obj, int x, int y)
 {
+   Eina_List *l;
+   Evas_Object *o;
+
    INTERNAL_ENTRY;
 
    cw->x = x, cw->y = y;
+   cw->agent_updating = 1;
+   EINA_LIST_FOREACH(cw->obj_agent, l, o)
+     evas_object_move(o, cw->ec->x, cw->ec->x);
+   cw->agent_updating = 0;
    evas_object_move(cw->clip, 0, 0);
    evas_object_move(cw->effect_obj, x, y);
    if (cw->input_obj)
@@ -2355,6 +2458,8 @@ static void
 _e_comp_smart_resize(Evas_Object *obj, int w, int h)
 {
    Eina_Bool first = EINA_FALSE;
+   Eina_List *l;
+   Evas_Object *o;
 
    INTERNAL_ENTRY;
 
@@ -2364,12 +2469,15 @@ _e_comp_smart_resize(Evas_Object *obj, int w, int h)
    cw->w = w, cw->h = h;
    if ((!cw->ec->shading) && (!cw->ec->shaded))
      {
-        int ww, hh, pw, ph;
+        int ww = 0, hh = 0, pw = 0, ph = 0;
 
         if (cw->frame_object)
           e_comp_object_frame_wh_unadjust(obj, w, h, &ww, &hh);
         else
-          ww = w, hh = h;
+          {
+             ww = w;
+             hh = h;
+          }
         /* verify pixmap:object size */
         if (e_pixmap_size_get(cw->ec->pixmap, &pw, &ph) && (!cw->ec->override))
           {
@@ -2406,6 +2514,10 @@ _e_comp_smart_resize(Evas_Object *obj, int w, int h)
      {
         evas_object_resize(cw->effect_obj, w, h);
      }
+   cw->agent_updating = 1;
+   EINA_LIST_FOREACH(cw->obj_agent, l, o)
+     evas_object_resize(o, cw->ec->w, cw->ec->h);
+   cw->agent_updating = 0;
    if (!cw->visible) return;
    e_comp_render_queue();
    if (!cw->animating)
@@ -2602,22 +2714,22 @@ _e_comp_object_util_moveresize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj
      e_comp_shape_queue();
 }
 
-E_API Evas_Object *
-e_comp_object_util_add(Evas_Object *obj, E_Comp_Object_Type type)
+E_API void
+e_comp_object_util_type_set(Evas_Object *obj, E_Comp_Object_Type type)
 {
-   Evas_Object *o, *z = NULL;
-   const char *name;
+   Evas_Object *content;
+   const char *name = NULL;
    Eina_List *l, *list = NULL;
    E_Comp_Config *conf = e_comp_config_get();
    Eina_Bool skip = EINA_FALSE, fast = EINA_FALSE, shadow = EINA_FALSE;
    E_Comp_Match *m;
+   const char *grp;
    char buf[1024];
    int ok = 0;
-   int x, y, w, h;
-   Eina_Bool vis;
 
-   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN(obj);
 
+   edje_object_file_get(obj, NULL, &grp);
    switch (type)
      {
       case E_COMP_OBJECT_TYPE_MENU:
@@ -2636,15 +2748,21 @@ e_comp_object_util_add(Evas_Object *obj, E_Comp_Object_Type type)
         skip = conf->match.disable_objects;
         fast = conf->fast_objects;
      }
-   name = evas_object_name_get(obj);
-   vis = evas_object_visible_get(obj);
-   o = edje_object_add(e_comp->evas);
-   evas_object_data_set(o, "comp_object", (void*)1);
+   content = edje_object_part_swallow_get(obj, "e.swallow.content");
+   if (content)
+     {
+        if (eina_streq(evas_object_type_get(content), "e_zoomap"))
+          name = evas_object_name_get(e_zoomap_child_get(content));
+        else
+          name = evas_object_name_get(content);
+     }
    if (name && (!skip))
      skip = (!strncmp(name, "noshadow", 8));
    if (skip)
-     evas_object_data_set(o, "comp_object_skip", (void*)1);
-   else if (list)
+     evas_object_data_set(obj, "comp_object_skip", (void*)1);
+   else
+     evas_object_data_del(obj, "comp_object_skip");
+   if (list && (!skip))
      {
         EINA_LIST_FOREACH(list, l, m)
           {
@@ -2655,12 +2773,14 @@ e_comp_object_util_add(Evas_Object *obj, E_Comp_Object_Type type)
              if (fast)
                {
                   snprintf(buf, sizeof(buf), "e/comp/frame/%s/fast", m->shadow_style);
-                  ok = e_theme_edje_object_set(o, "base/theme/comp", buf);
+                  if (eina_streq(buf, grp)) return;
+                  ok = e_theme_edje_object_set(obj, "base/theme/comp", buf);
                }
              if (!ok)
                {
                   snprintf(buf, sizeof(buf), "e/comp/frame/%s", m->shadow_style);
-                  ok = e_theme_edje_object_set(o, "base/theme/comp", buf);
+                  if (eina_streq(buf, grp)) return;
+                  ok = e_theme_edje_object_set(obj, "base/theme/comp", buf);
                }
              if (ok)
                {
@@ -2674,46 +2794,71 @@ e_comp_object_util_add(Evas_Object *obj, E_Comp_Object_Type type)
    while (!ok)
      {
         if (skip)
-          ok = e_theme_edje_object_set(o, "base/theme/comp", "e/comp/frame/none");
+          {
+             if (eina_streq("e/comp/frame/none", grp)) return;
+             ok = e_theme_edje_object_set(obj, "base/theme/comp", "e/comp/frame/none");
+          }
         if (ok) break;
         if (conf->shadow_style)
           {
              if (fast)
                {
                   snprintf(buf, sizeof(buf), "e/comp/frame/%s/fast", conf->shadow_style);
-                  ok = e_theme_edje_object_set(o, "base/theme/comp", buf);
+                  if (eina_streq(buf, grp)) return;
+                  ok = e_theme_edje_object_set(obj, "base/theme/comp", buf);
                }
              if (!ok)
                {
                   snprintf(buf, sizeof(buf), "e/comp/frame/%s", conf->shadow_style);
-                  ok = e_theme_edje_object_set(o, "base/theme/comp", buf);
+                  if (eina_streq(buf, grp)) return;
+                  ok = e_theme_edje_object_set(obj, "base/theme/comp", buf);
                }
              if (ok) break;
           }
         if (fast)
-          ok = e_theme_edje_object_set(o, "base/theme/comp", "e/comp/frame/default/fast");
+          {
+             if (eina_streq("e/comp/frame/default/fast", grp)) return;
+             ok = e_theme_edje_object_set(obj, "base/theme/comp", "e/comp/frame/default/fast");
+          }
         if (!ok)
-          ok = e_theme_edje_object_set(o, "base/theme/comp", "e/comp/frame/default");
+          {
+             if (eina_streq("e/comp/frame/default", grp)) return;
+             ok = e_theme_edje_object_set(obj, "base/theme/comp", "e/comp/frame/default");
+          }
         break;
      }
    if (shadow && (e_util_strcmp(evas_object_type_get(obj), "edje") || (!edje_object_data_get(obj, "noshadow"))))
-     edje_object_signal_emit(o, "e,state,shadow,on", "e");
+     edje_object_signal_emit(obj, "e,state,shadow,on", "e");
    else
-     edje_object_signal_emit(o, "e,state,shadow,off", "e");
+     edje_object_signal_emit(obj, "e,state,shadow,off", "e");
+   if (content)
+     edje_object_part_swallow(obj, "e.swallow.content", content);
+}
+
+E_API Evas_Object *
+e_comp_object_util_add(Evas_Object *obj, E_Comp_Object_Type type)
+{
+   Evas_Object *o, *z = NULL;
+   E_Comp_Config *conf = e_comp_config_get();
+   int x, y, w, h;
+   Eina_Bool vis;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
+   vis = evas_object_visible_get(obj);
+   o = edje_object_add(e_comp->evas);
+   evas_object_data_set(o, "comp_object", (void*)1);
+   e_comp_object_util_type_set(o, type);
 
    evas_object_geometry_get(obj, &x, &y, &w, &h);
    evas_object_geometry_set(o, x, y, w, h);
    evas_object_pass_events_set(o, evas_object_pass_events_get(obj));
 
-   if (list)
-     {
-        z = e_zoomap_add(e_comp->evas);
-        e_zoomap_child_edje_solid_setup(z);
-        e_zoomap_smooth_set(z, conf->smooth_windows);
-        e_zoomap_child_set(z, obj);
-        e_zoomap_child_resize(z, w, h);
-        evas_object_show(z);
-     }
+   z = e_zoomap_add(e_comp->evas);
+   evas_object_show(z);
+   evas_object_geometry_set(z, x, y, w, h);
+   e_zoomap_child_edje_solid_setup(z);
+   e_zoomap_smooth_set(z, conf->smooth_windows);
+   e_zoomap_child_set(z, obj);
    edje_object_signal_callback_add(o, "e,action,*,done", "e", _e_comp_object_util_done_defer, z);
 
    evas_object_intercept_show_callback_add(o, _e_comp_object_util_show, z);
@@ -2994,6 +3139,7 @@ e_comp_object_input_area_set(Evas_Object *obj, int x, int y, int w, int h)
    else
      {
         evas_object_smart_member_del(cw->input_obj);
+        evas_object_freeze_events_set(cw->input_obj, 1);
         E_FREE_FUNC(cw->input_obj, evas_object_del);
         evas_object_pass_events_set(cw->obj, 0);
      }
@@ -3027,6 +3173,8 @@ e_comp_object_frame_geometry_set(Evas_Object *obj, int l, int r, int t, int b)
      {
         cw->ec->w += (l + r) - (cw->client_inset.l + cw->client_inset.r);
         cw->ec->h += (t + b) - (cw->client_inset.t + cw->client_inset.b);
+        if (cw->ec->maximized || cw->ec->fullscreen)
+          cw->ec->saved.frame = 0;
      }
    else if (cw->ec->maximized || cw->ec->fullscreen)
      {
@@ -3056,6 +3204,11 @@ e_comp_object_frame_geometry_set(Evas_Object *obj, int l, int r, int t, int b)
    cw->client_inset.r = r;
    cw->client_inset.t = t;
    cw->client_inset.b = b;
+   if (!cw->shobj) return;
+   if (cw->client_inset.calc)
+     e_comp_object_signal_emit(obj, "e,state,focus,disabled", "e");
+   else
+     e_comp_object_signal_emit(obj, "e,state,focus,enabled", "e");
 }
 
 E_API Eina_Bool
@@ -3571,17 +3724,28 @@ e_comp_object_native_surface_set(Evas_Object *obj, Eina_Bool set)
    EINA_SAFETY_ON_NULL_RETURN(cw->ec);
    if (cw->ec->input_only) return;
    set = !!set;
-   if ((!set) && (!cw->native)) return;
 
    if (set)
      {
-        /* native requires gl enabled, texture from pixmap enabled, and a non-shaped client */
-        set = (e_comp->gl &&
-          ((e_comp->comp_type != E_PIXMAP_TYPE_X) || e_comp_config_get()->texture_from_pixmap) &&
-          (!cw->ec->shaped));
+        switch (e_comp->comp_type)
+          {
+           case E_PIXMAP_TYPE_X:
+             /* native requires gl enabled, texture from pixmap enabled, and a non-shaped client */
+             set = e_comp->gl &&
+                   e_comp_config_get()->texture_from_pixmap &&
+                   !cw->ec->shaped;
+             break;
+           case E_PIXMAP_TYPE_WL:
+             set = !e_pixmap_is_pixels(cw->ec->pixmap);
+             break;
+           default:
+             set = 0;
+          }
         if (set)
           set = (!!cw->ns) || e_pixmap_native_surface_init(cw->ec->pixmap, &ns);
      }
+   if ((!set) && (!cw->native)) return;
+
    cw->native = set;
 
    evas_object_image_native_surface_set(cw->obj, set && (!cw->blanked) ? (cw->ns ?: &ns) : NULL);
@@ -3667,7 +3831,7 @@ e_comp_object_dirty(Evas_Object *obj)
           ERR("ERROR FETCHING PIXMAP FOR %p", cw->ec);
         return;
      }
-   e_comp_object_native_surface_set(obj, e_comp->gl);
+   e_comp_object_native_surface_set(obj, 1);
    it = eina_tiler_iterator_new(cw->updates);
    EINA_ITERATOR_FOREACH(it, rect)
      {
@@ -3730,10 +3894,7 @@ e_comp_object_render(Evas_Object *obj)
 
    if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
      {
-        Eina_Bool alpha = e_pixmap_image_is_argb(cw->ec->pixmap);
-
         pix = e_pixmap_image_data_get(cw->ec->pixmap);
-        evas_object_image_alpha_set(cw->obj, alpha);
         ret = EINA_TRUE;
         goto end;
      }
@@ -3793,16 +3954,31 @@ e_comp_object_render(Evas_Object *obj)
    eina_iterator_free(it);
 end:
    evas_object_image_data_set(cw->obj, cw->blanked ? NULL : pix);
-   EINA_LIST_FOREACH(cw->obj_mirror, l, o)
-     {
-        evas_object_image_data_set(o, pix);
-        evas_object_image_pixels_dirty_set(o, EINA_FALSE);
-     }
+   _e_comp_object_alpha_set(cw);
 
    E_FREE_FUNC(cw->pending_updates, eina_tiler_free);
    if (ret)
      e_comp_client_post_update_add(cw->ec);
    return ret;
+}
+
+E_API Evas_Object *
+e_comp_object_agent_add(Evas_Object *obj)
+{
+   Evas_Object *o;
+
+   API_ENTRY NULL;
+
+   o = evas_object_rectangle_add(e_comp->evas);
+   evas_object_color_set(o, 0, 0, 0, 0);
+   evas_object_pass_events_set(o, 1);
+   evas_object_geometry_set(o, cw->ec->x, cw->ec->y, cw->ec->w, cw->ec->h);
+
+   cw->obj_agent = eina_list_append(cw->obj_agent, o);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_RESIZE, _e_comp_object_cb_agent_resize, cw);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_MOVE, _e_comp_object_cb_agent_move, cw);
+   evas_object_event_callback_add(o, EVAS_CALLBACK_DEL, _e_comp_object_cb_agent_del, cw);
+   return o;
 }
 
 /* create a duplicate of an evas object */
@@ -3882,6 +4058,7 @@ e_comp_object_util_mirror_add(Evas_Object *obj)
       if (dirty)
         evas_object_image_data_update_add(o, 0, 0, w, h);
    }
+   evas_object_image_pixels_get_callback_set(o, _e_comp_object_mirror_pixels_get, cw);
    return o;
 }
 
@@ -4151,6 +4328,13 @@ _e_comp_object_autoclose_del(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_O
    if (e_client_focused_get()) return;
    if (e_config->focus_policy != E_FOCUS_MOUSE)
      e_client_refocus();
+}
+
+
+E_API Eina_Bool
+e_comp_object_util_autoclose_on_escape(void *d EINA_UNUSED, Ecore_Event_Key *ev)
+{
+   return !!strcmp(ev->key, "Escape");
 }
 
 E_API void

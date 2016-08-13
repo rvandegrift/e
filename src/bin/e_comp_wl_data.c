@@ -27,6 +27,18 @@
 #define E_COMP_WL
 #include "e.h"
 
+#if __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#elif (__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
+#define ALL_ACTIONS (WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY | \
+                     WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE | \
+                     WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK)
+
 static void
 _mime_types_free(E_Comp_Wl_Data_Source *source)
 {
@@ -36,7 +48,7 @@ _mime_types_free(E_Comp_Wl_Data_Source *source)
    eina_array_free(source->mime_types);
 }
 
-static void 
+static void
 _e_comp_wl_data_offer_cb_accept(struct wl_client *client EINA_UNUSED, struct wl_resource *resource, uint32_t serial, const char *mime_type)
 {
    E_Comp_Wl_Data_Offer *offer;
@@ -45,8 +57,12 @@ _e_comp_wl_data_offer_cb_accept(struct wl_client *client EINA_UNUSED, struct wl_
    if (!(offer = wl_resource_get_user_data(resource)))
      return;
 
-   if (offer->source)
-     offer->source->target(offer->source, serial, mime_type);
+   /* Protect against untimely calls from older data offers */
+   if ((!offer->source) || (offer != offer->source->offer))
+     return;
+
+   offer->source->target(offer->source, serial, mime_type);
+   offer->source->accepted = !!mime_type;
 }
 
 static void
@@ -74,29 +90,193 @@ _e_comp_wl_data_offer_cb_destroy(struct wl_client *client EINA_UNUSED, struct wl
 }
 
 static void
-_e_comp_wl_data_offer_cb_finish(struct wl_client *client EINA_UNUSED, struct wl_resource *resource EINA_UNUSED)
+data_source_notify_finish(E_Comp_Wl_Data_Source *source)
 {
-   /* TODO: implement */
+   if (!source->actions_set)
+     return;
+
+   if (source->offer->in_ask &&
+       wl_resource_get_version(source->resource) >=
+       WL_DATA_SOURCE_ACTION_SINCE_VERSION)
+     {
+        wl_data_source_send_action(source->resource,
+                                   source->current_dnd_action);
+     }
+
+   if (wl_resource_get_version(source->resource) >=
+       WL_DATA_SOURCE_DND_FINISHED_SINCE_VERSION)
+     {
+        wl_data_source_send_dnd_finished(source->resource);
+     }
+
+   source->offer = NULL;
+}
+
+static uint32_t
+data_offer_choose_action(E_Comp_Wl_Data_Offer *offer)
+{
+   uint32_t available_actions, preferred_action = 0;
+   uint32_t source_actions, offer_actions;
+
+   if (wl_resource_get_version(offer->resource) >=
+       WL_DATA_OFFER_ACTION_SINCE_VERSION)
+     {
+        offer_actions = offer->dnd_actions;
+        preferred_action = offer->preferred_dnd_action;
+     }
+   else
+     {
+        offer_actions = WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY;
+     }
+
+   if (wl_resource_get_version(offer->source->resource) >=
+       WL_DATA_SOURCE_ACTION_SINCE_VERSION)
+     source_actions = offer->source->dnd_actions;
+   else
+     source_actions = WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY;
+
+   available_actions = offer_actions & source_actions;
+
+   if (!available_actions)
+     return WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE;
+
+   if (     //offer->source->seat &&
+     offer->source->compositor_action & available_actions)
+     return offer->source->compositor_action;
+
+   /* If the dest side has a preferred DnD action, use it */
+   if ((preferred_action & available_actions) != 0)
+     return preferred_action;
+
+   /* Use the first found action, in bit order */
+   return 1 << (ffs(available_actions) - 1);
 }
 
 static void
-_e_comp_wl_data_offer_cb_actions_set(struct wl_client *client EINA_UNUSED, struct wl_resource *resource EINA_UNUSED, uint32_t actions EINA_UNUSED, uint32_t preferred_action EINA_UNUSED)
+data_offer_update_action(E_Comp_Wl_Data_Offer *offer)
 {
-   /* TODO: implement */
+   uint32_t action;
+
+   if (!offer->source)
+     return;
+
+   action = data_offer_choose_action(offer);
+
+   if (offer->source->current_dnd_action == action)
+     return;
+
+   offer->source->current_dnd_action = action;
+
+   if (offer->in_ask)
+     return;
+
+   if (wl_resource_get_version(offer->source->resource) >=
+       WL_DATA_SOURCE_ACTION_SINCE_VERSION)
+     wl_data_source_send_action(offer->source->resource, action);
+
+   if (wl_resource_get_version(offer->resource) >=
+       WL_DATA_OFFER_ACTION_SINCE_VERSION)
+     wl_data_offer_send_action(offer->resource, action);
+}
+
+static void
+data_offer_set_actions(struct wl_client *client,
+                       struct wl_resource *resource,
+                       uint32_t dnd_actions, uint32_t preferred_action)
+{
+   E_Comp_Wl_Data_Offer *offer = wl_resource_get_user_data(resource);
+
+   if (dnd_actions & ~ALL_ACTIONS)
+     {
+        wl_resource_post_error(offer->resource,
+                               WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK,
+                               "invalid action mask %x", dnd_actions);
+        return;
+     }
+
+   if (preferred_action &&
+       (!(preferred_action & dnd_actions) ||
+        __builtin_popcount(preferred_action) > 1))
+     {
+        wl_resource_post_error(offer->resource,
+                               WL_DATA_OFFER_ERROR_INVALID_ACTION,
+                               "invalid action %x", preferred_action);
+        return;
+     }
+
+   offer->dnd_actions = dnd_actions;
+   offer->preferred_dnd_action = preferred_action;
+   data_offer_update_action(offer);
+}
+
+static void
+data_offer_finish(struct wl_client *client, struct wl_resource *resource)
+{
+   E_Comp_Wl_Data_Offer *offer = wl_resource_get_user_data(resource);
+
+   if (!offer->source || offer->source->offer != offer)
+     return;
+
+   /* Disallow finish while we have a grab driving drag-and-drop, or
+    * if the negotiation is not at the right stage
+    */
+   if (     //offer->source->seat ||
+     !offer->source->accepted)
+     {
+        wl_resource_post_error(offer->resource,
+                               WL_DATA_OFFER_ERROR_INVALID_FINISH,
+                               "premature finish request");
+        return;
+     }
+
+   switch (offer->source->current_dnd_action)
+     {
+      case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE:
+      case WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK:
+        wl_resource_post_error(offer->resource,
+                               WL_DATA_OFFER_ERROR_INVALID_OFFER,
+                               "offer finished with an invalid action");
+        return;
+
+      default:
+        break;
+     }
+
+   data_source_notify_finish(offer->source);
 }
 
 /* called by wl_resource_destroy */
 static void
 _e_comp_wl_data_offer_cb_resource_destroy(struct wl_resource *resource)
 {
-   E_Comp_Wl_Data_Offer *offer;
+   E_Comp_Wl_Data_Offer *offer = wl_resource_get_user_data(resource);
 
-   if (!(offer = wl_resource_get_user_data(resource)))
-     return;
+   if (!offer->source)
+     goto out;
 
-   if (offer->source)
-     wl_list_remove(&offer->source_destroy_listener.link);
+   wl_list_remove(&offer->source_destroy_listener.link);
 
+   if (offer->source->offer != offer)
+     goto out;
+
+   /* If the drag destination has version < 3, wl_data_offer.finish
+    * won't be called, so do this here as a safety net, because
+    * we still want the version >=3 drag source to be happy.
+    */
+   if (wl_resource_get_version(offer->resource) <
+       WL_DATA_OFFER_ACTION_SINCE_VERSION)
+     {
+        data_source_notify_finish(offer->source);
+     }
+   else if (offer->source->resource &&
+            wl_resource_get_version(offer->source->resource) >=
+            WL_DATA_SOURCE_DND_FINISHED_SINCE_VERSION)
+     {
+        wl_data_source_send_cancelled(offer->source->resource);
+     }
+
+   offer->source->offer = NULL;
+out:
    free(offer);
 }
 
@@ -119,8 +299,8 @@ static const struct wl_data_offer_interface _e_data_offer_interface =
    _e_comp_wl_data_offer_cb_accept,
    _e_comp_wl_data_offer_cb_receive,
    _e_comp_wl_data_offer_cb_destroy,
-   _e_comp_wl_data_offer_cb_finish,
-   _e_comp_wl_data_offer_cb_actions_set,
+   data_offer_finish,
+   data_offer_set_actions,
 };
 
 static void
@@ -146,9 +326,39 @@ _e_comp_wl_data_source_cb_destroy(struct wl_client *client EINA_UNUSED, struct w
 }
 
 static void
-_e_comp_wl_data_source_cb_actions_set(struct wl_client *client EINA_UNUSED, struct wl_resource *resource EINA_UNUSED, uint32_t actions EINA_UNUSED)
+data_source_set_actions(struct wl_client *client,
+                        struct wl_resource *resource,
+                        uint32_t dnd_actions)
 {
-   /* TODO: implement */
+   E_Comp_Wl_Data_Source *source =
+     wl_resource_get_user_data(resource);
+
+   if (source->actions_set)
+     {
+        wl_resource_post_error(source->resource,
+                               WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK,
+                               "cannot set actions more than once");
+        return;
+     }
+
+   if (dnd_actions & ~ALL_ACTIONS)
+     {
+        wl_resource_post_error(source->resource,
+                               WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK,
+                               "invalid action mask %x", dnd_actions);
+        return;
+     }
+/* FIXME
+        if (source->seat) {
+                wl_resource_post_error(source->resource,
+                                       WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK,
+                                       "invalid action change after "
+                                       "wl_data_device.start_drag");
+                return;
+        }
+ */
+   source->dnd_actions = dnd_actions;
+   source->actions_set = 1;
 }
 
 /* called by wl_resource_destroy */
@@ -163,18 +373,22 @@ _e_comp_wl_data_source_cb_resource_destroy(struct wl_resource *resource)
    wl_signal_emit(&source->destroy_signal, source);
 
    _mime_types_free(source);
+
+   if (e_comp_wl->drag_source == source)
+     e_comp_wl->drag_source = NULL;
+
    free(source);
 }
 
 static void
-_e_comp_wl_data_source_target_send(E_Comp_Wl_Data_Source *source, uint32_t serial EINA_UNUSED, const char* mime_type)
+_e_comp_wl_data_source_target_send(E_Comp_Wl_Data_Source *source, uint32_t serial EINA_UNUSED, const char *mime_type)
 {
    DBG("Data Source Target Send");
    wl_data_source_send_target(source->resource, mime_type);
 }
 
 static void
-_e_comp_wl_data_source_send_send(E_Comp_Wl_Data_Source *source, const char* mime_type, int32_t fd)
+_e_comp_wl_data_source_send_send(E_Comp_Wl_Data_Source *source, const char *mime_type, int32_t fd)
 {
    DBG("Data Source Source Send");
    wl_data_source_send_send(source->resource, mime_type, fd);
@@ -192,7 +406,7 @@ static const struct wl_data_source_interface _e_data_source_interface =
 {
    _e_comp_wl_data_source_cb_offer,
    _e_comp_wl_data_source_cb_destroy,
-   _e_comp_wl_data_source_cb_actions_set,
+   data_source_set_actions,
 };
 
 static void
@@ -202,7 +416,7 @@ _e_comp_wl_data_device_destroy_selection_data_source(struct wl_listener *listene
    struct wl_resource *data_device_res = NULL, *focus = NULL;
 
    DBG("Data Device Destroy Selection Source");
-   if (!(source = (E_Comp_Wl_Data_Source*)data))
+   if (!(source = (E_Comp_Wl_Data_Source *)data))
      return;
 
    e_comp_wl->selection.data_source = NULL;
@@ -214,7 +428,7 @@ _e_comp_wl_data_device_destroy_selection_data_source(struct wl_listener *listene
      {
         if (source->resource)
           data_device_res =
-             e_comp_wl_data_find_for_client(wl_resource_get_client(source->resource));
+            e_comp_wl_data_find_for_client(wl_resource_get_client(source->resource));
 
         if (data_device_res)
           wl_data_device_send_selection(data_device_res, NULL);
@@ -223,8 +437,8 @@ _e_comp_wl_data_device_destroy_selection_data_source(struct wl_listener *listene
    wl_signal_emit(&e_comp_wl->selection.signal, e_comp->wl_comp_data);
 }
 
-static struct wl_resource*
-_e_comp_wl_data_device_data_offer_create(E_Comp_Wl_Data_Source *source, struct wl_resource *data_device_res)
+static struct wl_resource *
+_e_comp_wl_data_device_data_offer_create(E_Comp_Wl_Data_Source *source, struct wl_resource *data_device)
 {
    E_Comp_Wl_Data_Offer *offer;
    Eina_Iterator *it;
@@ -235,24 +449,25 @@ _e_comp_wl_data_device_data_offer_create(E_Comp_Wl_Data_Source *source, struct w
    offer = E_NEW(E_Comp_Wl_Data_Offer, 1);
    if (!offer) return NULL;
 
-   offer->resource = 
-     wl_resource_create(wl_resource_get_client(data_device_res), 
-                        &wl_data_offer_interface, 1, 0);
+   offer->resource =
+     wl_resource_create(wl_resource_get_client(data_device),
+                        &wl_data_offer_interface, wl_resource_get_version(data_device), 0);
    if (!offer->resource)
      {
         free(offer);
         return NULL;
      }
 
-   wl_resource_set_implementation(offer->resource, 
-                                  &_e_data_offer_interface, offer, 
+   wl_resource_set_implementation(offer->resource,
+                                  &_e_data_offer_interface, offer,
                                   _e_comp_wl_data_offer_cb_resource_destroy);
    offer->source = source;
-   offer->source_destroy_listener.notify = 
+   source->offer = offer;
+   offer->source_destroy_listener.notify =
      _e_comp_wl_data_offer_cb_source_destroy;
    wl_signal_add(&source->destroy_signal, &offer->source_destroy_listener);
 
-   wl_data_device_send_data_offer(data_device_res, offer->resource);
+   wl_data_device_send_data_offer(data_device, offer->resource);
 
    it = eina_array_iterator_new(source->mime_types);
    EINA_ITERATOR_FOREACH(it, t)
@@ -268,7 +483,7 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
    E_Comp_Wl_Data_Source *sel_source;
    struct wl_resource *offer_res, *data_device_res, *focus = NULL;
 
-   sel_source = (E_Comp_Wl_Data_Source*)e_comp_wl->selection.data_source;
+   sel_source = (E_Comp_Wl_Data_Source *)e_comp_wl->selection.data_source;
    if (sel_source && (e_comp_wl->selection.serial - serial < UINT32_MAX / 2))
      return;
 
@@ -283,7 +498,7 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
 
    e_comp_wl->selection.data_source = sel_source = source;
    e_comp_wl->clipboard.xwl_owner = NULL;
-   e_comp_wl->selection.serial = serial;
+   source->serial = e_comp_wl->selection.serial = serial;
 
    if (e_comp_wl->kbd.enabled)
      focus = e_comp_wl->kbd.focus;
@@ -307,9 +522,9 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
 
    if (source)
      {
-        e_comp_wl->selection.data_source_listener.notify = 
+        e_comp_wl->selection.data_source_listener.notify =
           _e_comp_wl_data_device_destroy_selection_data_source;
-        wl_signal_add(&source->destroy_signal, 
+        wl_signal_add(&source->destroy_signal,
                       &e_comp_wl->selection.data_source_listener);
      }
 }
@@ -317,13 +532,17 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
 static void
 _e_comp_wl_data_device_drag_finished(E_Drag *drag, int dropped)
 {
-   Evas_Object *o;
+   Evas_Object *o, *z;
 
    o = edje_object_part_swallow_get(drag->comp_object, "e.swallow.content");
    if (eina_streq(evas_object_type_get(o), "e_comp_object"))
      edje_object_part_unswallow(drag->comp_object, o);
    else
-     e_zoomap_child_set(o, NULL);
+     {
+        z = o;
+        o = e_zoomap_child_get(z);
+        e_zoomap_child_set(z, NULL);
+     }
    evas_object_hide(o);
    evas_object_pass_events_set(o, 1);
    if (e_comp_wl->drag != drag) return;
@@ -343,27 +562,58 @@ _e_comp_wl_data_device_drag_finished(E_Drag *drag, int dropped)
           }
         else
 #endif
-          {
-             struct wl_resource *res;
+        {
+           struct wl_resource *res;
+           E_Comp_Wl_Data_Source *data_source = e_comp_wl->drag_source;
 
-             res = e_comp_wl_data_find_for_client(wl_resource_get_client(e_comp_wl->selection.target->comp_data->surface));
-             if (res)
-               {
-                  wl_data_device_send_drop(res);
-                  wl_data_device_send_leave(res);
-               }
+           res = e_comp_wl_data_find_for_client(wl_resource_get_client(e_comp_wl->selection.target->comp_data->surface));
+           if (res)
+             {
+                if (data_source->accepted && data_source->current_dnd_action)
+                  {
+                     wl_data_device_send_drop(res);
+                     if (wl_resource_get_version(data_source->resource) >=
+                         WL_DATA_SOURCE_DND_DROP_PERFORMED_SINCE_VERSION)
+                       wl_data_source_send_dnd_drop_performed(data_source->resource);
+
+                     data_source->offer->in_ask = data_source->current_dnd_action ==
+                       WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK;
+                  }
+                else if (wl_resource_get_version(data_source->resource) >=
+                         WL_DATA_SOURCE_DND_FINISHED_SINCE_VERSION)
+                  wl_data_source_send_cancelled(data_source->resource);
+                wl_data_device_send_leave(res);
+             }
 #ifndef HAVE_WAYLAND_ONLY
-             if (e_comp_util_has_xwayland())
-               {
-                  ecore_x_selection_owner_set(0, ECORE_X_ATOM_SELECTION_XDND,
-                                              ecore_x_current_time_get());
-                  ecore_x_window_hide(e_comp->cm_selection);
-               }
+           if (e_comp_util_has_xwayland())
+             {
+                ecore_x_selection_owner_set(0, ECORE_X_ATOM_SELECTION_XDND,
+                                            ecore_x_current_time_get());
+                ecore_x_window_hide(e_comp->cm_selection);
+             }
 #endif
-             e_comp_wl->selection.target = NULL;
-             e_comp_wl->drag_source = NULL;
-          }
+           e_comp_wl->selection.target = NULL;
+           e_comp_wl->drag_source = NULL;
+        }
      }
+}
+
+static void
+_e_comp_wl_data_device_drag_key(E_Drag *drag EINA_UNUSED, Ecore_Event_Key *ev)
+{
+   uint32_t compositor_action = 0;
+   const Evas_Modifier *m;
+   E_Comp_Wl_Data_Source *drag_source = e_comp_wl->drag_source;
+
+   m = evas_key_modifier_get(e_comp->evas);
+   if (evas_key_modifier_is_set(m, "Shift"))
+     compositor_action = WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE;
+   else if (evas_key_modifier_is_set(m, "Control"))
+     compositor_action = WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY;
+   if (drag_source->compositor_action == compositor_action) return;
+   drag_source->compositor_action = compositor_action;
+   if (drag_source->offer)
+     data_offer_update_action(drag_source->offer);
 }
 
 static void
@@ -411,6 +661,8 @@ _e_comp_wl_data_device_cb_drag_start(struct wl_client *client, struct wl_resourc
    evas_pointer_canvas_xy_get(e_comp->evas, &x, &y);
    e_comp_wl->drag = e_drag_new(x, y, NULL, 0, NULL, 0, NULL,
                                 _e_comp_wl_data_device_drag_finished);
+   e_drag_key_down_cb_set(e_comp_wl->drag, _e_comp_wl_data_device_drag_key);
+   e_drag_key_up_cb_set(e_comp_wl->drag, _e_comp_wl_data_device_drag_key);
    e_comp_wl->drag->button_mask =
      evas_pointer_button_down_mask_get(e_comp->evas);
    if (ec)
@@ -439,11 +691,18 @@ _e_comp_wl_data_device_cb_selection_set(struct wl_client *client EINA_UNUSED, st
    DBG("Data Device Selection Set");
    if (!source_resource) return;
    if (!(source = wl_resource_get_user_data(source_resource))) return;
+   if (source->actions_set)
+     {
+        wl_resource_post_error(source_resource,
+                               WL_DATA_SOURCE_ERROR_INVALID_SOURCE,
+                               "cannot set drag-and-drop source as selection");
+        return;
+     }
 
    _e_comp_wl_data_device_selection_set(e_comp->wl_comp_data, source, serial);
 }
 
-static void 
+static void
 _e_comp_wl_data_device_cb_release(struct wl_client *client EINA_UNUSED, struct wl_resource *resource)
 {
    DBG("Data Device Release");
@@ -464,32 +723,31 @@ _e_comp_wl_data_device_cb_unbind(struct wl_resource *resource)
    eina_hash_del_by_key(e_comp_wl->mgr.data_resources, &wc);
 }
 
-static void 
+static void
 _e_comp_wl_data_manager_cb_device_get(struct wl_client *client, struct wl_resource *manager_resource, uint32_t id, struct wl_resource *seat_resource EINA_UNUSED)
 {
    struct wl_resource *res;
 
    DBG("Data Manager Device Get");
 
-
    /* try to create the data device resource */
-   res = wl_resource_create(client, &wl_data_device_interface, 1, id);
+   res = wl_resource_create(client, &wl_data_device_interface, wl_resource_get_version(manager_resource), id);
    if (!res)
      {
-        ERR("Could not create data device resource: %m");
+        ERR("Could not create data device resource");
         wl_resource_post_no_memory(manager_resource);
         return;
      }
 
    eina_hash_add(e_comp_wl->mgr.data_resources, &client, res);
    wl_resource_set_implementation(res, &_e_data_device_interface,
-                                  e_comp->wl_comp_data, 
+                                  e_comp->wl_comp_data,
                                   _e_comp_wl_data_device_cb_unbind);
 }
 
-static const struct wl_data_device_manager_interface _e_manager_interface = 
+static const struct wl_data_device_manager_interface _e_manager_interface =
 {
-   (void*)e_comp_wl_data_manager_source_create,
+   (void *)e_comp_wl_data_manager_source_create,
    _e_comp_wl_data_manager_cb_device_get
 };
 
@@ -505,17 +763,17 @@ static const struct wl_data_device_manager_interface _e_manager_interface =
 /*    e_comp_wl->mgr.resource = NULL; */
 /* } */
 
-static void 
+static void
 _e_comp_wl_data_cb_bind_manager(struct wl_client *client, void *data EINA_UNUSED, uint32_t version EINA_UNUSED, uint32_t id)
 {
    struct wl_resource *res;
 
    /* try to create data manager resource */
    e_comp_wl->mgr.resource = res =
-     wl_resource_create(client, &wl_data_device_manager_interface, 1, id);
+       wl_resource_create(client, &wl_data_device_manager_interface, 3, id);
    if (!res)
      {
-        ERR("Could not create data device manager: %m");
+        ERR("Could not create data device manager");
         wl_client_post_no_memory(client);
         return;
      }
@@ -533,13 +791,13 @@ _e_comp_wl_clipboard_offer_load(void *data, Ecore_Fd_Handler *handler)
    int len;
    int fd;
 
-   if (!(offer = (E_Comp_Wl_Clipboard_Offer*)data))
+   if (!(offer = (E_Comp_Wl_Clipboard_Offer *)data))
      return ECORE_CALLBACK_CANCEL;
 
    fd = ecore_main_fd_handler_fd_get(handler);
 
    size = offer->source->contents.size;
-   p = (char*)offer->source->contents.data;
+   p = (char *)offer->source->contents.data;
    len = write(fd, p + offer->offset, size - offer->offset);
    if (len > 0) offer->offset += len;
 
@@ -555,7 +813,7 @@ _e_comp_wl_clipboard_offer_load(void *data, Ecore_Fd_Handler *handler)
 }
 
 static void
-_e_comp_wl_clipboard_offer_create(E_Comp_Wl_Clipboard_Source* source, int fd)
+_e_comp_wl_clipboard_offer_create(E_Comp_Wl_Clipboard_Source *source, int fd)
 {
    E_Comp_Wl_Clipboard_Offer *offer;
 
@@ -565,9 +823,9 @@ _e_comp_wl_clipboard_offer_create(E_Comp_Wl_Clipboard_Source* source, int fd)
    offer->source = source;
    source->ref++;
    offer->fd_handler =
-      ecore_main_fd_handler_add(fd, ECORE_FD_WRITE,
-                                _e_comp_wl_clipboard_offer_load, offer,
-                                NULL, NULL);
+     ecore_main_fd_handler_add(fd, ECORE_FD_WRITE,
+                               _e_comp_wl_clipboard_offer_load, offer,
+                               NULL, NULL);
 }
 
 static Eina_Bool
@@ -577,8 +835,7 @@ _e_comp_wl_clipboard_source_save(void *data EINA_UNUSED, Ecore_Fd_Handler *handl
    char *p;
    int len, size;
 
-
-   if (!(source = (E_Comp_Wl_Clipboard_Source*)e_comp_wl->clipboard.source))
+   if (!(source = (E_Comp_Wl_Clipboard_Source *)e_comp_wl->clipboard.source))
      return ECORE_CALLBACK_CANCEL;
 
    /* extend contents buffer */
@@ -588,7 +845,7 @@ _e_comp_wl_clipboard_source_save(void *data EINA_UNUSED, Ecore_Fd_Handler *handl
         source->contents.size -= CLIPBOARD_CHUNK;
      }
 
-   p = (char*)source->contents.data + source->contents.size;
+   p = (char *)source->contents.data + source->contents.size;
    size = source->contents.alloc - source->contents.size;
    len = read(source->fd, p, size);
 
@@ -619,7 +876,7 @@ _e_comp_wl_clipboard_source_target_send(E_Comp_Wl_Data_Source *source EINA_UNUSE
 static void
 _e_comp_wl_clipboard_source_send_send(E_Comp_Wl_Data_Source *source, const char *mime_type, int fd)
 {
-   E_Comp_Wl_Clipboard_Source* clip_source;
+   E_Comp_Wl_Clipboard_Source *clip_source;
    char *t;
 
    clip_source = container_of(source, E_Comp_Wl_Clipboard_Source, data_source);
@@ -645,8 +902,8 @@ _e_comp_wl_clipboard_selection_set(struct wl_listener *listener EINA_UNUSED, voi
    int p[2];
    char *mime_type;
 
-   sel_source = (E_Comp_Wl_Data_Source*) e_comp_wl->selection.data_source;
-   clip_source = (E_Comp_Wl_Clipboard_Source*) e_comp_wl->clipboard.source;
+   sel_source = (E_Comp_Wl_Data_Source *)e_comp_wl->selection.data_source;
+   clip_source = (E_Comp_Wl_Clipboard_Source *)e_comp_wl->clipboard.source;
 
    if (!sel_source)
      {
@@ -704,13 +961,32 @@ e_comp_wl_data_device_send_enter(E_Client *ec)
    if (e_client_has_xwindow(ec) &&
        e_client_has_xwindow(e_comp_wl->drag_client))
      return;
+   if (e_comp_wl->drag && (e_comp_wl->drag->object == ec->frame)) return;
    if (!e_client_has_xwindow(ec))
      {
+        E_Comp_Wl_Data_Source *drag_source = e_comp_wl->drag_source;
+        if (drag_source &&
+            drag_source->offer)
+          {
+             E_Comp_Wl_Data_Offer *offer;
+             /* Unlink the offer from the source */
+             offer = drag_source->offer;
+             offer->source = NULL;
+             drag_source->offer = NULL;
+             drag_source->accepted = 0;
+             wl_list_remove(&offer->source_destroy_listener.link);
+          }
         data_device_res =
           e_comp_wl_data_find_for_client(wl_resource_get_client(ec->comp_data->surface));
         if (!data_device_res) return;
         offer_res = e_comp_wl_data_device_send_offer(ec);
         if (e_comp_wl->drag_source && (!offer_res)) return;
+        data_offer_update_action(drag_source->offer);
+        if (offer_res)
+          {
+             if (wl_resource_get_version(offer_res) >= WL_DATA_OFFER_SOURCE_ACTIONS_SINCE_VERSION)
+               wl_data_offer_send_source_actions(offer_res, drag_source->dnd_actions);
+          }
      }
    e_comp_wl->selection.target = ec;
    evas_object_event_callback_add(ec->frame, EVAS_CALLBACK_DEL,
@@ -772,6 +1048,7 @@ e_comp_wl_data_device_send_leave(E_Client *ec)
    if (e_client_has_xwindow(ec) &&
        e_client_has_xwindow(e_comp_wl->drag_client))
      return;
+   if (e_comp_wl->drag && (e_comp_wl->drag->object == ec->frame)) return;
    evas_object_event_callback_del_full(ec->frame, EVAS_CALLBACK_DEL,
                                        _e_comp_wl_data_device_target_del, ec);
    if (e_comp_wl->selection.target == ec)
@@ -798,7 +1075,7 @@ e_comp_wl_data_device_send_offer(E_Client *ec)
    E_Comp_Wl_Data_Source *source;
 
    data_device_res =
-      e_comp_wl_data_find_for_client(wl_resource_get_client(ec->comp_data->surface));
+     e_comp_wl_data_find_for_client(wl_resource_get_client(ec->comp_data->surface));
    if (!data_device_res) return NULL;
    source = e_comp_wl->drag_source;
    if (source)
@@ -827,7 +1104,7 @@ e_comp_wl_data_device_keyboard_focus_set(void)
         ERR("No focused resource");
         return;
      }
-   source = (E_Comp_Wl_Data_Source*)e_comp_wl->selection.data_source;
+   source = (E_Comp_Wl_Data_Source *)e_comp_wl->selection.data_source;
 
 #ifndef HAVE_WAYLAND_ONLY
    do
@@ -866,11 +1143,11 @@ e_comp_wl_data_manager_init(void)
 {
    /* try to create global data manager */
    e_comp_wl->mgr.global =
-     wl_global_create(e_comp_wl->wl.disp, &wl_data_device_manager_interface, 1,
-                      e_comp->wl_comp_data, _e_comp_wl_data_cb_bind_manager);
+     wl_global_create(e_comp_wl->wl.disp, &wl_data_device_manager_interface, 3,
+                      NULL, _e_comp_wl_data_cb_bind_manager);
    if (!e_comp_wl->mgr.global)
      {
-        ERR("Could not create global for data device manager: %m");
+        ERR("Could not create global for data device manager");
         return EINA_FALSE;
      }
 
@@ -883,7 +1160,7 @@ e_comp_wl_data_manager_init(void)
    return EINA_TRUE;
 }
 
-EINTERN void 
+EINTERN void
 e_comp_wl_data_manager_shutdown(void)
 {
    /* destroy the global manager resource */
@@ -919,10 +1196,10 @@ e_comp_wl_data_manager_source_create(struct wl_client *client, struct wl_resourc
    source->cancelled = _e_comp_wl_data_source_cancelled_send;
 
    source->resource =
-     wl_resource_create(client, &wl_data_source_interface, 1, id);
+     wl_resource_create(client, &wl_data_source_interface, wl_resource_get_version(resource), id);
    if (!source->resource)
      {
-        ERR("Could not create data source resource: %m");
+        ERR("Could not create data source resource");
         free(source);
         wl_resource_post_no_memory(resource);
         return NULL;
@@ -999,3 +1276,4 @@ e_comp_wl_clipboard_source_unref(E_Comp_Wl_Clipboard_Source *source)
    wl_array_release(&source->contents);
    free(source);
 }
+

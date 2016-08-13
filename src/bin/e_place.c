@@ -29,7 +29,7 @@ e_place_zone_region_smart_cleanup(E_Zone *zone)
                   /* Insert the ec if larger than the current ec */
                   if (area >= testarea)
                     {
-                       clients = eina_list_prepend_relative(clients, ec2, ec);
+                       clients = eina_list_prepend_relative_list(clients, ec, ll);
                        break;
                     }
                }
@@ -41,10 +41,12 @@ e_place_zone_region_smart_cleanup(E_Zone *zone)
    /* Loop over the clients moving each one using the smart placement */
    EINA_LIST_FREE(clients, ec)
      {
-        int new_x, new_y;
+        int new_x = zone->x, new_y = zone->y;
+        Eina_List *l = eina_list_append(NULL, ec);
 
-        e_place_zone_region_smart(zone, clients, ec->x, ec->y,
+        e_place_zone_region_smart(zone, l, zone->x, zone->y,
                                   ec->w, ec->h, &new_x, &new_y);
+        eina_list_free(l);
         evas_object_move(ec->frame, new_x, new_y);
      }
 }
@@ -56,19 +58,26 @@ _e_place_cb_sort_cmp(const void *v1, const void *v2)
 }
 
 static Eina_Bool
+ignore_client_and_break(const E_Client *ec)
+{
+   if (ec->fullscreen) return EINA_TRUE;
+   if (ec->maximized)
+     {
+        E_Maximize max = ec->maximized & E_MAXIMIZE_DIRECTION;
+
+        if (max == E_MAXIMIZE_FULLSCREEN) return EINA_TRUE;
+        if (max == E_MAXIMIZE_BOTH) return EINA_TRUE;
+     }
+   return EINA_FALSE;
+}
+
+static Eina_Bool
 ignore_client(const E_Client *ec, const Eina_List *skiplist)
 {
    if (eina_list_data_find(skiplist, ec)) return EINA_TRUE;
    if (e_client_util_ignored_get(ec)) return EINA_TRUE;
    if (!evas_object_visible_get(ec->frame)) return EINA_TRUE;
-   if (ec->fullscreen) return EINA_TRUE;
-   if (ec->maximized)
-     {
-        E_Maximize max = ec->maximized & E_MAXIMIZE_TYPE;
 
-        if (max == E_MAXIMIZE_FULLSCREEN) return EINA_TRUE;
-        if (max & (E_MAXIMIZE_HORIZONTAL | E_MAXIMIZE_VERTICAL)) return EINA_TRUE;
-     }
    return EINA_FALSE;
 }
 
@@ -80,9 +89,10 @@ _e_place_coverage_client_add(Eina_List *skiplist, int ar, int x, int y, int w, i
    int iw, ih;
    int x0, x00, yy0, y00;
 
-   E_CLIENT_FOREACH(ec)
+   E_CLIENT_REVERSE_FOREACH(ec)
      {
         if (ignore_client(ec, skiplist)) continue;
+        if (ignore_client_and_break(ec)) break;
         x2 = ec->x; y2 = ec->y; w2 = ec->w; h2 = ec->h;
         if (E_INTERSECTS(x, y, w, h, x2, y2, w2, h2))
           {
@@ -103,36 +113,44 @@ _e_place_coverage_client_add(Eina_List *skiplist, int ar, int x, int y, int w, i
 }
 
 static int
-_e_place_coverage_shelf_add(E_Desk *desk, int ar, int x, int y, int w, int h)
+_e_place_coverage_zone_obstacles_add_single(E_Zone_Obstacle *obs, int ar, int x, int y, int w, int h)
 {
-   Eina_List *l;
-   E_Shelf *es;
    int x2, y2, w2, h2;
+   int x0, x00, yy0, y00;
+   int iw, ih;
 
-   l = e_shelf_list_all();
-   EINA_LIST_FREE(l, es)
-     {
-        if (!e_shelf_desk_visible(es, desk)) continue;
-        x2 = es->x; y2 = es->y; w2 = es->w; h2 = es->h;
-        if (E_INTERSECTS(x, y, w, h, x2, y2, w2, h2))
-          {
-             int x0, x00, yy0, y00;
-             int iw, ih;
+   x2 = obs->x; y2 = obs->y; w2 = obs->w; h2 = obs->h;
+   if (!E_INTERSECTS(x, y, w, h, x2, y2, w2, h2)) return ar;
 
-             if (!es->cfg->overlap) return 0x7fffffff;
-             x0 = x;
-             if (x < x2) x0 = x2;
-             x00 = (x + w);
-             if ((x2 + w2) < (x + w)) x00 = (x2 + w2);
-             yy0 = y;
-             if (y < y2) yy0 = y2;
-             y00 = (y + h);
-             if ((y2 + h2) < (y + h)) y00 = (y2 + h2);
-             iw = x00 - x0;
-             ih = y00 - yy0;
-             ar += (iw * ih);
-          }
-     }
+   /* FIXME: this option implies that windows should be resized when
+    * an autohide shelf toggles its visibility, but it is not used correctly
+    * and is instead used to determine whether shelves can be overlapped
+    */
+   if (!e_config->border_fix_on_shelf_toggle) return 0x7fffffff;
+
+   x0 = x;
+   if (x < x2) x0 = x2;
+   x00 = (x + w);
+   if ((x2 + w2) < (x + w)) x00 = (x2 + w2);
+   yy0 = y;
+   if (y < y2) yy0 = y2;
+   y00 = (y + h);
+   if ((y2 + h2) < (y + h)) y00 = (y2 + h2);
+   iw = x00 - x0;
+   ih = y00 - yy0;
+   ar += (iw * ih);
+   return ar;
+}
+
+static int
+_e_place_coverage_zone_obstacles_add(E_Desk *desk, int ar, int x, int y, int w, int h)
+{
+   E_Zone_Obstacle *obs;
+
+   EINA_INLIST_FOREACH(desk->obstacles, obs)
+     ar = _e_place_coverage_zone_obstacles_add_single(obs, ar, x, y, w, h);
+   EINA_INLIST_FOREACH(desk->zone->obstacles, obs)
+     ar = _e_place_coverage_zone_obstacles_add_single(obs, ar, x, y, w, h);
    return ar;
 }
 
@@ -161,7 +179,7 @@ _e_place_desk_region_smart_obstacle_add(char *u_x, char *u_y, int **a_x, int **a
    if (by < zy)
      {
         bh += by;
-        by = zx;
+        by = zy;
      }
    if ((by + bh) > zy + zh) bh = zy + zh - by;
    if (by >= zy + zh) return;
@@ -241,31 +259,40 @@ e_place_desk_region_smart(E_Desk *desk, Eina_List *skiplist, int x, int y, int w
 
    if (e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART)
      {
-        Eina_List *l;
-        E_Shelf *es;
+        E_Zone_Obstacle *obs;
 
-        l = e_shelf_list_all();
-        EINA_LIST_FREE(l, es)
+        EINA_INLIST_FOREACH(desk->obstacles, obs)
           {
              int bx, by, bw, bh;
 
-             if (!e_shelf_desk_visible(es, desk)) continue;
+             bx = obs->x;
+             by = obs->y;
+             bw = obs->w;
+             bh = obs->h;
+             if (E_INTERSECTS(bx, by, bw, bh, zx, zy, zw, zh))
+               _e_place_desk_region_smart_obstacle_add(u_x, u_y, &a_x, &a_y,
+                 &a_w, &a_h, &a_alloc_w, &a_alloc_h, zx, zy, zw, zh, bx, by, bw, bh);
+          }
+        EINA_INLIST_FOREACH(desk->zone->obstacles, obs)
+          {
+             int bx, by, bw, bh;
 
-             bx = es->x;
-             by = es->y;
-             bw = es->w;
-             bh = es->h;
+             bx = obs->x;
+             by = obs->y;
+             bw = obs->w;
+             bh = obs->h;
              if (E_INTERSECTS(bx, by, bw, bh, zx, zy, zw, zh))
                _e_place_desk_region_smart_obstacle_add(u_x, u_y, &a_x, &a_y,
                  &a_w, &a_h, &a_alloc_w, &a_alloc_h, zx, zy, zw, zh, bx, by, bw, bh);
           }
      }
 
-   E_CLIENT_FOREACH(ec)
+   E_CLIENT_REVERSE_FOREACH(ec)
      {
         int bx, by, bw, bh;
 
         if (ignore_client(ec, skiplist)) continue;
+        if (ignore_client_and_break(ec)) break;
 
         bx = ec->x;
         by = ec->y;
@@ -295,7 +322,7 @@ e_place_desk_region_smart(E_Desk *desk, Eina_List *skiplist, int x, int y, int w
                                              w, h);
 
            if (e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART)
-             ar = _e_place_coverage_shelf_add(desk, ar,
+             ar = _e_place_coverage_zone_obstacles_add(desk, ar,
                                               x, y,
                                               w, h);
 
@@ -322,7 +349,7 @@ e_place_desk_region_smart(E_Desk *desk, Eina_List *skiplist, int x, int y, int w
                                                        w, h);
 
                      if (e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART)
-                       ar = _e_place_coverage_shelf_add(desk, ar,
+                       ar = _e_place_coverage_zone_obstacles_add(desk, ar,
                                                         a_x[i], a_y[j],
                                                         w, h);
 
@@ -343,7 +370,7 @@ e_place_desk_region_smart(E_Desk *desk, Eina_List *skiplist, int x, int y, int w
                                                        w, h);
 
                      if (e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART)
-                       ar = _e_place_coverage_shelf_add(desk, ar,
+                       ar = _e_place_coverage_zone_obstacles_add(desk, ar,
                                                         a_x[i + 1] - w, a_y[j],
                                                         w, h);
 
@@ -364,7 +391,7 @@ e_place_desk_region_smart(E_Desk *desk, Eina_List *skiplist, int x, int y, int w
                                                        w, h);
 
                      if (e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART)
-                       ar = _e_place_coverage_shelf_add(desk, ar,
+                       ar = _e_place_coverage_zone_obstacles_add(desk, ar,
                                                         a_x[i + 1] - w, a_y[j + 1] - h,
                                                         w, h);
 
@@ -385,7 +412,7 @@ e_place_desk_region_smart(E_Desk *desk, Eina_List *skiplist, int x, int y, int w
                                                        w, h);
 
                      if (e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART)
-                       ar = _e_place_coverage_shelf_add(desk, ar,
+                       ar = _e_place_coverage_zone_obstacles_add(desk, ar,
                                                         a_x[i], a_y[j + 1] - h,
                                                         w, h);
 
@@ -426,6 +453,7 @@ e_place_zone_cursor(E_Zone *zone, int x EINA_UNUSED, int y EINA_UNUSED, int w, i
 {
    int cursor_x = 0, cursor_y = 0;
    int zone_right, zone_bottom;
+   int zx, zy, zw, zh;
 
    E_OBJECT_CHECK_RETURN(zone, 0);
 
@@ -433,14 +461,16 @@ e_place_zone_cursor(E_Zone *zone, int x EINA_UNUSED, int y EINA_UNUSED, int w, i
    *rx = cursor_x - (w >> 1);
    *ry = cursor_y - (it >> 1);
 
+   e_zone_useful_geometry_get(zone, &zx, &zy, &zw, &zh);
+
    if (*rx < zone->x)
-     *rx = zone->x;
+     *rx = zx;
 
    if (*ry < zone->y)
-     *ry = zone->y;
+     *ry = zy;
 
-   zone_right = zone->x + zone->w;
-   zone_bottom = zone->y + zone->h;
+   zone_right = zx + zw;
+   zone_bottom = zy + zh;
 
    if ((*rx + w) > zone_right)
      *rx = zone_right - w;

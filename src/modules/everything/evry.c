@@ -71,6 +71,7 @@ static Eina_Bool      _evry_cb_selection_notify(void *data, int type, void *even
 static Eina_Bool      _evry_cb_mouse(void *data, int type, void *event);
 
 static Eina_Bool      _evry_delay_hide_timer(void *data);
+static Eina_Bool      _evry_focus_out_timer(void *data);
 
 static Eina_List *windows = NULL;
 
@@ -151,6 +152,44 @@ _evry_cb_item_changed(EINA_UNUSED void *data, EINA_UNUSED int type, void *event)
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static Eina_Bool
+_evry_focus_out_timer(void *data)
+{
+   Evry_Window *win = data;
+   E_Client *ec;
+
+   win->delay_hide_action = NULL;
+
+   ec = e_win_client_get(win->ewin);
+   if (ec && (!e_object_is_del(E_OBJECT(ec))))
+     evry_hide(win, 0);
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static void
+_evry_focus_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Evry_Window *win = data;
+
+   if (!win->grab) return;
+
+   if (win->delay_hide_action)
+     ecore_timer_del(win->delay_hide_action);
+
+   win->delay_hide_action = ecore_timer_add(0.0, _evry_focus_out_timer, win);
+}
+
+static void
+_evry_focus_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Evry_Window *win = data;
+
+   if (!win->grab) return;
+
+   E_FREE_FUNC(win->delay_hide_action, ecore_timer_del);
+}
+
 Evry_Window *
 evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params, Eina_Bool popup)
 {
@@ -194,6 +233,8 @@ evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params, Eina_Bool popup)
 #endif
              ec->netwm.state.skip_taskbar = 1;
              EC_CHANGED(ec);
+             evas_object_event_callback_add(ec->frame, EVAS_CALLBACK_FOCUS_OUT, _evry_focus_out, win);
+             evas_object_event_callback_add(ec->frame, EVAS_CALLBACK_FOCUS_IN, _evry_focus_in, win);
           }
 
         win->grab = 1;
@@ -290,6 +331,9 @@ evry_hide(Evry_Window *win, int clear)
    if (!win) return;
 
    evas_object_event_callback_del(win->ewin, EVAS_CALLBACK_DEL, _evry_cb_win_delete);
+   evas_object_event_callback_del(e_win_client_get(win->ewin)->frame,
+                                                   EVAS_CALLBACK_FOCUS_OUT,
+                                                   _evry_focus_out);
    evas_object_hide(win->ewin);
    _evry_state_clear(win);
 
@@ -1938,6 +1982,7 @@ _evry_cb_key_down(void *data, int type EINA_UNUSED, void *event)
 
         ec = e_win_client_get(ewin);
         elm_win_borderless_set(ewin, 0);
+        ec->override = 0;
 #ifndef HAVE_WAYLAND_ONLY
         if (e_comp->comp_type == E_PIXMAP_TYPE_X)
           ecore_x_netwm_window_type_set(elm_win_window_id_get(ewin),
@@ -1949,6 +1994,7 @@ _evry_cb_key_down(void *data, int type EINA_UNUSED, void *event)
         ec->netwm.state.skip_taskbar = 0;
         ec->netwm.update.state = 1;
         ec->internal_no_remember = 1;
+        e_comp_object_frame_theme_set(ec->frame, E_COMP_OBJECT_FRAME_RESHADOW);
 
         win->grab = 0;
         return ECORE_CALLBACK_PASS_ON;

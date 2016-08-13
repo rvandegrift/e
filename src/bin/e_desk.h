@@ -37,6 +37,7 @@ struct _E_Desk
    Evas_Object         *bg_object;
 
    unsigned int animate_count;
+   Eina_Inlist *obstacles;
 };
 
 struct _E_Event_Desk_Show
@@ -76,7 +77,7 @@ E_API void         e_desk_deskshow(E_Zone *zone);
 E_API E_Client    *e_desk_last_focused_focus(E_Desk *desk);
 E_API E_Client    *e_desk_client_top_visible_get(const E_Desk *desk);
 E_API E_Desk      *e_desk_current_get(E_Zone *zone);
-E_API E_Desk      *e_desk_at_xy_get(E_Zone *zone, int x, int y);
+E_API E_Desk      *e_desk_at_xy_get(const E_Zone *zone, int x, int y);
 E_API E_Desk      *e_desk_at_pos_get(E_Zone *zone, int pos);
 E_API void         e_desk_xy_get(E_Desk *desk, int *x, int *y);
 E_API void         e_desk_next(E_Zone *zone);
@@ -86,9 +87,7 @@ E_API void         e_desk_row_remove(E_Zone *zone);
 E_API void         e_desk_col_add(E_Zone *zone);
 E_API void         e_desk_col_remove(E_Zone *zone);
 E_API void         e_desk_window_profile_set(E_Desk *desk, const char *profile);
-E_API void         e_desk_window_profile_add(int zone, int desk_x, int desk_y, const char *profile);
-E_API void         e_desk_window_profile_del(int zone, int desk_x, int desk_y);
-E_API void         e_desk_window_profile_update(void);
+E_API void         e_desk_window_profile_update(E_Zone *zone);
 
 E_API void         e_desk_flip_cb_set(E_Desk_Flip_Cb cb, const void *data);
 E_API void         e_desk_flip_end(E_Desk *desk);

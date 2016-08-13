@@ -72,7 +72,7 @@ _e_comp_canvas_cb_mouse_in(void *d EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object
    E_Client *ec;
 
    e_screensaver_notidle();
-   if (e_client_action_get()) return;
+   if (e_client_action_get() || e_grabinput_mouse_win_get()) return;
    ec = e_client_focused_get();
    if (ec && (!ec->border_menu)) e_focus_event_mouse_out(ec);
 }
@@ -81,7 +81,7 @@ static void
 _e_comp_canvas_cb_mouse_down(void *d EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    e_screensaver_notidle();
-   if (e_client_action_get()) return;
+   if (e_client_action_get() || e_grabinput_mouse_win_get()) return;
    e_bindings_mouse_down_evas_event_handle(E_BINDING_CONTEXT_COMPOSITOR, E_OBJECT(e_comp), event_info);
 }
 
@@ -89,7 +89,7 @@ static void
 _e_comp_canvas_cb_mouse_up(void *d EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    e_screensaver_notidle();
-   if (e_client_action_get()) return;
+   if (e_client_action_get() || e_grabinput_mouse_win_get()) return;
    e_bindings_mouse_up_evas_event_handle(E_BINDING_CONTEXT_COMPOSITOR, E_OBJECT(e_comp), event_info);
 }
 
@@ -97,12 +97,12 @@ static void
 _e_comp_canvas_cb_mouse_wheel(void *d EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    e_screensaver_notidle();
-   if (e_client_action_get()) return;
+   if (e_client_action_get() || e_grabinput_mouse_win_get()) return;
    e_bindings_wheel_evas_event_handle(E_BINDING_CONTEXT_COMPOSITOR, E_OBJECT(e_comp), event_info);
 }
 
 static Eina_Bool
-_e_comp_cb_key_down(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event_Key *ev)
+_key_down(int ctx, Ecore_Event_Key *ev)
 {
    e_screensaver_notidle();
    if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root))
@@ -118,7 +118,7 @@ _e_comp_cb_key_down(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event
          */
         if ((!ec) || (ev->event_window != e_comp->ee_win)) return ECORE_CALLBACK_RENEW;
      }
-   return !e_bindings_key_down_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev)
+   return !e_bindings_key_down_event_handle(ctx, E_OBJECT(e_comp), ev)
 #ifdef HAVE_WAYLAND
           && !e_comp_wl_key_down(ev)
 #endif
@@ -126,22 +126,74 @@ _e_comp_cb_key_down(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event
 }
 
 static Eina_Bool
-_e_comp_cb_key_up(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event_Key *ev)
+_e_comp_canvas_cb_key_down(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event_Key *ev)
+{
+   return _key_down(E_BINDING_CONTEXT_COMPOSITOR, ev);
+}
+
+static Eina_Bool
+_e_comp_cb_key_down(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event_Key *ev)
+{
+   return _key_down(E_BINDING_CONTEXT_MANAGER, ev);
+}
+
+static Eina_Bool
+_key_up(int ctx, Ecore_Event_Key *ev)
 {
    e_screensaver_notidle();
    if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root)) return ECORE_CALLBACK_PASS_ON;
-   return !e_bindings_key_up_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev)
+   return !e_bindings_key_up_event_handle(ctx, E_OBJECT(e_comp), ev)
 #ifdef HAVE_WAYLAND
           && !e_comp_wl_key_up(ev)
 #endif
           ;
 }
 
+static Eina_Bool
+_e_comp_canvas_cb_key_up(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event_Key *ev)
+{
+   return _key_up(E_BINDING_CONTEXT_COMPOSITOR, ev);
+}
+
+static Eina_Bool
+_e_comp_cb_key_up(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_Event_Key *ev)
+{
+   return _key_up(E_BINDING_CONTEXT_MANAGER, ev);
+}
+
+static Eina_Bool
+_e_comp_cb_mouse_up(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_Button *ev)
+{
+   if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root))
+     return ECORE_CALLBACK_PASS_ON;
+   return !e_bindings_mouse_down_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev);
+}
+
+static Eina_Bool
+_e_comp_cb_mouse_down(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_Button *ev)
+{
+   if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root))
+     return ECORE_CALLBACK_PASS_ON;
+   return !e_bindings_mouse_down_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev);
+}
+
+static Eina_Bool
+_e_comp_cb_mouse_wheel(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_Wheel *ev)
+{
+   if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root))
+     return ECORE_CALLBACK_PASS_ON;
+   return !e_bindings_wheel_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev);
+}
+
 ////////////////////////////////////
 
 static Eina_Bool
-_e_comp_cb_zone_change()
+_e_comp_cb_zone_change(void *d EINA_UNUSED, int t, E_Event_Zone_Move_Resize *ev)
 {
+   if (ev->zone->useful_geometry_dirty && (t == E_EVENT_ZONE_MOVE_RESIZE))
+     {
+        if (!e_zone_useful_geometry_get(ev->zone, NULL, NULL, NULL, NULL)) return ECORE_CALLBACK_RENEW;
+     }
    e_comp_canvas_update();
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -265,6 +317,7 @@ e_comp_canvas_init(int w, int h)
              E_Zone *zone = e_zone_new(scr->screen, scr->escreen,
                                        scr->x, scr->y, scr->w, scr->h);
              if (scr->id) zone->randr2_id = strdup(scr->id);
+             e_desk_window_profile_update(zone);
           }
      }
    else
@@ -272,8 +325,8 @@ e_comp_canvas_init(int w, int h)
    E_LIST_HANDLER_APPEND(handlers, E_EVENT_ZONE_MOVE_RESIZE, _e_comp_cb_zone_change, NULL);
    E_LIST_HANDLER_APPEND(handlers, E_EVENT_ZONE_ADD, _e_comp_cb_zone_change, NULL);
    E_LIST_HANDLER_APPEND(handlers, E_EVENT_ZONE_DEL, _e_comp_cb_zone_change, NULL);
-   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_DOWN, _e_comp_cb_key_down, NULL);
-   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_UP, _e_comp_cb_key_up, NULL);
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_DOWN, _e_comp_canvas_cb_key_down, NULL);
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_UP, _e_comp_canvas_cb_key_up, NULL);
    E_LIST_HANDLER_APPEND(handlers, E_EVENT_SCREENSAVER_ON, _e_comp_cb_screensaver_on, NULL);
    E_LIST_HANDLER_APPEND(handlers, E_EVENT_SCREENSAVER_OFF, _e_comp_cb_screensaver_off, NULL);
 
@@ -477,12 +530,14 @@ e_comp_canvas_update(void)
                   free(zone->randr2_id);
                   zone->randr2_id = NULL;
                   if (scr->id) zone->randr2_id = strdup(scr->id);
+                  e_desk_window_profile_update(zone);
                }
              else
                {
                   zone = e_zone_new(scr->screen, scr->escreen,
                                     scr->x, scr->y, scr->w, scr->h);
                   if (scr->id) zone->randr2_id = strdup(scr->id);
+                  e_desk_window_profile_update(zone);
                   printf("@@@ NEW ZONE = %p\n", zone);
                   changed = EINA_TRUE;
                }
@@ -726,4 +781,15 @@ e_comp_canvas_feed_mouse_up(unsigned int activate_time)
        if ((button_mask & (1 << i)))
          evas_event_feed_mouse_up(e_comp->evas, i + 1, EVAS_BUTTON_NONE, activate_time, NULL);
      }
+}
+
+EINTERN void
+e_comp_canvas_intercept(void)
+{
+   ecore_event_init();
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_MOUSE_BUTTON_DOWN, _e_comp_cb_mouse_down, NULL);
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_MOUSE_BUTTON_UP, _e_comp_cb_mouse_up, NULL);
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_MOUSE_WHEEL, _e_comp_cb_mouse_wheel, NULL);
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_DOWN, _e_comp_cb_key_down, NULL);
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_UP, _e_comp_cb_key_up, NULL);
 }

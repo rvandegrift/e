@@ -56,6 +56,7 @@
 #include "e_configure.h"
 #include "e_about.h"
 #include "e_theme_about.h"
+#include "e_video.h"
 #include "e_widget.h"
 #include "e_widget_check.h"
 #include "e_widget_radio.h"
@@ -149,10 +150,12 @@
 #include "e_utils.h"
 #include "e_hints.h"
 #include "e_comp_x_randr.h"
+#include "e_gadget.h"
+#include "e_bryce.h"
 
 #ifdef HAVE_WAYLAND
 # include "e_comp_wl.h"
 # include "e_comp_wl_data.h"
+# include "e_comp_wl_dmabuf.h"
 # include "e_comp_wl_input.h"
-# include "e_uuid_store.h"
 #endif

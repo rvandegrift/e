@@ -15,7 +15,7 @@
      if (act) act->func.go_mouse = _e_actions_act_##name##_go_mouse;  \
   }
 #define ACT_FN_GO_MOUSE(act, use) \
-  static void _e_actions_act_##act##_go_mouse(E_Object * obj EINA_UNUSED, const char *params use, E_Binding_Event_Mouse_Button * ev EINA_UNUSED)
+  static Eina_Bool _e_actions_act_##act##_go_mouse(E_Object * obj EINA_UNUSED, const char *params use, E_Binding_Event_Mouse_Button * ev EINA_UNUSED)
 
 #define ACT_GO_WHEEL(name)                                            \
   {                                                                   \
@@ -23,7 +23,7 @@
      if (act) act->func.go_wheel = _e_actions_act_##name##_go_wheel;  \
   }
 #define ACT_FN_GO_WHEEL(act, use) \
-  static void _e_actions_act_##act##_go_wheel(E_Object * obj EINA_UNUSED, const char *params use, E_Binding_Event_Wheel * ev EINA_UNUSED)
+  static Eina_Bool _e_actions_act_##act##_go_wheel(E_Object * obj EINA_UNUSED, const char *params use, E_Binding_Event_Wheel * ev EINA_UNUSED)
 
 #define ACT_GO_EDGE(name)                                           \
   {                                                                 \
@@ -63,7 +63,7 @@
      if (act) act->func.end_mouse = _e_actions_act_##name##_end_mouse;  \
   }
 #define ACT_FN_END_MOUSE(act, use) \
-  static void _e_actions_act_##act##_end_mouse(E_Object * obj EINA_UNUSED, const char *params use, E_Binding_Event_Mouse_Button * ev EINA_UNUSED)
+  static Eina_Bool _e_actions_act_##act##_end_mouse(E_Object * obj EINA_UNUSED, const char *params use, E_Binding_Event_Mouse_Button * ev EINA_UNUSED)
 
 #define ACT_END_KEY(name)                                           \
   {                                                                 \
@@ -93,7 +93,8 @@ static int        _action_groups_sort_cb(const void *d1, const void *d2);
 /***************************************************************************/
 ACT_FN_GO(window_move, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
    if (obj->type != E_CLIENT_TYPE) return;
    if (!((E_Client *)obj)->lock_user_location)
@@ -103,9 +104,10 @@ ACT_FN_GO(window_move, EINA_UNUSED)
 ACT_FN_GO_MOUSE(window_move, EINA_UNUSED)
 {
    if (!obj) obj = E_OBJECT(e_client_focused_get());
-   if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE) return;
+   if (!obj) return EINA_FALSE;
+   if (obj->type != E_CLIENT_TYPE) return EINA_FALSE;
    e_client_act_move_begin((E_Client *)obj, ev);
+   return EINA_TRUE;
 }
 
 ACT_FN_GO_SIGNAL(window_move, )
@@ -136,20 +138,16 @@ ACT_FN_END(window_move, EINA_UNUSED)
 ACT_FN_END_MOUSE(window_move, EINA_UNUSED)
 {
    if (!obj) obj = E_OBJECT(e_client_focused_get());
-   if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE) return;
+   if (!obj) return EINA_FALSE;
+   if (obj->type != E_CLIENT_TYPE) return EINA_FALSE;
    e_client_act_move_end((E_Client *)obj, ev);
+   return EINA_TRUE;
 }
 
 ACT_FN_GO_KEY(window_move, EINA_UNUSED, EINA_UNUSED)
 {
    if (!obj) obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_location)
      e_client_act_move_keyboard((E_Client *)obj);
 }
@@ -157,9 +155,9 @@ ACT_FN_GO_KEY(window_move, EINA_UNUSED, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_resize, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE) return;
    if (!((E_Client *)obj)->lock_user_size)
      e_client_act_resize_begin((E_Client *)obj, NULL);
 }
@@ -167,10 +165,11 @@ ACT_FN_GO(window_resize, EINA_UNUSED)
 ACT_FN_GO_MOUSE(window_resize, EINA_UNUSED)
 {
    if (!obj) obj = E_OBJECT(e_client_focused_get());
-   if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE) return;
+   if (!obj) return EINA_FALSE;
+   if (obj->type != E_CLIENT_TYPE) return EINA_FALSE;
    if (!((E_Client *)obj)->lock_user_size)
      e_client_act_resize_begin((E_Client *)obj, ev);
+   return EINA_TRUE;
 }
 
 ACT_FN_GO_SIGNAL(window_resize, )
@@ -204,9 +203,10 @@ ACT_FN_END(window_resize, EINA_UNUSED)
 ACT_FN_END_MOUSE(window_resize, EINA_UNUSED)
 {
    if (!obj) obj = E_OBJECT(e_client_focused_get());
-   if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE) return;
+   if (!obj) return EINA_FALSE;
+   if (obj->type != E_CLIENT_TYPE) return EINA_FALSE;
    e_client_act_resize_end((E_Client *)obj, ev);
+   return EINA_TRUE;
 }
 
 ACT_FN_GO_KEY(window_resize, EINA_UNUSED, EINA_UNUSED)
@@ -225,26 +225,23 @@ ACT_FN_GO_KEY(window_resize, EINA_UNUSED, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_menu, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    e_client_act_menu_begin((E_Client *)obj, NULL, 0);
 }
 
 ACT_FN_GO_MOUSE(window_menu, EINA_UNUSED)
 {
    if (!obj) obj = E_OBJECT(e_client_focused_get());
-   if (!obj) return;
+   if (!obj) return EINA_FALSE;
    if (obj->type != E_CLIENT_TYPE)
      {
         obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
+        if (!obj) return EINA_FALSE;
      }
    e_client_act_menu_begin((E_Client *)obj, ev, 0);
+   return EINA_TRUE;
 }
 
 ACT_FN_GO_KEY(window_menu, EINA_UNUSED, EINA_UNUSED)
@@ -262,13 +259,9 @@ ACT_FN_GO_KEY(window_menu, EINA_UNUSED, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_raise, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_stacking)
      evas_object_raise(((E_Client *)obj)->frame);
 }
@@ -276,13 +269,9 @@ ACT_FN_GO(window_raise, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_lower, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_stacking)
      evas_object_lower(((E_Client *)obj)->frame);
 }
@@ -290,13 +279,9 @@ ACT_FN_GO(window_lower, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_close, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_close)
      e_client_act_close_begin((E_Client *)obj);
 }
@@ -337,9 +322,9 @@ ACT_FN_GO(window_kill, EINA_UNUSED)
    E_Client *ec;
    char dialog_text[1024];
 
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE) return;
    ec = (E_Client *)obj;
    if ((ec->lock_close) || (ec->internal)) return;
 
@@ -379,13 +364,9 @@ ACT_FN_GO(window_kill, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_sticky_toggle, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_sticky)
      {
         E_Client *ec;
@@ -399,13 +380,9 @@ ACT_FN_GO(window_sticky_toggle, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_sticky, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_sticky)
      {
         E_Client *ec;
@@ -426,13 +403,9 @@ ACT_FN_GO(window_iconic_toggle, EINA_UNUSED)
 {
    E_Client *ec;
 
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    ec = (E_Client *)obj;
 
    if ((!ec->lock_user_iconify) && (!ec->fullscreen) &&
@@ -447,13 +420,9 @@ ACT_FN_GO(window_iconic_toggle, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_iconic, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_iconify)
      {
         E_Client *ec;
@@ -472,13 +441,9 @@ ACT_FN_GO(window_iconic, )
 /***************************************************************************/
 ACT_FN_GO(window_fullscreen_toggle, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_fullscreen)
      {
         E_Client *ec;
@@ -498,13 +463,9 @@ ACT_FN_GO(window_fullscreen_toggle, )
 /***************************************************************************/
 ACT_FN_GO(window_fullscreen, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_fullscreen)
      {
         E_Client *ec;
@@ -540,13 +501,9 @@ ACT_FN_GO(window_maximized_toggle, )
    E_Client *ec;
    Eina_Bool resize = EINA_FALSE;
 
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    ec = (E_Client *)obj;
 
    /* internal dialog which is resizable */
@@ -608,13 +565,9 @@ maximize:
 /***************************************************************************/
 ACT_FN_GO(window_maximized, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_maximize)
      {
         E_Client *ec;
@@ -666,13 +619,9 @@ ACT_FN_GO(window_maximized, )
 /***************************************************************************/
 ACT_FN_GO(window_shaded_toggle, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_shade)
      {
         E_Client *ec;
@@ -720,13 +669,9 @@ ACT_FN_GO(window_shaded_toggle, )
 /***************************************************************************/
 ACT_FN_GO(window_shaded, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (!((E_Client *)obj)->lock_user_shade)
      {
         E_Client *ec;
@@ -914,13 +859,9 @@ ACT_FN_GO(window_move_by, )
 /***************************************************************************/
 ACT_FN_GO(window_move_to, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    if (params)
      {
         E_Client *ec;
@@ -1014,13 +955,9 @@ ACT_FN_GO(window_move_to_center, EINA_UNUSED)
 {
    E_Client *ec;
 
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
 
    ec = (E_Client *)obj;
    e_comp_object_util_center(ec->frame);
@@ -1031,13 +968,9 @@ ACT_FN_GO(window_move_to_center, EINA_UNUSED)
 /***************************************************************************/
 ACT_FN_GO(window_resize_by, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
 
    if (params)
      {
@@ -1062,13 +995,9 @@ ACT_FN_GO(window_resize_by, )
 /***************************************************************************/
 ACT_FN_GO(window_push, )
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
 
    if (params)
      {
@@ -1251,13 +1180,9 @@ ACT_FN_GO(window_jump_to_or_start, )
 /***************************************************************************/
 ACT_FN_GO(window_drag_icon, EINA_UNUSED)
 {
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
    {
       E_Client *ec;
 
@@ -1275,15 +1200,11 @@ ACT_FN_GO(window_desk_move_by, )
    int x, y;
 
    if (!params) return;
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
+   if (!obj)
+     obj = E_OBJECT(e_client_action_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj)
-          obj = E_OBJECT(e_client_action_get());
-        if (!obj) return;
-     }
 
    ec = (E_Client *)obj;
    if ((!ec->zone) || (!ec->desk)) return;
@@ -1341,15 +1262,11 @@ ACT_FN_GO(window_zone_move_by, )
    Eina_Bool fullscreen;
 
    if (!params) return;
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
    if (!obj)
      obj = E_OBJECT(e_client_action_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj) return;
-     }
 
    ec = (E_Client *)obj;
    /* bad */
@@ -1385,15 +1302,11 @@ ACT_FN_GO(window_desk_move_to, )
    int x, y;
 
    if (!params) return;
-   if (!obj) obj = E_OBJECT(e_client_focused_get());
+   if ((!obj) || (obj->type != E_CLIENT_TYPE))
+     obj = E_OBJECT(e_client_focused_get());
+   if (!obj)
+     obj = E_OBJECT(e_client_action_get());
    if (!obj) return;
-   if (obj->type != E_CLIENT_TYPE)
-     {
-        obj = E_OBJECT(e_client_focused_get());
-        if (!obj)
-          obj = E_OBJECT(e_client_action_get());
-        if (!obj) return;
-     }
 
    ec = (E_Client *)obj;
    if ((!ec->zone) || (!ec->desk)) return;
@@ -1915,31 +1828,24 @@ ACT_FN_GO(menu_show, )
 ACT_FN_GO_MOUSE(menu_show, )
 {
    E_Zone *zone;
+   E_Menu *m = NULL;
+   int x, y;
 
    /* menu is active - abort */
-   if (e_comp_util_kbd_grabbed() || e_comp_util_mouse_grabbed()) return;
+   if (e_comp_util_kbd_grabbed() || e_comp_util_mouse_grabbed()) return EINA_TRUE;
    zone = _e_actions_zone_get(obj);
-   if (zone)
-     {
-        if (params)
-          {
-             E_Menu *m = NULL;
-
-             m = _e_actions_menu_find(params);
-             if (m)
-               {
-                  int x, y;
-
-                  /* FIXME: this is a bit of a hack... setting m->c - bad hack */
-                  m->zone = zone;
-                  x = ev->canvas.x;
-                  y = ev->canvas.y;
-                  e_menu_post_deactivate_callback_set(m, _e_actions_cb_menu_end, NULL);
-                  e_menu_activate_mouse(m, zone, x, y, 1, 1,
-                                        E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
-               }
-          }
-     }
+   if (!zone) return EINA_TRUE;
+   if (!params) return EINA_TRUE;
+   m = _e_actions_menu_find(params);
+   if (!m) return EINA_TRUE;
+   /* FIXME: this is a bit of a hack... setting m->zone - bad hack */
+   m->zone = zone;
+   x = ev->canvas.x;
+   y = ev->canvas.y;
+   e_menu_post_deactivate_callback_set(m, _e_actions_cb_menu_end, NULL);
+   e_menu_activate_mouse(m, zone, x, y, 1, 1,
+                         E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
+   return EINA_TRUE;
 }
 
 ACT_FN_GO_KEY(menu_show, , EINA_UNUSED)
@@ -2454,8 +2360,7 @@ _have_lid_and_external_screens_on(void)
 
 ACT_FN_GO(suspend_smart, EINA_UNUSED)
 {
-   if ((!_have_lid_and_external_screens_on()) &&
-       (ecore_power_state_get() != ECORE_POWER_STATE_MAINS))
+   if (!_have_lid_and_external_screens_on())
      e_sys_action_do(E_SYS_SUSPEND, NULL);
 }
 
@@ -2523,8 +2428,7 @@ ACT_FN_GO(hibernate, )
 
 ACT_FN_GO(hibernate_smart, EINA_UNUSED)
 {
-   if ((!_have_lid_and_external_screens_on()) &&
-       (ecore_power_state_get() != ECORE_POWER_STATE_MAINS))
+   if (!_have_lid_and_external_screens_on())
      e_sys_action_do(E_SYS_HIBERNATE, NULL);
 }
 
@@ -2872,6 +2776,7 @@ ACT_FN_GO_KEY(delayed_action, , )
 ACT_FN_GO_MOUSE(delayed_action, )
 {
    _delayed_action_mouse_add(obj, params, ev);
+   return EINA_TRUE;
 }
 
 ACT_FN_END_KEY(delayed_action, )
@@ -2882,6 +2787,7 @@ ACT_FN_END_KEY(delayed_action, )
 ACT_FN_END_MOUSE(delayed_action, )
 {
    _delayed_action_mouse_del(obj, params, ev);
+   return EINA_TRUE;
 }
 
 ACT_FN_GO(dim_screen, EINA_UNUSED)
@@ -2934,24 +2840,65 @@ ACT_FN_GO(kbd_layout, )
    errno = 0;
    x = strtoul(params, NULL, 10);
    if (errno || (x > eina_list_count(e_config->xkb.used_layouts) - 1)) return;
-#ifndef HAVE_WAYLAND_ONLY
    e_xkb_layout_set(eina_list_nth(e_config->xkb.used_layouts, x));
-#endif
 }
 
 ACT_FN_GO(kbd_layout_next, EINA_UNUSED)
 {
-#ifndef HAVE_WAYLAND_ONLY
    e_xkb_layout_next();
-#endif
 }
 
 ACT_FN_GO(kbd_layout_prev, EINA_UNUSED)
 {
-#ifndef HAVE_WAYLAND_ONLY
    e_xkb_layout_prev();
-#endif
 }
+
+#ifdef HAVE_WAYLAND
+ACT_FN_GO_MOUSE(mouse_to_key, )
+{
+   const char *p, *nextp, *key = NULL;
+   const char *mods[] =
+   {
+      "shift",
+      "ctrl",
+      "alt",
+      "win",
+      "altgr",
+      NULL
+   };
+   int modifiers = 0, mod = 0;
+
+   if ((!params) || (!params[0]) || (params[0] == '+')) return EINA_TRUE;
+   for (p = params; p; p = nextp)
+     {
+        const char **m;
+
+        nextp = strchr(p + 1, '+');
+        if (!nextp) break;
+        for (m = mods; *m; m++)
+          {
+             if (strncmp(p, *m, nextp - p)) continue;
+             modifiers |= 1 << (m - mods);
+             break;
+          }
+        key = nextp;
+     }
+   if (key)
+     key++;
+   else
+     key = params;
+   if (!key[0]) return EINA_TRUE;
+
+   mod |= (ECORE_EVENT_MODIFIER_SHIFT * !!(modifiers & E_BINDING_MODIFIER_SHIFT));
+   mod |= (ECORE_EVENT_MODIFIER_CTRL * !!(modifiers & E_BINDING_MODIFIER_CTRL));
+   mod |= (ECORE_EVENT_MODIFIER_ALT * !!(modifiers & E_BINDING_MODIFIER_ALT));
+   mod |= (ECORE_EVENT_MODIFIER_WIN * !!(modifiers & E_BINDING_MODIFIER_WIN));
+   mod |= (ECORE_EVENT_MODIFIER_ALTGR * !!(modifiers & E_BINDING_MODIFIER_ALTGR));
+   e_comp_wl_input_keyboard_event_generate(key, mod, 0);
+   e_comp_wl_input_keyboard_event_generate(key, mod, 1);
+   return EINA_TRUE;
+}
+#endif
 
 ACT_FN_GO(module_enable, )
 {
@@ -3010,6 +2957,27 @@ static Eina_Hash *actions = NULL;
 static Eina_List *action_list = NULL;
 static Eina_List *action_names = NULL;
 static Eina_List *action_groups = NULL;
+
+static void
+_e_actions_post_init(void *d EINA_UNUSED)
+{
+#ifdef HAVE_WAYLAND
+   E_Action *act;
+
+   /* wayland-specific actions */
+   if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
+     {
+        /* mouse -> key */
+        /* "key" here is the platform-specific key name;
+         * /usr/share/X11/xkb/keycodes/evdev is probably what your system is using
+         */
+        ACT_GO_MOUSE(mouse_to_key);
+        e_action_predef_name_set(N_("Mouse Remapping"),
+                                 N_("Mouse to key"), "mouse_to_key",
+                                 NULL, "[AD02] [ctrl+shift+alt+win+altgr+AD02]", 1);
+     }
+#endif
+}
 
 /* externally accessible functions */
 
@@ -3572,6 +3540,8 @@ e_actions_init(void)
    e_action_predef_name_set(N_("Keyboard Layouts"),
                             N_("Previous keyboard layout"), "kbd_layout_prev",
                             NULL, NULL, 0);
+
+   ecore_job_add(_e_actions_post_init, NULL);
 
    return 1;
 }

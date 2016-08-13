@@ -58,6 +58,7 @@ struct _E_Comp_Wl_Buffer
    struct wl_listener deferred_destroy_listener;
    struct wl_shm_buffer *shm_buffer;
    struct wl_shm_pool *pool;
+   struct linux_dmabuf_buffer *dmabuf_buffer;
    E_Pixmap *discarding_pixmap;
    int32_t w, h;
    uint32_t busy;
@@ -91,6 +92,24 @@ struct _E_Comp_Wl_Subsurf_Data
 
    Eina_Bool synchronized;
 };
+
+typedef struct E_Comp_Wl_Extension_Data
+{
+   struct
+   {
+      struct wl_resource *global;
+      struct wl_client *client;
+      void (*read_pixels)(E_Comp_Wl_Output *output, void *pixels);
+   } screenshooter;
+    struct
+    {
+       struct wl_resource *global;
+    } session_recovery;
+   struct
+   {
+       struct wl_resource *global;
+   } www;
+} E_Comp_Wl_Extension_Data;
 
 struct _E_Comp_Wl_Data
 {
@@ -220,12 +239,7 @@ struct _E_Comp_Wl_Data
         char *area;
      } xkb;
 
-   struct
-     {
-        struct wl_global *global;
-        struct wl_client *client;
-        void (*read_pixels)(E_Comp_Wl_Output *output, void *pixels);
-     } screenshooter;
+   E_Comp_Wl_Extension_Data *extensions;
 
    Eina_List *outputs;
 
@@ -238,6 +252,9 @@ struct _E_Comp_Wl_Data
    E_Drag *drag;
    E_Client *drag_client;
    void *drag_source;
+
+   Eina_Bool dmabuf_disable : 1;
+   Eina_Bool dmabuf_proxy : 1;
 };
 
 struct _E_Comp_Wl_Client_Data
@@ -267,7 +284,20 @@ struct _E_Comp_Wl_Client_Data
         void (*unmap)(struct wl_resource *resource);
         Eina_Rectangle window;
         E_Shell_Data *data;
+        struct
+        {
+           Eina_Bool fullscreen : 1;
+           Eina_Bool unfullscreen : 1;
+           Eina_Bool maximize : 1;
+           Eina_Bool unmaximize : 1;
+           Eina_Bool minimize : 1;
+        } set;
      } shell;
+   struct
+   {
+      struct wl_resource *surface;
+      int x, y;
+   } www;
 
    E_Comp_Wl_Surface_State pending;
 
@@ -277,6 +307,11 @@ struct _E_Comp_Wl_Client_Data
      {
         int32_t x, y;
      } popup;
+
+   int32_t on_outputs; /* Bitfield of the outputs this client is present on */
+
+   E_Maximize max;
+   E_Maximize unmax;
 #ifndef HAVE_WAYLAND_ONLY
    E_Pixmap *xwayland_pixmap;
    E_Comp_X_Client_Data *xwayland_data;
@@ -289,6 +324,10 @@ struct _E_Comp_Wl_Client_Data
    Eina_Bool set_win_type : 1;
    Eina_Bool frame_update : 1;
    Eina_Bool cursor : 1;
+   Eina_Bool moved : 1;
+   Eina_Bool maximizing : 1;
+   Eina_Bool in_commit : 1;
+   Eina_Bool is_xdg_surface : 1;
 };
 
 struct _E_Comp_Wl_Output
