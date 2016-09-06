@@ -2,11 +2,11 @@
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_define([v_maj], [0])
 m4_define([v_min], [21])
-m4_define([v_mic], [1])
+m4_define([v_mic], [2])
 m4_define([v_rev], m4_esyscmd([(git rev-list --count HEAD 2>/dev/null || echo 0) | tr -d '\n']))dnl
 ##--   When released, remove the dnl on the below line
 m4_undefine([v_rev])
-m4_define([relname], [0.21.0])
+m4_define([relname], [0.21.2])
 ##--   When doing snapshots - change soname. remove dnl on below line
 m4_define([relname], [ver-0.21])
 dnl m4_define([v_rel], [-release relname])
@@ -674,7 +674,7 @@ AC_MSG_CHECKING([whether wayland EGL support is enabled])
 AC_MSG_RESULT([${e_cv_want_wayland_egl}])
 
 if test "x${e_cv_want_wayland_only}" != "xno" ;then
-  PKG_CHECK_MODULES([WAYLAND], [ecore-wl2 >= 1.17.99 wayland-server >= 1.11.0 wayland-client >= 1.11.0 xkbcommon uuid],
+  PKG_CHECK_MODULES([WAYLAND], [ecore-wl2 >= 1.18 wayland-server >= 1.11.0 wayland-client >= 1.11.0 xkbcommon uuid],
     [
       have_wayland=yes
       have_wayland_dep=true

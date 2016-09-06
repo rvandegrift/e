@@ -2436,7 +2436,10 @@ _e_comp_wl_client_cb_del(void *data EINA_UNUSED, E_Client *ec)
 
    /* remove sub list */
    EINA_LIST_FREE(ec->comp_data->sub.list, subc)
-     subc->comp_data->sub.data->parent = NULL;
+     {
+        if (!e_object_is_del(E_OBJECT(subc)))
+          subc->comp_data->sub.data->parent = NULL;
+     }
 
    if ((ec->parent) && (ec->parent->modal == ec))
      {
@@ -2471,6 +2474,13 @@ _e_comp_wl_client_cb_del(void *data EINA_UNUSED, E_Client *ec)
 
    if (ec->internal_elm_win)
      evas_object_hide(ec->frame);
+
+   /* WL clients take an extra ref at startup so they don't get deleted while
+    * visible.  Since we drop that in the render loop we need to make sure
+    * it's dropped here if the client isn't going to be rendered.
+    */
+   if (!e_pixmap_is_x(ec->pixmap) && ec->hidden) e_object_unref(E_OBJECT(ec));
+
    _e_comp_wl_focus_check();
 }
 
@@ -3225,7 +3235,13 @@ e_comp_wl_key_up(Ecore_Event_Key *ev)
 
    end = (uint32_t *)e_comp_wl->kbd.keys.data + (e_comp_wl->kbd.keys.size / sizeof(*k));
    for (k = e_comp_wl->kbd.keys.data; k < end; k++)
-     if (*k == keycode) *k = *--end;
+     {
+        if (*k == keycode)
+          {
+             *k = *--end;
+             break;
+          }
+     }
 
    e_comp_wl->kbd.keys.size =
      (const char *)end - (const char *)e_comp_wl->kbd.keys.data;

@@ -172,6 +172,9 @@ _wireless_popup_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSE
    E_FREE_FUNC(wireless_popup.entries, eina_list_free);
    eina_stringshare_replace(&wireless_popup.proxy_servers, NULL);
    eina_stringshare_replace(&wireless_popup.proxy_excludes, NULL);
+   eina_stringshare_replace(&wireless_popup.name_servers, NULL);
+   eina_stringshare_replace(&wireless_popup.time_servers, NULL);
+   eina_stringshare_replace(&wireless_popup.domain_servers, NULL);
    wireless_popup.box = NULL;
    wireless_popup.content = NULL;
    wireless_popup.popup = NULL;
@@ -701,6 +704,11 @@ _wireless_gadget_edit(int type)
    Wireless_Network *wn;
 
    if (!wc) return;
+   if (wireless_popup.popup)
+     {
+        evas_object_hide(wireless_popup.popup);
+        evas_object_del(wireless_popup.popup);
+     }
    wireless_edit[0] = E_NEW(Wireless_Connection, 1);
    wireless_edit[1] = E_NEW(Wireless_Connection, 1);
    wn = E_NEW(Wireless_Network, 1);
