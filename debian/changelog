@@ -1,3 +1,11 @@
+e17 (0.21.2-1) UNRELEASED; urgency=medium
+
+  [ Ross Vandegrift ]
+  * Non-maintainer upload.
+  * New upstream release
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 13 Aug 2016 16:16:48 -0400
+
 e17 (0.21.1-1) UNRELEASED; urgency=medium
 
   [ Ross Vandegrift ]
