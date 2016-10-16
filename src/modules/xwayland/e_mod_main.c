@@ -247,6 +247,8 @@ fail:
           ecore_main_fd_handler_del(exs->abs_hdlr);
         if (exs->unx_hdlr)
           ecore_main_fd_handler_del(exs->unx_hdlr);
+        exs->abs_hdlr = NULL;
+        exs->unx_hdlr = NULL;
         break;
       case -1:
         ERR("Failed to fork: %m");
@@ -338,7 +340,7 @@ setup_lock(void)
 }
 
 static Eina_Bool
-_cb_sync_done(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+_cb_sync_done(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
 {
    e_util_dialog_internal(_("Error"), _("Cannot launch XWayland from X11 display."));
 

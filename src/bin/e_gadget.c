@@ -262,6 +262,7 @@ _gadget_object_free(E_Object *eobj)
         evas_object_event_callback_del_full(zgc->display, EVAS_CALLBACK_DEL, _gadget_del, zgc);
         E_FREE_FUNC(zgc->display, evas_object_del);
      }
+   zgc->gadget = NULL;
    E_FREE_FUNC(zgc->gadget, evas_object_del);
    E_FREE_FUNC(zgc->cfg_object, evas_object_del);
    E_FREE_FUNC(zgc->style.obj, evas_object_del);
@@ -294,6 +295,7 @@ _gadget_object_create(E_Gadget_Config *zgc)
         if (t->wizard)
           {
              t->wizard(_gadget_wizard_end, zgc);
+             added = 1;
              return EINA_TRUE;
           }
      }
@@ -303,6 +305,7 @@ _gadget_object_create(E_Gadget_Config *zgc)
     */
    g = t->cb(zgc->site->layout, &zgc->id, zgc->site->orient);
    EINA_SAFETY_ON_NULL_RETURN_VAL(g, EINA_FALSE);
+   added = 1;
 
    zgc->e_obj_inherit = E_OBJECT_ALLOC(E_Object, E_GADGET_TYPE, _gadget_object_free);
    e_object_data_set(zgc->e_obj_inherit, g);
@@ -368,8 +371,8 @@ _site_gadget_resize(Evas_Object *g, int w, int h, Evas_Coord *ww, Evas_Coord *hh
    else
      {
         *ww = mnw, *hh = mnh;
-        if (!(*ww)) *ww = w;
-        if (!(*hh)) *hh = h;
+        if ((!(*ww)) || ((*ww) < w)) *ww = w;
+        if ((!(*hh)) || ((*hh) < h)) *hh = h;
      }
    if (aspect && ax && ay)
      {
@@ -390,7 +393,14 @@ _site_gadget_resize(Evas_Object *g, int w, int h, Evas_Coord *ww, Evas_Coord *hh
                {
                   double ar = ax / (double) ay;
 
-                  if (ar > 1.0)
+                  if (ax == ay)
+                    {
+                       if (*ww > *hh)
+                         *hh = *ww;
+                       else
+                         *ww = *hh;
+                    }
+                  else if (ar > 1.0)
                     *hh = (*ww * ay / ax);
                   else
                     *ww = (*hh * ax / ay);
@@ -527,16 +537,21 @@ _site_layout(Evas_Object *o, Evas_Object_Box_Data *priv EINA_UNUSED, void *data)
         int ww, hh, ow, oh;
 
         if (!zgc->display) continue;
-        _site_gadget_resize(zgc->gadget, w * zgc->w, h * zgc->h, &ww, &hh, &ow, &oh);
-        if (zgc->x > -1.0)
+        if (zgc->moving)
+          _site_gadget_resize(zgc->gadget, w, h, &ww, &hh, &ow, &oh);
+        else
           {
-             gx = zgc->x * w;
-             gx += (Evas_Coord)(((double)(ww - ow)) * 0.5 * -ax);
-          }
-        if (zgc->y > -1.0)
-          {
-             gy = zgc->y * h;
-             gy += (Evas_Coord)(((double)(hh - oh)) * 0.5 * -ay);
+             _site_gadget_resize(zgc->gadget, w * zgc->w, h * zgc->h, &ww, &hh, &ow, &oh);
+             if (zgc->x > -1.0)
+               {
+                  gx = zgc->x * w;
+                  gx += (Evas_Coord)(((double)(ww - ow)) * 0.5 * -ax);
+               }
+             if (zgc->y > -1.0)
+               {
+                  gy = zgc->y * h;
+                  gy += (Evas_Coord)(((double)(hh - oh)) * 0.5 * -ay);
+               }
           }
         if (zgs->gravity)
           {
@@ -632,6 +647,7 @@ _gadget_act_resize_end(E_Object *obj, const char *params EINA_UNUSED, E_Binding_
    zgc->moving = 0;
 
    E_FREE_FUNC(zgc->site->move_handler, ecore_event_handler_del);
+   evas_object_smart_need_recalculate_set(zgc->site->layout, 1);
    return EINA_TRUE;
 }
 
@@ -640,6 +656,7 @@ _gadget_act_move(E_Object *obj, const char *params EINA_UNUSED, E_Binding_Event_
 {
    E_Gadget_Config *zgc, *z;
    Evas_Object *g;
+   int w, h;
 
    if (obj->type != E_GADGET_TYPE) return EINA_FALSE;
 
@@ -652,6 +669,8 @@ _gadget_act_move(E_Object *obj, const char *params EINA_UNUSED, E_Binding_Event_
    ZGS_GET(pointer_site);
    _gadget_util_add(zgs, zgc->type, zgc->id);
    z = eina_list_data_get(zgs->gadgets);
+   evas_object_geometry_get(g, NULL, NULL, &w, &h);
+   evas_object_resize(pointer_site, w, h);
    eina_stringshare_refplace(&z->style.name, zgc->style.name);
    z->orig = zgc;
    return EINA_TRUE;
@@ -712,15 +731,20 @@ _gadget_act_configure(E_Object *obj, const char *params EINA_UNUSED, E_Binding_E
 }
 
 static void
+_gadget_remove(E_Gadget_Config *zgc)
+{
+   evas_object_smart_callback_call(zgc->site->layout, "gadget_removed", zgc->gadget);
+   zgc->site->gadget_list = eina_inlist_remove(zgc->site->gadget_list, EINA_INLIST_GET(zgc));
+   zgc->site->gadgets = eina_list_remove(zgc->site->gadgets, zgc);
+   _gadget_free(zgc);
+}
+
+static void
 _gadget_menu_remove(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_UNUSED)
 {
    E_Gadget_Config *zgc = data;
 
-   evas_object_smart_callback_call(zgc->site->layout, "gadget_removed", zgc->gadget);
-   zgc->site->gadget_list = eina_inlist_remove(zgc->site->gadget_list, EINA_INLIST_GET(zgc));
-   zgc->site->gadgets = eina_list_remove(zgc->site->gadgets, zgc);
-   evas_object_smart_need_recalculate_set(zgc->site->layout, 1);
-   _gadget_free(zgc);
+   _gadget_remove(zgc);
    e_config_save_queue();
 }
 
@@ -895,6 +919,8 @@ _site_drop(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
    evas_pointer_canvas_xy_get(e_comp->evas, &mx, &my);
    evas_object_geometry_get(zgs->layout, &x, &y, &w, &h);
    if (!E_INSIDE(mx, my, x, y, w, h)) return;
+   if (evas_object_smart_need_recalculate_get(event_info))
+     evas_object_smart_calculate(event_info);
    EINA_LIST_FOREACH(zgs->gadgets, l, zgc)
      {
         if (!zgc->display) continue;
@@ -1019,8 +1045,8 @@ _site_drop(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
                   zgs->gadget_list = eina_inlist_append(zgs->gadget_list,
                     EINA_INLIST_GET(dzgc));
                   zgs->gadgets = eina_list_append(zgs->gadgets, dzgc);
-                  dzgc->x = ((gx - dx) / (double)dw) + ((mx - x) / (double)w);
-                  dzgc->y = ((gy - dy) / (double)dh) + ((my - y) / (double)h);
+                  dzgc->x = ((gx - dx) / (double)dw) + ((mx - x - (mx - gx)) / (double)w);
+                  dzgc->y = ((gy - dy) / (double)dh) + ((my - y - (my - gy)) / (double)h);
                   dzgc->w = gw / (double)w;
                   dzgc->h = gh / (double)h;
                   dzgc->site = zgs;
@@ -1073,7 +1099,7 @@ _site_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *e
    E_FREE_FUNC(zgs->move_handler, ecore_event_handler_del);
    E_FREE_FUNC(zgs->mouse_up_handler, ecore_event_handler_del);
    EINA_LIST_FOREACH(zgs->gadgets, l, zgc)
-     evas_object_del(zgc->gadget);
+     evas_object_del(zgc->display);
    if (zgs->name) return;
    eina_stringshare_del(zgs->name);
    free(zgs);
@@ -1357,9 +1383,10 @@ e_gadget_type_add(const char *type, E_Gadget_Create_Cb callback, E_Gadget_Wizard
    t->wizard = wizard;
    eina_hash_add(gadget_types, type, t);
    EINA_LIST_FOREACH(sites->sites, l, zgs)
-     EINA_LIST_FOREACH(zgs->gadgets, ll, zgc)
-       if (eina_streq(type, zgc->type))
-         _gadget_object_create(zgc);
+     if (zgs->layout)
+       EINA_LIST_FOREACH(zgs->gadgets, ll, zgc)
+         if (eina_streq(type, zgc->type))
+           _gadget_object_create(zgc);
 }
 
 E_API void
@@ -1434,10 +1461,17 @@ e_gadget_util_layout_style_init(Evas_Object *g, Evas_Object *style)
    return prev;
 }
 
+static void
+_gadget_util_ctxpopup_visibility(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   e_comp_shape_queue();
+}
+
 E_API void
 e_gadget_util_ctxpopup_place(Evas_Object *g, Evas_Object *ctx, Evas_Object *pos_obj)
 {
    int x, y, w, h;
+   E_Layer layer;
    E_Gadget_Config *zgc;
 
    EINA_SAFETY_ON_NULL_RETURN(g);
@@ -1445,7 +1479,8 @@ e_gadget_util_ctxpopup_place(Evas_Object *g, Evas_Object *ctx, Evas_Object *pos_
    EINA_SAFETY_ON_NULL_RETURN(zgc);
 
    elm_ctxpopup_hover_parent_set(ctx, e_comp->elm);
-   evas_object_layer_set(ctx, evas_object_layer_get(pos_obj ?: g));
+   layer = MAX(evas_object_layer_get(pos_obj ?: g), E_LAYER_POPUP);
+   evas_object_layer_set(ctx, layer);
 
    evas_object_geometry_get(pos_obj ?: g, &x, &y, &w, &h);
    if (zgc->site->anchor & E_GADGET_SITE_ANCHOR_TOP)
@@ -1463,7 +1498,11 @@ e_gadget_util_ctxpopup_place(Evas_Object *g, Evas_Object *ctx, Evas_Object *pos_
         elm_ctxpopup_direction_priority_set(ctx, ELM_CTXPOPUP_DIRECTION_RIGHT, ELM_CTXPOPUP_DIRECTION_LEFT, 0, 0);
      }
    evas_object_move(ctx, x, y);
+   evas_object_event_callback_add(ctx, EVAS_CALLBACK_SHOW, _gadget_util_ctxpopup_visibility, NULL);
+   evas_object_event_callback_add(ctx, EVAS_CALLBACK_HIDE, _gadget_util_ctxpopup_visibility, NULL);
    evas_object_smart_callback_call(zgc->site->layout, "gadget_site_popup", ctx);
+   if (evas_object_visible_get(ctx))
+     e_comp_shape_queue();
 }
 
 static void
@@ -1650,7 +1689,8 @@ e_gadget_shutdown(void)
 static void
 _editor_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   E_FREE_LIST(data, free);
+   Eina_List *list = data;
+   E_FREE_LIST(list, free);
 }
 
 static void
@@ -1697,7 +1737,7 @@ _editor_pointer_button(Gadget_Item *active, int t EINA_UNUSED, Ecore_Event_Mouse
              EINA_LIST_FOREACH(sites->sites, l, zgs)
                {
                   if (!zgs->layout) continue;
-                  if (!evas_object_visible_get(zgs->layout)) continue;
+                  if (!evas_object_visible_get(zgs->events)) continue;
                   evas_object_geometry_get(zgs->layout, &x, &y, &w, &h);
                   if (!E_INSIDE(ev->x, ev->y, x, y, w, h)) continue;
                   /* FIXME: technically not accurate since objects on the same layer
@@ -1737,6 +1777,8 @@ _editor_pointer_move(Gadget_Item *active EINA_UNUSED, int t EINA_UNUSED, Ecore_E
 
    evas_object_geometry_get(pointer_site, NULL, NULL, &w, &h);
    evas_object_move(pointer_site, ev->x - (w / 2), ev->y - (h / 2));
+   if (!e_gadget_site_orient_get(pointer_site))
+     evas_object_smart_need_recalculate_set(pointer_site, 1);
    return ECORE_CALLBACK_RENEW;
 }
 
@@ -1879,11 +1921,27 @@ _edit_end()
    e_comp_ungrab_input(1, 1);
 }
 
+static void
+_gadget_desklock_clear(void)
+{
+   Eina_List *l;
+   E_Gadget_Site *zgs;
+
+   EINA_LIST_FOREACH(sites->sites, l, zgs)
+     if (zgs->autoadd && zgs->layout && strstr(zgs->name, "desklock."))
+       {
+          E_LIST_FOREACH(zgs->gadgets, _gadget_remove);
+       }
+   e_config_save_queue();
+}
+
 static Eina_Bool
 _gadget_key_handler(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Key *ev)
 {
    if (eina_streq(ev->key, "Escape"))
      _gadget_desklock_del();
+   else if (eina_streq(ev->key, "Delete") || eina_streq(ev->key, "Backspace"))
+     _gadget_desklock_clear();
    return ECORE_CALLBACK_DONE;
 }
 
@@ -1922,7 +1980,8 @@ _gadget_desklock_handler(void *d EINA_UNUSED, int t EINA_UNUSED, E_Event_Comp_Ob
    memset(&n, 0, sizeof(E_Notification_Notify));
    n.timeout = 3000;
    n.summary = _("Lockscreen Gadgets");
-   n.body = _("Press Escape or click the background to exit.");
+   n.body = _("Press Escape or click the background to exit.<ps/>"
+              "Use Backspace or Delete to remove all gadgets from this screen");
    n.urgency = E_NOTIFICATION_NOTIFY_URGENCY_NORMAL;
    e_notification_client_send(&n, NULL, NULL);
    return ECORE_CALLBACK_RENEW;

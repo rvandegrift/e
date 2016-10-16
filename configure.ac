@@ -2,11 +2,11 @@
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_define([v_maj], [0])
 m4_define([v_min], [21])
-m4_define([v_mic], [2])
+m4_define([v_mic], [3])
 m4_define([v_rev], m4_esyscmd([(git rev-list --count HEAD 2>/dev/null || echo 0) | tr -d '\n']))dnl
 ##--   When released, remove the dnl on the below line
 m4_undefine([v_rev])
-m4_define([relname], [0.21.2])
+m4_define([relname], [0.21.3])
 ##--   When doing snapshots - change soname. remove dnl on below line
 m4_define([relname], [ver-0.21])
 dnl m4_define([v_rel], [-release relname])
@@ -700,7 +700,7 @@ fi
 AM_CONDITIONAL([HAVE_WAYLAND], [test "x${have_wayland}" = "xyes"])
 AM_CONDITIONAL([HAVE_WAYLAND_EGL], [test "x${have_wayland_egl}" = "xyes"])
 
-if test "x${have_wayland_only}" != "xyes"; then
+if test "x${e_cv_want_wayland_only}" != "xyes"; then
   PKG_CHECK_MODULES([ECORE_X], [ecore-x >= ${efl_version}])
   if test -n "$ECORE_X_CFLAGS" ; then
      ecore_x=true
@@ -780,12 +780,16 @@ define([CHECK_MODULE_XWAYLAND],
 [
   if test "x${have_wayland}" = "xyes"; then
     AC_E_CHECK_PKG(XWAYLAND, [ ecore-x >= ${efl_version} ecore-audio >= ${efl_version}  ], [HAVE_XWAYLAND_DEPS=true], [HAVE_XWAYLAND_DEPS=false])
-    EFL_WITH_BIN([Xwayland], [Xwayland], [Xwayland])
-    if test -z "x${Xwayland}" ; then
-      HAVE_XWAYLAND_DEPS=false
+    AC_ARG_WITH(Xwayland, AS_HELP_STRING([--with-Xwayland=PATH], [Path to Xwayland]), [Xwayland_with="$withval"], [Xwayland_with="yes"])
+    if test "x${Xwayland_with}" != "xyes"; then
+      xwayland=$Xwayland_with
+      AC_SUBST(xwayland)
+    else
+      AC_PATH_PROG(xwayland, Xwayland, "no")
     fi
-  else
-    HAVE_XWAYLAND_DEPS=false
+    if test "x${xwayland}" == "xno"; then
+      AC_MSG_ERROR([Xwayland enabled but not found.])
+    fi
   fi
 ])
 AM_CONDITIONAL([HAVE_XWAYLAND], [test "x${HAVE_XWAYLAND}" != "xno"])

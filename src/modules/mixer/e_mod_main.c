@@ -6,6 +6,12 @@
 
 #define VOLUME_STEP 5
 
+#define BARRIER_CHECK(old_val, new_val) \
+   (old_val > EMIX_VOLUME_BARRIER - 20) && \
+   (old_val <= EMIX_VOLUME_BARRIER) && \
+   (new_val > EMIX_VOLUME_BARRIER) && \
+   (new_val < EMIX_VOLUME_BARRIER + 20)
+
 int _e_emix_log_domain;
 static Eina_Bool init;
 
@@ -121,7 +127,8 @@ static void
 _mixer_popup_update(Instance *inst, int mute, int vol)
 {
    elm_check_state_set(inst->check, !!mute);
-   elm_slider_value_set(inst->slider, vol);
+   if (!evas_object_data_del(inst->slider, "__lock"))
+     elm_slider_value_set(inst->slider, vol);
 }
 
 static void _popup_del(Instance *inst);
@@ -175,14 +182,18 @@ _volume_increase_cb(E_Object *obj EINA_UNUSED, const char *params EINA_UNUSED)
 
    EINA_SAFETY_ON_NULL_RETURN(mixer_context->sink_default);
    Emix_Sink *s = (Emix_Sink *)mixer_context->sink_default;
+
+   if (BARRIER_CHECK(s->volume.volumes[0], s->volume.volumes[0] + VOLUME_STEP))
+     return;
+
    volume.channel_count = s->volume.channel_count;
    volume.volumes = calloc(s->volume.channel_count, sizeof(int));
    for (i = 0; i < volume.channel_count; i++)
      {
-        if (s->volume.volumes[i] < (EMIX_VOLUME_MAX + 50) - VOLUME_STEP)
+        if (s->volume.volumes[i] < (emix_max_volume_get()) - VOLUME_STEP)
           volume.volumes[i] = s->volume.volumes[i] + VOLUME_STEP;
-        else if (s->volume.volumes[i] < EMIX_VOLUME_MAX + 50)
-          volume.volumes[i] = EMIX_VOLUME_MAX + 50;
+        else if (s->volume.volumes[i] < emix_max_volume_get())
+          volume.volumes[i] = emix_max_volume_get();
         else
           volume.volumes[i] = s->volume.volumes[i];
      }
@@ -360,12 +371,19 @@ _slider_changed_cb(void *data EINA_UNUSED, Evas_Object *obj,
    int val;
    Emix_Volume v;
    unsigned int i;
+   int pval;
 
    EINA_SAFETY_ON_NULL_RETURN(mixer_context->sink_default);
    Emix_Sink *s = (Emix_Sink *)mixer_context->sink_default;
+
+   pval = s->volume.volumes[0];
+
    val = (int)elm_slider_value_get(obj);
    v.volumes = calloc(s->volume.channel_count, sizeof(int));
    v.channel_count = s->volume.channel_count;
+   if (BARRIER_CHECK(pval, val))
+     val = 100;
+
    for (i = 0; i < s->volume.channel_count; i++) v.volumes[i] = val;
    emix_sink_volume_set(s, v);
    elm_slider_value_set(obj, val);
@@ -382,6 +400,14 @@ _slider_drag_stop_cb(void *data EINA_UNUSED, Evas_Object *obj,
    Emix_Sink *s = (Emix_Sink *)mixer_context->sink_default;
    int val = s->volume.volumes[0];
    elm_slider_value_set(obj, val);
+   evas_object_data_del(obj, "__lock");
+}
+
+static void
+_slider_drag_start_cb(void *data EINA_UNUSED, Evas_Object *obj,
+                     void *event EINA_UNUSED)
+{
+   evas_object_data_set(obj, "__lock", (void*)1);
 }
 
 static void
@@ -446,9 +472,10 @@ _popup_new(Instance *inst)
    evas_object_size_hint_align_set(slider, EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_size_hint_weight_set(slider, EVAS_HINT_EXPAND, 0.0);
    evas_object_show(slider);
-   elm_slider_min_max_set(slider, 0.0, EMIX_VOLUME_MAX + 50);
+   elm_slider_min_max_set(slider, 0.0, emix_max_volume_get());
    evas_object_smart_callback_add(slider, "changed", _slider_changed_cb, NULL);
    evas_object_smart_callback_add(slider, "slider,drag,stop", _slider_drag_stop_cb, NULL);
+   evas_object_smart_callback_add(slider, "slider,drag,start", _slider_drag_start_cb, NULL);
    elm_slider_value_set(slider, volume);
    elm_box_pack_end(bx, slider);
    evas_object_show(slider);

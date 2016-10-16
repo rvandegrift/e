@@ -732,11 +732,10 @@ _e_drag_win_get(const E_Drop_Handler *h, int xdnd)
 
            case E_CLIENT_TYPE:
            case E_ZONE_TYPE:
-             hwin = e_comp->ee_win;
-             break;
-
-           /* FIXME: add more types as needed */
            default:
+             /* protect against crashes during shutdown */
+             if (e_comp)
+               hwin = e_comp->ee_win;
              break;
           }
      }
@@ -836,6 +835,8 @@ _dnd_top_window_at_xy_get(Evas_Coord x, Evas_Coord y)
    Eina_List *objs, *l;
    Evas_Object *o;
 
+   if (_drag_current->type == E_DRAG_INTERNAL)
+     return e_comp_top_window_at_xy_get(x, y);
    objs = evas_objects_at_xy_get(e_comp->evas, x, y, 0, 0);
    if (!objs) return e_comp->ee_win;
    EINA_LIST_FOREACH(objs, l, o)
@@ -1050,6 +1051,7 @@ _e_drag_end(int x, int y)
             ((h->cb.drop) && (E_INSIDE(ev.x, ev.y, h->x, h->y, h->w, h->h))))
           {
              Eina_Bool need_free = EINA_FALSE;
+             Eina_List *list;
 
              if (_drag_current->cb.convert)
                {
@@ -1083,7 +1085,8 @@ _e_drag_end(int x, int y)
                     ev.data = _drag_current->data;
                }
              h->cb.drop(h->cb.data, h->active_type, &ev);
-             if (need_free) E_FREE_LIST(ev.data, free);
+             list = ev.data;
+             if (need_free) E_FREE_LIST(list, free);
              dropped = 1;
           }
         h->entered = 0;
