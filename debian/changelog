@@ -1,3 +1,11 @@
+e17 (0.21.3-2) experimental; urgency=medium
+
+  * Team upload.
+  * enlightenment_backlight needs to be setuid root for backlight control
+  * Use secure Vcs- URLs in debian/control
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 22 Oct 2016 22:26:34 -0400
+
 e17 (0.21.3-1) experimental; urgency=medium
 
   * Team upload.
