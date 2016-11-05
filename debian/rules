@@ -16,7 +16,9 @@ override_dh_auto_configure:
 	--disable-rpath \
 	--disable-connman \
 	--disable-silent-rules \
-	--disable-geolocation
+	--disable-geolocation \
+	--enable-wayland \
+	--enable-xwayland
 
 override_dh_lintian:
 	sed -e "s/ARCH_PATH/$(ARCH_PATH)/" \
