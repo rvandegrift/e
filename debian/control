@@ -17,7 +17,7 @@ Homepage: http://www.enlightenment.org
 Package: enlightenment
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, enlightenment-data (= ${source:Version}),
- libevas1-engines-x, libedje-bin, dbus-x11
+ libevas1-engines-x, libedje-bin, default-dbus-session-bus | dbus-session-bus
 Recommends: pm-utils
 Provides: x-window-manager
 Description: X11 window manager based on EFL
