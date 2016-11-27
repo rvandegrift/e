@@ -1,3 +1,18 @@
+e17 (0.21.3-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release. (Closes: #836089)
+
+  [ Ross Vandegrift ]
+  * enlightenment_backlight needs to be setuid root for backlight control
+  * Update dbus deps to use dbus-x11 or dbus-user-session (Closes: #836090)
+
+  [ Nicolas Braud-Santoni ]
+  * Use HTTPS for Vcs-* links
+  * debian/control: Use HTTPS for the website
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 27 Nov 2016 17:01:59 -0500
+
 e17 (0.21.2-2) experimental; urgency=medium
 
   [ Ross Vandegrift ]
