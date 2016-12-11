@@ -1,0 +1,75 @@
+Source: e17
+Section: x11
+Priority: optional
+Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
+Uploaders: Albin Tonnerre <lutin@debian.org>,
+ Jan Lübbe <jluebbe@debian.org>
+Build-Depends: debhelper (>= 9), dh-autoreconf, libxext-dev, libeet-bin,
+ libpam0g-dev, libxcb-shape0-dev, libxcb-keysyms1-dev, systemd,
+ libefl-all-dev (>= 1.15.1), libelementary-dev (>= 1.15.1),
+ libecore-bin (>= 1.15.1)
+Build-Depends-Indep: doxygen
+Standards-Version: 3.9.8
+Vcs-Git: https://anonscm.debian.org/git/pkg-e/apps/e.git
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-e/apps/e.git/
+Homepage: https://www.enlightenment.org
+
+Package: enlightenment
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, enlightenment-data (= ${source:Version}),
+ libevas1-engines-x, libedje-bin, default-dbus-session-bus | dbus-session-bus
+Recommends: pm-utils
+Provides: x-window-manager
+Description: X11 window manager based on EFL
+ Enlightenment is an advanced window manager for X11. Unique
+ features include: a fully animated background, nice drop shadows
+ around windows, backed by an extremely clean and optimized
+ foundation of APIs.
+ .
+ This package contains the core files for Enlightenment.
+
+Package: enlightenment-data
+Architecture: all
+Depends: ${misc:Depends}
+Enhances: enlightenment
+Conflicts: enlightenment-data
+Description: X11 window manager based on EFL - run time data files
+ Enlightenment is an advanced window manager for X11. Unique
+ features include: a fully animated background, nice drop shadows
+ around windows, backed by an extremely clean and optimized
+ foundation of APIs.
+ .
+ These are the architecture independent runtime support files for the
+ Enlightenment Window Manager.
+
+Package: enlightenment-dev
+Architecture: any
+Section: devel
+Depends: ${misc:Depends}, enlightenment (= ${binary:Version}),
+ libefl-all-dev (>= 1.15.1), libelementary-dev (>= 1.15.1)
+Description: Enlightenment headers, static libraries and documentation
+ Enlightenment is an advanced window manager for X11. Unique
+ features include: a fully animated background, nice drop shadows
+ around windows, backed by an extremely clean and optimized
+ foundation of APIs.
+ .
+ This package contains headers, static libraries and documentation for
+ enlightenment.
+
+Package: e17
+Architecture: all
+Section: oldlibs
+Depends: enlightenment (>= ${source:Upstream-Version}), ${misc:Depends}
+Priority: extra
+Description: transitional e17 package
+ This is a transitional dummy package to ease the migration from e17
+ to enlightenment.  You can safely remove this package.
+
+Package: e17-data
+Architecture: all
+Section: oldlibs
+Depends: enlightenment-data (>= ${source:Upstream-Version}), ${misc:Depends}
+Priority: extra
+Description: transitional e17-data package
+ This is a transitional dummy package to ease the migration from e17-data
+ to enlightenment-data.  You can safely remove this package.

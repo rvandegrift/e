@@ -1,0 +1,41 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_LDFLAGS_MAINT_APPEND := -Wl,--as-needed
+DEB_HOST_GNU_SYSTEM=$(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
+DEB_HOST_GNU_CPU=$(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
+SVN_RELEASE=$(shell grep '^release=' configure | cut -d'=' -f2-)
+ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(SVN_RELEASE)
+MULTIARCH := $(shell dpkg-architecture -qDEB_TARGET_MULTIARCH)
+
+%:
+	dh $@ --with autoreconf --parallel
+
+override_dh_auto_configure:
+	dh_auto_configure --verbose -- \
+	--disable-rpath \
+	--disable-connman \
+	--disable-silent-rules \
+	--disable-geolocation
+
+override_dh_lintian:
+	sed -e "s/ARCH_PATH/$(ARCH_PATH)/" \
+		-e "s/MULTIARCH/$(MULTIARCH)/" \
+		debian/enlightenment.lintian-overrides.in > debian/enlightenment.lintian-overrides
+	dh_lintian
+
+override_dh_install:
+	gzip -9n debian/tmp/usr/share/enlightenment/doc/*.txt
+	rm debian/tmp/usr/share/enlightenment/COPYING
+	rm debian/tmp/usr/share/enlightenment/AUTHORS
+	dh_install --list-missing
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 4755 debian/enlightenment/usr/lib/*/enlightenment/utils/enlightenment_sys
+	chmod 4755 debian/enlightenment/usr/lib/*/enlightenment/modules/cpufreq/*/freqset
+	chmod 4755 debian/enlightenment/usr/lib/*/enlightenment/utils/enlightenment_backlight
+
+override_dh_clean:
+	dh_clean
+	rm -f debian/enlightenment.lintian-overrides
