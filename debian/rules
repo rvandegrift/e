@@ -30,7 +30,7 @@ override_dh_install:
 	rm debian/tmp/usr/share/enlightenment/AUTHORS
 	dh_install --list-missing
 
-override_dh_fixperms:
+override_dh_fixperms-arch:
 	dh_fixperms
 	chmod 4755 debian/enlightenment/usr/lib/*/enlightenment/utils/enlightenment_sys
 	chmod 4755 debian/enlightenment/usr/lib/*/enlightenment/modules/cpufreq/*/freqset
