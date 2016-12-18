@@ -1513,6 +1513,22 @@ e_fm2_all_list_get(Evas_Object *obj)
    return list;
 }
 
+E_API E_Fm2_Icon_Info *
+e_fm2_icon_file_get(Evas_Object *obj, const char *file)
+{
+   Eina_List *l;
+   E_Fm2_Icon *ic;
+
+   EFM_SMART_CHECK(NULL);
+   if (!file) return NULL;
+   EINA_LIST_FOREACH(sd->icons, l, ic)
+     {
+        if ((ic->info.file) && (!strcmp(ic->info.file, file)))
+          return &(ic->info);
+     }
+   return NULL;
+}
+
 E_API void
 e_fm2_deselect_all(Evas_Object *obj)
 {
@@ -11004,7 +11020,7 @@ _e_fm2_file_delete(Evas_Object *obj)
    e_object_del_attach_func_set(E_OBJECT(dialog), _e_fm2_file_delete_delete_cb);
    e_dialog_button_add(dialog, _("Delete"), NULL, _e_fm2_file_delete_yes_cb, ic);
    e_dialog_button_add(dialog, _("No"), NULL, _e_fm2_file_delete_no_cb, ic);
-   e_dialog_button_focus_num(dialog, 1);
+   e_dialog_button_focus_num(dialog, 0);
    e_dialog_title_set(dialog, _("Confirm Delete"));
    e_dialog_icon_set(dialog, "dialog-warning", 64);
    sel = e_fm2_selected_list_get(obj);

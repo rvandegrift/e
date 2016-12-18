@@ -1061,6 +1061,8 @@ e_zone_edge_new(E_Zone_Edge edge)
                   evas_object_name_set(zone->MEMBER, #MEMBER); \
                   evas_object_move(zone->MEMBER, (X), (Y)); \
                   evas_object_resize(zone->MEMBER, (W), (H)); \
+                  evas_object_repeat_events_set(zone->MEMBER, 1); \
+                  evas_object_data_set(zone->MEMBER, "comp_repeat", (void*)1); \
                   evas_object_color_set(zone->MEMBER, 0, 0, 0, 0); \
                   evas_object_event_callback_add(zone->MEMBER, EVAS_CALLBACK_MOUSE_MOVE, _e_zone_cb_mouse_move, zone); \
                   evas_object_event_callback_add(zone->MEMBER, EVAS_CALLBACK_MOUSE_IN, _e_zone_cb_mouse_in, zone); \
@@ -1332,6 +1334,9 @@ e_zone_useful_geometry_dirty(E_Zone *zone)
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
 
+   /* ignore if pending event already exists */
+   if (zone->useful_geometry_dirty) return;
+
    ev = E_NEW(E_Event_Zone_Move_Resize, 1);
    ev->zone = zone;
    e_object_ref(E_OBJECT(ev->zone));
@@ -1366,12 +1371,12 @@ e_zone_obstacle_add(E_Zone *zone, E_Desk *desk, Eina_Rectangle *geom, Eina_Bool 
      {
         desk->obstacles = eina_inlist_append(desk->obstacles, EINA_INLIST_GET(obs));
         if (desk->visible)
-          desk->zone->useful_geometry_dirty = 1;
+          e_zone_useful_geometry_dirty(desk->zone);
      }
    else
      {
         zone->obstacles = eina_inlist_append(zone->obstacles, EINA_INLIST_GET(obs));
-        zone->useful_geometry_dirty = 1;
+        e_zone_useful_geometry_dirty(zone);
      }
    return obs;
 }
@@ -1395,12 +1400,12 @@ e_zone_obstacle_modify(E_Zone_Obstacle *obs, Eina_Rectangle *geom, Eina_Bool ver
      {
         desk = (E_Desk*)obs->owner;
         if (desk->visible)
-          desk->zone->useful_geometry_dirty = 1;
+          e_zone_useful_geometry_dirty(desk->zone);
      }
    else
      {
         zone = (E_Zone*)obs->owner;
-        zone->useful_geometry_dirty = 1;
+        e_zone_useful_geometry_dirty(zone);
      }
 }
 
@@ -1694,13 +1699,13 @@ _e_zone_obstacle_free(E_Zone_Obstacle *obs)
         desk = (E_Desk*)obs->owner;
         desk->obstacles = eina_inlist_remove(desk->obstacles, EINA_INLIST_GET(obs));
         if (desk->visible)
-          desk->zone->useful_geometry_dirty = 1;
+          e_zone_useful_geometry_dirty(desk->zone);
      }
    else
      {
         zone = (E_Zone*)obs->owner;
         zone->obstacles = eina_inlist_remove(zone->obstacles, EINA_INLIST_GET(obs));
-        zone->useful_geometry_dirty = 1;
+        e_zone_useful_geometry_dirty(zone);
      }
    free(obs);
 }
@@ -1715,7 +1720,7 @@ e_zone_for_id_get(const char *id)
 
    EINA_LIST_FOREACH(e_comp->zones, l, zone)
      {
-        if (strcmp(zone->randr2_id, id) == 0)
+        if (eina_streq(zone->randr2_id, id))
           return zone;
      }
 

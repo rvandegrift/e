@@ -23,13 +23,17 @@ static void _editor_add_right(void *data, Evas_Object *obj, const char *sig, con
 static void
 setup_exists(Evas_Object *bryce, Evas_Object *editor, Evas_Object *parent, E_Gadget_Site_Anchor an)
 {
-   if (e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_HORIZONTAL, E_GADGET_SITE_ANCHOR_BOTTOM | an))
+   if ((an != E_GADGET_SITE_ANCHOR_TOP) &&
+       e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_HORIZONTAL, E_GADGET_SITE_ANCHOR_BOTTOM | an))
      elm_object_signal_emit(editor, "e,bryce,exists,bottom", "e");
-   if (e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_HORIZONTAL, E_GADGET_SITE_ANCHOR_TOP | an))
+   if ((an != E_GADGET_SITE_ANCHOR_BOTTOM) &&
+       e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_HORIZONTAL, E_GADGET_SITE_ANCHOR_TOP | an))
      elm_object_signal_emit(editor, "e,bryce,exists,top", "e");
-   if (e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_VERTICAL, E_GADGET_SITE_ANCHOR_LEFT | an))
+   if ((an != E_GADGET_SITE_ANCHOR_RIGHT) &&
+       e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_VERTICAL, E_GADGET_SITE_ANCHOR_LEFT | an))
      elm_object_signal_emit(editor, "e,bryce,exists,left", "e");
-   if (e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_VERTICAL, E_GADGET_SITE_ANCHOR_RIGHT | an))
+   if ((an != E_GADGET_SITE_ANCHOR_LEFT) &&
+       e_bryce_exists(parent, bryce, E_GADGET_SITE_ORIENT_VERTICAL, E_GADGET_SITE_ANCHOR_RIGHT | an))
      elm_object_signal_emit(editor, "e,bryce,exists,right", "e");
 }
 
@@ -41,7 +45,6 @@ _editor_bryce_add(Evas_Object *obj)
    const char *loc = "", *loc2 = "";
    Bryce_Info *bi;
    E_Zone *zone;
-   int x, y;
    E_Gadget_Site_Gravity gravity = E_GADGET_SITE_GRAVITY_CENTER;
 
    bi = evas_object_data_get(obj, "__bryce_info");
@@ -63,7 +66,9 @@ _editor_bryce_add(Evas_Object *obj)
    else if (bi->anchor & E_GADGET_SITE_ANCHOR_BOTTOM)
      loc2 = "bottom";
 
-   snprintf(buf, sizeof(buf), "bryce_%s_%s", loc, loc2);
+   zone = e_comp_object_util_zone_get(obj);
+   if (!zone) zone = e_zone_current_get();
+   snprintf(buf, sizeof(buf), "bryce_%s_%s_%d", loc, loc2, zone->num);
    if (bi->orient == E_GADGET_SITE_ORIENT_HORIZONTAL)
      {
         if (bi->anchor & E_GADGET_SITE_ANCHOR_LEFT)
@@ -92,15 +97,13 @@ _editor_bryce_add(Evas_Object *obj)
         e_gadget_site_gadget_add(site, "Digital Clock", 0);
         e_gadget_site_gadget_add(site, "Wireless", 0);
      }
-   zone = e_comp_object_util_zone_get(obj);
-   if (!zone) zone = e_zone_current_get();
-   evas_object_geometry_get(b, &x, &y, NULL, NULL);
-   evas_object_move(b, x + zone->x, y + zone->y);
+
+   evas_object_move(b, zone->x, zone->y);
    e_gadget_site_gravity_set(site, gravity);
    e_bryce_style_set(b, bi->style);
    e_bryce_autohide_set(b, bi->autohide);
    e_bryce_autosize_set(b, bi->autosize);
-   evas_object_layer_set(b, bi->stack_under ? E_LAYER_DESKTOP : E_LAYER_CLIENT_ABOVE);
+   evas_object_layer_set(b, bi->stack_under ? E_LAYER_DESKTOP_TOP : E_LAYER_CLIENT_ABOVE);
    evas_object_del(obj);
 }
 
@@ -189,7 +192,7 @@ _editor_style_click(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *eve
    evas_object_smart_callback_add(ck, "changed", _editor_stacking, bi);
    if (bryce)
      {
-        bi->stack_under = evas_object_layer_get(bryce) == E_LAYER_DESKTOP;
+        bi->stack_under = evas_object_layer_get(bryce) == E_LAYER_DESKTOP_TOP;
         elm_check_state_set(ck, bi->stack_under);
      }
    elm_box_pack_end(box, ck);

@@ -585,15 +585,18 @@ _e_client_del(E_Client *ec)
    if (ec->exe_inst)
      {
         if (ec->exe_inst->phony && (eina_list_count(ec->exe_inst->clients) == 1))
-          e_exec_phony_del(ec->exe_inst);
+          {
+             if (e_exec_phony_del(ec->exe_inst))
+               ec->exe_inst = NULL;
+          }
         else
           {
              if (!ec->exe_inst->deleted)
                ec->exe_inst->clients = eina_list_remove(ec->exe_inst->clients, ec);
           }
-        if (!ec->exe_inst->deleted)
-          ec->exe_inst = NULL;
      }
+   if (ec->exe_inst && (!ec->exe_inst->deleted))
+     ec->exe_inst = NULL;
 
    _e_client_mouse_action_end(ec);
    if (action_client == ec) _e_client_action_finish();
@@ -1392,7 +1395,8 @@ _e_client_cb_evas_hide(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UN
    if (e_object_is_del(data)) return; //client is about to die
    _e_client_mouse_action_end(ec);
    if (action_client == ec) _e_client_action_finish();
-   e_pointer_type_pop(e_comp->pointer, ec, NULL);
+   if (!evas_object_pass_events_get(ec->frame))
+     e_pointer_type_pop(e_comp->pointer, ec, NULL);
 
    if (!ec->hidden)
      {
@@ -2151,7 +2155,8 @@ _e_client_frame_update(E_Client *ec)
    const char *bordername;
 
    ec->border.changed = 0;
-   if (!e_comp_object_frame_allowed(ec->frame)) return;
+   if ((!e_comp_object_frame_allowed(ec->frame)) && (!e_comp_object_frame_exists(ec->frame)))
+     return;
    if (ec->fullscreen || ec->borderless)
      bordername = "borderless";
    else if (ec->bordername)
@@ -3398,7 +3403,8 @@ e_client_focused_set(E_Client *ec)
         ec_unfocus->want_focus = ec_unfocus->focused = 0;
         if (!e_object_is_del(E_OBJECT(ec_unfocus)))
           e_focus_event_focus_out(ec_unfocus);
-        if (ec_unfocus->mouse.in && ec && (!e_client_util_is_popup(ec)))
+        if (ec_unfocus->mouse.in && ec && (!e_client_util_is_popup(ec)) &&
+            (e_config->focus_policy != E_FOCUS_CLICK) && e_config->pointer_slide)
           e_client_mouse_out(ec_unfocus, ec_unfocus->x - 1, ec_unfocus->y - 1);
 
         E_FREE_FUNC(ec_unfocus->raise_timer, ecore_timer_del);
@@ -4337,16 +4343,18 @@ e_client_border_set(E_Client *ec, const char *name)
 
    E_OBJECT_CHECK_RETURN(ec, EINA_FALSE);
    E_OBJECT_TYPE_CHECK_RETURN(ec, E_CLIENT_TYPE, EINA_FALSE);
-   if (!e_comp_object_frame_allowed(ec->frame)) return EINA_FALSE;
+   if ((!e_comp_object_frame_allowed(ec->frame)) && (!e_comp_object_frame_exists(ec->frame)))
+     return EINA_FALSE;
    if (ec->border.changed)
      CRI("CALLING WHEN border.changed SET!");
 
-   if (!e_util_strcmp(ec->border.name, name)) return EINA_TRUE;
-   if (ec->mwm.borderless && name && strcmp(name, "borderless"))
+   if (eina_streq(ec->border.name, name)) return EINA_TRUE;
+   if (ec->mwm.borderless && (!eina_streq(name, "borderless")))
      {
         e_util_dialog_show(_("Client Error!"), _("Something has attempted to set a border when it shouldn't! Report this!"));
         CRI("border change attempted for MWM borderless client!");
      }
+   if ((!ec->border.name) && eina_streq(name, "borderless")) return EINA_TRUE;
    pborder = ec->border.name;
    ec->border.name = eina_stringshare_add(name);
    if (e_comp_object_frame_theme_set(ec->frame, name))
