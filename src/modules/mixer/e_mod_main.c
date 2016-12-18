@@ -114,7 +114,7 @@ _notify(const int val)
    else
      icon = "audio-volume-high";
 
-   n.app_name = _("Emix");
+   n.app_name = _("Mixer");
    n.replaces_id = mixer_context->notification_id;
    n.icon.icon = icon;
    n.summary = _("Volume changed");
@@ -127,8 +127,7 @@ static void
 _mixer_popup_update(Instance *inst, int mute, int vol)
 {
    elm_check_state_set(inst->check, !!mute);
-   if (!evas_object_data_del(inst->slider, "__lock"))
-     elm_slider_value_set(inst->slider, vol);
+   elm_slider_value_set(inst->slider, vol);
 }
 
 static void _popup_del(Instance *inst);
@@ -393,24 +392,6 @@ _slider_changed_cb(void *data EINA_UNUSED, Evas_Object *obj,
 }
 
 static void
-_slider_drag_stop_cb(void *data EINA_UNUSED, Evas_Object *obj,
-                     void *event EINA_UNUSED)
-{
-   EINA_SAFETY_ON_NULL_RETURN(mixer_context->sink_default);
-   Emix_Sink *s = (Emix_Sink *)mixer_context->sink_default;
-   int val = s->volume.volumes[0];
-   elm_slider_value_set(obj, val);
-   evas_object_data_del(obj, "__lock");
-}
-
-static void
-_slider_drag_start_cb(void *data EINA_UNUSED, Evas_Object *obj,
-                     void *event EINA_UNUSED)
-{
-   evas_object_data_set(obj, "__lock", (void*)1);
-}
-
-static void
 _sink_selected_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Emix_Sink *s = data;
@@ -474,8 +455,6 @@ _popup_new(Instance *inst)
    evas_object_show(slider);
    elm_slider_min_max_set(slider, 0.0, emix_max_volume_get());
    evas_object_smart_callback_add(slider, "changed", _slider_changed_cb, NULL);
-   evas_object_smart_callback_add(slider, "slider,drag,stop", _slider_drag_stop_cb, NULL);
-   evas_object_smart_callback_add(slider, "slider,drag,start", _slider_drag_start_cb, NULL);
    elm_slider_value_set(slider, volume);
    elm_box_pack_end(bx, slider);
    evas_object_show(slider);

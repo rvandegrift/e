@@ -162,8 +162,6 @@ _e_pixmap_wl_buffers_free(E_Pixmap *cp)
 {
    E_Comp_Wl_Buffer *b;
 
-   if (e_comp->rendering) return;
-
    EINA_LIST_FREE(cp->free_buffers, b)
      {
         wl_list_remove(&b->deferred_destroy_listener.link);
@@ -805,6 +803,8 @@ e_pixmap_image_clear(E_Pixmap *cp, Eina_Bool cache)
                   wl_resource_destroy(cb);
                }
           }
+        else
+          _e_pixmap_wl_buffers_free(cp);
 #endif
         break;
       default:
@@ -879,7 +879,8 @@ e_pixmap_image_exists(const E_Pixmap *cp)
      return !!cp->image;
 #endif
 #ifdef HAVE_WAYLAND
-   return (!!cp->data) || (e_comp->gl && (!cp->buffer->shm_buffer)) || cp->buffer->dmabuf_buffer;
+   return (!!cp->data) ||
+     (cp->buffer && ((e_comp->gl && (!cp->buffer->shm_buffer)) || cp->buffer->dmabuf_buffer));
 #endif
 
    return EINA_FALSE;
@@ -898,7 +899,10 @@ e_pixmap_image_is_argb(const E_Pixmap *cp)
 #endif
       case E_PIXMAP_TYPE_WL:
 #ifdef HAVE_WAYLAND
-        return ((cp->buffer != NULL) && (cp->image_argb));
+        if (cp->usable)
+          return cp->image_argb;
+        /* only cursors can be override in wayland */
+        if (cp->client->override) return EINA_TRUE;
 #endif
         default: break;
      }
@@ -1050,10 +1054,23 @@ e_pixmap_alias(E_Pixmap *cp, E_Pixmap_Type type, ...)
 E_API Eina_Bool
 e_pixmap_dmabuf_test(struct linux_dmabuf_buffer *dmabuf)
 {
+   Evas_Native_Surface ns;
+   Evas_Object *test;
    int size;
    void *data;
 
-   if (e_comp->gl) return EINA_TRUE;
+   if (e_comp->gl)
+     {
+        ns.type = EVAS_NATIVE_SURFACE_WL_DMABUF;
+        ns.version = EVAS_NATIVE_SURFACE_VERSION;
+        ns.data.wl_dmabuf.attr = &dmabuf->attributes;
+        ns.data.wl_dmabuf.resource = NULL;
+        test = evas_object_image_add(e_comp->evas);
+        evas_object_image_native_surface_set(test, &ns);
+        evas_object_del(test);
+        if (!ns.data.wl_dmabuf.attr) return EINA_FALSE;
+        return EINA_TRUE;
+     }
 
    /* TODO: Software rendering for multi-plane formats */
    if (dmabuf->attributes.n_planes != 1) return EINA_FALSE;

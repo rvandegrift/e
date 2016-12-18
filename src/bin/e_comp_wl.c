@@ -52,6 +52,8 @@ _parent_client_contains_pointer(E_Client *ec)
 
    while (top->parent) top = top->parent;
 
+   if (top == ec) return EINA_FALSE;
+
    if (top->mouse.in) return EINA_TRUE;
 
    EINA_LIST_FOREACH(top->comp_data->sub.list, l, c)
@@ -587,21 +589,12 @@ _e_comp_wl_client_priority_normal(E_Client *ec)
 static Eina_Bool
 _e_comp_wl_evas_cb_focus_in_timer(E_Client *ec)
 {
-   uint32_t serial, *k;
-   struct wl_resource *res;
-   Eina_List *l;
-   double t;
+   if (e_object_is_del(E_OBJECT(ec))) return EINA_FALSE;
 
    ec->comp_data->on_focus_timer = NULL;
 
    if (!e_comp_wl->kbd.focused) return EINA_FALSE;
    e_comp_wl_input_keyboard_modifiers_update();
-   serial = wl_display_next_serial(e_comp_wl->wl.disp);
-   t = ecore_time_unix_get();
-   EINA_LIST_FOREACH(e_comp_wl->kbd.focused, l, res)
-     wl_array_for_each(k, &e_comp_wl->kbd.keys)
-       wl_keyboard_send_key(res, serial, t,
-                            *k, WL_KEYBOARD_KEY_STATE_PRESSED);
    return EINA_FALSE;
 }
 
@@ -669,14 +662,11 @@ static void
 _e_comp_wl_keyboard_leave(E_Client *ec)
 {
    struct wl_resource *res;
-   struct wl_client *wc;
    Eina_List *l, *ll;
-   uint32_t serial, *k;
-   double t;
+   uint32_t serial;
 
    if (!eina_list_count(e_comp_wl->kbd.resources)) return;
    if (!ec->comp_data) return;
-   if (!ec->comp_data->surface) return;
 
    if (ec->comp_data->is_xdg_surface)
      {
@@ -691,16 +681,12 @@ _e_comp_wl_keyboard_leave(E_Client *ec)
         while (ec->parent) ec = ec->parent;
      }
 
-   wc = wl_resource_get_client(ec->comp_data->surface);
    serial = wl_display_next_serial(e_comp_wl->wl.disp);
-   t = ecore_time_unix_get();
+
    EINA_LIST_FOREACH_SAFE(e_comp_wl->kbd.focused, l, ll, res)
      {
-        if (wl_resource_get_client(res) != wc) continue;
-        wl_array_for_each(k, &e_comp_wl->kbd.keys)
-          wl_keyboard_send_key(res, serial, t,
-                               *k, WL_KEYBOARD_KEY_STATE_RELEASED);
-        wl_keyboard_send_leave(res, serial, ec->comp_data->surface);
+        if (ec->comp_data->surface)
+          wl_keyboard_send_leave(res, serial, ec->comp_data->surface);
         e_comp_wl->kbd.focused = eina_list_remove_list(e_comp_wl->kbd.focused, l);
      }
 }
@@ -942,7 +928,8 @@ _e_comp_wl_evas_cb_delete_request(void *data, Evas_Object *obj EINA_UNUSED, void
      {
         if (ec->internal_elm_win)
           E_FREE_FUNC(ec->internal_elm_win, evas_object_del);
-        e_object_del(E_OBJECT(ec));
+        else
+          e_object_del(E_OBJECT(ec));
      }
 
    _e_comp_wl_focus_check();
@@ -959,7 +946,13 @@ _e_comp_wl_evas_cb_kill_request(void *data, Evas_Object *obj EINA_UNUSED, void *
 
    evas_object_pass_events_set(ec->frame, EINA_TRUE);
    if (ec->visible) evas_object_hide(ec->frame);
-   if (!ec->internal) e_object_del(E_OBJECT(ec));
+   if (ec->internal)
+     {
+        ec->ignored = 1;
+        if (!e_object_is_del(E_OBJECT(ec)))
+          ec->comp_data->mapped = EINA_FALSE;
+     }
+   else e_object_del(E_OBJECT(ec));
 
    _e_comp_wl_focus_check();
 }
@@ -1010,7 +1003,7 @@ _e_comp_wl_client_evas_init(E_Client *ec)
                                   _e_comp_wl_evas_cb_hide, ec);
 
    /* setup input callbacks */
-   if (ec->internal)
+   if (ec->internal_elm_win)
      {
         evas_object_smart_callback_add(ec->frame, "mouse_in",
           (Evas_Smart_Cb)_e_comp_wl_cb_internal_mouse_in, ec);
@@ -1234,7 +1227,7 @@ _e_comp_wl_surface_state_cb_buffer_destroy(struct wl_listener *listener, void *d
 }
 
 static void
-_e_comp_wl_surface_state_init(E_Comp_Wl_Surface_State *state, int w, int h)
+_e_comp_wl_surface_state_init(E_Comp_Wl_Surface_State *state)
 {
    state->new_attach = EINA_FALSE;
    state->buffer = NULL;
@@ -1242,11 +1235,9 @@ _e_comp_wl_surface_state_init(E_Comp_Wl_Surface_State *state, int w, int h)
      _e_comp_wl_surface_state_cb_buffer_destroy;
    state->sx = state->sy = 0;
 
-   state->input = eina_tiler_new(w, h);
-   eina_tiler_tile_size_set(state->input, 1, 1);
+   state->input = NULL;
 
-   state->opaque = eina_tiler_new(w, h);
-   eina_tiler_tile_size_set(state->opaque, 1, 1);
+   state->opaque = NULL;
 }
 
 static void
@@ -1314,7 +1305,7 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
 #endif
 
    ec->comp_data->in_commit = 1;
-   if (state->new_attach && ec->ignored && (ec->comp_data->shell.surface || ec->internal))
+   if (state->new_attach && ec->ignored && (ec->comp_data->shell.surface || ec->internal_elm_win))
      {
         EC_CHANGED(ec);
         ec->new_client = 1;
@@ -1389,7 +1380,7 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
           {
              if ((ec->comp_data->shell.surface) && (ec->comp_data->shell.unmap))
                ec->comp_data->shell.unmap(ec->comp_data->shell.surface);
-             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) || ec->internal ||
+             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) || ec->internal_elm_win ||
                       (ec->comp_data->sub.data && ec->comp_data->sub.data->parent->comp_data->mapped) ||
                       (ec == e_comp_wl->drag_client))
                {
@@ -1405,7 +1396,7 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
           {
              if ((ec->comp_data->shell.surface) && (ec->comp_data->shell.map))
                ec->comp_data->shell.map(ec->comp_data->shell.surface);
-             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) || ec->internal ||
+             else if (ec->comp_data->cursor || e_client_has_xwindow(ec) || ec->internal_elm_win ||
                       (ec->comp_data->sub.data && ec->comp_data->sub.data->parent->comp_data->mapped) ||
                       (ec == e_comp_wl->drag_client))
                {
@@ -1491,56 +1482,60 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
      }
 
    /* put state opaque into surface */
-   e_pixmap_image_opaque_set(ec->pixmap, 0, 0, 0, 0);
    if (state->opaque)
      {
-        Eina_Rectangle *rect;
-        Eina_Iterator *itr;
-
-        itr = eina_tiler_iterator_new(state->opaque);
-        EINA_ITERATOR_FOREACH(itr, rect)
-          {
-             Eina_Rectangle r;
-
-             EINA_RECTANGLE_SET(&r, rect->x, rect->y, rect->w, rect->h);
-             E_RECTS_CLIP_TO_RECT(r.x, r.y, r.w, r.h, 0, 0, state->bw, state->bh);
-             e_pixmap_image_opaque_set(ec->pixmap, r.x, r.y, r.w, r.h);
-             break;
-          }
-
-        eina_iterator_free(itr);
-     }
-
-   /* put state input into surface */
-   if ((state->input) &&
-       (!eina_tiler_empty(state->input)))
-     {
-        Eina_Tiler *src, *tmp;
-
-        tmp = eina_tiler_new(state->bw, state->bh);
-        eina_tiler_tile_size_set(tmp, 1, 1);
-        eina_tiler_rect_add(tmp,
-                            &(Eina_Rectangle){0, 0, state->bw, state->bh});
-        if ((src = eina_tiler_intersection(state->input, tmp)))
+        if (!eina_tiler_empty(state->opaque))
           {
              Eina_Rectangle *rect;
              Eina_Iterator *itr;
 
-             itr = eina_tiler_iterator_new(src);
+             /* This is seriously wrong and results in only the first
+              * rectangle in the region being set, but in the usual
+              * case there's only one rectangle.
+              */
+             itr = eina_tiler_iterator_new(state->opaque);
+             EINA_ITERATOR_FOREACH(itr, rect)
+               {
+                  Eina_Rectangle r;
+
+                  EINA_RECTANGLE_SET(&r, rect->x, rect->y, rect->w, rect->h);
+                  E_RECTS_CLIP_TO_RECT(r.x, r.y, r.w, r.h, 0, 0, state->bw, state->bh);
+                  e_pixmap_image_opaque_set(ec->pixmap, r.x, r.y, r.w, r.h);
+                  break;
+               }
+
+             eina_iterator_free(itr);
+             eina_tiler_free(state->opaque);
+             state->opaque = NULL;
+          }
+        else
+          e_pixmap_image_opaque_set(ec->pixmap, 0, 0, 0, 0);
+     }
+
+   /* put state input into surface */
+   if (state->input)
+     {
+        if (!eina_tiler_empty(state->input))
+          {
+             Eina_Rectangle *rect;
+             Eina_Iterator *itr;
+
+             /* This is seriously wrong and results in only the last
+              * rectangle in the region being set, but in the usual
+              * case there's only one rectangle.
+              */
+             itr = eina_tiler_iterator_new(state->input);
              EINA_ITERATOR_FOREACH(itr, rect)
                e_comp_object_input_area_set(ec->frame, rect->x, rect->y,
                                             rect->w, rect->h);
 
              eina_iterator_free(itr);
-             eina_tiler_free(src);
           }
         else
-          e_comp_object_input_area_set(ec->frame, 0, 0, ec->w, ec->h);
+          e_comp_object_input_area_set(ec->frame, 1, 1, 0, 0);
 
-        eina_tiler_free(tmp);
-
-        /* clear input tiler */
-        eina_tiler_clear(state->input);
+        eina_tiler_free(state->input);
+        state->input = NULL;
      }
    ec->comp_data->in_commit = 0;
 
@@ -1550,7 +1545,10 @@ _e_comp_wl_surface_state_commit(E_Client *ec, E_Comp_Wl_Surface_State *state)
 static void
 _e_comp_wl_surface_cb_destroy(struct wl_client *client EINA_UNUSED, struct wl_resource *resource)
 {
+   E_Client *ec;
    DBG("Surface Cb Destroy: %d", wl_resource_get_id(resource));
+   ec = wl_resource_get_user_data(resource);
+   if (ec && (!e_object_is_del(E_OBJECT(ec)))) ec->comp_data->surface = NULL;
    wl_resource_destroy(resource);
 }
 
@@ -1658,7 +1656,9 @@ _e_comp_wl_surface_cb_opaque_region_set(struct wl_client *client EINA_UNUSED, st
    if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (ec->comp_data->pending.opaque)
-     eina_tiler_clear(ec->comp_data->pending.opaque);
+     eina_tiler_free(ec->comp_data->pending.opaque);
+   ec->comp_data->pending.opaque = eina_tiler_new(65535, 65535);
+   eina_tiler_tile_size_set(ec->comp_data->pending.opaque, 1, 1);
    if (region_resource)
      {
         Eina_Tiler *tmp;
@@ -1679,7 +1679,9 @@ _e_comp_wl_surface_cb_input_region_set(struct wl_client *client EINA_UNUSED, str
    if (e_object_is_del(E_OBJECT(ec))) return;
 
    if (ec->comp_data->pending.input)
-     eina_tiler_clear(ec->comp_data->pending.input);
+     eina_tiler_free(ec->comp_data->pending.input);
+   ec->comp_data->pending.input = eina_tiler_new(65535, 65535);
+   eina_tiler_tile_size_set(ec->comp_data->pending.input, 1, 1);
    if (region_resource)
      {
         Eina_Tiler *tmp;
@@ -1692,7 +1694,7 @@ _e_comp_wl_surface_cb_input_region_set(struct wl_client *client EINA_UNUSED, str
    else
      {
         eina_tiler_rect_add(ec->comp_data->pending.input,
-                            &(Eina_Rectangle){0, 0, ec->client.w, ec->client.h});
+                            &(Eina_Rectangle){0, 0, 65535, 65535});
      }
 }
 
@@ -1753,8 +1755,14 @@ _e_comp_wl_surface_destroy(struct wl_resource *resource)
 
    if (!(ec = wl_resource_get_user_data(resource))) return;
 
-   e_pixmap_alias(ec->pixmap, E_PIXMAP_TYPE_WL, wl_resource_get_id(resource));
-   e_object_del(E_OBJECT(ec));
+   if (ec->internal_elm_win)
+     {
+        e_pixmap_alias(ec->pixmap, E_PIXMAP_TYPE_WL, wl_resource_get_id(resource));
+        ec->ignored = 1;
+        if (!e_object_is_del(E_OBJECT(ec)))
+          ec->comp_data->mapped = EINA_FALSE;
+     }
+   else e_object_del(E_OBJECT(ec));
    evas_object_hide(ec->frame);
 }
 
@@ -1820,6 +1828,7 @@ _e_comp_wl_compositor_cb_surface_create(struct wl_client *client, struct wl_reso
    ec->netwm.pid = pid;
    if (client != e_comp_wl->xwl_client)
      ec->internal = pid == getpid();
+   ec->icccm.delete_request |= ec->internal;
 
    /* set reference to pixmap so we can fetch it later */
    DBG("\tUsing Client: %p", ec);
@@ -1901,7 +1910,7 @@ _e_comp_wl_compositor_cb_region_create(struct wl_client *client, struct wl_resou
    DBG("Region Create: %d", wl_resource_get_id(resource));
 
    /* try to create new tiler */
-   if (!(tiler = eina_tiler_new(e_comp->w, e_comp->h)))
+   if (!(tiler = eina_tiler_new(65535, 65535)))
      {
         ERR("Could not create Eina_Tiler");
         wl_resource_post_no_memory(resource);
@@ -2016,8 +2025,6 @@ _e_comp_wl_subsurface_commit_to_cache(E_Client *ec)
 {
    E_Comp_Client_Data *cdata;
    E_Comp_Wl_Subsurf_Data *sdata;
-   Eina_Iterator *itr;
-   Eina_Rectangle *rect;
 
    if (!(cdata = ec->comp_data)) return;
    if (!(sdata = cdata->sub.data)) return;
@@ -2049,17 +2056,11 @@ _e_comp_wl_subsurface_commit_to_cache(E_Client *ec)
    /* cdata->pending.sy = 0; */
    /* cdata->pending.new_attach = EINA_FALSE; */
 
-   /* copy cdata->pending.opaque into sdata->cached.opaque */
-   itr = eina_tiler_iterator_new(cdata->pending.opaque);
-   EINA_ITERATOR_FOREACH(itr, rect)
-     eina_tiler_rect_add(sdata->cached.opaque, rect);
-   eina_iterator_free(itr);
+   sdata->cached.opaque = cdata->pending.opaque;
+   cdata->pending.opaque = NULL;
 
-   /* repeat for input */
-   itr = eina_tiler_iterator_new(cdata->pending.input);
-   EINA_ITERATOR_FOREACH(itr, rect)
-     eina_tiler_rect_add(sdata->cached.input, rect);
-   eina_iterator_free(itr);
+   sdata->cached.input = cdata->pending.input;
+   cdata->pending.input = NULL;
 
    sdata->cached.frames = eina_list_merge(sdata->cached.frames,
                                           cdata->pending.frames);
@@ -2273,7 +2274,7 @@ _e_comp_wl_subsurface_create(E_Client *ec, E_Client *epc, uint32_t id, struct wl
    wl_resource_set_implementation(res, &_e_subsurface_interface, ec,
                                   _e_comp_wl_subsurface_destroy);
 
-   _e_comp_wl_surface_state_init(&sdata->cached, ec->w, ec->h);
+   _e_comp_wl_surface_state_init(&sdata->cached);
 
    /* set subsurface data properties */
    sdata->resource = res;
@@ -2305,6 +2306,8 @@ _e_comp_wl_subsurface_create(E_Client *ec, E_Client *epc, uint32_t id, struct wl
 
    ec->comp_data->surface = surface_resource;
    ec->comp_data->sub.data = sdata;
+   evas_object_layer_set(ec->frame, evas_object_layer_get(epc->frame));
+   evas_object_stack_above(ec->frame, epc->frame);
 
    return EINA_TRUE;
 
@@ -2399,8 +2402,7 @@ _e_comp_wl_client_cb_new(void *data EINA_UNUSED, E_Client *ec)
      }
 
    wl_signal_init(&ec->comp_data->destroy_signal);
-
-   _e_comp_wl_surface_state_init(&ec->comp_data->pending, ec->w, ec->h);
+   _e_comp_wl_surface_state_init(&ec->comp_data->pending);
 
    /* set initial client properties */
    ec->argb = EINA_TRUE;
@@ -2411,7 +2413,7 @@ _e_comp_wl_client_cb_new(void *data EINA_UNUSED, E_Client *ec)
    /* NB: could not find a better place to do this, BUT for internal windows,
     * we need to set delete_request else the close buttons on the frames do
     * basically nothing */
-   if ((ec->internal) || (ec->internal_elm_win))
+   if (ec->internal_elm_win)
      {
         ec->icccm.delete_request = EINA_TRUE;
         ec->override = elm_win_override_get(e_win_evas_win_get(ecore_evas_get(ecore_event_window_match(win))));
@@ -2464,10 +2466,7 @@ _e_comp_wl_client_cb_del(void *data EINA_UNUSED, E_Client *ec)
      wl_resource_destroy(cb);
 
    if (ec->comp_data->surface)
-     {
-        e_pixmap_alias(ec->pixmap, E_PIXMAP_TYPE_WL, wl_resource_get_id(ec->comp_data->surface));
-        wl_resource_set_user_data(ec->comp_data->surface, NULL);
-     }
+     wl_resource_set_user_data(ec->comp_data->surface, NULL);
 
    if (ec->internal_elm_win)
      evas_object_hide(ec->frame);
@@ -2808,6 +2807,15 @@ e_comp_wl_init(void)
      {
         e_error_message_show(_("Enlightenment cannot initialize Ecore_Wl2!\n"));
         return EINA_FALSE;
+     }
+
+   if (E_EFL_VERSION_MINIMUM(1, 18, 99))
+     {
+        E_Comp_Cb wl2_session_recovery_disable;
+
+        wl2_session_recovery_disable = dlsym(NULL, "ecore_wl2_session_recovery_disable");
+        /* Block session recovery for internal windows */
+        if (wl2_session_recovery_disable) wl2_session_recovery_disable();
      }
 
    /* set gl available if we have ecore_evas support */

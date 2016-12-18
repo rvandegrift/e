@@ -29,6 +29,10 @@
        - the anchor of the gadget site changed
       "gadget_site_gravity"
        - the gravity of the gadget site changed
+      "gadget_site_locked"
+       - the gadget site's visibility has been locked (must be visible)
+      "gadget_site_unlocked"
+       - the gadget site's visibility has been unlocked (can be hidden)
  * }
 
  * have E_Menu as event_info
@@ -110,6 +114,7 @@ typedef void (*E_Gadget_Style_Cb)(Evas_Object *owner, Eina_Stringshare *name, Ev
 
 EINTERN void e_gadget_init(void);
 EINTERN void e_gadget_shutdown(void);
+EINTERN void e_gadget_site_rename(const char *name, const char *newname);
 
 E_API Evas_Object *e_gadget_site_add(E_Gadget_Site_Orient orient, const char *name);
 E_API Evas_Object *e_gadget_site_auto_add(E_Gadget_Site_Orient orient, const char *name);
