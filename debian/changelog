@@ -1,9 +1,14 @@
 e17 (0.21.5-1) experimental; urgency=medium
 
+  [ Ross Vandegrift ]
   * Team upload.
   * New upstream release
   * debian/gbp.conf: import & build upstream tarballs
   * debian/rules: only set setuid perms when running binary-arch rules
+
+  [ Andreas Metzler ]
+  * 10_typo_restore_LDFLAGS.diff: Fix typo in configure.ac (upstream), causing
+    empty LDFLAGS.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 18 Dec 2016 09:58:16 -0500
 
