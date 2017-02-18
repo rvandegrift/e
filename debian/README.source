@@ -1,44 +1,25 @@
-Notes on git-buildpackage and new releases
-------------------------------------------
+Notes on git-buildpackage
+-------------------------
 
-For a new release, gbp suggests merging the new tags in the debian
-branch.  For Enlightenment projects, the upstream releases make this
-painful - releases of the previous stable branch often conflict with
-the next stable branch's release.  Solution:
+debian/gbp.conf and debian/watch are setup to make importing new
+upstream tarballs easy.  The config assumes that you have local
+branches named "upstream-tarball" and "pristine-tar" that track the
+remote branches of the same names.  From a fresh clone:
 
-$ git checkout debian/sid
-$ git merge --strategy recursive --strategy-option theirs <next>
+$ git checkout -b upstream-tarball origin/upstream-tarball
+$ git checkout -b pristine-tar origin/pristine-tar
 
-This should produce a tree matching <next>, plus the existing debian/
-subdir.  Sometimes it fails, but since gbp builds the orig.tar.gz file
-from the upstream tag, dpkg-buildpackage will catch the difference,
-complain, and stop.  Solution:
+Now switch back to the release branch and import:
 
-## begin with previous upstream tag, merge new tag
-$ git checkout <prev>
-$ git merge --strategy recursive --strategy-option patience <next>
+$ git checkout debian/experimental
+$ gbp import-orig --uscan
 
-## remove files deleted in new release:
-$ git status -s | grep ^UD | awk '{print $2}' | xargs git rm
+Once the new version is packaged, remember to push these additional
+branches too!
 
-## resolve remaining conflicts in favor of new release:
-$ for i in $(git status -s | grep ^UU | awk '{print $2}'); do
-  git checkout --theirs $i
-  git add $i
-done
-$ git commit
+$ git push origin debian/experimental upstream-tarball pristine-tar
 
-## save a diff between upstream release and git merge results:
-$ git diff ..<next> > ../merge-fixup.diff
-
-## switch to debian branch, and use diff to fix git merge results:
-$ git checkout debian/sid
-$ git merge --strategy recursive --strategy-option patience --no-commit <next>
-$ patch -p1 < ../merge-fixup.diff
-$ git commit
-$ gbp dch --since=<prev-debian> --new-version=<next-debian> debian/
-
- -- Ross Vandegrift <ross@kallisti.us>, Sun, 27 Mar 2016 11:11:56 -0400
+ -- Ross Vandegrift <ross@kallisti.us>, Sat, 18 Feb 2017 14:29:05 -0500
 
 
 Note on eolian-generated symbols
