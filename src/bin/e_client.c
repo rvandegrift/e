@@ -1595,7 +1595,7 @@ _e_client_eval(E_Client *ec)
           }
         e_client_resize_limit(ec, &ec->w, &ec->h);
 
-        if (ec->re_manage)
+        if (ec->re_manage && e_comp_object_frame_exists(ec->frame))
           {
              int x = ec->x, y = ec->y;
              if (ec->x) e_comp_object_frame_xy_adjust(ec->frame, ec->x, 0, &ec->x, NULL);
@@ -4411,7 +4411,7 @@ e_client_act_resize_keyboard(E_Client *ec)
    EINA_SAFETY_ON_NULL_RETURN(ec);
    if (!ec->zone) return;
 
-   ec->resize_mode = E_POINTER_RESIZE_TL;
+   ec->resize_mode = E_POINTER_RESIZE_BR;
    ec->keyboard_resizing = 1;
    if (!e_client_resize_begin(ec))
      {

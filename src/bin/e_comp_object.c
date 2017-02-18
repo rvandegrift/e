@@ -1198,9 +1198,12 @@ _e_comp_intercept_resize(void *data, Evas_Object *obj, int w, int h)
         /* do nothing until client idler loops */
         if (!cw->ec->maximized)
           {
-             cw->ec->w = w, cw->ec->h = h;
-             cw->ec->changes.size = 1;
-             EC_CHANGED(cw->ec);
+             if ((cw->ec->w != w) || (cw->ec->h != h))
+               {
+                  cw->ec->w = w, cw->ec->h = h;
+                  cw->ec->changes.size = 1;
+                  EC_CHANGED(cw->ec);
+               }
           }
         return;
      }
@@ -2430,6 +2433,21 @@ _e_comp_smart_del(Evas_Object *obj)
 }
 
 static void
+_e_comp_object_input_rect_update(E_Comp_Object *cw)
+{
+   int x, y, w, h;
+
+   if (!cw->input_obj) return;
+   x = cw->input_rect.x, y = cw->input_rect.y, w = cw->input_rect.w, h = cw->input_rect.h;
+
+   E_RECTS_CLIP_TO_RECT(x, y, w, h, 0, 0, cw->ec->client.w, cw->ec->client.h);
+   evas_object_geometry_set(cw->input_obj,
+       cw->x + x + (!!cw->frame_object * cw->client_inset.l),
+       cw->y + y + (!!cw->frame_object * cw->client_inset.t),
+       w, h);
+}
+
+static void
 _e_comp_smart_move(Evas_Object *obj, int x, int y)
 {
    Eina_List *l;
@@ -2445,10 +2463,7 @@ _e_comp_smart_move(Evas_Object *obj, int x, int y)
    evas_object_move(cw->clip, 0, 0);
    evas_object_move(cw->effect_obj, x, y);
    if (cw->input_obj)
-     evas_object_geometry_set(cw->input_obj,
-       cw->x + cw->input_rect.x + (!!cw->frame_object * cw->client_inset.l),
-       cw->y + cw->input_rect.y + (!!cw->frame_object * cw->client_inset.t),
-       cw->input_rect.w, cw->input_rect.h);
+     _e_comp_object_input_rect_update(cw);
    /* this gets called once during setup to init coords offscreen and guarantee first move */
    if (e_comp && cw->visible)
      e_comp_shape_queue();
@@ -2493,10 +2508,7 @@ _e_comp_smart_resize(Evas_Object *obj, int w, int h)
         evas_object_resize(cw->effect_obj, w, h);
         if (cw->zoomobj) e_zoomap_child_resize(cw->zoomobj, pw, ph);
         if (cw->input_obj)
-          evas_object_geometry_set(cw->input_obj,
-            cw->x + cw->input_rect.x + (!!cw->frame_object * cw->client_inset.l),
-            cw->y + cw->input_rect.y + (!!cw->frame_object * cw->client_inset.t),
-            cw->input_rect.w, cw->input_rect.h);
+          _e_comp_object_input_rect_update(cw);
         /* resize render update tiler */
         if (!first)
           {
@@ -3123,7 +3135,6 @@ e_comp_object_input_area_set(Evas_Object *obj, int x, int y, int w, int h)
    API_ENTRY;
 
    //INF("%d,%d %dx%d", x, y, w, h);
-   E_RECTS_CLIP_TO_RECT(x, y, w, h, 0, 0, cw->ec->client.w, cw->ec->client.h);
    if ((cw->input_rect.x == x) && (cw->input_rect.y == y) &&
        (cw->input_rect.w == w) && (cw->input_rect.h == h)) return;
    EINA_RECTANGLE_SET(&cw->input_rect, x, y, w, h);
@@ -3138,9 +3149,7 @@ e_comp_object_input_area_set(Evas_Object *obj, int x, int y, int w, int h)
              evas_object_clip_set(cw->input_obj, cw->clip);
              evas_object_smart_member_add(cw->input_obj, obj);
           }
-        evas_object_geometry_set(cw->input_obj,
-          cw->ec->client.x + (!!cw->frame_object * cw->client_inset.l) + x,
-          cw->ec->client.y + (!!cw->frame_object * cw->client_inset.t) + y, w, h);
+        _e_comp_object_input_rect_update(cw);
         evas_object_pass_events_set(cw->obj, 1);
         if (cw->visible) evas_object_show(cw->input_obj);
      }
@@ -3871,7 +3880,7 @@ e_comp_object_dirty(Evas_Object *obj)
 E_API Eina_Bool
 e_comp_object_render(Evas_Object *obj)
 {
-   Eina_Iterator *it;
+   Eina_Iterator *it = NULL;
    Eina_Rectangle *r;
    Eina_List *l;
    Evas_Object *o;
@@ -3960,8 +3969,8 @@ e_comp_object_render(Evas_Object *obj)
         RENDER_DEBUG("UPDATE [%p]: %d %d %dx%d -- pix = %p", cw->ec, r->x, r->y, r->w, r->h, pix);
      }
    if (!it) pix = NULL;
-   eina_iterator_free(it);
 end:
+   eina_iterator_free(it);
    evas_object_image_data_set(cw->obj, cw->blanked ? NULL : pix);
    _e_comp_object_alpha_set(cw);
 

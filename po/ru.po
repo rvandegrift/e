@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Enlightenment 0.17\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2016-12-08 11:34+1030\n"
+"POT-Creation-Date: 2017-02-15 14:06+1030\n"
 "PO-Revision-Date: 2014-09-02 19:30+0400\n"
 "Last-Translator: Игорь Мурзов <e-mail@date.by>\n"
 "Language-Team: ru <enlightenment-intl@lists.sourceforge.net>\n"
@@ -1659,7 +1659,7 @@ msgid "Eject"
 msgstr "Извлечь"
 
 #: src/bin/e_fm.c:9362 src/bin/e_int_client_remember.c:803
-#: src/modules/ibar/e_mod_main.c:1590
+#: src/modules/ibar/e_mod_main.c:1599
 msgid "Properties"
 msgstr "Свойства"
 
@@ -2729,11 +2729,11 @@ msgstr "Запрос позиции"
 #: src/modules/everything/evry_gadget.c:497
 #: src/modules/everything/evry_gadget.c:679
 #: src/modules/everything/evry_plug_settings.c:183
-#: src/modules/ibar/e_mod_main.c:495 src/modules/ibar/e_mod_main.c:1583
+#: src/modules/ibar/e_mod_main.c:497 src/modules/ibar/e_mod_main.c:1592
 #: src/modules/ibox/e_mod_main.c:356 src/modules/ibox/e_mod_main.c:722
 #: src/modules/mixer/e_mod_main.c:525 src/modules/music-control/ui.c:277
 #: src/modules/packagekit/e_mod_main.c:47 src/modules/pager/e_mod_main.c:885
-#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:770
+#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:775
 #: src/modules/temperature/e_mod_main.c:230
 #: src/modules/tiling/e_mod_tiling.c:1718 src/modules/wizard/page_150.c:31
 #: src/modules/xkbswitch/e_mod_main.c:315
@@ -4407,7 +4407,7 @@ msgid "Rename Shelf"
 msgstr "Переименовать полку"
 
 #: src/bin/e_shelf.c:2353 src/modules/conf_shelves/e_int_config_shelf.c:145
-#: src/modules/ibar/e_mod_main.c:489 src/modules/ibar/e_mod_main.c:1577
+#: src/modules/ibar/e_mod_main.c:491 src/modules/ibar/e_mod_main.c:1586
 msgid "Contents"
 msgstr "Содержимое"
 
@@ -4881,7 +4881,7 @@ msgstr "Добавить в избранное"
 msgid "Go up a Directory"
 msgstr "Каталог вверх"
 
-#: src/modules/appmenu/e_mod_main.c:88
+#: src/modules/appmenu/e_mod_main.c:89
 msgid "Application Menu"
 msgstr "Меню управления приложениями"
 
@@ -8971,28 +8971,28 @@ msgstr ""
 msgid "Are you sure you want to delete this bar source?"
 msgstr "Вы действительно хотите удалить источник этого пространства?"
 
-#: src/modules/ibar/e_mod_main.c:368 src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:370 src/modules/ibar/e_mod_main.c:2845
 msgid "IBar"
 msgstr "IBar"
 
-#: src/modules/ibar/e_mod_main.c:478 src/modules/ibar/e_mod_main.c:1566
+#: src/modules/ibar/e_mod_main.c:480 src/modules/ibar/e_mod_main.c:1575
 msgid "Create new Icon"
 msgstr "Создать новый значок"
 
-#: src/modules/ibar/e_mod_main.c:1597
+#: src/modules/ibar/e_mod_main.c:1606
 msgid "Add to bar"
 msgstr "Добавить на панель"
 
-#: src/modules/ibar/e_mod_main.c:1603
+#: src/modules/ibar/e_mod_main.c:1612
 msgid "Remove from bar"
 msgstr "Удалить с панели"
 
-#: src/modules/ibar/e_mod_main.c:1609
+#: src/modules/ibar/e_mod_main.c:1618
 #, c-format
 msgid "Icon %s"
 msgstr "Значок %s"
 
-#: src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:2845
 msgid "Focus IBar"
 msgstr "Фокусирование IBar"
 
@@ -10044,7 +10044,7 @@ msgstr "%1.0f пикс."
 msgid "Item height"
 msgstr "Высота элементов"
 
-#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:777
+#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:782
 msgid "Tasks"
 msgstr "Задачи"
 

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eo\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2016-12-08 11:34+1030\n"
+"POT-Creation-Date: 2017-02-15 14:06+1030\n"
 "PO-Revision-Date: 2014-08-08 12:10+0000\n"
 "Last-Translator: Eliovir <Unknown>\n"
 "Language-Team: Esperanto <kde-i18n-doc@kde.org>\n"
@@ -1661,7 +1661,7 @@ msgid "Eject"
 msgstr "Elĵeti"
 
 #: src/bin/e_fm.c:9362 src/bin/e_int_client_remember.c:803
-#: src/modules/ibar/e_mod_main.c:1590
+#: src/modules/ibar/e_mod_main.c:1599
 msgid "Properties"
 msgstr "Ecoj"
 
@@ -2723,11 +2723,11 @@ msgstr "Peti pozicion"
 #: src/modules/everything/evry_gadget.c:497
 #: src/modules/everything/evry_gadget.c:679
 #: src/modules/everything/evry_plug_settings.c:183
-#: src/modules/ibar/e_mod_main.c:495 src/modules/ibar/e_mod_main.c:1583
+#: src/modules/ibar/e_mod_main.c:497 src/modules/ibar/e_mod_main.c:1592
 #: src/modules/ibox/e_mod_main.c:356 src/modules/ibox/e_mod_main.c:722
 #: src/modules/mixer/e_mod_main.c:525 src/modules/music-control/ui.c:277
 #: src/modules/packagekit/e_mod_main.c:47 src/modules/pager/e_mod_main.c:885
-#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:770
+#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:775
 #: src/modules/temperature/e_mod_main.c:230
 #: src/modules/tiling/e_mod_tiling.c:1718 src/modules/wizard/page_150.c:31
 #: src/modules/xkbswitch/e_mod_main.c:315
@@ -4405,7 +4405,7 @@ msgid "Rename Shelf"
 msgstr "Alinomi breton"
 
 #: src/bin/e_shelf.c:2353 src/modules/conf_shelves/e_int_config_shelf.c:145
-#: src/modules/ibar/e_mod_main.c:489 src/modules/ibar/e_mod_main.c:1577
+#: src/modules/ibar/e_mod_main.c:491 src/modules/ibar/e_mod_main.c:1586
 msgid "Contents"
 msgstr "Enhavo"
 
@@ -4867,7 +4867,7 @@ msgstr "Aldoni al Preferata Menuo"
 msgid "Go up a Directory"
 msgstr "Iri al Patra Dosierujo"
 
-#: src/modules/appmenu/e_mod_main.c:88
+#: src/modules/appmenu/e_mod_main.c:89
 msgid "Application Menu"
 msgstr "Aplikaĵomenuo"
 
@@ -8928,28 +8928,28 @@ msgstr ""
 msgid "Are you sure you want to delete this bar source?"
 msgstr "Ĉu vi certas, ke vi deziras forigi tiun bar-fonton?"
 
-#: src/modules/ibar/e_mod_main.c:368 src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:370 src/modules/ibar/e_mod_main.c:2845
 msgid "IBar"
 msgstr "IBar"
 
-#: src/modules/ibar/e_mod_main.c:478 src/modules/ibar/e_mod_main.c:1566
+#: src/modules/ibar/e_mod_main.c:480 src/modules/ibar/e_mod_main.c:1575
 msgid "Create new Icon"
 msgstr "Krei novan piktogramon"
 
-#: src/modules/ibar/e_mod_main.c:1597
+#: src/modules/ibar/e_mod_main.c:1606
 msgid "Add to bar"
 msgstr "Aldoni en breton"
 
-#: src/modules/ibar/e_mod_main.c:1603
+#: src/modules/ibar/e_mod_main.c:1612
 msgid "Remove from bar"
 msgstr "Forigi el breto"
 
-#: src/modules/ibar/e_mod_main.c:1609
+#: src/modules/ibar/e_mod_main.c:1618
 #, c-format
 msgid "Icon %s"
 msgstr "Piktogramo %s"
 
-#: src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:2845
 msgid "Focus IBar"
 msgstr ""
 
@@ -9953,7 +9953,7 @@ msgstr "%1.0f rast"
 msgid "Item height"
 msgstr "Era alto"
 
-#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:777
+#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:782
 msgid "Tasks"
 msgstr "Taskoj"
 

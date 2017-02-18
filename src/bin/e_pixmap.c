@@ -64,6 +64,8 @@ struct _E_Pixmap
 
 #ifdef HAVE_WAYLAND
 
+double wayland_time_base;
+
 static void
 _e_pixmap_cb_deferred_buffer_destroy(struct wl_listener *listener, void *data EINA_UNUSED)
 {
@@ -342,7 +344,10 @@ e_pixmap_new(E_Pixmap_Type type, ...)
                }
           }
         else
-          pixmaps[type] = eina_hash_int64_new((Eina_Free_Cb)_e_pixmap_free);
+          {
+             pixmaps[type] = eina_hash_int64_new((Eina_Free_Cb)_e_pixmap_free);
+             wayland_time_base = ecore_time_get();
+          }
         cp = _e_pixmap_new(type);
         cp->win = id;
         eina_hash_add(pixmaps[type], &id, cp);
@@ -452,11 +457,6 @@ e_pixmap_refresh(E_Pixmap *cp)
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(cp, EINA_FALSE);
 
-   if (!cp->usable)
-     {
-        cp->failures++;
-        return EINA_FALSE;
-     }
    if (!cp->dirty) return EINA_TRUE;
    switch (cp->type)
      {
@@ -467,6 +467,11 @@ e_pixmap_refresh(E_Pixmap *cp)
            int pw, ph;
            E_Comp_X_Client_Data *cd = NULL;
 
+           if (!cp->usable)
+             {
+                cp->failures++;
+                return EINA_FALSE;
+             }
            pixmap = ecore_x_composite_name_window_pixmap_get(cp->parent ?: (Ecore_X_Window)cp->win);
            if (cp->client)
              {
@@ -799,7 +804,8 @@ e_pixmap_image_clear(E_Pixmap *cp, Eina_Bool cache)
              cd->frames = NULL;
              EINA_LIST_FREE(free_list, cb)
                {
-                  wl_callback_send_done(cb, ecore_time_unix_get() * 1000);
+                  double t = ecore_time_get() - wayland_time_base;
+                  wl_callback_send_done(cb, t * 1000);
                   wl_resource_destroy(cb);
                }
           }

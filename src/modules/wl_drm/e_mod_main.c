@@ -502,30 +502,26 @@ _drm2_randr_create(void)
                          s->config.geom.w, s->config.geom.h);
                }
 
-             /* TODO: cannot support rotations until we support planes
-              * and we cannot support planes until Atomic support is in */
-
              s->info.can_rot_0 = EINA_FALSE;
              s->info.can_rot_90 = EINA_FALSE;
              s->info.can_rot_180 = EINA_FALSE;
              s->info.can_rot_270 = EINA_FALSE;
 
-/* # if (EFL_VERSION_MAJOR > 1) || (EFL_VERSION_MINOR >= 18) */
-/*              unsigned int rotations; */
+# if (EFL_VERSION_MAJOR > 1) || (EFL_VERSION_MINOR >= 18)
+             int rotations;
 
-/*              rotations = */
-/*                ecore_drm_output_supported_rotations_get(output, */
-/*                                                         ECORE_DRM_PLANE_TYPE_PRIMARY); */
+             rotations =
+               ecore_drm2_output_supported_rotations_get(output);
 
-/*              if (rotations & ECORE_DRM_PLANE_ROTATION_NORMAL) */
-/*                s->info.can_rot_0 = EINA_TRUE; */
-/*              if (rotations & ECORE_DRM_PLANE_ROTATION_90) */
-/*                s->info.can_rot_90 = EINA_TRUE; */
-/*              if (rotations & ECORE_DRM_PLANE_ROTATION_180) */
-/*                s->info.can_rot_180 = EINA_TRUE; */
-/*              if (rotations & ECORE_DRM_PLANE_ROTATION_270) */
-/*                s->info.can_rot_270 = EINA_TRUE; */
-/* # endif */
+             if (rotations & ECORE_DRM2_ROTATION_NORMAL)
+               s->info.can_rot_0 = EINA_TRUE;
+             if (rotations & ECORE_DRM2_ROTATION_90)
+               s->info.can_rot_90 = EINA_TRUE;
+             if (rotations & ECORE_DRM2_ROTATION_180)
+               s->info.can_rot_180 = EINA_TRUE;
+             if (rotations & ECORE_DRM2_ROTATION_270)
+               s->info.can_rot_270 = EINA_TRUE;
+# endif
 
              if (cs)
                {
@@ -683,6 +679,20 @@ _drm2_randr_apply(void)
 
         /* TODO: cannot support rotations until we support planes
          * and we cannot support planes until Atomic support is in */
+# if (EFL_VERSION_MAJOR > 1) || (EFL_VERSION_MINOR >= 18)
+        int orient;
+
+        if (s->config.rotation == 0)
+          orient = ECORE_DRM2_ROTATION_NORMAL;
+        else if (s->config.rotation == 90)
+          orient = ECORE_DRM2_ROTATION_90;
+        else if (s->config.rotation == 180)
+          orient = ECORE_DRM2_ROTATION_180;
+        else if (s->config.rotation == 270)
+          orient = ECORE_DRM2_ROTATION_270;
+
+        ecore_drm2_output_rotation_set(output, orient);
+# endif
 
         if (s->config.priority == top_priority)
           _drm2_output_primary_set(outputs, output);
@@ -788,12 +798,27 @@ _drm2_read_pixels(E_Comp_Wl_Output *output, void *pixels)
    out = ecore_drm2_output_find(dev, output->x, output->y);
    if (!out) return;
 
-   fb = ecore_drm2_output_next_fb_get(out);
-   if (!fb)
+#ifdef EFL_VERSION_1_19
+   fb = ecore_drm2_output_latest_fb_get(out);
+   if (!fb) return;
+#else
+   if (E_EFL_VERSION_MINIMUM(1, 18, 99))
      {
-        fb = ecore_drm2_output_current_fb_get(out);
+        void *(*fn)(void*) = dlsym(NULL, "ecore_drm2_output_latest_fb_get");
+        if (!fn) return;
+        fb = fn(out);
         if (!fb) return;
      }
+   else
+     {
+        fb = ecore_drm2_output_next_fb_get(out);
+        if (!fb)
+          {
+             fb = ecore_drm2_output_current_fb_get(out);
+             if (!fb) return;
+          }
+     }
+#endif
 
    data = ecore_drm2_fb_data_get(fb);
    fstride = ecore_drm2_fb_stride_get(fb);

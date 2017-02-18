@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2016-12-08 11:34+1030\n"
+"POT-Creation-Date: 2017-02-15 14:06+1030\n"
 "PO-Revision-Date: 2010-01-07 07:56+0000\n"
 "Last-Translator: René Pärts <Unknown>\n"
 "Language-Team: Estonian <et@li.org>\n"
@@ -1849,7 +1849,7 @@ msgid "Eject"
 msgstr "Eject"
 
 #: src/bin/e_fm.c:9362 src/bin/e_int_client_remember.c:803
-#: src/modules/ibar/e_mod_main.c:1590
+#: src/modules/ibar/e_mod_main.c:1599
 #, fuzzy
 msgid "Properties"
 msgstr "omadused"
@@ -3061,11 +3061,11 @@ msgstr "taotlus seisukoha"
 #: src/modules/everything/evry_gadget.c:497
 #: src/modules/everything/evry_gadget.c:679
 #: src/modules/everything/evry_plug_settings.c:183
-#: src/modules/ibar/e_mod_main.c:495 src/modules/ibar/e_mod_main.c:1583
+#: src/modules/ibar/e_mod_main.c:497 src/modules/ibar/e_mod_main.c:1592
 #: src/modules/ibox/e_mod_main.c:356 src/modules/ibox/e_mod_main.c:722
 #: src/modules/mixer/e_mod_main.c:525 src/modules/music-control/ui.c:277
 #: src/modules/packagekit/e_mod_main.c:47 src/modules/pager/e_mod_main.c:885
-#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:770
+#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:775
 #: src/modules/temperature/e_mod_main.c:230
 #: src/modules/tiling/e_mod_tiling.c:1718 src/modules/wizard/page_150.c:31
 #: src/modules/xkbswitch/e_mod_main.c:315
@@ -4803,7 +4803,7 @@ msgid "Rename Shelf"
 msgstr "Nimeta fail"
 
 #: src/bin/e_shelf.c:2353 src/modules/conf_shelves/e_int_config_shelf.c:145
-#: src/modules/ibar/e_mod_main.c:489 src/modules/ibar/e_mod_main.c:1577
+#: src/modules/ibar/e_mod_main.c:491 src/modules/ibar/e_mod_main.c:1586
 #, fuzzy
 msgid "Contents"
 msgstr "sisu"
@@ -5290,7 +5290,7 @@ msgstr "Lisa eelistustesse"
 msgid "Go up a Directory"
 msgstr "Mine ülesDirectory"
 
-#: src/modules/appmenu/e_mod_main.c:88
+#: src/modules/appmenu/e_mod_main.c:89
 #, fuzzy
 msgid "Application Menu"
 msgstr "taotlus"
@@ -10011,32 +10011,32 @@ msgstr ""
 msgid "Are you sure you want to delete this bar source?"
 msgstr "Oled sa kindel, et soovite kustutada selle baari allikas."
 
-#: src/modules/ibar/e_mod_main.c:368 src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:370 src/modules/ibar/e_mod_main.c:2845
 #, fuzzy
 msgid "IBar"
 msgstr "IBAR"
 
-#: src/modules/ibar/e_mod_main.c:478 src/modules/ibar/e_mod_main.c:1566
+#: src/modules/ibar/e_mod_main.c:480 src/modules/ibar/e_mod_main.c:1575
 #, fuzzy
 msgid "Create new Icon"
 msgstr "Loo uus Icon"
 
-#: src/modules/ibar/e_mod_main.c:1597
+#: src/modules/ibar/e_mod_main.c:1606
 #, fuzzy
 msgid "Add to bar"
 msgstr "Lisa IBAR"
 
-#: src/modules/ibar/e_mod_main.c:1603
+#: src/modules/ibar/e_mod_main.c:1612
 #, fuzzy
 msgid "Remove from bar"
 msgstr "Eemalda vidin"
 
-#: src/modules/ibar/e_mod_main.c:1609
+#: src/modules/ibar/e_mod_main.c:1618
 #, fuzzy, c-format
 msgid "Icon %s"
 msgstr "ikoonid"
 
-#: src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:2845
 #, fuzzy
 msgid "Focus IBar"
 msgstr "keskenduma"
@@ -11131,7 +11131,7 @@ msgstr ""
 msgid "Item height"
 msgstr "minimaalne kõrgus"
 
-#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:777
+#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:782
 #, fuzzy
 msgid "Tasks"
 msgstr "Taskbar"
