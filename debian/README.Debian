@@ -1,3 +1,13 @@
+systemd activation
+------------------
+
+Upstream provides a systemd unit that can be used to start
+Enlightenment in an X session run directly by systemd.  However, no
+packages in debian currently provide systemd units to accomplish this.
+Upstream's unit is in /usr/share/doc/enlightenment/examples.
+
+ -- Ross Vandegrift <ross@kallisti.us>, Sat, 18 Feb 2017 14:44:41 -0500
+
 Enlightenment DR0.17
 --------------------
 About the menu files
