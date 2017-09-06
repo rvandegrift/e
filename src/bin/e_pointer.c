@@ -459,16 +459,7 @@ _e_pointer_type_set(E_Pointer *ptr, const char *type)
         _e_pointer_hot_update(ptr, x, y);
 
         if (ptr->canvas)
-          {
-             E_Client *ec = e_client_top_get();
-
-             if (ec && (e_comp->comp_type == E_PIXMAP_TYPE_WL) &&
-                 (!e_pixmap_is_x(ec->pixmap)) && ec->override &&
-                 eina_streq(type, "default"))
-               e_pointer_object_set(ptr, ec->frame, 0, 0);
-             else
-               e_pointer_object_set(ptr, NULL, 0, 0);
-          }
+          e_pointer_object_set(ptr, NULL, 0, 0);
         else
           evas_object_show(ptr->o_ptr);
 
@@ -777,8 +768,9 @@ e_pointer_object_set(E_Pointer *ptr, Evas_Object *obj, int x, int y)
 {
    Evas_Object *o;
    E_Client *ec;
+   int px, py;
 
-   ecore_evas_cursor_get(ptr->ee, &o, NULL, NULL, NULL);
+   ecore_evas_cursor_get(ptr->ee, &o, NULL, &px, &py);
    if (o)
      {
         if (o == obj)
@@ -788,19 +780,25 @@ e_pointer_object_set(E_Pointer *ptr, Evas_Object *obj, int x, int y)
           }
         ec = e_comp_object_client_get(o);
         if (ec)
-          ec->hidden = 1;
+          {
+             ec->hidden = 1;
+             evas_object_hide(ec->frame);
+          }
      }
-   ecore_evas_cursor_unset(ptr->ee);
 
    if (obj)
      {
         ec = e_comp_object_client_get(obj);
         if (ec)
           ec->hidden = 1;
+        ecore_evas_cursor_unset(ptr->ee);
         ecore_evas_object_cursor_set(ptr->ee, obj, E_LAYER_MAX - 1, x, y);
      }
-   else
-     ecore_evas_object_cursor_set(ptr->ee, ptr->o_ptr, E_LAYER_MAX - 1, ptr->hot.x, ptr->hot.y);
+   else if ((o != ptr->o_ptr) || (x != px) || (y != py))
+     {
+        ecore_evas_cursor_unset(ptr->ee);
+        ecore_evas_object_cursor_set(ptr->ee, ptr->o_ptr, E_LAYER_MAX - 1, ptr->hot.x, ptr->hot.y);
+     }
 }
 
 E_API void
@@ -811,4 +809,19 @@ e_pointer_window_add(E_Pointer *ptr, Ecore_Window win)
    ptr->win = win;
    _e_pointer_theme_buf(ptr, buf);
    _e_pointer_x11_setup(ptr, buf);
+}
+
+EINTERN void
+e_pointers_freeze_set(Eina_Bool set)
+{
+   Eina_List *l;
+   E_Pointer *ptr;
+
+   EINA_LIST_FOREACH(_ptrs, l, ptr)
+     {
+        if (isedje(ptr->o_ptr))
+          edje_object_play_set(ptr->o_ptr, !set);
+        if (isedje(ptr->buffer_o_ptr))
+          edje_object_play_set(ptr->buffer_o_ptr, !set);
+     }
 }

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-02-15 14:06+1030\n"
+"POT-Creation-Date: 2017-08-01 17:12+0930\n"
 "PO-Revision-Date: 2014-05-14 09:26+0000\n"
 "Last-Translator: Mantas Kriaučiūnas <mantas@akl.lt>\n"
 "Language-Team: Lithuanian Translation team\n"
@@ -76,7 +76,7 @@ msgstr "Nutraukti darbą"
 #: src/bin/e_actions.c:2213 src/bin/e_actions.c:2270 src/bin/e_actions.c:2332
 #: src/bin/e_actions.c:2422 src/bin/e_confirm_dialog.c:53
 #: src/bin/e_desklock.c:592 src/bin/e_fm.c:10669 src/bin/e_fm.c:11022
-#: src/bin/e_screensaver.c:202 src/modules/quickaccess/e_mod_quickaccess.c:1308
+#: src/bin/e_screensaver.c:208 src/modules/quickaccess/e_mod_quickaccess.c:1308
 msgid "No"
 msgstr "Ne"
 
@@ -96,7 +96,7 @@ msgstr ""
 #: src/bin/e_actions.c:2060 src/bin/e_actions.c:2151 src/bin/e_actions.c:2211
 #: src/bin/e_actions.c:2268 src/bin/e_actions.c:2330 src/bin/e_actions.c:2420
 #: src/bin/e_confirm_dialog.c:52 src/bin/e_desklock.c:590 src/bin/e_fm.c:10672
-#: src/bin/e_screensaver.c:200 src/modules/quickaccess/e_mod_quickaccess.c:1308
+#: src/bin/e_screensaver.c:206 src/modules/quickaccess/e_mod_quickaccess.c:1308
 msgid "Yes"
 msgstr "Taip"
 
@@ -108,7 +108,7 @@ msgstr "Atsijungti"
 msgid "Are you sure you want to logout?"
 msgstr "Ar tikrai norite užverti visas programas ir atsijungti?"
 
-#: src/bin/e_actions.c:2207 src/bin/e_sys.c:966
+#: src/bin/e_actions.c:2207 src/bin/e_sys.c:970
 msgid "Power off"
 msgstr "Išjungti"
 
@@ -160,7 +160,7 @@ msgstr "Perkelti į"
 msgid "Window : Actions"
 msgstr "Langas : Veiksmai"
 
-#: src/bin/e_actions.c:2991 src/bin/e_fm.c:11798
+#: src/bin/e_actions.c:2991 src/bin/e_fm.c:11800
 msgid "Move"
 msgstr "Perkelti"
 
@@ -534,7 +534,7 @@ msgstr ""
 #: src/bin/e_actions.c:3315 src/bin/e_actions.c:3317 src/bin/e_actions.c:3319
 #: src/bin/e_actions.c:3324 src/modules/backlight/e_mod_main.c:480
 #: src/modules/conf_display/e_mod_main.c:17
-#: src/modules/conf_randr/e_mod_main.c:35 src/modules/ibox/e_mod_config.c:133
+#: src/modules/conf_randr/e_mod_main.c:36 src/modules/ibox/e_mod_config.c:133
 #: src/modules/shot/e_mod_main.c:750 src/modules/shot/e_mod_main.c:1360
 msgid "Screen"
 msgstr "Ekranas"
@@ -832,12 +832,12 @@ msgstr "Ankstesnis klaviatūros išdėstymas"
 msgid "Set As Background"
 msgstr "Nustatyti kaip foną"
 
-#: src/bin/e_client.c:4354
+#: src/bin/e_client.c:4386
 #, fuzzy
 msgid "Client Error!"
 msgstr "Klaida prijungiant"
 
-#: src/bin/e_client.c:4354
+#: src/bin/e_client.c:4386
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -872,51 +872,51 @@ msgstr "Pasirinkti"
 msgid "Cancel"
 msgstr "Atsisakyti"
 
-#: src/bin/e_comp.c:1063 src/bin/e_comp.c:1069 src/bin/e_comp.c:1075
-#: src/bin/e_comp.c:1375 src/bin/e_configure.c:33
+#: src/bin/e_comp.c:1058 src/bin/e_comp.c:1064 src/bin/e_comp.c:1070
+#: src/bin/e_comp.c:1373 src/bin/e_configure.c:33
 #: src/modules/conf_bindings/e_int_config_mousebindings.c:351
 msgid "Compositor"
 msgstr ""
 
-#: src/bin/e_comp.c:1064
+#: src/bin/e_comp.c:1059
 msgid "Change current window opacity"
 msgstr ""
 
-#: src/bin/e_comp.c:1070
+#: src/bin/e_comp.c:1065
 msgid "Set current window opacity"
 msgstr ""
 
-#: src/bin/e_comp.c:1076
+#: src/bin/e_comp.c:1071
 msgid "Toggle focused client's redirect state"
 msgstr ""
 
-#: src/bin/e_comp.c:1208 src/modules/bluez4/e_mod_main.c:204
+#: src/bin/e_comp.c:1206 src/modules/bluez4/e_mod_main.c:204
 msgid "Visible"
 msgstr "Matomas"
 
-#: src/bin/e_comp.c:1213
+#: src/bin/e_comp.c:1211
 msgid "Focus-Out"
 msgstr ""
 
-#: src/bin/e_comp.c:1218
+#: src/bin/e_comp.c:1216
 msgid "Focus-In"
 msgstr ""
 
-#: src/bin/e_comp.c:1223 src/bin/e_int_client_prop.c:515
+#: src/bin/e_comp.c:1221 src/bin/e_int_client_prop.c:515
 msgid "Hidden"
 msgstr "Slepiamas"
 
-#: src/bin/e_comp.c:1330 src/bin/e_int_client_prop.c:449
+#: src/bin/e_comp.c:1328 src/bin/e_int_client_prop.c:449
 #: src/bin/e_int_client_remember.c:706 src/bin/e_int_config_comp_match.c:369
 #: src/modules/wizard/page_050.c:96
 msgid "Title"
 msgstr "Antraštė"
 
-#: src/bin/e_comp_x.c:568
+#: src/bin/e_comp_x.c:573
 msgid "Compositor Warning"
 msgstr ""
 
-#: src/bin/e_comp_x.c:569
+#: src/bin/e_comp_x.c:574
 msgid ""
 "Your display driver does not support OpenGL, GLSL<br>shaders or no OpenGL "
 "engines were compiled or installed<br>for Evas or Ecore-Evas. Falling back "
@@ -924,11 +924,11 @@ msgid ""
 "capable<br>GPU to use OpenGL with compositing."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5359
+#: src/bin/e_comp_x.c:5411
 msgid "Lock Failed"
 msgstr "Užrakinimas nepavyko"
 
-#: src/bin/e_comp_x.c:5360
+#: src/bin/e_comp_x.c:5412
 msgid ""
 "Locking the desktop failed because some application<br>has grabbed either "
 "the keyboard or the mouse or both<br>and their grab is unable to be broken."
@@ -936,35 +936,35 @@ msgstr ""
 "Nepavyko užrakinti darbalaukio, nes viena programa<br>perėmė klaviatūrą ir/"
 "arba pelę ir šio perėmimo nepavyko apeiti."
 
-#: src/bin/e_comp_x.c:5376
+#: src/bin/e_comp_x.c:5428
 msgid "Another compositor is already running on your display server."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5396
+#: src/bin/e_comp_x.c:5448
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
 "This is needed for Enlightenment to function."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5522
+#: src/bin/e_comp_x.c:5577
 #, fuzzy
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment nepavyko inicijuoti failų tvarkyklės.\n"
 
-#: src/bin/e_comp_x.c:5534
+#: src/bin/e_comp_x.c:5589
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
 "need XRender and XFixes support in X11 and Ecore."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5543
+#: src/bin/e_comp_x.c:5598
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5645
+#: src/bin/e_comp_x.c:5702
 #, fuzzy
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment nepavyko inicijuoti miniatiūrų kūrimo sistemos.\n"
@@ -1024,11 +1024,11 @@ msgstr ""
 #: src/bin/e_config.c:1895 src/bin/e_config.c:2540
 #: src/bin/e_config_dialog.c:274 src/bin/e_desktop_editor.c:892
 #: src/bin/e_desktop_editor.c:956 src/bin/e_entry_dialog.c:65
-#: src/bin/e_exec.c:718 src/bin/e_fm.c:10185 src/bin/e_fm.c:10942
+#: src/bin/e_exec.c:720 src/bin/e_fm.c:10185 src/bin/e_fm.c:10942
 #: src/bin/e_fm_prop.c:634 src/bin/e_import_config_dialog.c:542
 #: src/bin/e_int_client_remember.c:359 src/bin/e_int_client_remember.c:555
 #: src/bin/e_int_config_comp_match.c:583 src/bin/e_module.c:662
-#: src/bin/e_module.c:964 src/bin/e_sys.c:841 src/bin/e_sys.c:883
+#: src/bin/e_module.c:964 src/bin/e_sys.c:845 src/bin/e_sys.c:887
 #: src/bin/e_update.c:70 src/bin/e_utils.c:400 src/modules/bluez4/agent.c:69
 #: src/modules/bluez4/agent.c:139 src/modules/bluez4/agent.c:152
 #: src/modules/conf_bindings/e_int_config_signalbindings.c:623
@@ -1196,7 +1196,7 @@ msgstr ""
 "PAM palaikymas nebuvo įtrauktas į Enlightenment.<br>Darbalaukio užrakinimas "
 "išjungtas."
 
-#: src/bin/e_desklock.c:581 src/bin/e_screensaver.c:191
+#: src/bin/e_desklock.c:581 src/bin/e_screensaver.c:197
 msgid "Activate Presentation Mode?"
 msgstr "Įjungti pristatymo veikseną?"
 
@@ -1207,11 +1207,11 @@ msgid ""
 "power saving?"
 msgstr ""
 
-#: src/bin/e_desklock.c:594 src/bin/e_screensaver.c:204
+#: src/bin/e_desklock.c:594 src/bin/e_screensaver.c:210
 msgid "No, but increase timeout"
 msgstr "Ne, bet padidinkite laukimo laiką"
 
-#: src/bin/e_desklock.c:596 src/bin/e_screensaver.c:206
+#: src/bin/e_desklock.c:596 src/bin/e_screensaver.c:212
 msgid "No, and stop asking"
 msgstr "Ne, ir daugiau neklauskite"
 
@@ -1340,11 +1340,11 @@ msgstr ""
 msgid "Enlightenment was unable to fork a child process:<br><br>%s"
 msgstr ""
 
-#: src/bin/e_exec.c:709
+#: src/bin/e_exec.c:711
 msgid "Application run error"
 msgstr "Programos vykdymo klaida"
 
-#: src/bin/e_exec.c:711
+#: src/bin/e_exec.c:713
 #, c-format
 msgid ""
 "Enlightenment was unable to run the application:<br><br>%s<br><br>The "
@@ -1352,108 +1352,108 @@ msgid ""
 msgstr ""
 "Enlightenment nepavyko paleisti programos: <br><br>%s<br>Programa nestartavo."
 
-#: src/bin/e_exec.c:849
+#: src/bin/e_exec.c:851
 msgid "Application Execution Error"
 msgstr "Programos vykdymo klaida"
 
-#: src/bin/e_exec.c:862 src/bin/e_exec.c:864
+#: src/bin/e_exec.c:864 src/bin/e_exec.c:866
 #, c-format
 msgid "%s stopped running unexpectedly."
 msgstr "%s netikėtai nustojo veikusi."
 
-#: src/bin/e_exec.c:870
+#: src/bin/e_exec.c:872
 #, c-format
 msgid "An exit code of %i was returned from %s."
 msgstr "Išėjimo kodas %i buvo grąžintas iš %s."
 
-#: src/bin/e_exec.c:878
+#: src/bin/e_exec.c:880
 #, c-format
 msgid "%s was interrupted by an Interrupt Signal."
 msgstr "%s vykdymą pertraukė petraukčių signalas."
 
-#: src/bin/e_exec.c:881
+#: src/bin/e_exec.c:883
 #, c-format
 msgid "%s was interrupted by a Quit Signal."
 msgstr "%s vykdymą pertraukė baigimo signalas."
 
-#: src/bin/e_exec.c:885
+#: src/bin/e_exec.c:887
 #, c-format
 msgid "%s was interrupted by an Abort Signal."
 msgstr "%s vykdymą pertraukė priešlaikinės baigties signalas."
 
-#: src/bin/e_exec.c:888
+#: src/bin/e_exec.c:890
 #, c-format
 msgid "%s was interrupted by a Floating Point Error."
 msgstr "%s vykdymą pertraukė slankiojo kablelio klaida."
 
-#: src/bin/e_exec.c:892
+#: src/bin/e_exec.c:894
 #, c-format
 msgid "%s was interrupted by an Uninterruptable Kill Signal."
 msgstr "%s vykdymą pertraukė nepertraukiamas priverstinio išjungimo signalas."
 
-#: src/bin/e_exec.c:896
+#: src/bin/e_exec.c:898
 #, c-format
 msgid "%s was interrupted by a Segmentation Fault."
 msgstr "%s vykdymą pertraukė segmentavimo klaida."
 
-#: src/bin/e_exec.c:900
+#: src/bin/e_exec.c:902
 #, c-format
 msgid "%s was interrupted by a Broken Pipe."
 msgstr "%s vykdymą pertraukė komandų grandinės klaida."
 
-#: src/bin/e_exec.c:903
+#: src/bin/e_exec.c:905
 #, c-format
 msgid "%s was interrupted by a Termination Signal."
 msgstr "%s vykdymą pertraukė baigimo signalas."
 
-#: src/bin/e_exec.c:907
+#: src/bin/e_exec.c:909
 #, c-format
 msgid "%s was interrupted by a Bus Error."
 msgstr "%s vykdymą pertraukė magistralės klaida."
 
-#: src/bin/e_exec.c:910
+#: src/bin/e_exec.c:912
 #, c-format
 msgid "%s was interrupted by the signal number %i."
 msgstr "%s vykdymą pertraukė signalas nr. %i."
 
-#: src/bin/e_exec.c:966
+#: src/bin/e_exec.c:968
 msgid ""
 "***The remaining output has been truncated. Save the output to view.***\n"
 msgstr ""
 "***Likę rezultatai buvo atmesti. Norėdami juos peržiūrėti išsaugokite "
 "rezultatus.***\n"
 
-#: src/bin/e_exec.c:1025 src/bin/e_exec.c:1103 src/bin/e_exec.c:1110
+#: src/bin/e_exec.c:1027 src/bin/e_exec.c:1105 src/bin/e_exec.c:1112
 msgid "Error Logs"
 msgstr "Klaidų žurnalas"
 
-#: src/bin/e_exec.c:1031 src/bin/e_exec.c:1111
+#: src/bin/e_exec.c:1033 src/bin/e_exec.c:1113
 msgid "There was no error message."
 msgstr "Klaidos pranešimo nebuvo."
 
-#: src/bin/e_exec.c:1035 src/bin/e_exec.c:1118
+#: src/bin/e_exec.c:1037 src/bin/e_exec.c:1120
 msgid "Save This Message"
 msgstr "Išsaugoti šį pranešimą"
 
-#: src/bin/e_exec.c:1040 src/bin/e_exec.c:1043 src/bin/e_exec.c:1123
-#: src/bin/e_exec.c:1126
+#: src/bin/e_exec.c:1042 src/bin/e_exec.c:1045 src/bin/e_exec.c:1125
+#: src/bin/e_exec.c:1128
 #, c-format
 msgid "This error log will be saved as %s/%s.log"
 msgstr "Šis klaidų žurnalas bus išsaugotas kaip %s/%s.log"
 
-#: src/bin/e_exec.c:1069
+#: src/bin/e_exec.c:1071
 msgid "Error Information"
 msgstr "Informacija apie klaidą"
 
-#: src/bin/e_exec.c:1077
+#: src/bin/e_exec.c:1079
 msgid "Error Signal Information"
 msgstr "Informacija apie klaidos signalą"
 
-#: src/bin/e_exec.c:1087 src/bin/e_exec.c:1094
+#: src/bin/e_exec.c:1089 src/bin/e_exec.c:1096
 msgid "Output Data"
 msgstr "Išvedimo duomenys"
 
-#: src/bin/e_exec.c:1095
+#: src/bin/e_exec.c:1097
 msgid "There was no output."
 msgstr "Išvedimo nebuvo."
 
@@ -1569,7 +1569,7 @@ msgstr "Veiksmai..."
 msgid "Paste"
 msgstr "Įdėti"
 
-#: src/bin/e_fm.c:9040 src/bin/e_fm.c:9257 src/bin/e_fm.c:11806
+#: src/bin/e_fm.c:9040 src/bin/e_fm.c:9257 src/bin/e_fm.c:11808
 msgid "Link"
 msgstr "Nuoroda"
 
@@ -1577,7 +1577,7 @@ msgstr "Nuoroda"
 msgid "Cut"
 msgstr "Iškirpti"
 
-#: src/bin/e_fm.c:9236 src/bin/e_fm.c:11793
+#: src/bin/e_fm.c:9236 src/bin/e_fm.c:11795
 msgid "Copy"
 msgstr "Kopijuoti"
 
@@ -1769,7 +1769,7 @@ msgstr "Vidinė failų naršyklės klaida :("
 msgid "Retry"
 msgstr "Bandyti vėl"
 
-#: src/bin/e_fm.c:10610 src/bin/e_fm.c:10836 src/bin/e_fm.c:11814
+#: src/bin/e_fm.c:10610 src/bin/e_fm.c:10836 src/bin/e_fm.c:11816
 msgid "Abort"
 msgstr "Nutraukti"
 
@@ -2243,7 +2243,7 @@ msgid "Window"
 msgstr ""
 
 #: src/bin/e_int_client_menu.c:155
-#: src/modules/conf_randr/e_int_config_randr2.c:939
+#: src/modules/conf_randr/e_int_config_randr2.c:940
 #, fuzzy
 msgid "Align"
 msgstr "Iškylančiojo lango lygiavimas"
@@ -2537,7 +2537,7 @@ msgstr ""
 #: src/modules/conf_performance/e_int_config_powermanagement.c:196
 #: src/modules/conf_randr/e_int_config_randr2.c:434
 #: src/modules/conf_randr/e_int_config_randr2.c:651
-#: src/modules/conf_randr/e_int_config_randr2.c:906
+#: src/modules/conf_randr/e_int_config_randr2.c:907
 #: src/modules/conf_theme/e_int_config_fonts.c:703
 #: src/modules/conf_theme/e_int_config_transitions.c:199
 #: src/modules/conf_theme/e_int_config_transitions.c:253
@@ -2551,14 +2551,14 @@ msgstr "Nieko"
 #: src/bin/e_int_client_prop.c:307
 #: src/modules/conf_randr/e_int_config_randr2.c:442
 #: src/modules/conf_randr/e_int_config_randr2.c:695
-#: src/modules/conf_randr/e_int_config_randr2.c:910
+#: src/modules/conf_randr/e_int_config_randr2.c:911
 msgid "Above"
 msgstr ""
 
 #: src/bin/e_int_client_prop.c:311
 #: src/modules/conf_randr/e_int_config_randr2.c:444
 #: src/modules/conf_randr/e_int_config_randr2.c:706
-#: src/modules/conf_randr/e_int_config_randr2.c:911
+#: src/modules/conf_randr/e_int_config_randr2.c:912
 msgid "Below"
 msgstr ""
 
@@ -2689,7 +2689,7 @@ msgstr "Padėties užklausa"
 #: src/modules/packagekit/e_mod_main.c:47 src/modules/pager/e_mod_main.c:885
 #: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:775
 #: src/modules/temperature/e_mod_main.c:230
-#: src/modules/tiling/e_mod_tiling.c:1718 src/modules/wizard/page_150.c:31
+#: src/modules/tiling/e_mod_tiling.c:1728 src/modules/wizard/page_150.c:31
 #: src/modules/xkbswitch/e_mod_main.c:315
 #: src/modules/xkbswitch/e_mod_main.c:349
 msgid "Settings"
@@ -3206,7 +3206,7 @@ msgid "Types"
 msgstr ""
 
 #: src/bin/e_int_config_comp_match.c:466
-#: src/modules/conf_randr/e_int_config_randr2.c:884
+#: src/modules/conf_randr/e_int_config_randr2.c:885
 msgid "On"
 msgstr ""
 
@@ -3388,7 +3388,7 @@ msgstr "Programos"
 #: src/modules/conf_window_manipulation/e_mod_main.c:17
 #: src/modules/conf_window_remembers/e_mod_main.c:14
 #: src/modules/everything/evry_plug_windows.c:428
-#: src/modules/tiling/e_mod_tiling.c:1471 src/modules/winlist/e_mod_main.c:27
+#: src/modules/tiling/e_mod_tiling.c:1481 src/modules/winlist/e_mod_main.c:27
 msgid "Windows"
 msgstr "Langai"
 
@@ -3560,24 +3560,24 @@ msgstr ""
 msgid "Enlightenment could not create a logging domain!\n"
 msgstr ""
 
-#: src/bin/e_main.c:355
+#: src/bin/e_main.c:339
 msgid "Enlightenment cannot initialize Eet!\n"
 msgstr ""
 
-#: src/bin/e_main.c:364
+#: src/bin/e_main.c:348
 msgid "Enlightenment cannot initialize Ecore!\n"
 msgstr ""
 
-#: src/bin/e_main.c:379
+#: src/bin/e_main.c:363
 #, fuzzy
 msgid "Enlightenment cannot initialize EFX!\n"
 msgstr "Enlightenment nepavyko inicijuoti failų tvarkyklės.\n"
 
-#: src/bin/e_main.c:388
+#: src/bin/e_main.c:372
 msgid "Enlightenment cannot initialize EIO!\n"
 msgstr ""
 
-#: src/bin/e_main.c:400
+#: src/bin/e_main.c:384
 msgid ""
 "Enlightenment cannot set up an exit signal handler.\n"
 "Perhaps you are out of memory?"
@@ -3585,7 +3585,7 @@ msgstr ""
 "Enlightenment nepavyko nustatyti išėjimo signalo doroklės.\n"
 "Galbūt pritrūkote operatyviosios atminties?"
 
-#: src/bin/e_main.c:407
+#: src/bin/e_main.c:391
 msgid ""
 "Enlightenment cannot set up a HUP signal handler.\n"
 "Perhaps you are out of memory?"
@@ -3593,7 +3593,7 @@ msgstr ""
 "Enlightenment nepavyko nustatyti HUP signalo doroklės.\n"
 "Galbūt pritrūkote operatyviosios atminties?"
 
-#: src/bin/e_main.c:414
+#: src/bin/e_main.c:398
 msgid ""
 "Enlightenment cannot set up a USER signal handler.\n"
 "Perhaps you are out of memory?"
@@ -3601,31 +3601,31 @@ msgstr ""
 "Enlightenment nepavyko nustatyti USER signalo doroklės.\n"
 "Galbūt pritrūkote operatyviosios atminties?"
 
-#: src/bin/e_main.c:423
+#: src/bin/e_main.c:407
 msgid "Enlightenment cannot initialize Ecore_File!\n"
 msgstr ""
 
-#: src/bin/e_main.c:432
+#: src/bin/e_main.c:416
 msgid "Enlightenment cannot initialize Ecore_Con!\n"
 msgstr ""
 
-#: src/bin/e_main.c:441
+#: src/bin/e_main.c:425
 msgid "Enlightenment cannot initialize Ecore_Ipc!\n"
 msgstr ""
 
-#: src/bin/e_main.c:454
+#: src/bin/e_main.c:438
 msgid "Enlightenment cannot initialize Ecore_Evas!\n"
 msgstr ""
 
-#: src/bin/e_main.c:463
+#: src/bin/e_main.c:447
 msgid "Enlightenment cannot initialize Elementary!\n"
 msgstr ""
 
-#: src/bin/e_main.c:474
+#: src/bin/e_main.c:458
 msgid "Enlightenment cannot initialize Emotion!\n"
 msgstr ""
 
-#: src/bin/e_main.c:488
+#: src/bin/e_main.c:472
 #, fuzzy
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Wayland SHM\n"
@@ -3636,7 +3636,7 @@ msgstr ""
 "atvaizdavimo Evas sistemoje. Prašome patikrinti ar Evas ir Ecore palaiko "
 "programinį X11 atvaizdavimo variklį."
 
-#: src/bin/e_main.c:498
+#: src/bin/e_main.c:482
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software X11\n"
 "rendering in Evas. Please check your installation of Evas and\n"
@@ -3646,7 +3646,7 @@ msgstr ""
 "atvaizdavimo Evas sistemoje. Prašome patikrinti ar Evas ir Ecore palaiko "
 "programinį X11 atvaizdavimo variklį."
 
-#: src/bin/e_main.c:507
+#: src/bin/e_main.c:491
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software Buffer\n"
 "rendering in Evas. Please check your installation of Evas and\n"
@@ -3656,11 +3656,11 @@ msgstr ""
 "atvaizdavimo Evas sistemoje. Prašome patikrinti ar Evas ir Ecore palaiko "
 "programinį buferio atvaizdavimo variklį."
 
-#: src/bin/e_main.c:521
+#: src/bin/e_main.c:505
 msgid "Enlightenment cannot initialize E_Intl!\n"
 msgstr ""
 
-#: src/bin/e_main.c:532
+#: src/bin/e_main.c:516
 msgid ""
 "Enlightenment cannot initialize its emergency alert system.\n"
 "Have you set your DISPLAY variable?"
@@ -3668,7 +3668,7 @@ msgstr ""
 "Enlightenment nepavyko inicijuoti avarinio įspėjimo sistemos.\n"
 "Ar nurodėte DISPLAY kintamąjį?"
 
-#: src/bin/e_main.c:544
+#: src/bin/e_main.c:528
 msgid ""
 "Enlightenment cannot create directories in your home directory.\n"
 "Perhaps you have no home directory or the disk is full?"
@@ -3676,19 +3676,19 @@ msgstr ""
 "Enlightenment nepavyko sukurti katalogų Jūsų namų kataloge.\n"
 "Galbūt Jūs neturite namų katalogo arba diske nėra laisvos vietos?"
 
-#: src/bin/e_main.c:554
+#: src/bin/e_main.c:538
 msgid "Enlightenment cannot set up its file registry system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:563
+#: src/bin/e_main.c:547
 msgid "Enlightenment cannot set up its config system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:572
+#: src/bin/e_main.c:576
 msgid "Enlightenment cannot set up its environment.\n"
 msgstr ""
 
-#: src/bin/e_main.c:589
+#: src/bin/e_main.c:593
 msgid ""
 "Enlightenment cannot set up paths for finding files.\n"
 "Perhaps you are out of memory?"
@@ -3696,19 +3696,19 @@ msgstr ""
 "Enlightenment nepavyko nustatyti kelių failų paieškai.\n"
 "Galbūt pritrūkote operatyviosios atminties?"
 
-#: src/bin/e_main.c:606
+#: src/bin/e_main.c:610
 msgid "Enlightenment cannot set up its font system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:619
+#: src/bin/e_main.c:623
 msgid "Enlightenment cannot set up its theme system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:631
+#: src/bin/e_main.c:635
 msgid "Setup Message Bus"
 msgstr ""
 
-#: src/bin/e_main.c:637
+#: src/bin/e_main.c:641
 msgid ""
 "Enlightenment cannot create a dbus session connection.\n"
 "At best this will break many things, at worst it will hard lock your "
@@ -3716,50 +3716,46 @@ msgid ""
 "If you're sure you know what you're doing, export E_NO_DBUS_SESSION=1"
 msgstr ""
 
-#: src/bin/e_main.c:650
+#: src/bin/e_main.c:654
 msgid ""
 "Enlightenment cannot initialize the FDO desktop system.\n"
 "Perhaps you lack permissions on ~/.cache/efreet or are\n"
 "out of memory or disk space?"
 msgstr ""
 
-#: src/bin/e_main.c:659
+#: src/bin/e_main.c:663
 msgid "Starting International Support"
 msgstr "Paleidžiamas internacionalinis palaikymas"
 
-#: src/bin/e_main.c:663
+#: src/bin/e_main.c:667
 msgid "Enlightenment cannot set up its intl system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:676
+#: src/bin/e_main.c:680
 msgid "Setup Actions"
 msgstr "Veiksmų nustatymas"
 
-#: src/bin/e_main.c:680
+#: src/bin/e_main.c:684
 msgid "Enlightenment cannot set up its actions system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:694
+#: src/bin/e_main.c:698
 msgid "Setup Powersave Modes"
 msgstr ""
 
-#: src/bin/e_main.c:698
+#: src/bin/e_main.c:702
 msgid "Enlightenment cannot set up its powersave modes.\n"
 msgstr ""
 
-#: src/bin/e_main.c:705
+#: src/bin/e_main.c:709
 msgid "Setup Screensaver"
 msgstr "Ekrano užsklandos nustatymas"
 
-#: src/bin/e_main.c:709
-msgid "Enlightenment cannot configure the X screensaver.\n"
-msgstr ""
-
-#: src/bin/e_main.c:716
+#: src/bin/e_main.c:712
 msgid "Setup Screens"
 msgstr "Ekranų nustatymas"
 
-#: src/bin/e_main.c:720
+#: src/bin/e_main.c:716
 msgid ""
 "Enlightenment set up window management for all the screens on your system\n"
 "failed. Perhaps another window manager is running?\n"
@@ -3767,206 +3763,206 @@ msgstr ""
 "Enlightenment nepavyko nustatyti langų tvarkymo Jūsų sistemos ekranams. Gal "
 "būt fone veikia kita langų tvarkyklė?\n"
 
-#: src/bin/e_main.c:730
+#: src/bin/e_main.c:726
 msgid "Enlightenment cannot set up its pointer system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:740
+#: src/bin/e_main.c:736
 msgid "Enlightenment cannot set up its scale system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:751
+#: src/bin/e_main.c:747
 msgid "Enlightenment cannot set up its init screen.\n"
 msgstr ""
 
-#: src/bin/e_main.c:775
+#: src/bin/e_main.c:771
 msgid "Setup ACPI"
 msgstr ""
 
-#: src/bin/e_main.c:782
+#: src/bin/e_main.c:778
 msgid "Setup Backlight"
 msgstr ""
 
-#: src/bin/e_main.c:786
+#: src/bin/e_main.c:782
 msgid "Enlightenment cannot configure the backlight.\n"
 msgstr ""
 
-#: src/bin/e_main.c:792
+#: src/bin/e_main.c:788
 msgid "Setup DPMS"
 msgstr "DPMS nustatymas"
 
-#: src/bin/e_main.c:796
+#: src/bin/e_main.c:792
 msgid "Enlightenment cannot configure the DPMS settings.\n"
 msgstr ""
 
-#: src/bin/e_main.c:803
+#: src/bin/e_main.c:799
 msgid "Setup Desklock"
 msgstr "Darbalaukio užrakto nustatymas"
 
-#: src/bin/e_main.c:807
+#: src/bin/e_main.c:803
 msgid "Enlightenment cannot set up its desk locking system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:817
+#: src/bin/e_main.c:813
 msgid "Setup Paths"
 msgstr ""
 
-#: src/bin/e_main.c:823
+#: src/bin/e_main.c:819
 msgid "Setup System Controls"
 msgstr "Sistemos valdymo nustatymas"
 
-#: src/bin/e_main.c:827
+#: src/bin/e_main.c:823
 msgid "Enlightenment cannot initialize the System Command system.\n"
 msgstr "Enlightenment nepavyko inicijuoti sistemos valdymo sistemos.\n"
 
-#: src/bin/e_main.c:834
+#: src/bin/e_main.c:830
 msgid "Setup Execution System"
 msgstr "Vykdymo sistemos nustatymas"
 
-#: src/bin/e_main.c:838
+#: src/bin/e_main.c:834
 msgid "Enlightenment cannot set up its exec system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:848
+#: src/bin/e_main.c:844
 msgid "Setup Filemanager"
 msgstr ""
 
-#: src/bin/e_main.c:852
+#: src/bin/e_main.c:848
 msgid "Enlightenment cannot initialize the File manager.\n"
 msgstr "Enlightenment nepavyko inicijuoti failų tvarkyklės.\n"
 
-#: src/bin/e_main.c:859
+#: src/bin/e_main.c:855
 msgid "Setup Message System"
 msgstr "Pranešimų sistemos nustatymas"
 
-#: src/bin/e_main.c:863
+#: src/bin/e_main.c:859
 msgid "Enlightenment cannot set up its msg system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:870
+#: src/bin/e_main.c:866
 msgid "Setup Grab Input Handling"
 msgstr "Įvesties perėmimo valdymo nustatymas"
 
-#: src/bin/e_main.c:874
+#: src/bin/e_main.c:870
 msgid "Enlightenment cannot set up its grab input handling system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:881
+#: src/bin/e_main.c:877
 msgid "Setup Modules"
 msgstr "Modulių nustatymas"
 
-#: src/bin/e_main.c:885 src/bin/e_main.c:1064
+#: src/bin/e_main.c:881 src/bin/e_main.c:1060
 msgid "Enlightenment cannot set up its module system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:892
+#: src/bin/e_main.c:888
 msgid "Setup Remembers"
 msgstr "Prisiminimų nustatymas"
 
-#: src/bin/e_main.c:896
+#: src/bin/e_main.c:892
 msgid "Enlightenment cannot setup remember settings.\n"
 msgstr ""
 
-#: src/bin/e_main.c:905
+#: src/bin/e_main.c:901
 #, fuzzy
 msgid "Setup Gadgets"
 msgstr "Gadcon nustatymas"
 
-#: src/bin/e_main.c:914
+#: src/bin/e_main.c:910
 msgid "Setup Gadcon"
 msgstr "Gadcon nustatymas"
 
-#: src/bin/e_main.c:918
+#: src/bin/e_main.c:914
 msgid "Enlightenment cannot set up its gadget control system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:925
+#: src/bin/e_main.c:921
 msgid "Setup Toolbars"
 msgstr ""
 
-#: src/bin/e_main.c:929
+#: src/bin/e_main.c:925
 msgid "Enlightenment cannot set up its toolbars.\n"
 msgstr ""
 
-#: src/bin/e_main.c:936
+#: src/bin/e_main.c:932
 msgid "Setup Wallpaper"
 msgstr "Darbalaukio fono nustatymas"
 
-#: src/bin/e_main.c:940
+#: src/bin/e_main.c:936
 msgid "Enlightenment cannot set up its desktop background system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:947
+#: src/bin/e_main.c:943
 msgid "Setup Mouse"
 msgstr "Pelės nustatymas"
 
-#: src/bin/e_main.c:951
+#: src/bin/e_main.c:947
 msgid "Enlightenment cannot configure the mouse settings.\n"
 msgstr ""
 
-#: src/bin/e_main.c:957
+#: src/bin/e_main.c:953
 msgid "Setup Bindings"
 msgstr "Saistymo nustatymas"
 
-#: src/bin/e_main.c:961
+#: src/bin/e_main.c:957
 msgid "Enlightenment cannot set up its bindings system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:968
+#: src/bin/e_main.c:964
 msgid "Setup Thumbnailer"
 msgstr "Miniatiūrų kūrimo sistemos nustatymas"
 
-#: src/bin/e_main.c:972
+#: src/bin/e_main.c:968
 msgid "Enlightenment cannot initialize the Thumbnailing system.\n"
 msgstr "Enlightenment nepavyko inicijuoti miniatiūrų kūrimo sistemos.\n"
 
-#: src/bin/e_main.c:981
+#: src/bin/e_main.c:977
 msgid "Enlightenment cannot initialize the Icon Cache system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:990
+#: src/bin/e_main.c:986
 msgid "Enlightenment cannot initialize the Update system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:997
+#: src/bin/e_main.c:993
 msgid "Setup Desktop Environment"
 msgstr ""
 
-#: src/bin/e_main.c:1001
+#: src/bin/e_main.c:997
 msgid "Enlightenment cannot initialize its desktop environment.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1008
+#: src/bin/e_main.c:1004
 msgid "Setup File Ordering"
 msgstr ""
 
-#: src/bin/e_main.c:1012
+#: src/bin/e_main.c:1008
 msgid "Enlightenment cannot set up its order file system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1023
+#: src/bin/e_main.c:1019
 msgid "Load Modules"
 msgstr "Įkelti modulius"
 
-#: src/bin/e_main.c:1052
+#: src/bin/e_main.c:1048
 #, fuzzy
 msgid "Setup Bryces"
 msgstr "Ekranų nustatymas"
 
-#: src/bin/e_main.c:1060
+#: src/bin/e_main.c:1056
 msgid "Setup Shelves"
 msgstr "Lentynų nustatymas"
 
-#: src/bin/e_main.c:1074
+#: src/bin/e_main.c:1070
 msgid "Almost Done"
 msgstr "Beveik baigta"
 
-#: src/bin/e_main.c:1218
+#: src/bin/e_main.c:1214
 #, fuzzy, c-format
 msgid "Version: %s\n"
 msgstr "Leidimai"
 
-#: src/bin/e_main.c:1227
+#: src/bin/e_main.c:1223
 #, fuzzy, c-format
 msgid ""
 "Options:\n"
@@ -4020,7 +4016,7 @@ msgstr ""
 "\t-i-really-know-what-i-am-doing-and-accept-full-responsibility-for-it\n"
 "\t\tJei Jums reikia šios pagalbos, šis parametras Jums nereikalingas.\n"
 
-#: src/bin/e_main.c:1281
+#: src/bin/e_main.c:1277
 msgid ""
 "You are executing enlightenment directly. This is\n"
 "bad. Please do not execute the \"enlightenment\"\n"
@@ -4030,11 +4026,11 @@ msgid ""
 "before enlightenment itself begins running.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1534
+#: src/bin/e_main.c:1538
 msgid "Testing Format Support"
 msgstr "Tikrinamas formatų palaikymas"
 
-#: src/bin/e_main.c:1538
+#: src/bin/e_main.c:1542
 msgid ""
 "Enlightenment found Evas can't create a buffer canvas. Please check\n"
 "Evas has Software Buffer engine support.\n"
@@ -4042,31 +4038,23 @@ msgstr ""
 "Enlightenment pastebėjo, kad Evas negali sukurti buferio drobės. Prašome "
 "patikrinti ar Evas palaiko programinį buferio variklį.\n"
 
-#: src/bin/e_main.c:1549
+#: src/bin/e_main.c:1560
+#, fuzzy, c-format
 msgid ""
-"Enlightenment found Evas can't load SVG files. Check Evas has SVG loader "
+"Enlightenment found Evas can't load '%s' files. Check Evas has '%s' loader "
 "support.\n"
 msgstr ""
+"Enlightenment pastebėjo, kad Evas negali sukurti buferio drobės. Prašome "
+"patikrinti ar Evas palaiko programinį buferio variklį.\n"
 
-#: src/bin/e_main.c:1559
+#: src/bin/e_main.c:1567
+#, c-format
 msgid ""
-"Enlightenment found Evas can't load JPEG files. Check Evas has JPEG loader "
-"support.\n"
+"Enlightenment cannot access test image for '%s' filetype. Check your install "
+"for setup issues.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1569
-msgid ""
-"Enlightenment found Evas can't load PNG files. Check Evas has PNG loader "
-"support.\n"
-msgstr ""
-
-#: src/bin/e_main.c:1579
-msgid ""
-"Enlightenment found Evas can't load EET files. Check Evas has EET loader "
-"support.\n"
-msgstr ""
-
-#: src/bin/e_main.c:1593
+#: src/bin/e_main.c:1584
 msgid ""
 "Enlightenment found Evas can't load the 'Sans' font. Check Evas has "
 "fontconfig\n"
@@ -4075,19 +4063,19 @@ msgstr ""
 "Enlightenment pastebėjo, kad Evas negali įkelti 'Sans' šrifto. Patikrinkite "
 "ar Evas palaiko fontconfig ir fontconfig sistema apibrėžia 'Sans' šriftą.\n"
 
-#: src/bin/e_main.c:1611
+#: src/bin/e_main.c:1604
 msgid "Enlightenment cannot create a compositor.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1619
+#: src/bin/e_main.c:1612
 msgid "Setup DND"
 msgstr "DND nustatymas"
 
-#: src/bin/e_main.c:1623
+#: src/bin/e_main.c:1616
 msgid "Enlightenment cannot set up its dnd system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1739
+#: src/bin/e_main.c:1733
 #, c-format
 msgid ""
 "Enlightenment crashed early on start and has<br>been restarted. There was an "
@@ -4095,11 +4083,11 @@ msgid ""
 "will not be loaded."
 msgstr ""
 
-#: src/bin/e_main.c:1744 src/bin/e_main.c:1760
+#: src/bin/e_main.c:1738 src/bin/e_main.c:1754
 msgid "Enlightenment crashed early on start and has been restarted"
 msgstr "Enlightenment užstrigo įkrovos metu ir buvo paleistas iš naujo"
 
-#: src/bin/e_main.c:1745
+#: src/bin/e_main.c:1739
 #, c-format
 msgid ""
 "Enlightenment crashed early on start and has been restarted.<br>There was an "
@@ -4107,7 +4095,7 @@ msgid ""
 "will not be loaded."
 msgstr ""
 
-#: src/bin/e_main.c:1753
+#: src/bin/e_main.c:1747
 msgid ""
 "Enlightenment crashed early on start and has<br>been restarted. All modules "
 "have been disabled<br>and will not be loaded to help remove any "
@@ -4120,7 +4108,7 @@ msgstr ""
 "Modulių<br>konfigūracijos langas turėtų leisti<br>vėl pasirinkti norimus "
 "modulius.\n"
 
-#: src/bin/e_main.c:1761
+#: src/bin/e_main.c:1755
 msgid ""
 "Enlightenment crashed early on start and has been restarted.<br>All modules "
 "have been disabled and will not be loaded to help<br>remove any problem "
@@ -4203,7 +4191,7 @@ msgstr ""
 msgid "Enlightenment was unable to fork a child process:<br><br>%s<br>"
 msgstr "Enlightenment nepavyko paleisti poprocesio:<br><br>%s<br>"
 
-#: src/bin/e_screensaver.c:194
+#: src/bin/e_screensaver.c:200
 msgid ""
 "You disabled the screensaver too fast.<br><br>Would you like to enable "
 "<b>presentation</b> mode and temporarily disable screen saver, lock and "
@@ -4335,16 +4323,16 @@ msgstr "Kadrų dažnis"
 msgid "Starting %s"
 msgstr ""
 
-#: src/bin/e_sys.c:502
+#: src/bin/e_sys.c:506
 msgid "Checking System Permissions"
 msgstr "Tikrinami sistemos leidimai"
 
-#: src/bin/e_sys.c:548 src/bin/e_sys.c:559 src/bin/e_sys.c:568
-#: src/bin/e_sys.c:577
+#: src/bin/e_sys.c:552 src/bin/e_sys.c:563 src/bin/e_sys.c:572
+#: src/bin/e_sys.c:581
 msgid "System Check Done"
 msgstr "Sistemos patikrinimas baigtas"
 
-#: src/bin/e_sys.c:645
+#: src/bin/e_sys.c:649
 #, c-format
 msgid ""
 "Logout is taking too long.<br>Some applications refuse to close.<br>Do you "
@@ -4355,35 +4343,35 @@ msgstr ""
 "uždaromos.<br>Ar norite pabaigti seansą<br>prieš tai neišjungiant vykdomų "
 "programų?<br><br>Automatinė seanso pabaiga po %d sekundžių."
 
-#: src/bin/e_sys.c:705
+#: src/bin/e_sys.c:709
 msgid "Logout problems"
 msgstr "Atsijungimo problemos"
 
-#: src/bin/e_sys.c:707
+#: src/bin/e_sys.c:711
 msgid "Logout now"
 msgstr "Atsijungti dabar"
 
-#: src/bin/e_sys.c:709
+#: src/bin/e_sys.c:713
 msgid "Wait longer"
 msgstr "Palaukti"
 
-#: src/bin/e_sys.c:711
+#: src/bin/e_sys.c:715
 msgid "Cancel Logout"
 msgstr "Atšaukti atsijungimą"
 
-#: src/bin/e_sys.c:769
+#: src/bin/e_sys.c:773
 msgid "Logout in progress"
 msgstr "Vyksta atsijungimas"
 
-#: src/bin/e_sys.c:772
+#: src/bin/e_sys.c:776
 msgid "Logout in progress.<br><hilight>Please wait.</hilight>"
 msgstr "Vyksta atsijungimas.<br><hilight>Prašome palaukti</hilight>"
 
-#: src/bin/e_sys.c:802 src/bin/e_sys.c:858
+#: src/bin/e_sys.c:806 src/bin/e_sys.c:862
 msgid "Enlightenment is busy with another request"
 msgstr "Enlightenment užimtas kita užklausa"
 
-#: src/bin/e_sys.c:807
+#: src/bin/e_sys.c:811
 msgid ""
 "Logging out.<br>You cannot perform other system actions<br>once a logout has "
 "begun."
@@ -4391,7 +4379,7 @@ msgstr ""
 "Atsijungiama.<br>Pradėjus atsijungimą negalima vykdyti<br>kitų sistemos "
 "veiksmų."
 
-#: src/bin/e_sys.c:814
+#: src/bin/e_sys.c:818
 #, fuzzy
 msgid ""
 "Powering off.<br>You cannot perform any other system actions<br>once a "
@@ -4399,7 +4387,7 @@ msgid ""
 msgstr ""
 "Išjungiama.<br>Pradėjus išjungimą negalima vykdyti kitų<br>sistemos veiksmų."
 
-#: src/bin/e_sys.c:820
+#: src/bin/e_sys.c:824
 #, fuzzy
 msgid ""
 "Resetting.<br>You cannot perform any other system actions<br>once a reboot "
@@ -4408,7 +4396,7 @@ msgstr ""
 "Paleidžiama iš naujo.<br>Pradėjus paleidimą iš naujo<br>negalima vykdyti "
 "kitų sistemos veiksmų."
 
-#: src/bin/e_sys.c:826
+#: src/bin/e_sys.c:830
 #, fuzzy
 msgid ""
 "Suspending.<br>You cannot perform any other system actions<br>until suspend "
@@ -4417,7 +4405,7 @@ msgstr ""
 "Paleidžiama iš naujo.<br>Pradėjus paleidimą iš naujo<br>negalima vykdyti "
 "kitų sistemos veiksmų."
 
-#: src/bin/e_sys.c:832
+#: src/bin/e_sys.c:836
 #, fuzzy
 msgid ""
 "Hibernating.<br>You cannot perform any other system actions<br>until "
@@ -4426,35 +4414,35 @@ msgstr ""
 "Paleidžiama iš naujo.<br>Pradėjus paleidimą iš naujo<br>negalima vykdyti "
 "kitų sistemos veiksmų."
 
-#: src/bin/e_sys.c:838 src/bin/e_sys.c:880
+#: src/bin/e_sys.c:842 src/bin/e_sys.c:884
 msgid "EEK! This should not happen"
 msgstr "OI! To neturėjo nutikti"
 
-#: src/bin/e_sys.c:864
+#: src/bin/e_sys.c:868
 msgid "Power off failed."
 msgstr "Nepavyko išjungti."
 
-#: src/bin/e_sys.c:868
+#: src/bin/e_sys.c:872
 msgid "Reset failed."
 msgstr "Nepavyko paleisti iš naujo."
 
-#: src/bin/e_sys.c:872
+#: src/bin/e_sys.c:876
 msgid "Suspend failed."
 msgstr "Nepavyko sustabdyti."
 
-#: src/bin/e_sys.c:876
+#: src/bin/e_sys.c:880
 msgid "Hibernate failed."
 msgstr "Nepavyko užmigdyti."
 
-#: src/bin/e_sys.c:969
+#: src/bin/e_sys.c:973
 msgid "Power off.<br><hilight>Please wait.</hilight>"
 msgstr "Išjungiama.<br><hilight>Prašome palaukti</hilight>"
 
-#: src/bin/e_sys.c:1012
+#: src/bin/e_sys.c:1016
 msgid "Resetting"
 msgstr "Paleidžiama iš naujo"
 
-#: src/bin/e_sys.c:1015
+#: src/bin/e_sys.c:1019
 msgid "Resetting.<br><hilight>Please wait.</hilight>"
 msgstr "Paleidžiama iš naujo.<br><hilight>Prašome palaukti</hilight>"
 
@@ -5056,7 +5044,7 @@ msgid "Clock Settings"
 msgstr ""
 
 #: src/modules/clock/e_mod_config.c:83 src/modules/clock/e_mod_main.c:692
-#: src/modules/clock/e_mod_main.c:886
+#: src/modules/clock/e_mod_main.c:900
 msgid "Clock"
 msgstr "Laikrodis"
 
@@ -5126,7 +5114,7 @@ msgstr ""
 msgid "%a, %x"
 msgstr ""
 
-#: src/modules/clock/e_mod_main.c:886
+#: src/modules/clock/e_mod_main.c:900
 msgid "Toggle calendar"
 msgstr ""
 
@@ -6639,29 +6627,34 @@ msgid "Power Management"
 msgstr "Energijos valdymas"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:74
-#: src/modules/conf_randr/e_mod_main.c:40
+#: src/modules/conf_randr/e_mod_main.c:41
 msgid "Screen Setup"
 msgstr ""
 
 #: src/modules/conf_randr/e_int_config_randr2.c:436
 #: src/modules/conf_randr/e_int_config_randr2.c:662
-#: src/modules/conf_randr/e_int_config_randr2.c:907
+#: src/modules/conf_randr/e_int_config_randr2.c:908
 msgid "Clone"
 msgstr ""
 
 #: src/modules/conf_randr/e_int_config_randr2.c:438
 #: src/modules/conf_randr/e_int_config_randr2.c:673
-#: src/modules/conf_randr/e_int_config_randr2.c:908
+#: src/modules/conf_randr/e_int_config_randr2.c:909
 #, fuzzy
 msgid "Left of"
 msgstr "Kairė:"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:440
 #: src/modules/conf_randr/e_int_config_randr2.c:684
-#: src/modules/conf_randr/e_int_config_randr2.c:909
+#: src/modules/conf_randr/e_int_config_randr2.c:910
 #, fuzzy
 msgid "Right of"
 msgstr "Dešinė"
+
+#: src/modules/conf_randr/e_int_config_randr2.c:446
+#, fuzzy
+msgid "Unconfigured"
+msgstr "Konfigūruoti"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:760
 #, fuzzy
@@ -6672,42 +6665,42 @@ msgstr "Išvestis"
 msgid "Laptop lid"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:893
+#: src/modules/conf_randr/e_int_config_randr2.c:894
 msgid "Priority"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:905
+#: src/modules/conf_randr/e_int_config_randr2.c:906
 msgid "Relative"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:919
+#: src/modules/conf_randr/e_int_config_randr2.c:920
 msgid "To"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:959
+#: src/modules/conf_randr/e_int_config_randr2.c:960
 #, fuzzy
 msgid "Use Profile"
 msgstr "Profilis"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:975
+#: src/modules/conf_randr/e_int_config_randr2.c:976
 #, fuzzy
 msgid "Custom Scale"
 msgstr "Pasirinktas paveikslas"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:984
+#: src/modules/conf_randr/e_int_config_randr2.c:985
 #, fuzzy
 msgid "Scale"
 msgstr "Lokalė"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1008
+#: src/modules/conf_randr/e_int_config_randr2.c:1009
 msgid "Restore setup on start"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1017
+#: src/modules/conf_randr/e_int_config_randr2.c:1018
 msgid "Monitor hotplug"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1026
+#: src/modules/conf_randr/e_int_config_randr2.c:1027
 #, fuzzy
 msgid "Lid Events"
 msgstr "Įvykiai"
@@ -9987,42 +9980,42 @@ msgstr ""
 msgid "Tiling Configuration"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1361
+#: src/modules/tiling/e_mod_tiling.c:1371
 msgid "Floating"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1440
-#: src/modules/tiling/e_mod_tiling.c:1473
-#: src/modules/tiling/e_mod_tiling.c:1798
-#: src/modules/tiling/e_mod_tiling.c:1816
+#: src/modules/tiling/e_mod_tiling.c:1450
+#: src/modules/tiling/e_mod_tiling.c:1483
+#: src/modules/tiling/e_mod_tiling.c:1808
+#: src/modules/tiling/e_mod_tiling.c:1826
 msgid "Tiling"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1447
+#: src/modules/tiling/e_mod_tiling.c:1457
 msgid "Toggle floating"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1450
+#: src/modules/tiling/e_mod_tiling.c:1460
 msgid "Move the focused window up"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1452
+#: src/modules/tiling/e_mod_tiling.c:1462
 msgid "Move the focused window down"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1454
+#: src/modules/tiling/e_mod_tiling.c:1464
 msgid "Move the focused window left"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1456
+#: src/modules/tiling/e_mod_tiling.c:1466
 msgid "Move the focused window right"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1459
+#: src/modules/tiling/e_mod_tiling.c:1469
 msgid "Toggle split mode"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1461
+#: src/modules/tiling/e_mod_tiling.c:1471
 msgid "Swap window"
 msgstr ""
 

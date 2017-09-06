@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-02-15 14:06+1030\n"
+"POT-Creation-Date: 2017-08-01 17:12+0930\n"
 "PO-Revision-Date: 2009-09-11 09:46+0000\n"
 "Last-Translator: Ibrahim Elias <imen802003@netscape.net>\n"
 "Language-Team: Malay <ms@li.org>\n"
@@ -76,7 +76,7 @@ msgstr "membunuh"
 #: src/bin/e_actions.c:2213 src/bin/e_actions.c:2270 src/bin/e_actions.c:2332
 #: src/bin/e_actions.c:2422 src/bin/e_confirm_dialog.c:53
 #: src/bin/e_desklock.c:592 src/bin/e_fm.c:10669 src/bin/e_fm.c:11022
-#: src/bin/e_screensaver.c:202 src/modules/quickaccess/e_mod_quickaccess.c:1308
+#: src/bin/e_screensaver.c:208 src/modules/quickaccess/e_mod_quickaccess.c:1308
 msgid "No"
 msgstr "Tidak"
 
@@ -98,7 +98,7 @@ msgstr "Adakah anda pasti mahu keluar?"
 #: src/bin/e_actions.c:2060 src/bin/e_actions.c:2151 src/bin/e_actions.c:2211
 #: src/bin/e_actions.c:2268 src/bin/e_actions.c:2330 src/bin/e_actions.c:2420
 #: src/bin/e_confirm_dialog.c:52 src/bin/e_desklock.c:590 src/bin/e_fm.c:10672
-#: src/bin/e_screensaver.c:200 src/modules/quickaccess/e_mod_quickaccess.c:1308
+#: src/bin/e_screensaver.c:206 src/modules/quickaccess/e_mod_quickaccess.c:1308
 msgid "Yes"
 msgstr "Ya"
 
@@ -112,7 +112,7 @@ msgstr "Logout kini"
 msgid "Are you sure you want to logout?"
 msgstr "Adakah anda pasti untuk log keluar?"
 
-#: src/bin/e_actions.c:2207 src/bin/e_sys.c:966
+#: src/bin/e_actions.c:2207 src/bin/e_sys.c:970
 #, fuzzy
 msgid "Power off"
 msgstr "matikan"
@@ -173,7 +173,7 @@ msgstr "Alihkan"
 msgid "Window : Actions"
 msgstr "Tetingkap ; Tindakan"
 
-#: src/bin/e_actions.c:2991 src/bin/e_fm.c:11798
+#: src/bin/e_actions.c:2991 src/bin/e_fm.c:11800
 msgid "Move"
 msgstr "Alihkan"
 
@@ -616,7 +616,7 @@ msgstr ""
 #: src/bin/e_actions.c:3315 src/bin/e_actions.c:3317 src/bin/e_actions.c:3319
 #: src/bin/e_actions.c:3324 src/modules/backlight/e_mod_main.c:480
 #: src/modules/conf_display/e_mod_main.c:17
-#: src/modules/conf_randr/e_mod_main.c:35 src/modules/ibox/e_mod_config.c:133
+#: src/modules/conf_randr/e_mod_main.c:36 src/modules/ibox/e_mod_config.c:133
 #: src/modules/shot/e_mod_main.c:750 src/modules/shot/e_mod_main.c:1360
 #, fuzzy
 msgid "Screen"
@@ -967,12 +967,12 @@ msgstr ""
 msgid "Set As Background"
 msgstr "Set sebagai latar belakang"
 
-#: src/bin/e_client.c:4354
+#: src/bin/e_client.c:4386
 #, fuzzy
 msgid "Client Error!"
 msgstr "Ralat Gunung"
 
-#: src/bin/e_client.c:4354
+#: src/bin/e_client.c:4386
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -1010,57 +1010,57 @@ msgstr "memilih"
 msgid "Cancel"
 msgstr "membatalkan"
 
-#: src/bin/e_comp.c:1063 src/bin/e_comp.c:1069 src/bin/e_comp.c:1075
-#: src/bin/e_comp.c:1375 src/bin/e_configure.c:33
+#: src/bin/e_comp.c:1058 src/bin/e_comp.c:1064 src/bin/e_comp.c:1070
+#: src/bin/e_comp.c:1373 src/bin/e_configure.c:33
 #: src/modules/conf_bindings/e_int_config_mousebindings.c:351
 #, fuzzy
 msgid "Compositor"
 msgstr "kedudukan"
 
-#: src/bin/e_comp.c:1064
+#: src/bin/e_comp.c:1059
 msgid "Change current window opacity"
 msgstr ""
 
-#: src/bin/e_comp.c:1070
+#: src/bin/e_comp.c:1065
 msgid "Set current window opacity"
 msgstr ""
 
-#: src/bin/e_comp.c:1076
+#: src/bin/e_comp.c:1071
 msgid "Toggle focused client's redirect state"
 msgstr ""
 
-#: src/bin/e_comp.c:1208 src/modules/bluez4/e_mod_main.c:204
+#: src/bin/e_comp.c:1206 src/modules/bluez4/e_mod_main.c:204
 msgid "Visible"
 msgstr ""
 
-#: src/bin/e_comp.c:1213
+#: src/bin/e_comp.c:1211
 #, fuzzy
 msgid "Focus-Out"
 msgstr "memberi tumpuan"
 
-#: src/bin/e_comp.c:1218
+#: src/bin/e_comp.c:1216
 #, fuzzy
 msgid "Focus-In"
 msgstr "memberi tumpuan"
 
-#: src/bin/e_comp.c:1223 src/bin/e_int_client_prop.c:515
+#: src/bin/e_comp.c:1221 src/bin/e_int_client_prop.c:515
 #, fuzzy
 msgid "Hidden"
 msgstr "tersembunyi"
 
-#: src/bin/e_comp.c:1330 src/bin/e_int_client_prop.c:449
+#: src/bin/e_comp.c:1328 src/bin/e_int_client_prop.c:449
 #: src/bin/e_int_client_remember.c:706 src/bin/e_int_config_comp_match.c:369
 #: src/modules/wizard/page_050.c:96
 #, fuzzy
 msgid "Title"
 msgstr "tajuk"
 
-#: src/bin/e_comp_x.c:568
+#: src/bin/e_comp_x.c:573
 #, fuzzy
 msgid "Compositor Warning"
 msgstr "kedudukan"
 
-#: src/bin/e_comp_x.c:569
+#: src/bin/e_comp_x.c:574
 msgid ""
 "Your display driver does not support OpenGL, GLSL<br>shaders or no OpenGL "
 "engines were compiled or installed<br>for Evas or Ecore-Evas. Falling back "
@@ -1068,12 +1068,12 @@ msgid ""
 "capable<br>GPU to use OpenGL with compositing."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5359
+#: src/bin/e_comp_x.c:5411
 #, fuzzy
 msgid "Lock Failed"
 msgstr "kunci Gagal"
 
-#: src/bin/e_comp_x.c:5360
+#: src/bin/e_comp_x.c:5412
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<br>has grabbed either "
@@ -1083,35 +1083,35 @@ msgstr ""
 "ada papan kekunci atau tetikus atau kedua-duanya<br>dan cekau mereka tidak "
 "dapat dipecahkan."
 
-#: src/bin/e_comp_x.c:5376
+#: src/bin/e_comp_x.c:5428
 msgid "Another compositor is already running on your display server."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5396
+#: src/bin/e_comp_x.c:5448
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
 "This is needed for Enlightenment to function."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5522
+#: src/bin/e_comp_x.c:5577
 #, fuzzy
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment"
 
-#: src/bin/e_comp_x.c:5534
+#: src/bin/e_comp_x.c:5589
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
 "need XRender and XFixes support in X11 and Ecore."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5543
+#: src/bin/e_comp_x.c:5598
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5645
+#: src/bin/e_comp_x.c:5702
 #, fuzzy
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment"
@@ -1158,11 +1158,11 @@ msgstr ""
 #: src/bin/e_config.c:1895 src/bin/e_config.c:2540
 #: src/bin/e_config_dialog.c:274 src/bin/e_desktop_editor.c:892
 #: src/bin/e_desktop_editor.c:956 src/bin/e_entry_dialog.c:65
-#: src/bin/e_exec.c:718 src/bin/e_fm.c:10185 src/bin/e_fm.c:10942
+#: src/bin/e_exec.c:720 src/bin/e_fm.c:10185 src/bin/e_fm.c:10942
 #: src/bin/e_fm_prop.c:634 src/bin/e_import_config_dialog.c:542
 #: src/bin/e_int_client_remember.c:359 src/bin/e_int_client_remember.c:555
 #: src/bin/e_int_config_comp_match.c:583 src/bin/e_module.c:662
-#: src/bin/e_module.c:964 src/bin/e_sys.c:841 src/bin/e_sys.c:883
+#: src/bin/e_module.c:964 src/bin/e_sys.c:845 src/bin/e_sys.c:887
 #: src/bin/e_update.c:70 src/bin/e_utils.c:400 src/modules/bluez4/agent.c:69
 #: src/modules/bluez4/agent.c:139 src/modules/bluez4/agent.c:152
 #: src/modules/conf_bindings/e_int_config_signalbindings.c:623
@@ -1363,7 +1363,7 @@ msgid ""
 "No PAM support was built into Enlightenment, so<br>desk locking is disabled."
 msgstr ""
 
-#: src/bin/e_desklock.c:581 src/bin/e_screensaver.c:191
+#: src/bin/e_desklock.c:581 src/bin/e_screensaver.c:197
 #, fuzzy
 msgid "Activate Presentation Mode?"
 msgstr "Aktifkan Mod Persembahan."
@@ -1375,12 +1375,12 @@ msgid ""
 "power saving?"
 msgstr ""
 
-#: src/bin/e_desklock.c:594 src/bin/e_screensaver.c:204
+#: src/bin/e_desklock.c:594 src/bin/e_screensaver.c:210
 #, fuzzy
 msgid "No, but increase timeout"
 msgstr "Tidak, tetapi meningkatkan timeout"
 
-#: src/bin/e_desklock.c:596 src/bin/e_screensaver.c:206
+#: src/bin/e_desklock.c:596 src/bin/e_screensaver.c:212
 #, fuzzy
 msgid "No, and stop asking"
 msgstr "Tidak, dan berhenti mempersoalkan"
@@ -1535,125 +1535,125 @@ msgstr ""
 msgid "Enlightenment was unable to fork a child process:<br><br>%s"
 msgstr ""
 
-#: src/bin/e_exec.c:709
+#: src/bin/e_exec.c:711
 #, fuzzy
 msgid "Application run error"
 msgstr "Permohonan jangka kesilapan"
 
-#: src/bin/e_exec.c:711
+#: src/bin/e_exec.c:713
 #, c-format
 msgid ""
 "Enlightenment was unable to run the application:<br><br>%s<br><br>The "
 "application failed to start."
 msgstr ""
 
-#: src/bin/e_exec.c:849
+#: src/bin/e_exec.c:851
 #, fuzzy
 msgid "Application Execution Error"
 msgstr "Kesalahan permohonan Pelaksanaan"
 
-#: src/bin/e_exec.c:862 src/bin/e_exec.c:864
+#: src/bin/e_exec.c:864 src/bin/e_exec.c:866
 #, c-format
 msgid "%s stopped running unexpectedly."
 msgstr ""
 
-#: src/bin/e_exec.c:870
+#: src/bin/e_exec.c:872
 #, c-format
 msgid "An exit code of %i was returned from %s."
 msgstr ""
 
-#: src/bin/e_exec.c:878
+#: src/bin/e_exec.c:880
 #, c-format
 msgid "%s was interrupted by an Interrupt Signal."
 msgstr ""
 
-#: src/bin/e_exec.c:881
+#: src/bin/e_exec.c:883
 #, c-format
 msgid "%s was interrupted by a Quit Signal."
 msgstr ""
 
-#: src/bin/e_exec.c:885
+#: src/bin/e_exec.c:887
 #, c-format
 msgid "%s was interrupted by an Abort Signal."
 msgstr ""
 
-#: src/bin/e_exec.c:888
+#: src/bin/e_exec.c:890
 #, c-format
 msgid "%s was interrupted by a Floating Point Error."
 msgstr ""
 
-#: src/bin/e_exec.c:892
+#: src/bin/e_exec.c:894
 #, c-format
 msgid "%s was interrupted by an Uninterruptable Kill Signal."
 msgstr ""
 
-#: src/bin/e_exec.c:896
+#: src/bin/e_exec.c:898
 #, c-format
 msgid "%s was interrupted by a Segmentation Fault."
 msgstr ""
 
-#: src/bin/e_exec.c:900
+#: src/bin/e_exec.c:902
 #, c-format
 msgid "%s was interrupted by a Broken Pipe."
 msgstr ""
 
-#: src/bin/e_exec.c:903
+#: src/bin/e_exec.c:905
 #, c-format
 msgid "%s was interrupted by a Termination Signal."
 msgstr ""
 
-#: src/bin/e_exec.c:907
+#: src/bin/e_exec.c:909
 #, c-format
 msgid "%s was interrupted by a Bus Error."
 msgstr ""
 
-#: src/bin/e_exec.c:910
+#: src/bin/e_exec.c:912
 #, c-format
 msgid "%s was interrupted by the signal number %i."
 msgstr ""
 
-#: src/bin/e_exec.c:966
+#: src/bin/e_exec.c:968
 msgid ""
 "***The remaining output has been truncated. Save the output to view.***\n"
 msgstr ""
 
-#: src/bin/e_exec.c:1025 src/bin/e_exec.c:1103 src/bin/e_exec.c:1110
+#: src/bin/e_exec.c:1027 src/bin/e_exec.c:1105 src/bin/e_exec.c:1112
 #, fuzzy
 msgid "Error Logs"
 msgstr "kesilapan Balak"
 
-#: src/bin/e_exec.c:1031 src/bin/e_exec.c:1111
+#: src/bin/e_exec.c:1033 src/bin/e_exec.c:1113
 #, fuzzy
 msgid "There was no error message."
 msgstr "Tiada mesej ralat."
 
-#: src/bin/e_exec.c:1035 src/bin/e_exec.c:1118
+#: src/bin/e_exec.c:1037 src/bin/e_exec.c:1120
 #, fuzzy
 msgid "Save This Message"
 msgstr "Simpan Mesej Ini"
 
-#: src/bin/e_exec.c:1040 src/bin/e_exec.c:1043 src/bin/e_exec.c:1123
-#: src/bin/e_exec.c:1126
+#: src/bin/e_exec.c:1042 src/bin/e_exec.c:1045 src/bin/e_exec.c:1125
+#: src/bin/e_exec.c:1128
 #, c-format
 msgid "This error log will be saved as %s/%s.log"
 msgstr ""
 
-#: src/bin/e_exec.c:1069
+#: src/bin/e_exec.c:1071
 #, fuzzy
 msgid "Error Information"
 msgstr "Maklumat kesilapan"
 
-#: src/bin/e_exec.c:1077
+#: src/bin/e_exec.c:1079
 #, fuzzy
 msgid "Error Signal Information"
 msgstr "Maklumat kesilapan Isyarat"
 
-#: src/bin/e_exec.c:1087 src/bin/e_exec.c:1094
+#: src/bin/e_exec.c:1089 src/bin/e_exec.c:1096
 #, fuzzy
 msgid "Output Data"
 msgstr "output Data"
 
-#: src/bin/e_exec.c:1095
+#: src/bin/e_exec.c:1097
 #, fuzzy
 msgid "There was no output."
 msgstr "Terdapat output tiada."
@@ -1786,7 +1786,7 @@ msgstr "tindakan"
 msgid "Paste"
 msgstr "tampal"
 
-#: src/bin/e_fm.c:9040 src/bin/e_fm.c:9257 src/bin/e_fm.c:11806
+#: src/bin/e_fm.c:9040 src/bin/e_fm.c:9257 src/bin/e_fm.c:11808
 #, fuzzy
 msgid "Link"
 msgstr "link"
@@ -1796,7 +1796,7 @@ msgstr "link"
 msgid "Cut"
 msgstr "potong"
 
-#: src/bin/e_fm.c:9236 src/bin/e_fm.c:11793
+#: src/bin/e_fm.c:9236 src/bin/e_fm.c:11795
 #, fuzzy
 msgid "Copy"
 msgstr "menyalin"
@@ -2023,7 +2023,7 @@ msgstr "Pengurusfail terbuka pada gunung"
 msgid "Retry"
 msgstr "Cuba lagi"
 
-#: src/bin/e_fm.c:10610 src/bin/e_fm.c:10836 src/bin/e_fm.c:11814
+#: src/bin/e_fm.c:10610 src/bin/e_fm.c:10836 src/bin/e_fm.c:11816
 #, fuzzy
 msgid "Abort"
 msgstr "menggugurkan"
@@ -2558,7 +2558,7 @@ msgid "Window"
 msgstr "Menu Tetingkap"
 
 #: src/bin/e_int_client_menu.c:155
-#: src/modules/conf_randr/e_int_config_randr2.c:939
+#: src/modules/conf_randr/e_int_config_randr2.c:940
 #, fuzzy
 msgid "Align"
 msgstr "Enlightenment"
@@ -2884,7 +2884,7 @@ msgstr "Negeri"
 #: src/modules/conf_performance/e_int_config_powermanagement.c:196
 #: src/modules/conf_randr/e_int_config_randr2.c:434
 #: src/modules/conf_randr/e_int_config_randr2.c:651
-#: src/modules/conf_randr/e_int_config_randr2.c:906
+#: src/modules/conf_randr/e_int_config_randr2.c:907
 #: src/modules/conf_theme/e_int_config_fonts.c:703
 #: src/modules/conf_theme/e_int_config_transitions.c:199
 #: src/modules/conf_theme/e_int_config_transitions.c:253
@@ -2899,14 +2899,14 @@ msgstr "Tiada"
 #: src/bin/e_int_client_prop.c:307
 #: src/modules/conf_randr/e_int_config_randr2.c:442
 #: src/modules/conf_randr/e_int_config_randr2.c:695
-#: src/modules/conf_randr/e_int_config_randr2.c:910
+#: src/modules/conf_randr/e_int_config_randr2.c:911
 msgid "Above"
 msgstr ""
 
 #: src/bin/e_int_client_prop.c:311
 #: src/modules/conf_randr/e_int_config_randr2.c:444
 #: src/modules/conf_randr/e_int_config_randr2.c:706
-#: src/modules/conf_randr/e_int_config_randr2.c:911
+#: src/modules/conf_randr/e_int_config_randr2.c:912
 msgid "Below"
 msgstr ""
 
@@ -3064,7 +3064,7 @@ msgstr "Jawatan permintaan"
 #: src/modules/packagekit/e_mod_main.c:47 src/modules/pager/e_mod_main.c:885
 #: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:775
 #: src/modules/temperature/e_mod_main.c:230
-#: src/modules/tiling/e_mod_tiling.c:1718 src/modules/wizard/page_150.c:31
+#: src/modules/tiling/e_mod_tiling.c:1728 src/modules/wizard/page_150.c:31
 #: src/modules/xkbswitch/e_mod_main.c:315
 #: src/modules/xkbswitch/e_mod_main.c:349
 #, fuzzy
@@ -3640,7 +3640,7 @@ msgid "Types"
 msgstr "jenis:"
 
 #: src/bin/e_int_config_comp_match.c:466
-#: src/modules/conf_randr/e_int_config_randr2.c:884
+#: src/modules/conf_randr/e_int_config_randr2.c:885
 #, fuzzy
 msgid "On"
 msgstr "membuka"
@@ -3853,7 +3853,7 @@ msgstr "permohonan"
 #: src/modules/conf_window_manipulation/e_mod_main.c:17
 #: src/modules/conf_window_remembers/e_mod_main.c:14
 #: src/modules/everything/evry_plug_windows.c:428
-#: src/modules/tiling/e_mod_tiling.c:1471 src/modules/winlist/e_mod_main.c:27
+#: src/modules/tiling/e_mod_tiling.c:1481 src/modules/winlist/e_mod_main.c:27
 #, fuzzy
 msgid "Windows"
 msgstr "Windows"
@@ -4056,134 +4056,134 @@ msgstr ""
 msgid "Enlightenment could not create a logging domain!\n"
 msgstr ""
 
-#: src/bin/e_main.c:355
+#: src/bin/e_main.c:339
 msgid "Enlightenment cannot initialize Eet!\n"
 msgstr ""
 
-#: src/bin/e_main.c:364
+#: src/bin/e_main.c:348
 msgid "Enlightenment cannot initialize Ecore!\n"
 msgstr ""
 
-#: src/bin/e_main.c:379
+#: src/bin/e_main.c:363
 #, fuzzy
 msgid "Enlightenment cannot initialize EFX!\n"
 msgstr "Enlightenment"
 
-#: src/bin/e_main.c:388
+#: src/bin/e_main.c:372
 msgid "Enlightenment cannot initialize EIO!\n"
 msgstr ""
 
-#: src/bin/e_main.c:400
+#: src/bin/e_main.c:384
 msgid ""
 "Enlightenment cannot set up an exit signal handler.\n"
 "Perhaps you are out of memory?"
 msgstr ""
 
-#: src/bin/e_main.c:407
+#: src/bin/e_main.c:391
 msgid ""
 "Enlightenment cannot set up a HUP signal handler.\n"
 "Perhaps you are out of memory?"
 msgstr ""
 
-#: src/bin/e_main.c:414
+#: src/bin/e_main.c:398
 msgid ""
 "Enlightenment cannot set up a USER signal handler.\n"
 "Perhaps you are out of memory?"
 msgstr ""
 
-#: src/bin/e_main.c:423
+#: src/bin/e_main.c:407
 msgid "Enlightenment cannot initialize Ecore_File!\n"
 msgstr ""
 
-#: src/bin/e_main.c:432
+#: src/bin/e_main.c:416
 msgid "Enlightenment cannot initialize Ecore_Con!\n"
 msgstr ""
 
-#: src/bin/e_main.c:441
+#: src/bin/e_main.c:425
 msgid "Enlightenment cannot initialize Ecore_Ipc!\n"
 msgstr ""
 
-#: src/bin/e_main.c:454
+#: src/bin/e_main.c:438
 msgid "Enlightenment cannot initialize Ecore_Evas!\n"
 msgstr ""
 
-#: src/bin/e_main.c:463
+#: src/bin/e_main.c:447
 msgid "Enlightenment cannot initialize Elementary!\n"
 msgstr ""
 
-#: src/bin/e_main.c:474
+#: src/bin/e_main.c:458
 msgid "Enlightenment cannot initialize Emotion!\n"
 msgstr ""
 
-#: src/bin/e_main.c:488
+#: src/bin/e_main.c:472
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Wayland SHM\n"
 "rendering in Evas. Please check your installation of Evas and\n"
 "Ecore and check they support the Wayland SHM rendering engine."
 msgstr ""
 
-#: src/bin/e_main.c:498
+#: src/bin/e_main.c:482
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software X11\n"
 "rendering in Evas. Please check your installation of Evas and\n"
 "Ecore and check they support the Software X11 rendering engine."
 msgstr ""
 
-#: src/bin/e_main.c:507
+#: src/bin/e_main.c:491
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software Buffer\n"
 "rendering in Evas. Please check your installation of Evas and\n"
 "Ecore and check they support the Software Buffer rendering engine."
 msgstr ""
 
-#: src/bin/e_main.c:521
+#: src/bin/e_main.c:505
 msgid "Enlightenment cannot initialize E_Intl!\n"
 msgstr ""
 
-#: src/bin/e_main.c:532
+#: src/bin/e_main.c:516
 msgid ""
 "Enlightenment cannot initialize its emergency alert system.\n"
 "Have you set your DISPLAY variable?"
 msgstr ""
 
-#: src/bin/e_main.c:544
+#: src/bin/e_main.c:528
 msgid ""
 "Enlightenment cannot create directories in your home directory.\n"
 "Perhaps you have no home directory or the disk is full?"
 msgstr ""
 
-#: src/bin/e_main.c:554
+#: src/bin/e_main.c:538
 msgid "Enlightenment cannot set up its file registry system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:563
+#: src/bin/e_main.c:547
 msgid "Enlightenment cannot set up its config system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:572
+#: src/bin/e_main.c:576
 msgid "Enlightenment cannot set up its environment.\n"
 msgstr ""
 
-#: src/bin/e_main.c:589
+#: src/bin/e_main.c:593
 msgid ""
 "Enlightenment cannot set up paths for finding files.\n"
 "Perhaps you are out of memory?"
 msgstr ""
 
-#: src/bin/e_main.c:606
+#: src/bin/e_main.c:610
 msgid "Enlightenment cannot set up its font system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:619
+#: src/bin/e_main.c:623
 msgid "Enlightenment cannot set up its theme system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:631
+#: src/bin/e_main.c:635
 #, fuzzy
 msgid "Setup Message Bus"
 msgstr "Persediaan Mesej Bas"
 
-#: src/bin/e_main.c:637
+#: src/bin/e_main.c:641
 msgid ""
 "Enlightenment cannot create a dbus session connection.\n"
 "At best this will break many things, at worst it will hard lock your "
@@ -4191,284 +4191,280 @@ msgid ""
 "If you're sure you know what you're doing, export E_NO_DBUS_SESSION=1"
 msgstr ""
 
-#: src/bin/e_main.c:650
+#: src/bin/e_main.c:654
 msgid ""
 "Enlightenment cannot initialize the FDO desktop system.\n"
 "Perhaps you lack permissions on ~/.cache/efreet or are\n"
 "out of memory or disk space?"
 msgstr ""
 
-#: src/bin/e_main.c:659
+#: src/bin/e_main.c:663
 #, fuzzy
 msgid "Starting International Support"
 msgstr "Bermula Sokongan Antarabangsa"
 
-#: src/bin/e_main.c:663
+#: src/bin/e_main.c:667
 msgid "Enlightenment cannot set up its intl system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:676
+#: src/bin/e_main.c:680
 #, fuzzy
 msgid "Setup Actions"
 msgstr "persediaan Tindakan"
 
-#: src/bin/e_main.c:680
+#: src/bin/e_main.c:684
 msgid "Enlightenment cannot set up its actions system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:694
+#: src/bin/e_main.c:698
 #, fuzzy
 msgid "Setup Powersave Modes"
 msgstr "Persediaan Powersave Mod"
 
-#: src/bin/e_main.c:698
+#: src/bin/e_main.c:702
 msgid "Enlightenment cannot set up its powersave modes.\n"
 msgstr ""
 
-#: src/bin/e_main.c:705
+#: src/bin/e_main.c:709
 #, fuzzy
 msgid "Setup Screensaver"
 msgstr "Skrin setup"
 
-#: src/bin/e_main.c:709
-msgid "Enlightenment cannot configure the X screensaver.\n"
-msgstr ""
-
-#: src/bin/e_main.c:716
+#: src/bin/e_main.c:712
 #, fuzzy
 msgid "Setup Screens"
 msgstr "persediaan Skrin"
 
-#: src/bin/e_main.c:720
+#: src/bin/e_main.c:716
 msgid ""
 "Enlightenment set up window management for all the screens on your system\n"
 "failed. Perhaps another window manager is running?\n"
 msgstr ""
 
-#: src/bin/e_main.c:730
+#: src/bin/e_main.c:726
 msgid "Enlightenment cannot set up its pointer system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:740
+#: src/bin/e_main.c:736
 msgid "Enlightenment cannot set up its scale system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:751
+#: src/bin/e_main.c:747
 msgid "Enlightenment cannot set up its init screen.\n"
 msgstr ""
 
-#: src/bin/e_main.c:775
+#: src/bin/e_main.c:771
 #, fuzzy
 msgid "Setup ACPI"
 msgstr "setup ACPI"
 
-#: src/bin/e_main.c:782
+#: src/bin/e_main.c:778
 #, fuzzy
 msgid "Setup Backlight"
 msgstr "lampu latar persediaan"
 
-#: src/bin/e_main.c:786
+#: src/bin/e_main.c:782
 msgid "Enlightenment cannot configure the backlight.\n"
 msgstr ""
 
-#: src/bin/e_main.c:792
+#: src/bin/e_main.c:788
 #, fuzzy
 msgid "Setup DPMS"
 msgstr "persediaan Managing Director"
 
-#: src/bin/e_main.c:796
+#: src/bin/e_main.c:792
 msgid "Enlightenment cannot configure the DPMS settings.\n"
 msgstr ""
 
-#: src/bin/e_main.c:803
+#: src/bin/e_main.c:799
 #, fuzzy
 msgid "Setup Desklock"
 msgstr "setup Desklock"
 
-#: src/bin/e_main.c:807
+#: src/bin/e_main.c:803
 msgid "Enlightenment cannot set up its desk locking system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:817
+#: src/bin/e_main.c:813
 #, fuzzy
 msgid "Setup Paths"
 msgstr "persediaan Laluan"
 
-#: src/bin/e_main.c:823
+#: src/bin/e_main.c:819
 #, fuzzy
 msgid "Setup System Controls"
 msgstr "Persediaan Sistem Kawalan"
 
-#: src/bin/e_main.c:827
+#: src/bin/e_main.c:823
 msgid "Enlightenment cannot initialize the System Command system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:834
+#: src/bin/e_main.c:830
 #, fuzzy
 msgid "Setup Execution System"
 msgstr "Sistem Persediaan Pelaksanaan"
 
-#: src/bin/e_main.c:838
+#: src/bin/e_main.c:834
 msgid "Enlightenment cannot set up its exec system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:848
+#: src/bin/e_main.c:844
 #, fuzzy
 msgid "Setup Filemanager"
 msgstr "pengurusfail persediaan"
 
-#: src/bin/e_main.c:852
+#: src/bin/e_main.c:848
 msgid "Enlightenment cannot initialize the File manager.\n"
 msgstr ""
 
-#: src/bin/e_main.c:859
+#: src/bin/e_main.c:855
 #, fuzzy
 msgid "Setup Message System"
 msgstr "Sistem setup Mesej"
 
-#: src/bin/e_main.c:863
+#: src/bin/e_main.c:859
 msgid "Enlightenment cannot set up its msg system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:870
+#: src/bin/e_main.c:866
 #, fuzzy
 msgid "Setup Grab Input Handling"
 msgstr "Pengendalian Input Grab persediaan"
 
-#: src/bin/e_main.c:874
+#: src/bin/e_main.c:870
 msgid "Enlightenment cannot set up its grab input handling system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:881
+#: src/bin/e_main.c:877
 #, fuzzy
 msgid "Setup Modules"
 msgstr "persediaan Modul"
 
-#: src/bin/e_main.c:885 src/bin/e_main.c:1064
+#: src/bin/e_main.c:881 src/bin/e_main.c:1060
 msgid "Enlightenment cannot set up its module system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:892
+#: src/bin/e_main.c:888
 #, fuzzy
 msgid "Setup Remembers"
 msgstr "persediaan memperkaya"
 
-#: src/bin/e_main.c:896
+#: src/bin/e_main.c:892
 msgid "Enlightenment cannot setup remember settings.\n"
 msgstr ""
 
-#: src/bin/e_main.c:905
+#: src/bin/e_main.c:901
 #, fuzzy
 msgid "Setup Gadgets"
 msgstr "alat desktop"
 
-#: src/bin/e_main.c:914
+#: src/bin/e_main.c:910
 #, fuzzy
 msgid "Setup Gadcon"
 msgstr "setup Gadcon"
 
-#: src/bin/e_main.c:918
+#: src/bin/e_main.c:914
 msgid "Enlightenment cannot set up its gadget control system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:925
+#: src/bin/e_main.c:921
 #, fuzzy
 msgid "Setup Toolbars"
 msgstr "Tetapkan Kandungan Toolbar"
 
-#: src/bin/e_main.c:929
+#: src/bin/e_main.c:925
 #, fuzzy
 msgid "Enlightenment cannot set up its toolbars.\n"
 msgstr "Enlightenment"
 
-#: src/bin/e_main.c:936
+#: src/bin/e_main.c:932
 #, fuzzy
 msgid "Setup Wallpaper"
 msgstr "setup Wallpaper"
 
-#: src/bin/e_main.c:940
+#: src/bin/e_main.c:936
 msgid "Enlightenment cannot set up its desktop background system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:947
+#: src/bin/e_main.c:943
 #, fuzzy
 msgid "Setup Mouse"
 msgstr "Tetikus persediaan"
 
-#: src/bin/e_main.c:951
+#: src/bin/e_main.c:947
 msgid "Enlightenment cannot configure the mouse settings.\n"
 msgstr ""
 
-#: src/bin/e_main.c:957
+#: src/bin/e_main.c:953
 #, fuzzy
 msgid "Setup Bindings"
 msgstr "persediaan pengikatan"
 
-#: src/bin/e_main.c:961
+#: src/bin/e_main.c:957
 msgid "Enlightenment cannot set up its bindings system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:968
+#: src/bin/e_main.c:964
 #, fuzzy
 msgid "Setup Thumbnailer"
 msgstr "setup Thumbnailer"
 
-#: src/bin/e_main.c:972
+#: src/bin/e_main.c:968
 msgid "Enlightenment cannot initialize the Thumbnailing system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:981
+#: src/bin/e_main.c:977
 msgid "Enlightenment cannot initialize the Icon Cache system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:990
+#: src/bin/e_main.c:986
 msgid "Enlightenment cannot initialize the Update system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:997
+#: src/bin/e_main.c:993
 #, fuzzy
 msgid "Setup Desktop Environment"
 msgstr "Setup Desktop Alam Sekitar"
 
-#: src/bin/e_main.c:1001
+#: src/bin/e_main.c:997
 msgid "Enlightenment cannot initialize its desktop environment.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1008
+#: src/bin/e_main.c:1004
 #, fuzzy
 msgid "Setup File Ordering"
 msgstr "Fail setup Susunan"
 
-#: src/bin/e_main.c:1012
+#: src/bin/e_main.c:1008
 msgid "Enlightenment cannot set up its order file system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1023
+#: src/bin/e_main.c:1019
 #, fuzzy
 msgid "Load Modules"
 msgstr "beban Modul"
 
-#: src/bin/e_main.c:1052
+#: src/bin/e_main.c:1048
 #, fuzzy
 msgid "Setup Bryces"
 msgstr "persediaan Skrin"
 
-#: src/bin/e_main.c:1060
+#: src/bin/e_main.c:1056
 #, fuzzy
 msgid "Setup Shelves"
 msgstr "persediaan rak"
 
-#: src/bin/e_main.c:1074
+#: src/bin/e_main.c:1070
 #, fuzzy
 msgid "Almost Done"
 msgstr "hampir selesai"
 
-#: src/bin/e_main.c:1218
+#: src/bin/e_main.c:1214
 #, fuzzy, c-format
 msgid "Version: %s\n"
 msgstr "keizinan"
 
-#: src/bin/e_main.c:1227
+#: src/bin/e_main.c:1223
 #, c-format
 msgid ""
 "Options:\n"
@@ -4498,7 +4494,7 @@ msgid ""
 "\t-version\n"
 msgstr ""
 
-#: src/bin/e_main.c:1281
+#: src/bin/e_main.c:1277
 msgid ""
 "You are executing enlightenment directly. This is\n"
 "bad. Please do not execute the \"enlightenment\"\n"
@@ -4508,63 +4504,53 @@ msgid ""
 "before enlightenment itself begins running.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1534
+#: src/bin/e_main.c:1538
 #, fuzzy
 msgid "Testing Format Support"
 msgstr "Menguji Sokongan Format"
 
-#: src/bin/e_main.c:1538
+#: src/bin/e_main.c:1542
 msgid ""
 "Enlightenment found Evas can't create a buffer canvas. Please check\n"
 "Evas has Software Buffer engine support.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1549
+#: src/bin/e_main.c:1560
+#, c-format
 msgid ""
-"Enlightenment found Evas can't load SVG files. Check Evas has SVG loader "
+"Enlightenment found Evas can't load '%s' files. Check Evas has '%s' loader "
 "support.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1559
+#: src/bin/e_main.c:1567
+#, c-format
 msgid ""
-"Enlightenment found Evas can't load JPEG files. Check Evas has JPEG loader "
-"support.\n"
+"Enlightenment cannot access test image for '%s' filetype. Check your install "
+"for setup issues.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1569
-msgid ""
-"Enlightenment found Evas can't load PNG files. Check Evas has PNG loader "
-"support.\n"
-msgstr ""
-
-#: src/bin/e_main.c:1579
-msgid ""
-"Enlightenment found Evas can't load EET files. Check Evas has EET loader "
-"support.\n"
-msgstr ""
-
-#: src/bin/e_main.c:1593
+#: src/bin/e_main.c:1584
 msgid ""
 "Enlightenment found Evas can't load the 'Sans' font. Check Evas has "
 "fontconfig\n"
 "support and system fontconfig defines a 'Sans' font.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1611
+#: src/bin/e_main.c:1604
 #, fuzzy
 msgid "Enlightenment cannot create a compositor.\n"
 msgstr "Enlightenment"
 
-#: src/bin/e_main.c:1619
+#: src/bin/e_main.c:1612
 #, fuzzy
 msgid "Setup DND"
 msgstr "setup DND"
 
-#: src/bin/e_main.c:1623
+#: src/bin/e_main.c:1616
 msgid "Enlightenment cannot set up its dnd system.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1739
+#: src/bin/e_main.c:1733
 #, c-format
 msgid ""
 "Enlightenment crashed early on start and has<br>been restarted. There was an "
@@ -4572,11 +4558,11 @@ msgid ""
 "will not be loaded."
 msgstr ""
 
-#: src/bin/e_main.c:1744 src/bin/e_main.c:1760
+#: src/bin/e_main.c:1738 src/bin/e_main.c:1754
 msgid "Enlightenment crashed early on start and has been restarted"
 msgstr ""
 
-#: src/bin/e_main.c:1745
+#: src/bin/e_main.c:1739
 #, c-format
 msgid ""
 "Enlightenment crashed early on start and has been restarted.<br>There was an "
@@ -4584,7 +4570,7 @@ msgid ""
 "will not be loaded."
 msgstr ""
 
-#: src/bin/e_main.c:1753
+#: src/bin/e_main.c:1747
 msgid ""
 "Enlightenment crashed early on start and has<br>been restarted. All modules "
 "have been disabled<br>and will not be loaded to help remove any "
@@ -4592,7 +4578,7 @@ msgid ""
 "dialog should let you select your<br>modules again.\n"
 msgstr ""
 
-#: src/bin/e_main.c:1761
+#: src/bin/e_main.c:1755
 msgid ""
 "Enlightenment crashed early on start and has been restarted.<br>All modules "
 "have been disabled and will not be loaded to help<br>remove any problem "
@@ -4675,7 +4661,7 @@ msgstr "tidak diketahui"
 msgid "Enlightenment was unable to fork a child process:<br><br>%s<br>"
 msgstr ""
 
-#: src/bin/e_screensaver.c:194
+#: src/bin/e_screensaver.c:200
 msgid ""
 "You disabled the screensaver too fast.<br><br>Would you like to enable "
 "<b>presentation</b> mode and temporarily disable screen saver, lock and "
@@ -4826,18 +4812,18 @@ msgstr "Refresh"
 msgid "Starting %s"
 msgstr "bermula"
 
-#: src/bin/e_sys.c:502
+#: src/bin/e_sys.c:506
 #, fuzzy
 msgid "Checking System Permissions"
 msgstr "Memeriksa Kebenaran Sistem"
 
-#: src/bin/e_sys.c:548 src/bin/e_sys.c:559 src/bin/e_sys.c:568
-#: src/bin/e_sys.c:577
+#: src/bin/e_sys.c:552 src/bin/e_sys.c:563 src/bin/e_sys.c:572
+#: src/bin/e_sys.c:581
 #, fuzzy
 msgid "System Check Done"
 msgstr "Sistem Semak Selesai"
 
-#: src/bin/e_sys.c:645
+#: src/bin/e_sys.c:649
 #, c-format
 msgid ""
 "Logout is taking too long.<br>Some applications refuse to close.<br>Do you "
@@ -4845,40 +4831,40 @@ msgid ""
 "first?<br><br>Auto logout in %d seconds."
 msgstr ""
 
-#: src/bin/e_sys.c:705
+#: src/bin/e_sys.c:709
 #, fuzzy
 msgid "Logout problems"
 msgstr "Logout masalah"
 
-#: src/bin/e_sys.c:707
+#: src/bin/e_sys.c:711
 #, fuzzy
 msgid "Logout now"
 msgstr "Logout kini"
 
-#: src/bin/e_sys.c:709
+#: src/bin/e_sys.c:713
 #, fuzzy
 msgid "Wait longer"
 msgstr "menunggu lebih lama"
 
-#: src/bin/e_sys.c:711
+#: src/bin/e_sys.c:715
 #, fuzzy
 msgid "Cancel Logout"
 msgstr "membatalkan Logout"
 
-#: src/bin/e_sys.c:769
+#: src/bin/e_sys.c:773
 #, fuzzy
 msgid "Logout in progress"
 msgstr "Logout dalam dilaksanakan"
 
-#: src/bin/e_sys.c:772
+#: src/bin/e_sys.c:776
 msgid "Logout in progress.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
-#: src/bin/e_sys.c:802 src/bin/e_sys.c:858
+#: src/bin/e_sys.c:806 src/bin/e_sys.c:862
 msgid "Enlightenment is busy with another request"
 msgstr ""
 
-#: src/bin/e_sys.c:807
+#: src/bin/e_sys.c:811
 #, fuzzy
 msgid ""
 "Logging out.<br>You cannot perform other system actions<br>once a logout has "
@@ -4887,7 +4873,7 @@ msgstr ""
 "Log keluar.<br>Anda tidak boleh melaksanakan sistem<br>yang tindakan-"
 "tindakan lain sekali logout telah bermula."
 
-#: src/bin/e_sys.c:814
+#: src/bin/e_sys.c:818
 #, fuzzy
 msgid ""
 "Powering off.<br>You cannot perform any other system actions<br>once a "
@@ -4896,7 +4882,7 @@ msgstr ""
 "Menjanakan off.<br>Anda tidak boleh melakukan apa-apa tindakan "
 "sistem<br>lain sekali penutupan telah dimulakan."
 
-#: src/bin/e_sys.c:820
+#: src/bin/e_sys.c:824
 #, fuzzy
 msgid ""
 "Resetting.<br>You cannot perform any other system actions<br>once a reboot "
@@ -4905,7 +4891,7 @@ msgstr ""
 "Menetapkan semula.<br>Anda tidak boleh melakukan apa-apa tindakan "
 "sistem<br>lain sekali reboot telah mula."
 
-#: src/bin/e_sys.c:826
+#: src/bin/e_sys.c:830
 #, fuzzy
 msgid ""
 "Suspending.<br>You cannot perform any other system actions<br>until suspend "
@@ -4914,7 +4900,7 @@ msgstr ""
 "Hibernating.<br>Anda tidak boleh melaksanakan apa-apa tindakan "
 "sistem<br>lain sehingga ini adalah lengkap."
 
-#: src/bin/e_sys.c:832
+#: src/bin/e_sys.c:836
 #, fuzzy
 msgid ""
 "Hibernating.<br>You cannot perform any other system actions<br>until "
@@ -4923,41 +4909,41 @@ msgstr ""
 "Hibernating.<br>Anda tidak boleh melaksanakan apa-apa tindakan "
 "sistem<br>lain sehingga ini adalah lengkap."
 
-#: src/bin/e_sys.c:838 src/bin/e_sys.c:880
+#: src/bin/e_sys.c:842 src/bin/e_sys.c:884
 #, fuzzy
 msgid "EEK! This should not happen"
 msgstr "Eek. Ini tidak sepatutnya berlaku"
 
-#: src/bin/e_sys.c:864
+#: src/bin/e_sys.c:868
 #, fuzzy
 msgid "Power off failed."
 msgstr "Matikan gagal."
 
-#: src/bin/e_sys.c:868
+#: src/bin/e_sys.c:872
 #, fuzzy
 msgid "Reset failed."
 msgstr "Reset gagal."
 
-#: src/bin/e_sys.c:872
+#: src/bin/e_sys.c:876
 #, fuzzy
 msgid "Suspend failed."
 msgstr "Menggantung gagal."
 
-#: src/bin/e_sys.c:876
+#: src/bin/e_sys.c:880
 #, fuzzy
 msgid "Hibernate failed."
 msgstr "Hibernate gagal."
 
-#: src/bin/e_sys.c:969
+#: src/bin/e_sys.c:973
 msgid "Power off.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
-#: src/bin/e_sys.c:1012
+#: src/bin/e_sys.c:1016
 #, fuzzy
 msgid "Resetting"
 msgstr "menetapkan semula"
 
-#: src/bin/e_sys.c:1015
+#: src/bin/e_sys.c:1019
 msgid "Resetting.<br><hilight>Please wait.</hilight>"
 msgstr ""
 
@@ -5631,7 +5617,7 @@ msgid "Clock Settings"
 msgstr "fokus Tetapan"
 
 #: src/modules/clock/e_mod_config.c:83 src/modules/clock/e_mod_main.c:692
-#: src/modules/clock/e_mod_main.c:886
+#: src/modules/clock/e_mod_main.c:900
 #, fuzzy
 msgid "Clock"
 msgstr "jam"
@@ -5706,7 +5692,7 @@ msgstr ""
 msgid "%a, %x"
 msgstr ""
 
-#: src/modules/clock/e_mod_main.c:886
+#: src/modules/clock/e_mod_main.c:900
 #, fuzzy
 msgid "Toggle calendar"
 msgstr "menunjukkan kalendar"
@@ -7457,30 +7443,35 @@ msgid "Power Management"
 msgstr "Pengurusan Power"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:74
-#: src/modules/conf_randr/e_mod_main.c:40
+#: src/modules/conf_randr/e_mod_main.c:41
 #, fuzzy
 msgid "Screen Setup"
 msgstr "Screen Saver"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:436
 #: src/modules/conf_randr/e_int_config_randr2.c:662
-#: src/modules/conf_randr/e_int_config_randr2.c:907
+#: src/modules/conf_randr/e_int_config_randr2.c:908
 msgid "Clone"
 msgstr ""
 
 #: src/modules/conf_randr/e_int_config_randr2.c:438
 #: src/modules/conf_randr/e_int_config_randr2.c:673
-#: src/modules/conf_randr/e_int_config_randr2.c:908
+#: src/modules/conf_randr/e_int_config_randr2.c:909
 #, fuzzy
 msgid "Left of"
 msgstr "Left:"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:440
 #: src/modules/conf_randr/e_int_config_randr2.c:684
-#: src/modules/conf_randr/e_int_config_randr2.c:909
+#: src/modules/conf_randr/e_int_config_randr2.c:910
 #, fuzzy
 msgid "Right of"
 msgstr "kanan;"
+
+#: src/modules/conf_randr/e_int_config_randr2.c:446
+#, fuzzy
+msgid "Unconfigured"
+msgstr "Konfigurasi"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:760
 #, fuzzy
@@ -7491,45 +7482,45 @@ msgstr "output Data"
 msgid "Laptop lid"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:893
+#: src/modules/conf_randr/e_int_config_randr2.c:894
 msgid "Priority"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:905
+#: src/modules/conf_randr/e_int_config_randr2.c:906
 #, fuzzy
 msgid "Relative"
 msgstr "relatif"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:919
+#: src/modules/conf_randr/e_int_config_randr2.c:920
 #, fuzzy
 msgid "To"
 msgstr "menunjukkan Toolbar"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:959
+#: src/modules/conf_randr/e_int_config_randr2.c:960
 #, fuzzy
 msgid "Use Profile"
 msgstr "profil"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:975
+#: src/modules/conf_randr/e_int_config_randr2.c:976
 #, fuzzy
 msgid "Custom Scale"
 msgstr "Imej adat"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:984
+#: src/modules/conf_randr/e_int_config_randr2.c:985
 #, fuzzy
 msgid "Scale"
 msgstr "locale"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1008
+#: src/modules/conf_randr/e_int_config_randr2.c:1009
 #, fuzzy
 msgid "Restore setup on start"
 msgstr "Mengunci Permulaan"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1017
+#: src/modules/conf_randr/e_int_config_randr2.c:1018
 msgid "Monitor hotplug"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1026
+#: src/modules/conf_randr/e_int_config_randr2.c:1027
 #, fuzzy
 msgid "Lid Events"
 msgstr "Peristiwa"
@@ -11301,49 +11292,49 @@ msgstr ""
 msgid "Tiling Configuration"
 msgstr "Konfigurasi segala-galanya"
 
-#: src/modules/tiling/e_mod_tiling.c:1361
+#: src/modules/tiling/e_mod_tiling.c:1371
 #, fuzzy
 msgid "Floating"
 msgstr "pengisihan"
 
-#: src/modules/tiling/e_mod_tiling.c:1440
-#: src/modules/tiling/e_mod_tiling.c:1473
-#: src/modules/tiling/e_mod_tiling.c:1798
-#: src/modules/tiling/e_mod_tiling.c:1816
+#: src/modules/tiling/e_mod_tiling.c:1450
+#: src/modules/tiling/e_mod_tiling.c:1483
+#: src/modules/tiling/e_mod_tiling.c:1808
+#: src/modules/tiling/e_mod_tiling.c:1826
 #, fuzzy
 msgid "Tiling"
 msgstr "mengundi"
 
-#: src/modules/tiling/e_mod_tiling.c:1447
+#: src/modules/tiling/e_mod_tiling.c:1457
 #, fuzzy
 msgid "Toggle floating"
 msgstr "menunjukkan kalendar"
 
-#: src/modules/tiling/e_mod_tiling.c:1450
+#: src/modules/tiling/e_mod_tiling.c:1460
 #, fuzzy
 msgid "Move the focused window up"
 msgstr "tingkap"
 
-#: src/modules/tiling/e_mod_tiling.c:1452
+#: src/modules/tiling/e_mod_tiling.c:1462
 #, fuzzy
 msgid "Move the focused window down"
 msgstr "Menu Tetingkap"
 
-#: src/modules/tiling/e_mod_tiling.c:1454
+#: src/modules/tiling/e_mod_tiling.c:1464
 #, fuzzy
 msgid "Move the focused window left"
 msgstr "Tetingkap pada yang Kiri"
 
-#: src/modules/tiling/e_mod_tiling.c:1456
+#: src/modules/tiling/e_mod_tiling.c:1466
 #, fuzzy
 msgid "Move the focused window right"
 msgstr "Tetingkap pada yang Hak"
 
-#: src/modules/tiling/e_mod_tiling.c:1459
+#: src/modules/tiling/e_mod_tiling.c:1469
 msgid "Toggle split mode"
 msgstr ""
 
-#: src/modules/tiling/e_mod_tiling.c:1461
+#: src/modules/tiling/e_mod_tiling.c:1471
 #, fuzzy
 msgid "Swap window"
 msgstr "Windows"

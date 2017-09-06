@@ -2,7 +2,6 @@
 
 #ifdef HAVE_WAYLAND
 # include "e_comp_wl.h"
-# include <uuid.h>
 # ifndef EGL_TEXTURE_FORMAT
 #  define EGL_TEXTURE_FORMAT		0x3080
 # endif
@@ -47,13 +46,11 @@ struct _E_Pixmap
 
 #ifdef HAVE_WAYLAND
    E_Comp_Wl_Buffer *buffer;
-   E_Comp_Wl_Buffer *native_buffer;
    E_Comp_Wl_Buffer *held_buffer;
    struct wl_listener buffer_destroy_listener;
    struct wl_listener held_buffer_destroy_listener;
    void *data;
    Eina_Rectangle opaque;
-   uuid_t uuid;
    Eina_List *free_buffers;
 #endif
 
@@ -351,7 +348,6 @@ e_pixmap_new(E_Pixmap_Type type, ...)
         cp = _e_pixmap_new(type);
         cp->win = id;
         eina_hash_add(pixmaps[type], &id, cp);
-        uuid_generate(cp->uuid);
 #endif
         break;
       default: break;
@@ -707,6 +703,17 @@ e_pixmap_native_surface_init(E_Pixmap *cp, Evas_Native_Surface *ns)
    EINA_SAFETY_ON_NULL_RETURN_VAL(cp, EINA_FALSE);
    EINA_SAFETY_ON_NULL_RETURN_VAL(ns, EINA_FALSE);
 
+   /* This structure is stack automatic in the caller, so it's all
+    * uninitialized. Clear it to 0 so we don't have uninit data for
+    * variables only present in a newer version of native surface
+    * than this code was written for.
+    *
+    * The other option would be to set ns->version to whatever version
+    * this code was actually written against, but I've been told all
+    * native surface users are expected to set ns->version to the
+    * version provided in the headers (EVAS_NATIVE_SURFACE_VERSION)
+    */
+   memset(ns, 0, sizeof(*ns));
    ns->version = EVAS_NATIVE_SURFACE_VERSION;
    switch (cp->type)
      {
@@ -724,17 +731,14 @@ e_pixmap_native_surface_init(E_Pixmap *cp, Evas_Native_Surface *ns)
         if (cp->buffer->dmabuf_buffer)
           {
              ns->type = EVAS_NATIVE_SURFACE_WL_DMABUF;
-             ns->version = EVAS_NATIVE_SURFACE_VERSION;
 
              ns->data.wl_dmabuf.attr = &cp->buffer->dmabuf_buffer->attributes;
              ns->data.wl_dmabuf.resource = cp->buffer->resource;
-             cp->native_buffer = cp->buffer;
              ret = EINA_TRUE;
           }
         else if (!cp->buffer->shm_buffer)
           {
              ns->type = EVAS_NATIVE_SURFACE_WL;
-             ns->version = EVAS_NATIVE_SURFACE_VERSION;
              ns->data.wl.legacy_buffer = cp->buffer->resource;
              ret = EINA_TRUE;
           }
@@ -1062,21 +1066,24 @@ e_pixmap_dmabuf_test(struct linux_dmabuf_buffer *dmabuf)
 {
    Evas_Native_Surface ns;
    Evas_Object *test;
+   Eina_Bool ret;
    int size;
    void *data;
 
-   if (e_comp->gl)
-     {
-        ns.type = EVAS_NATIVE_SURFACE_WL_DMABUF;
-        ns.version = EVAS_NATIVE_SURFACE_VERSION;
-        ns.data.wl_dmabuf.attr = &dmabuf->attributes;
-        ns.data.wl_dmabuf.resource = NULL;
-        test = evas_object_image_add(e_comp->evas);
-        evas_object_image_native_surface_set(test, &ns);
-        evas_object_del(test);
-        if (!ns.data.wl_dmabuf.attr) return EINA_FALSE;
-        return EINA_TRUE;
-     }
+   memset(&ns, 0, sizeof(ns));
+
+   ns.type = EVAS_NATIVE_SURFACE_WL_DMABUF;
+   ns.version = EVAS_NATIVE_SURFACE_VERSION;
+   ns.data.wl_dmabuf.attr = &dmabuf->attributes;
+   ns.data.wl_dmabuf.resource = NULL;
+   test = evas_object_image_add(e_comp->evas);
+   evas_object_image_native_surface_set(test, &ns);
+   ret = evas_object_image_load_error_get(test) == EVAS_LOAD_ERROR_NONE;
+   evas_object_del(test);
+   if (!ns.data.wl_dmabuf.attr) return EINA_FALSE;
+
+   if (e_comp->gl || !ret)
+      return ret;
 
    /* TODO: Software rendering for multi-plane formats */
    if (dmabuf->attributes.n_planes != 1) return EINA_FALSE;
@@ -1085,7 +1092,7 @@ e_pixmap_dmabuf_test(struct linux_dmabuf_buffer *dmabuf)
 
    /* This is only legit for ARGB8888 */
    size = dmabuf->attributes.height * dmabuf->attributes.stride[0];
-   data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, dmabuf->attributes.fd[0], 0);
+   data = mmap(NULL, size, PROT_READ, MAP_SHARED, dmabuf->attributes.fd[0], 0);
    if (data == MAP_FAILED) return EINA_FALSE;
    munmap(data, size);
 

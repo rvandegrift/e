@@ -329,7 +329,15 @@ _sink_input_cb(pa_context *c EINA_UNUSED, const pa_sink_input_info *info,
        info->name);
 
    input->idx = info->index;
-   input->base.name = eina_stringshare_add(info->name);
+
+   Eina_Strbuf *input_name;
+
+   input_name = eina_strbuf_new();
+   eina_strbuf_append(input_name, pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME));
+   eina_strbuf_append(input_name, ":");
+   eina_strbuf_append(input_name, info->name);
+   input->base.name = eina_stringshare_add(eina_strbuf_string_get(input_name));
+   eina_strbuf_free(input_name);
    input->base.volume = _pa_cvolume_convert(&info->volume);
    input->base.mute = !!info->mute;
    EINA_LIST_FOREACH(ctx->sinks, l, s)
@@ -789,7 +797,7 @@ _pulse_connect(void *data)
                     "org.enlightenment.volumecontrol");
    pa_proplist_sets(proplist, PA_PROP_APPLICATION_ICON_NAME, "audio-card");
 #if !defined(EMIXER_BUILD) && defined(HAVE_WAYLAND) && !defined(HAVE_WAYLAND_ONLY)
-   char *display;
+   char *display = NULL;
 
    if (e_comp->comp_type != E_PIXMAP_TYPE_X)
      {
@@ -799,32 +807,25 @@ _pulse_connect(void *data)
      }
 #endif
    c->context = pa_context_new_with_proplist(&(c->api), NULL, proplist);
-   if (!c->context)
+   if (c->context)
      {
-        WRN("Could not create the pulseaudio context");
-        goto err;
-     }
-
-   pa_context_set_state_callback(c->context, _pulse_pa_state_cb, c);
-   if (pa_context_connect(c->context, NULL, PA_CONTEXT_NOFLAGS, NULL) < 0)
-     {
-        WRN("Could not connect to pulse");
-        goto err;
+        pa_context_set_state_callback(c->context, _pulse_pa_state_cb, c);
+        if (pa_context_connect(c->context, NULL, PA_CONTEXT_NOFLAGS, NULL) < 0)
+          ERR("Could not connect to pulse");
      }
 #if !defined(EMIXER_BUILD) && defined(HAVE_WAYLAND) && !defined(HAVE_WAYLAND_ONLY)
    if (e_comp->comp_type != E_PIXMAP_TYPE_X)
      {
-        e_env_set("DISPLAY", display);
-        free(display);
+        if (display)
+          {
+             e_env_set("DISPLAY", display);
+             free(display);
+          }
      }
 #endif
 
    pa_proplist_free(proplist);
    return ECORE_CALLBACK_DONE;
-
- err:
-   pa_proplist_free(proplist);
-   return ECORE_CALLBACK_RENEW;
 }
 
 static void

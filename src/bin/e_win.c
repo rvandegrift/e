@@ -2,6 +2,8 @@
 
 /* intercept elm_win operations so we talk directly to e_client */
 #undef elm_win_add
+#undef elm_win_util_dialog_add
+#undef elm_win_util_standard_add
 
 typedef struct _Elm_Win_Trap_Ctx
 {
@@ -146,6 +148,8 @@ _e_elm_win_trap_show(void *data, Evas_Object *o)
         ctx->client->internal_elm_win = o;
         elm_win_autodel_set(o, 1);
         evas_object_data_set(o, "E_Client", ctx->client);
+        ctx->client->dialog = elm_win_type_get(o) == ELM_WIN_DIALOG_BASIC;
+        ctx->client->tooltip = elm_win_type_get(o) == ELM_WIN_TOOLTIP;
 
         evas_object_size_hint_min_get(o, &ctx->client->icccm.min_w, &ctx->client->icccm.min_h);
         evas_object_size_hint_max_get(o, &ctx->client->icccm.max_w, &ctx->client->icccm.max_h);
@@ -153,6 +157,7 @@ _e_elm_win_trap_show(void *data, Evas_Object *o)
 //#endif
    evas_object_geometry_get(o, &ctx->client->client.x, &ctx->client->client.y, &ctx->client->client.w, &ctx->client->client.h);
    ecore_evas_show(ee);
+   eina_stringshare_replace(&ctx->client->internal_icon, elm_win_icon_name_get(o));
    if (!ctx->visible)
      {
         ctx->visible = 1;
@@ -161,9 +166,13 @@ _e_elm_win_trap_show(void *data, Evas_Object *o)
    ctx->client->borderless |= borderless;
    e_comp_object_frame_xy_adjust(ctx->client->frame, ctx->client->client.x, ctx->client->client.y, &ctx->client->x, &ctx->client->y);
    e_comp_object_frame_wh_adjust(ctx->client->frame, ctx->client->client.w, ctx->client->client.h, &ctx->client->w, &ctx->client->h);
-   if (ctx->centered) e_comp_object_util_center(ctx->client->frame);
-   else if (ctx->placed) evas_object_move(o, ctx->x, ctx->y);
    if (ctx->sized) evas_object_resize(o, ctx->w, ctx->h);
+   if (ctx->placed) evas_object_move(o, ctx->x, ctx->y);
+   if (ctx->centered)
+     {
+        e_comp_object_util_center(o);
+        ctx->centered = 0;
+     }
    return EINA_TRUE;
 }
 
@@ -213,7 +222,11 @@ _e_elm_win_trap_center(void *data, Evas_Object *o EINA_UNUSED, Eina_Bool h, Eina
    ctx->centered = h | v;
    ctx->placed = 1;
    if (!ctx->client) return EINA_FALSE;
-   if (ctx->centered) e_comp_object_util_center(ctx->client->frame);
+   if (ctx->centered)
+     {
+        e_comp_object_util_center(ctx->client->frame);
+        ctx->centered = 0;
+     }
    return EINA_FALSE;
 }
 
@@ -493,6 +506,36 @@ e_elm_win_add(Evas_Object *parent, const char *name, Elm_Win_Type type)
    eng = eina_strdup(getenv("ELM_ACCEL"));
    e_util_env_set("ELM_ACCEL", "none");
    o = elm_win_add(parent, name, type);
+   e_util_env_set("ELM_ACCEL", eng);
+   elm_win_alpha_set(o, 1);
+   free(eng);
+   return o;
+}
+
+E_API Evas_Object *
+elm_win_util_standard_add(const char *name, const char *title)
+{
+   char *eng;
+   Evas_Object *o;
+
+   eng = eina_strdup(getenv("ELM_ACCEL"));
+   e_util_env_set("ELM_ACCEL", "none");
+   o = elm_win_util_standard_add(name, title);
+   e_util_env_set("ELM_ACCEL", eng);
+   elm_win_alpha_set(o, 1);
+   free(eng);
+   return o;
+}
+
+E_API Evas_Object *
+e_elm_win_util_dialog_add(Evas_Object *parent, const char *name, const char *title)
+{
+   char *eng;
+   Evas_Object *o;
+
+   eng = eina_strdup(getenv("ELM_ACCEL"));
+   e_util_env_set("ELM_ACCEL", "none");
+   o = elm_win_util_dialog_add(parent, name, title);
    e_util_env_set("ELM_ACCEL", eng);
    elm_win_alpha_set(o, 1);
    free(eng);

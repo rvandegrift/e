@@ -56,19 +56,11 @@ _e_mod_drm_cb_activate(void *data EINA_UNUSED, int type EINA_UNUSED, void *event
 
    if (ev->active)
      {
-        E_Client *ec;
-
         if (session_state) goto end;
         session_state = EINA_TRUE;
 
         ecore_evas_show(e_comp->ee);
-        E_CLIENT_FOREACH(ec)
-          {
-             if (ec->visible && (!ec->input_only))
-               e_comp_object_damage(ec->frame, 0, 0, ec->w, ec->h);
-          }
-        e_comp_render_queue();
-        e_comp_shape_queue_block(0);
+        evas_damage_rectangle_add(e_comp->evas, 0, 0, e_comp->w, e_comp->h);
         ecore_event_add(E_EVENT_COMPOSITOR_ENABLE, NULL, NULL, NULL);
      }
    else
@@ -81,8 +73,6 @@ _e_mod_drm_cb_activate(void *data EINA_UNUSED, int type EINA_UNUSED, void *event
         evas_font_cache_flush(e_comp->evas);
         evas_render_dump(e_comp->evas);
 
-        e_comp_render_queue();
-        e_comp_shape_queue_block(1);
         ecore_event_add(E_EVENT_COMPOSITOR_DISABLE, NULL, NULL, NULL);
      }
 
@@ -91,56 +81,10 @@ end:
 }
 
 static Eina_Bool
-_e_mod_drm_cb_output(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+_e_mod_drm_cb_output(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
 {
-   const Eina_List *l;
-   E_Randr2_Screen *screen;
-   Eina_Bool connected = EINA_FALSE;
-   int subpixel = 0;
-#ifdef HAVE_DRM2
-   Ecore_Drm2_Event_Output_Changed *e;
-#else
-   Ecore_Drm_Event_Output *e;
-#endif
-
-   if (!(e = event)) goto end;
-
-   DBG("WL_DRM OUTPUT CHANGE");
-
-   EINA_LIST_FOREACH(e_randr2->screens, l, screen)
-     {
-        if ((!strcmp(screen->info.name, e->name)) && 
-            (!strcmp(screen->info.screen, e->model)))
-          {
-#ifdef HAVE_DRM2
-             connected = e->enabled;
-             subpixel = e->subpixel;
-#else
-             connected = e->plug;
-             subpixel = e->subpixel_order;
-#endif
-
-             if (connected)
-               {
-                  if (!e_comp_wl_output_init(screen->id, e->make, e->model,
-                                             e->x, e->y, e->w, e->h, 
-                                             e->phys_width, e->phys_height,
-                                             e->refresh, subpixel,
-                                             e->transform))
-                    {
-                       ERR("Could not setup new output: %s", screen->id);
-                    }
-               }
-             else
-               e_comp_wl_output_remove(screen->id);
-
-             break;
-          }
-     }
-
-end:
    if (!e_randr2_cfg->ignore_hotplug_events)
-     e_randr2_screen_refresh_queue(EINA_TRUE);
+     e_randr2_screen_refresh_queue(1);
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -502,26 +446,30 @@ _drm2_randr_create(void)
                          s->config.geom.w, s->config.geom.h);
                }
 
+             /* TODO: cannot support rotations until we support planes
+              * and we cannot support planes until Atomic support is in */
+
              s->info.can_rot_0 = EINA_FALSE;
              s->info.can_rot_90 = EINA_FALSE;
              s->info.can_rot_180 = EINA_FALSE;
              s->info.can_rot_270 = EINA_FALSE;
 
-# if (EFL_VERSION_MAJOR > 1) || (EFL_VERSION_MINOR >= 18)
-             int rotations;
+/* # if (EFL_VERSION_MAJOR > 1) || (EFL_VERSION_MINOR >= 18) */
+/*              unsigned int rotations; */
 
-             rotations =
-               ecore_drm2_output_supported_rotations_get(output);
+/*              rotations = */
+/*                ecore_drm_output_supported_rotations_get(output, */
+/*                                                         ECORE_DRM_PLANE_TYPE_PRIMARY); */
 
-             if (rotations & ECORE_DRM2_ROTATION_NORMAL)
-               s->info.can_rot_0 = EINA_TRUE;
-             if (rotations & ECORE_DRM2_ROTATION_90)
-               s->info.can_rot_90 = EINA_TRUE;
-             if (rotations & ECORE_DRM2_ROTATION_180)
-               s->info.can_rot_180 = EINA_TRUE;
-             if (rotations & ECORE_DRM2_ROTATION_270)
-               s->info.can_rot_270 = EINA_TRUE;
-# endif
+/*              if (rotations & ECORE_DRM_PLANE_ROTATION_NORMAL) */
+/*                s->info.can_rot_0 = EINA_TRUE; */
+/*              if (rotations & ECORE_DRM_PLANE_ROTATION_90) */
+/*                s->info.can_rot_90 = EINA_TRUE; */
+/*              if (rotations & ECORE_DRM_PLANE_ROTATION_180) */
+/*                s->info.can_rot_180 = EINA_TRUE; */
+/*              if (rotations & ECORE_DRM_PLANE_ROTATION_270) */
+/*                s->info.can_rot_270 = EINA_TRUE; */
+/* # endif */
 
              if (cs)
                {
@@ -674,25 +622,10 @@ _drm2_randr_apply(void)
         if (s->config.priority > top_priority)
           top_priority = s->config.priority;
 
-        ecore_drm2_output_mode_set(output, mode,
-                                   s->config.geom.x, s->config.geom.y);
+        ecore_drm2_output_mode_set(output, mode, 0, 0);
 
         /* TODO: cannot support rotations until we support planes
          * and we cannot support planes until Atomic support is in */
-# if (EFL_VERSION_MAJOR > 1) || (EFL_VERSION_MINOR >= 18)
-        int orient;
-
-        if (s->config.rotation == 0)
-          orient = ECORE_DRM2_ROTATION_NORMAL;
-        else if (s->config.rotation == 90)
-          orient = ECORE_DRM2_ROTATION_90;
-        else if (s->config.rotation == 180)
-          orient = ECORE_DRM2_ROTATION_180;
-        else if (s->config.rotation == 270)
-          orient = ECORE_DRM2_ROTATION_270;
-
-        ecore_drm2_output_rotation_set(output, orient);
-# endif
 
         if (s->config.priority == top_priority)
           _drm2_output_primary_set(outputs, output);

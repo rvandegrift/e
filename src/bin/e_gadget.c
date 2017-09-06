@@ -276,13 +276,25 @@ _gadget_object_free(E_Object *eobj)
 }
 
 static void
+_gadget_remove(E_Gadget_Config *zgc)
+{
+   evas_object_smart_callback_call(zgc->site->layout, "gadget_removed", zgc->gadget);
+   zgc->site->gadget_list = eina_inlist_remove(zgc->site->gadget_list, EINA_INLIST_GET(zgc));
+   zgc->site->gadgets = eina_list_remove(zgc->site->gadgets, zgc);
+   _gadget_free(zgc);
+}
+
+static void
 _gadget_wizard_end(void *data, int id)
 {
    E_Gadget_Config *zgc = data;
 
    zgc->id = id;
    evas_object_smart_callback_call(zgc->site->layout, "gadget_site_unlocked", NULL);
-   _gadget_object_finalize(zgc);
+   if (id)
+     _gadget_object_finalize(zgc);
+   else
+     _gadget_remove(zgc);
 }
 
 static Eina_Bool
@@ -322,7 +334,7 @@ _gadget_object_create(E_Gadget_Config *zgc)
 
    if (!zgc->site->orient)
      evas_object_smart_need_recalculate_set(zgc->site->layout, 1);
-   evas_object_event_callback_priority_add(g, EVAS_CALLBACK_DEL, EVAS_CALLBACK_PRIORITY_BEFORE, _gadget_del, zgc);
+   evas_object_event_callback_priority_add(g, EVAS_CALLBACK_DEL, EVAS_CALLBACK_PRIORITY_AFTER, _gadget_del, zgc);
    _gadget_reparent(zgc->site, zgc);
    elm_object_tree_focus_allow_set(zgc->gadget, 0);
    evas_object_raise(zgc->site->events);
@@ -386,16 +398,16 @@ _site_gadget_resize(Evas_Object *g, int w, int h, Evas_Coord *ww, Evas_Coord *hh
         switch (aspect)
           {
            case EVAS_ASPECT_CONTROL_HORIZONTAL:
-             *hh = (*ww * ay / ax);
+             *hh = (*ww * (double)ay / ax);
              break;
            case EVAS_ASPECT_CONTROL_VERTICAL:
-             *ww = (*hh * ax / ay);
+             *ww = (*hh * (double)ax / ay);
              break;
            default:
              if (IS_HORIZ(zgc->site->orient))
-               *ww = (*hh * ax / ay);
+               *ww = (*hh * (double)ax / ay);
              else if (IS_VERT(zgc->site->orient))
-               *hh = (*ww * ay / ax);
+               *hh = (*ww * (double)ay / ax);
              else if (aspect)
                {
                   double ar = ax / (double) ay;
@@ -408,9 +420,9 @@ _site_gadget_resize(Evas_Object *g, int w, int h, Evas_Coord *ww, Evas_Coord *hh
                          *ww = *hh;
                     }
                   else if (ar > 1.0)
-                    *hh = (*ww * ay / ax);
+                    *hh = (*ww * (double)ay / ax);
                   else
-                    *ww = (*hh * ax / ay);
+                    *ww = (*hh * (double)ax / ay);
                }
           }
      }
@@ -540,6 +552,7 @@ _site_layout(Evas_Object *o, Evas_Object_Box_Data *priv EINA_UNUSED, void *data)
    E_Gadget_Config *zgc;
 
    evas_object_geometry_get(o, &x, &y, &w, &h);
+   if ((!w) || (!h)) return;
    evas_object_geometry_set(zgs->events, x, y, w, h);
 
    evas_object_box_align_get(o, &ax, &ay);
@@ -631,11 +644,17 @@ _gadget_mouse_resize(E_Gadget_Config *zgc, int t EINA_UNUSED, Ecore_Event_Mouse_
    gw = zgc->w * w;
    gh = zgc->h * h;
    if (zgc->resizing & E_GADGET_SITE_ANCHOR_LEFT)
-     gw -= (ev->x - zgc->down.x);
+     {
+        gw -= (ev->x - zgc->down.x);
+        zgc->x = ev->x / (double)w;
+     }
    else
      gw += (ev->x - zgc->down.x);
    if (zgc->resizing & E_GADGET_SITE_ANCHOR_TOP)
-     gh -= (ev->y - zgc->down.y);
+     {
+        gh -= (ev->y - zgc->down.y);
+        zgc->y = ev->y / (double)h;
+     }
    else
      gh += (ev->y - zgc->down.y);
    zgc->w = gw / w;
@@ -775,15 +794,6 @@ _gadget_act_configure(E_Object *obj, const char *params EINA_UNUSED, E_Binding_E
    zgc = evas_object_data_get(g, "__e_gadget");
    _gadget_configure(zgc);
    return EINA_TRUE;
-}
-
-static void
-_gadget_remove(E_Gadget_Config *zgc)
-{
-   evas_object_smart_callback_call(zgc->site->layout, "gadget_removed", zgc->gadget);
-   zgc->site->gadget_list = eina_inlist_remove(zgc->site->gadget_list, EINA_INLIST_GET(zgc));
-   zgc->site->gadgets = eina_list_remove(zgc->site->gadgets, zgc);
-   _gadget_free(zgc);
 }
 
 static void
@@ -1141,17 +1151,17 @@ _site_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *e
 {
    E_Gadget_Site *zgs = data;
    E_Gadget_Config *zgc;
-   Eina_List *l;
+   Eina_List *l, *ll;
 
    E_FREE_FUNC(zgs->events, evas_object_del);
+   E_FREE_FUNC(zgs->move_handler, ecore_event_handler_del);
+   E_FREE_FUNC(zgs->mouse_up_handler, ecore_event_handler_del);
+   EINA_LIST_FOREACH_SAFE(zgs->gadgets, l, ll, zgc)
+     evas_object_del(zgc->display);
    zgs->layout = NULL;
    zgs->cur_size = 0;
    zgs->action = NULL;
    zgs->style_cb = NULL;
-   E_FREE_FUNC(zgs->move_handler, ecore_event_handler_del);
-   E_FREE_FUNC(zgs->mouse_up_handler, ecore_event_handler_del);
-   EINA_LIST_FOREACH(zgs->gadgets, l, zgc)
-     evas_object_del(zgc->display);
    if (zgs->name) return;
    eina_stringshare_del(zgs->name);
    free(zgs);
@@ -1224,12 +1234,25 @@ _site_create(E_Gadget_Site *zgs)
 }
 
 static void
+_site_auto_add_comp_object_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Gadget_Site *zgs = data;
+   Eina_List *l, *ll;
+   E_Gadget_Config *zgc;
+
+   /* prune unconfigured gadgets */
+   EINA_LIST_FOREACH_SAFE(zgs->gadgets, l, ll, zgc)
+     if (zgc->id <= 0) _gadget_remove(zgc);
+   evas_object_del(zgs->layout);
+}
+
+static void
 _site_auto_add(E_Gadget_Site *zgs, Evas_Object *comp_object)
 {
    int x, y, w, h;
 
    _site_create(zgs);
-   e_comp_object_util_del_list_append(comp_object, zgs->layout);
+   evas_object_event_callback_add(comp_object, EVAS_CALLBACK_DEL, _site_auto_add_comp_object_del, zgs);
    evas_object_layer_set(zgs->layout, evas_object_layer_get(comp_object));
    evas_object_stack_above(zgs->layout, comp_object);
    evas_object_geometry_get(comp_object, &x, &y, &w, &h);
@@ -1508,12 +1531,13 @@ e_gadget_util_layout_style_init(Evas_Object *g, Evas_Object *style)
    EINA_SAFETY_ON_NULL_RETURN_VAL(zgc, NULL);
 
    prev = zgc->style.obj;
+   if ((!prev) && (!style)) return NULL;
    zgc->style.obj = style;
    if (style)
      {
         elm_layout_file_get(style, NULL, &grp);
         eina_stringshare_replace(&zgc->style.name, strrchr(grp, '/') + 1);
-        evas_object_event_callback_priority_add(style, EVAS_CALLBACK_DEL, EVAS_CALLBACK_PRIORITY_BEFORE, _gadget_del, zgc);
+        evas_object_event_callback_priority_add(style, EVAS_CALLBACK_DEL, EVAS_CALLBACK_PRIORITY_AFTER, _gadget_del, zgc);
      }
    else
      eina_stringshare_replace(&zgc->style.name, NULL);

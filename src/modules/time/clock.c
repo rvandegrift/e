@@ -199,6 +199,8 @@ _clock_timer(void *d EINA_UNUSED)
         seconds |= inst->cfg->show_seconds;
         sec = time_string_format(inst, buf, sizeof(buf));
         elm_object_part_text_set(inst->o_clock, "e.text", buf);
+        time_datestring_format(inst, buf, sizeof(buf) - 1);
+        elm_object_part_text_set(inst->o_clock, "e.text.sub", buf);
         _eval_instance_size(inst);
      }
    sec = seconds ? 1 : (61 - sec);
@@ -519,4 +521,15 @@ time_config_update(Config_Item *ci)
    if (!advanced)
      E_FREE_FUNC(clock_timer, ecore_timer_del);
    e_config_save_queue();
+}
+
+EINTERN void
+clock_timer_set(Eina_Bool set)
+{
+   if (set)
+     {
+        if (clock_instances) _clock_timer(NULL);
+     }
+   else
+     E_FREE_FUNC(clock_timer, ecore_timer_del);
 }

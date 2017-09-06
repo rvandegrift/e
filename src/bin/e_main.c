@@ -327,22 +327,6 @@ main(int argc, char **argv)
    e_util_env_set("DESKTOP", "Enlightenment");
    TS("Environment Variables Done");
 
-   /* KDE5 applications don't understand anything other then gnome or kde     */
-   /* They expect everyone else to set QT_QPA_PLATFORMTHEME to tell them how  */
-   /* to theme there apps otherwise they use a fallback mode which results in */
-   /* missing icons and a inability to change the appearance of applications  */
-   /* see https://bugzilla.suse.com/show_bug.cgi?id=920792 for more info.     */
-   /* There are two sensible defaults for this variable, "kde" which will     */
-   /* make apps appear the same as they do if they are run in kde. and gtk2   */
-   /* which will make kde applications follow the gtk/gnome theme, we have    */
-   /* decided on choosing gtk2 as it means that kde/qt apps will follow the   */
-   /* app and icon theme set in the enlightenment settings dialog. Some users */
-   /* who wish to use Qt apps without any gnome or gtk usage may choose to    */
-   /* install qt5ct and overwrite this variable with qt5ct and use that to    */
-   /* configure there Qt5 applications.                                       */
-   e_util_env_set("QT_QPA_PLATFORMTHEME", "gtk2");
-   e_util_env_set("QT_STYLE_OVERRIDE", "gtk2");
-
    TS("Parse Arguments");
    _e_main_parse_arguments(argc, argv);
    TS("Parse Arguments Done");
@@ -566,6 +550,26 @@ main(int argc, char **argv)
    TS("E_Config Init Done");
    _e_main_shutdown_push(e_config_shutdown);
 
+   if (e_config->xsettings.match_e17_theme)
+     {
+
+        /* KDE5 applications don't understand anything other then gnome or kde     */
+        /* They expect everyone else to set QT_QPA_PLATFORMTHEME to tell them how  */
+        /* to theme there apps otherwise they use a fallback mode which results in */
+        /* missing icons and a inability to change the appearance of applications  */
+        /* see https://bugzilla.suse.com/show_bug.cgi?id=920792 for more info.     */
+        /* There are two sensible defaults for this variable, "kde" which will     */
+        /* make apps appear the same as they do if they are run in kde. and gtk2   */
+        /* which will make kde applications follow the gtk/gnome theme, we have    */
+        /* decided on choosing gtk2 as it means that kde/qt apps will follow the   */
+        /* app and icon theme set in the enlightenment settings dialog. Some users */
+        /* who wish to use Qt apps without any gnome or gtk usage may choose to    */
+        /* install qt5ct and overwrite this variable with qt5ct and use that to    */
+        /* configure there Qt5 applications.                                       */
+        e_util_env_set("QT_QPA_PLATFORMTHEME", "gtk2");
+        e_util_env_set("QT_STYLE_OVERRIDE", "gtk2");
+     }
+
    TS("E_Env Init");
    if (!e_env_init())
      {
@@ -703,14 +707,6 @@ main(int argc, char **argv)
 
    if (e_config->show_splash)
      e_init_status_set(_("Setup Screensaver"));
-   TS("E_Screensaver Init");
-   if (!e_screensaver_init())
-     {
-        e_error_message_show(_("Enlightenment cannot configure the X screensaver.\n"));
-        _e_main_shutdown(-1);
-     }
-   TS("E_Screensaver Init Done");
-   _e_main_shutdown_push(e_screensaver_shutdown);
 
    if (e_config->show_splash)
      e_init_status_set(_("Setup Screens"));
@@ -1529,6 +1525,14 @@ _e_main_test_formats(void)
    Evas_Object *im, *txt;
    Evas_Coord tw, th;
    char buff[PATH_MAX];
+   char *types[] =
+   {
+      "svg",
+      "jpg",
+      "png",
+      "edj"
+   };
+   unsigned int i, t_edj = 3;
 
    if (e_config->show_splash)
      e_init_status_set(_("Testing Format Support"));
@@ -1542,45 +1546,32 @@ _e_main_test_formats(void)
    evas = ecore_evas_get(ee);
    im = evas_object_image_add(evas);
 
-   e_prefix_data_concat_static(buff, "data/images/test.svg");
-   evas_object_image_file_set(im, buff, NULL);
-   if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
+   for (i = 0; i < EINA_C_ARRAY_LENGTH(types); i++)
      {
-        e_error_message_show(_("Enlightenment found Evas can't load SVG files. "
-                               "Check Evas has SVG loader support.\n"));
-     }
-   else
-     efreet_icon_extension_add(".svg");
+        char b[128], *t = types[i];
 
-   e_prefix_data_concat_static(buff, "data/images/test.jpg");
-   evas_object_image_file_set(im, buff, NULL);
-   if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
-     {
-        e_error_message_show(_("Enlightenment found Evas can't load JPEG files. "
-                               "Check Evas has JPEG loader support.\n"));
-        _e_main_shutdown(-1);
+        snprintf(b, sizeof(b), "data/images/test.%s", types[i]);
+        e_prefix_data_concat_static(buff, b);
+        evas_object_image_file_set(im, buff, NULL);
+        if (i == t_edj) t = "eet";
+        switch (evas_object_image_load_error_get(im))
+          {
+           default:
+             e_error_message_show(_("Enlightenment found Evas can't load '%s' files. "
+                                    "Check Evas has '%s' loader support.\n"), t, t);
+             if (i) _e_main_shutdown(-1);
+             break;
+           case EVAS_LOAD_ERROR_CORRUPT_FILE:
+           case EVAS_LOAD_ERROR_DOES_NOT_EXIST:
+           case EVAS_LOAD_ERROR_PERMISSION_DENIED:
+             e_error_message_show(_("Enlightenment cannot access test image for '%s' filetype. "
+                                    "Check your install for setup issues.\n"), t);
+           case EVAS_LOAD_ERROR_NONE:
+             snprintf(b, sizeof(b), ".%s", types[i]);
+             efreet_icon_extension_add(b);
+             break;
+          }
      }
-   efreet_icon_extension_add(".jpg");
-
-   e_prefix_data_concat_static(buff, "data/images/test.png");
-   evas_object_image_file_set(im, buff, NULL);
-   if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
-     {
-        e_error_message_show(_("Enlightenment found Evas can't load PNG files. "
-                               "Check Evas has PNG loader support.\n"));
-        _e_main_shutdown(-1);
-     }
-   efreet_icon_extension_add(".png");
-
-   e_prefix_data_concat_static(buff, "data/images/test.edj");
-   evas_object_image_file_set(im, buff, "images/0");
-   if (evas_object_image_load_error_get(im) != EVAS_LOAD_ERROR_NONE)
-     {
-        e_error_message_show(_("Enlightenment found Evas can't load EET files. "
-                               "Check Evas has EET loader support.\n"));
-        _e_main_shutdown(-1);
-     }
-   efreet_icon_extension_add(".edj");
 
    evas_object_del(im);
 
@@ -1603,6 +1594,8 @@ _e_main_screens_init(void)
 {
    TS("\tscreens: client");
    if (!e_client_init()) return 0;
+   TS("E_Screensaver Init");
+   if (!e_screensaver_init()) return 0;
    TS("\tscreens: win");
    if (!e_win_init()) return 0;
    TS("Compositor Init");
@@ -1637,6 +1630,7 @@ _e_main_screens_shutdown(void)
    e_menu_shutdown();
    e_shelf_shutdown();
    e_comp_shutdown();
+   e_screensaver_shutdown();
    e_client_shutdown();
    e_exehist_shutdown();
    e_backlight_shutdown();
