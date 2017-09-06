@@ -1,3 +1,16 @@
+e17 (0.21.9-1) UNRELEASED; urgency=medium
+
+  * Team upload.
+  * New upstream release
+
+  [ Ross Vandegrift ]
+  * Update gbp.conf for debian experimental branch
+  * Update README.source for tarball-based workflow
+  * Put enlightenment systemd unit in examples (Closes: #854698)
+  * d/p/10_type_restore_LDFLAGS.diff: drop, applied upstream
+
+ -- Ross Vandegrift <ross@kallisti.us>  Wed, 06 Sep 2017 11:25:52 -0700
+
 e17 (0.21.5-1) experimental; urgency=medium
 
   [ Ross Vandegrift ]
