@@ -164,7 +164,11 @@ _e_sys_comp_logout(void)
 static void
 _e_sys_comp_resume(void)
 {
+   Eina_List *l;
+   E_Zone *zone;
    evas_damage_rectangle_add(e_comp->evas, 0, 0, e_comp->w, e_comp->h);
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
+     e_backlight_level_set(zone, e_config->backlight.normal, -1.0);
    _e_sys_comp_emit_cb_wait(E_SYS_SUSPEND, "e,state,sys,resume", NULL, EINA_FALSE);
    e_screensaver_deactivate();
 }
@@ -758,7 +762,7 @@ _e_sys_logout_after(void)
 static void
 _e_sys_logout_begin(E_Sys_Action a_after, Eina_Bool raw)
 {
-   const Eina_List *l;
+   const Eina_List *l, *ll;
    E_Client *ec;
    E_Obj_Dialog *od;
 
@@ -779,7 +783,7 @@ _e_sys_logout_begin(E_Sys_Action a_after, Eina_Bool raw)
      }
    _e_sys_action_after = a_after;
    _e_sys_action_after_raw = raw;
-   EINA_LIST_FOREACH(e_comp->clients, l, ec)
+   EINA_LIST_FOREACH_SAFE(e_comp->clients, l, ll, ec)
      {
         e_client_act_close_begin(ec);
      }

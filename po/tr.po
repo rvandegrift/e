@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: E17\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2016-12-08 11:34+1030\n"
+"POT-Creation-Date: 2017-08-01 17:12+0930\n"
 "PO-Revision-Date: 2014-05-24 08:28+0000\n"
 "Last-Translator: H. İbrahim Güngör <h.ibrahim.gungor@gmail.com>\n"
 "Language-Team: Turkish <kde-i18n-doc@kde.org>\n"
@@ -84,7 +84,7 @@ msgstr "Sonlandır"
 #: src/bin/e_actions.c:2213 src/bin/e_actions.c:2270 src/bin/e_actions.c:2332
 #: src/bin/e_actions.c:2422 src/bin/e_confirm_dialog.c:53
 #: src/bin/e_desklock.c:592 src/bin/e_fm.c:10669 src/bin/e_fm.c:11022
-#: src/bin/e_screensaver.c:202 src/modules/quickaccess/e_mod_quickaccess.c:1308
+#: src/bin/e_screensaver.c:208 src/modules/quickaccess/e_mod_quickaccess.c:1308
 msgid "No"
 msgstr "Hayır"
 
@@ -104,7 +104,7 @@ msgstr "Enlightenment'tan çıkmak istediğinizden emin misiniz?"
 #: src/bin/e_actions.c:2060 src/bin/e_actions.c:2151 src/bin/e_actions.c:2211
 #: src/bin/e_actions.c:2268 src/bin/e_actions.c:2330 src/bin/e_actions.c:2420
 #: src/bin/e_confirm_dialog.c:52 src/bin/e_desklock.c:590 src/bin/e_fm.c:10672
-#: src/bin/e_screensaver.c:200 src/modules/quickaccess/e_mod_quickaccess.c:1308
+#: src/bin/e_screensaver.c:206 src/modules/quickaccess/e_mod_quickaccess.c:1308
 msgid "Yes"
 msgstr "Evet"
 
@@ -116,7 +116,7 @@ msgstr "Çıkış"
 msgid "Are you sure you want to logout?"
 msgstr "Oturumunuzu kapatmak istediğnizden emin misiniz?"
 
-#: src/bin/e_actions.c:2207 src/bin/e_sys.c:966
+#: src/bin/e_actions.c:2207 src/bin/e_sys.c:970
 msgid "Power off"
 msgstr "Kapat"
 
@@ -168,7 +168,7 @@ msgstr "Fare düğmesi"
 msgid "Window : Actions"
 msgstr "Pencere : Eylemler"
 
-#: src/bin/e_actions.c:2991 src/bin/e_fm.c:11798
+#: src/bin/e_actions.c:2991 src/bin/e_fm.c:11800
 msgid "Move"
 msgstr "Taşı"
 
@@ -542,7 +542,7 @@ msgstr "Pencere... veya başlangıca... atla"
 #: src/bin/e_actions.c:3315 src/bin/e_actions.c:3317 src/bin/e_actions.c:3319
 #: src/bin/e_actions.c:3324 src/modules/backlight/e_mod_main.c:480
 #: src/modules/conf_display/e_mod_main.c:17
-#: src/modules/conf_randr/e_mod_main.c:35 src/modules/ibox/e_mod_config.c:133
+#: src/modules/conf_randr/e_mod_main.c:36 src/modules/ibox/e_mod_config.c:133
 #: src/modules/shot/e_mod_main.c:750 src/modules/shot/e_mod_main.c:1360
 msgid "Screen"
 msgstr "Ekran"
@@ -841,12 +841,12 @@ msgstr "Önceki klavye yerleşimi"
 msgid "Set As Background"
 msgstr "Masaüstü Arka Planı Yap"
 
-#: src/bin/e_client.c:4354
+#: src/bin/e_client.c:4386
 #, fuzzy
 msgid "Client Error!"
 msgstr "Pencere Listesi Hatası"
 
-#: src/bin/e_client.c:4354
+#: src/bin/e_client.c:4386
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -881,51 +881,51 @@ msgstr "Seç"
 msgid "Cancel"
 msgstr "İptal"
 
-#: src/bin/e_comp.c:1063 src/bin/e_comp.c:1069 src/bin/e_comp.c:1075
-#: src/bin/e_comp.c:1375 src/bin/e_configure.c:33
+#: src/bin/e_comp.c:1058 src/bin/e_comp.c:1064 src/bin/e_comp.c:1070
+#: src/bin/e_comp.c:1373 src/bin/e_configure.c:33
 #: src/modules/conf_bindings/e_int_config_mousebindings.c:351
 msgid "Compositor"
 msgstr "Birleştirici"
 
-#: src/bin/e_comp.c:1064
+#: src/bin/e_comp.c:1059
 msgid "Change current window opacity"
 msgstr "Geçerli pencere matlığını değiştir"
 
-#: src/bin/e_comp.c:1070
+#: src/bin/e_comp.c:1065
 msgid "Set current window opacity"
 msgstr "Geçerli pencere matlığını ayarla"
 
-#: src/bin/e_comp.c:1076
+#: src/bin/e_comp.c:1071
 msgid "Toggle focused client's redirect state"
 msgstr "Odaklanmış istemcilerin yönlendirme durumunu değiştir"
 
-#: src/bin/e_comp.c:1208 src/modules/bluez4/e_mod_main.c:204
+#: src/bin/e_comp.c:1206 src/modules/bluez4/e_mod_main.c:204
 msgid "Visible"
 msgstr "Görünür"
 
-#: src/bin/e_comp.c:1213
+#: src/bin/e_comp.c:1211
 msgid "Focus-Out"
 msgstr "Uzaklaş"
 
-#: src/bin/e_comp.c:1218
+#: src/bin/e_comp.c:1216
 msgid "Focus-In"
 msgstr "Yakınlaş"
 
-#: src/bin/e_comp.c:1223 src/bin/e_int_client_prop.c:515
+#: src/bin/e_comp.c:1221 src/bin/e_int_client_prop.c:515
 msgid "Hidden"
 msgstr "Gizli"
 
-#: src/bin/e_comp.c:1330 src/bin/e_int_client_prop.c:449
+#: src/bin/e_comp.c:1328 src/bin/e_int_client_prop.c:449
 #: src/bin/e_int_client_remember.c:706 src/bin/e_int_config_comp_match.c:369
 #: src/modules/wizard/page_050.c:96
 msgid "Title"
 msgstr "Başlık"
 
-#: src/bin/e_comp_x.c:568
+#: src/bin/e_comp_x.c:573
 msgid "Compositor Warning"
 msgstr "Birleştirici Uyarısı"
 
-#: src/bin/e_comp_x.c:569
+#: src/bin/e_comp_x.c:574
 #, fuzzy
 msgid ""
 "Your display driver does not support OpenGL, GLSL<br>shaders or no OpenGL "
@@ -936,11 +936,11 @@ msgstr ""
 "Ekran kartı sürücünüz OpenGL desteklemiyor, veya <br>OpenGL motoru Evas veya "
 "Ecore-Evas için <br>derlenmemiş veya yüklenmemiş. Yazılım motoruna geçiliyor."
 
-#: src/bin/e_comp_x.c:5359
+#: src/bin/e_comp_x.c:5411
 msgid "Lock Failed"
 msgstr "Kilitleme Başarısız Oldu"
 
-#: src/bin/e_comp_x.c:5360
+#: src/bin/e_comp_x.c:5412
 msgid ""
 "Locking the desktop failed because some application<br>has grabbed either "
 "the keyboard or the mouse or both<br>and their grab is unable to be broken."
@@ -949,12 +949,12 @@ msgstr ""
 "koparılamayacak şekilde yakalamış olduğundan <br>masaüstü kilitlemesi "
 "başarısız oldu."
 
-#: src/bin/e_comp_x.c:5376
+#: src/bin/e_comp_x.c:5428
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "Başka bir birleştirici görüntü sunucusunda<br>zaten çalışıyor"
 
-#: src/bin/e_comp_x.c:5396
+#: src/bin/e_comp_x.c:5448
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -963,11 +963,11 @@ msgstr ""
 "Görüntü sunucunuz birleştirici kaplamalı pencereleri <br>desteklemiyor. Bu "
 "işlem için bu özellik gerekli."
 
-#: src/bin/e_comp_x.c:5522
+#: src/bin/e_comp_x.c:5577
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment Ecore_X'i başlatamadı!\n"
 
-#: src/bin/e_comp_x.c:5534
+#: src/bin/e_comp_x.c:5589
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -977,7 +977,7 @@ msgstr ""
 "desteği olmadan hazırlanmış. Ayrıca birleşiklik için X11 ve Ecore'un  "
 "XRender ve XFixes desteği ile hazırlanmış olması gerektiğini de unutmayın."
 
-#: src/bin/e_comp_x.c:5543
+#: src/bin/e_comp_x.c:5598
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -985,7 +985,7 @@ msgstr ""
 "Görüntü yöneticiniz XDamage desteklemiyor veya Ecore XDamage desteği olmadan "
 "hazırlanmış."
 
-#: src/bin/e_comp_x.c:5645
+#: src/bin/e_comp_x.c:5702
 #, fuzzy
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment güncelleme sistemini başlatamadı.\n"
@@ -1051,11 +1051,11 @@ msgstr ""
 #: src/bin/e_config.c:1895 src/bin/e_config.c:2540
 #: src/bin/e_config_dialog.c:274 src/bin/e_desktop_editor.c:892
 #: src/bin/e_desktop_editor.c:956 src/bin/e_entry_dialog.c:65
-#: src/bin/e_exec.c:718 src/bin/e_fm.c:10185 src/bin/e_fm.c:10942
+#: src/bin/e_exec.c:720 src/bin/e_fm.c:10185 src/bin/e_fm.c:10942
 #: src/bin/e_fm_prop.c:634 src/bin/e_import_config_dialog.c:542
 #: src/bin/e_int_client_remember.c:359 src/bin/e_int_client_remember.c:555
 #: src/bin/e_int_config_comp_match.c:583 src/bin/e_module.c:662
-#: src/bin/e_module.c:964 src/bin/e_sys.c:841 src/bin/e_sys.c:883
+#: src/bin/e_module.c:964 src/bin/e_sys.c:845 src/bin/e_sys.c:887
 #: src/bin/e_update.c:70 src/bin/e_utils.c:400 src/modules/bluez4/agent.c:69
 #: src/modules/bluez4/agent.c:139 src/modules/bluez4/agent.c:152
 #: src/modules/conf_bindings/e_int_config_signalbindings.c:623
@@ -1227,7 +1227,7 @@ msgid ""
 "No PAM support was built into Enlightenment, so<br>desk locking is disabled."
 msgstr "PAM desteği bulunamadı, <br>masaüstü kilitleme iptal edildi."
 
-#: src/bin/e_desklock.c:581 src/bin/e_screensaver.c:191
+#: src/bin/e_desklock.c:581 src/bin/e_screensaver.c:197
 msgid "Activate Presentation Mode?"
 msgstr "Sunum Kipi Etkinleştirilsin mi?"
 
@@ -1240,11 +1240,11 @@ msgstr ""
 "Masaüstüne çok çabuk döndünüz. <br><br><b>Sunum modunu</b> açmak ve ekran "
 "koruyucuyu geçici olarak kapatmak ister misiniz?"
 
-#: src/bin/e_desklock.c:594 src/bin/e_screensaver.c:204
+#: src/bin/e_desklock.c:594 src/bin/e_screensaver.c:210
 msgid "No, but increase timeout"
 msgstr "Hayır, fakat zaman aşımını arttır"
 
-#: src/bin/e_desklock.c:596 src/bin/e_screensaver.c:206
+#: src/bin/e_desklock.c:596 src/bin/e_screensaver.c:212
 msgid "No, and stop asking"
 msgstr "Hayır, ve bir daha sorma"
 
@@ -1377,11 +1377,11 @@ msgstr "Enlightenment dizini yenileyemedi:<br><br>%s"
 msgid "Enlightenment was unable to fork a child process:<br><br>%s"
 msgstr "Enlightenment bir çocuk süreç üretemedi:<br><br>%s"
 
-#: src/bin/e_exec.c:709
+#: src/bin/e_exec.c:711
 msgid "Application run error"
 msgstr "Uygulama Yürütme Hatası"
 
-#: src/bin/e_exec.c:711
+#: src/bin/e_exec.c:713
 #, c-format
 msgid ""
 "Enlightenment was unable to run the application:<br><br>%s<br><br>The "
@@ -1390,106 +1390,106 @@ msgstr ""
 "Enlightenment uygulamayı çalıştıramadı:<br><br>%s<br><br>Uygulama "
 "çalıştırılamadı."
 
-#: src/bin/e_exec.c:849
+#: src/bin/e_exec.c:851
 msgid "Application Execution Error"
 msgstr "Uygulama Çalıştırma Hatası"
 
-#: src/bin/e_exec.c:862 src/bin/e_exec.c:864
+#: src/bin/e_exec.c:864 src/bin/e_exec.c:866
 #, c-format
 msgid "%s stopped running unexpectedly."
 msgstr "%s beklenmedik şekilde çalışmayı durdurdu."
 
-#: src/bin/e_exec.c:870
+#: src/bin/e_exec.c:872
 #, c-format
 msgid "An exit code of %i was returned from %s."
 msgstr "%2$s 'den %1$i çıkış kodu geldi."
 
-#: src/bin/e_exec.c:878
+#: src/bin/e_exec.c:880
 #, c-format
 msgid "%s was interrupted by an Interrupt Signal."
 msgstr "%s Kesme Sinyali ile durduruldu."
 
-#: src/bin/e_exec.c:881
+#: src/bin/e_exec.c:883
 #, c-format
 msgid "%s was interrupted by a Quit Signal."
 msgstr "%s Çık Sinyali ile durduruldu."
 
-#: src/bin/e_exec.c:885
+#: src/bin/e_exec.c:887
 #, c-format
 msgid "%s was interrupted by an Abort Signal."
 msgstr "%s Durdur Sinyali ile durduruldu."
 
-#: src/bin/e_exec.c:888
+#: src/bin/e_exec.c:890
 #, c-format
 msgid "%s was interrupted by a Floating Point Error."
 msgstr "%s Ondalıklı Sayı Hatası ile durduruldu."
 
-#: src/bin/e_exec.c:892
+#: src/bin/e_exec.c:894
 #, c-format
 msgid "%s was interrupted by an Uninterruptable Kill Signal."
 msgstr "%s Durdurulamaz Sonlandırma Sinyali ile durduruldu."
 
-#: src/bin/e_exec.c:896
+#: src/bin/e_exec.c:898
 #, c-format
 msgid "%s was interrupted by a Segmentation Fault."
 msgstr "%s Bölümleme Hatası tarafından durduruldu."
 
-#: src/bin/e_exec.c:900
+#: src/bin/e_exec.c:902
 #, c-format
 msgid "%s was interrupted by a Broken Pipe."
 msgstr "%s Hatalı İletici tarafından durduruldu."
 
-#: src/bin/e_exec.c:903
+#: src/bin/e_exec.c:905
 #, c-format
 msgid "%s was interrupted by a Termination Signal."
 msgstr "%s Bitirme Sinyali tarafından durduruldu."
 
-#: src/bin/e_exec.c:907
+#: src/bin/e_exec.c:909
 #, c-format
 msgid "%s was interrupted by a Bus Error."
 msgstr "%s veri yolu Hatası tarafından durduruldu."
 
-#: src/bin/e_exec.c:910
+#: src/bin/e_exec.c:912
 #, c-format
 msgid "%s was interrupted by the signal number %i."
 msgstr "%s %i sinyal numarası tarafından durduruldu."
 
-#: src/bin/e_exec.c:966
+#: src/bin/e_exec.c:968
 msgid ""
 "***The remaining output has been truncated. Save the output to view.***\n"
 msgstr "***Kalan çıktı kesilmiş. Çıktıyı görünüme kaydet.***\n"
 
-#: src/bin/e_exec.c:1025 src/bin/e_exec.c:1103 src/bin/e_exec.c:1110
+#: src/bin/e_exec.c:1027 src/bin/e_exec.c:1105 src/bin/e_exec.c:1112
 msgid "Error Logs"
 msgstr "Hata Kayıtları"
 
-#: src/bin/e_exec.c:1031 src/bin/e_exec.c:1111
+#: src/bin/e_exec.c:1033 src/bin/e_exec.c:1113
 msgid "There was no error message."
 msgstr "Hata mesajı yoktu"
 
-#: src/bin/e_exec.c:1035 src/bin/e_exec.c:1118
+#: src/bin/e_exec.c:1037 src/bin/e_exec.c:1120
 msgid "Save This Message"
 msgstr "Mesajı Kaydet"
 
-#: src/bin/e_exec.c:1040 src/bin/e_exec.c:1043 src/bin/e_exec.c:1123
-#: src/bin/e_exec.c:1126
+#: src/bin/e_exec.c:1042 src/bin/e_exec.c:1045 src/bin/e_exec.c:1125
+#: src/bin/e_exec.c:1128
 #, c-format
 msgid "This error log will be saved as %s/%s.log"
 msgstr "Bu hata kaydı %s/%s.log olarak kaydedildi."
 
-#: src/bin/e_exec.c:1069
+#: src/bin/e_exec.c:1071
 msgid "Error Information"
 msgstr "Hata bilgisi"
 
-#: src/bin/e_exec.c:1077
+#: src/bin/e_exec.c:1079
 msgid "Error Signal Information"
 msgstr "Hata Sinyali Bilgisi"
 
-#: src/bin/e_exec.c:1087 src/bin/e_exec.c:1094
+#: src/bin/e_exec.c:1089 src/bin/e_exec.c:1096
 msgid "Output Data"
 msgstr "Veri Çıktısı"
 
-#: src/bin/e_exec.c:1095
+#: src/bin/e_exec.c:1097
 msgid "There was no output."
 msgstr "Çıktı yok."
 
@@ -1604,7 +1604,7 @@ msgstr "Eylemler..."
 msgid "Paste"
 msgstr "Yapıştır"
 
-#: src/bin/e_fm.c:9040 src/bin/e_fm.c:9257 src/bin/e_fm.c:11806
+#: src/bin/e_fm.c:9040 src/bin/e_fm.c:9257 src/bin/e_fm.c:11808
 msgid "Link"
 msgstr "Bağlantı"
 
@@ -1612,7 +1612,7 @@ msgstr "Bağlantı"
 msgid "Cut"
 msgstr "Kes"
 
-#: src/bin/e_fm.c:9236 src/bin/e_fm.c:11793
+#: src/bin/e_fm.c:9236 src/bin/e_fm.c:11795
 msgid "Copy"
 msgstr "Kopyala"
 
@@ -1656,7 +1656,7 @@ msgid "Eject"
 msgstr "Çıkarma"
 
 #: src/bin/e_fm.c:9362 src/bin/e_int_client_remember.c:803
-#: src/modules/ibar/e_mod_main.c:1590
+#: src/modules/ibar/e_mod_main.c:1599
 msgid "Properties"
 msgstr "Özellikler"
 
@@ -1804,7 +1804,7 @@ msgstr "Dosya yöneticisi iç hatası :("
 msgid "Retry"
 msgstr "Yeniden Dene"
 
-#: src/bin/e_fm.c:10610 src/bin/e_fm.c:10836 src/bin/e_fm.c:11814
+#: src/bin/e_fm.c:10610 src/bin/e_fm.c:10836 src/bin/e_fm.c:11816
 msgid "Abort"
 msgstr "Vazgeç"
 
@@ -2285,7 +2285,7 @@ msgid "Window"
 msgstr "Pencere"
 
 #: src/bin/e_int_client_menu.c:155
-#: src/modules/conf_randr/e_int_config_randr2.c:939
+#: src/modules/conf_randr/e_int_config_randr2.c:940
 #, fuzzy
 msgid "Align"
 msgstr "Yerleşim"
@@ -2579,7 +2579,7 @@ msgstr "Sabit"
 #: src/modules/conf_performance/e_int_config_powermanagement.c:196
 #: src/modules/conf_randr/e_int_config_randr2.c:434
 #: src/modules/conf_randr/e_int_config_randr2.c:651
-#: src/modules/conf_randr/e_int_config_randr2.c:906
+#: src/modules/conf_randr/e_int_config_randr2.c:907
 #: src/modules/conf_theme/e_int_config_fonts.c:703
 #: src/modules/conf_theme/e_int_config_transitions.c:199
 #: src/modules/conf_theme/e_int_config_transitions.c:253
@@ -2593,14 +2593,14 @@ msgstr "Yok"
 #: src/bin/e_int_client_prop.c:307
 #: src/modules/conf_randr/e_int_config_randr2.c:442
 #: src/modules/conf_randr/e_int_config_randr2.c:695
-#: src/modules/conf_randr/e_int_config_randr2.c:910
+#: src/modules/conf_randr/e_int_config_randr2.c:911
 msgid "Above"
 msgstr "Üzerinde"
 
 #: src/bin/e_int_client_prop.c:311
 #: src/modules/conf_randr/e_int_config_randr2.c:444
 #: src/modules/conf_randr/e_int_config_randr2.c:706
-#: src/modules/conf_randr/e_int_config_randr2.c:911
+#: src/modules/conf_randr/e_int_config_randr2.c:912
 msgid "Below"
 msgstr "Altında"
 
@@ -2725,13 +2725,13 @@ msgstr "Pozisyon İste"
 #: src/modules/everything/evry_gadget.c:497
 #: src/modules/everything/evry_gadget.c:679
 #: src/modules/everything/evry_plug_settings.c:183
-#: src/modules/ibar/e_mod_main.c:495 src/modules/ibar/e_mod_main.c:1583
+#: src/modules/ibar/e_mod_main.c:497 src/modules/ibar/e_mod_main.c:1592
 #: src/modules/ibox/e_mod_main.c:356 src/modules/ibox/e_mod_main.c:722
 #: src/modules/mixer/e_mod_main.c:525 src/modules/music-control/ui.c:277
 #: src/modules/packagekit/e_mod_main.c:47 src/modules/pager/e_mod_main.c:885
-#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:770
+#: src/modules/pager_plain/e_mod_main.c:870 src/modules/tasks/e_mod_main.c:775
 #: src/modules/temperature/e_mod_main.c:230
-#: src/modules/tiling/e_mod_tiling.c:1718 src/modules/wizard/page_150.c:31
+#: src/modules/tiling/e_mod_tiling.c:1728 src/modules/wizard/page_150.c:31
 #: src/modules/xkbswitch/e_mod_main.c:315
 #: src/modules/xkbswitch/e_mod_main.c:349
 msgid "Settings"
@@ -3251,7 +3251,7 @@ msgid "Types"
 msgstr "Türler"
 
 #: src/bin/e_int_config_comp_match.c:466
-#: src/modules/conf_randr/e_int_config_randr2.c:884
+#: src/modules/conf_randr/e_int_config_randr2.c:885
 msgid "On"
 msgstr "Açık"
 
@@ -3434,7 +3434,7 @@ msgstr "Uygulamalar"
 #: src/modules/conf_window_manipulation/e_mod_main.c:17
 #: src/modules/conf_window_remembers/e_mod_main.c:14
 #: src/modules/everything/evry_plug_windows.c:428
-#: src/modules/tiling/e_mod_tiling.c:1471 src/modules/winlist/e_mod_main.c:27
+#: src/modules/tiling/e_mod_tiling.c:1481 src/modules/winlist/e_mod_main.c:27
 msgid "Windows"
 msgstr "Pencereler"
 
@@ -3608,24 +3608,24 @@ msgstr "Enlightenment Eina'yı başlatamadı!\n"
 msgid "Enlightenment could not create a logging domain!\n"
 msgstr "Enlightenment oturum açma alanını oluşturamadı!\n"
 
-#: src/bin/e_main.c:355
+#: src/bin/e_main.c:339
 msgid "Enlightenment cannot initialize Eet!\n"
 msgstr "Enlightenment Eet'i başlatamadı!\n"
 
-#: src/bin/e_main.c:364
+#: src/bin/e_main.c:348
 msgid "Enlightenment cannot initialize Ecore!\n"
 msgstr "Enlightenment Ecore'u başlatamadı.\n"
 
-#: src/bin/e_main.c:379
+#: src/bin/e_main.c:363
 #, fuzzy
 msgid "Enlightenment cannot initialize EFX!\n"
 msgstr "Enlightenment Eet'i başlatamadı!\n"
 
-#: src/bin/e_main.c:388
+#: src/bin/e_main.c:372
 msgid "Enlightenment cannot initialize EIO!\n"
 msgstr "Enlightenment EIO'yu başlatamadı!\n"
 
-#: src/bin/e_main.c:400
+#: src/bin/e_main.c:384
 msgid ""
 "Enlightenment cannot set up an exit signal handler.\n"
 "Perhaps you are out of memory?"
@@ -3633,7 +3633,7 @@ msgstr ""
 "Enlightenment çıkış sinyali işleyiciyi ayarlayamadı.\n"
 "Belleğiniz tükenmiş olabilir mi?"
 
-#: src/bin/e_main.c:407
+#: src/bin/e_main.c:391
 msgid ""
 "Enlightenment cannot set up a HUP signal handler.\n"
 "Perhaps you are out of memory?"
@@ -3641,7 +3641,7 @@ msgstr ""
 "Enlightenment HUP sinyali işleyiciyi ayarlayamadı.\n"
 "Belleğiniz tükenmiş olabilir mi?"
 
-#: src/bin/e_main.c:414
+#: src/bin/e_main.c:398
 msgid ""
 "Enlightenment cannot set up a USER signal handler.\n"
 "Perhaps you are out of memory?"
@@ -3649,31 +3649,31 @@ msgstr ""
 "Enlightenment USER sinyali işleyiciyi ayarlayamadı.\n"
 "Belleğiniz tükenmiş olabilir mi?"
 
-#: src/bin/e_main.c:423
+#: src/bin/e_main.c:407
 msgid "Enlightenment cannot initialize Ecore_File!\n"
 msgstr "Enlightenment Ecore_File'ı başlatamadı!\n"
 
-#: src/bin/e_main.c:432
+#: src/bin/e_main.c:416
 msgid "Enlightenment cannot initialize Ecore_Con!\n"
 msgstr "Enlightenment Ecore_Con'u başlatamadı!\n"
 
-#: src/bin/e_main.c:441
+#: src/bin/e_main.c:425
 msgid "Enlightenment cannot initialize Ecore_Ipc!\n"
 msgstr "Enlightenment Ecore_Ipc'yi başlatamadı!\n"
 
-#: src/bin/e_main.c:454
+#: src/bin/e_main.c:438
 msgid "Enlightenment cannot initialize Ecore_Evas!\n"
 msgstr "Enlightenment Ecore_Evas'ı başlatamadı!\n"
 
-#: src/bin/e_main.c:463
+#: src/bin/e_main.c:447
 msgid "Enlightenment cannot initialize Elementary!\n"
 msgstr "Enlightenment Elementary'i başlatamadı!\n"
 
-#: src/bin/e_main.c:474
+#: src/bin/e_main.c:458
 msgid "Enlightenment cannot initialize Emotion!\n"
 msgstr "Enlightenment Emotion'u başatamadı!\n"
 
-#: src/bin/e_main.c:488
+#: src/bin/e_main.c:472
 #, fuzzy
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Wayland SHM\n"
@@ -3684,7 +3684,7 @@ msgstr ""
 "gerçekleme desteğinin olmadığını farketti. Lütfen Evas ve Ecore yüklemenizi\n"
 "kontrol edin ve Software X11 gerçekleme motoruyla uyumlu olduğundan emin olun"
 
-#: src/bin/e_main.c:498
+#: src/bin/e_main.c:482
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software X11\n"
 "rendering in Evas. Please check your installation of Evas and\n"
@@ -3694,7 +3694,7 @@ msgstr ""
 "gerçekleme desteğinin olmadığını farketti. Lütfen Evas ve Ecore yüklemenizi\n"
 "kontrol edin ve Software X11 gerçekleme motoruyla uyumlu olduğundan emin olun"
 
-#: src/bin/e_main.c:507
+#: src/bin/e_main.c:491
 msgid ""
 "Enlightenment found ecore_evas doesn't support the Software Buffer\n"
 "rendering in Evas. Please check your installation of Evas and\n"
@@ -3705,11 +3705,11 @@ msgstr ""
 "kontrol edin ve Software Buffer gerçekleme motoruyla uyumlu olduğundan emin "
 "olun"
 
-#: src/bin/e_main.c:521
+#: src/bin/e_main.c:505
 msgid "Enlightenment cannot initialize E_Intl!\n"
 msgstr "Enlightenment E_Intl'i başlatamadı!\n"
 
-#: src/bin/e_main.c:532
+#: src/bin/e_main.c:516
 msgid ""
 "Enlightenment cannot initialize its emergency alert system.\n"
 "Have you set your DISPLAY variable?"
@@ -3717,7 +3717,7 @@ msgstr ""
 "Enlightenment acil durum uyarı sistemini başlatamadı.\n"
 "DISPLAY değişkenini ayarladınız mı?"
 
-#: src/bin/e_main.c:544
+#: src/bin/e_main.c:528
 msgid ""
 "Enlightenment cannot create directories in your home directory.\n"
 "Perhaps you have no home directory or the disk is full?"
@@ -3725,19 +3725,19 @@ msgstr ""
 "Enlightenment ev dizininizde yeni dizin oluşturamadı.\n"
 "Ev dizininiz olduğuna ve diskin dolu olmadığına emin misiniz?"
 
-#: src/bin/e_main.c:554
+#: src/bin/e_main.c:538
 msgid "Enlightenment cannot set up its file registry system.\n"
 msgstr "Enlightenment bunun dosya kayıt sistemini ayarlayamadı!\n"
 
-#: src/bin/e_main.c:563
+#: src/bin/e_main.c:547
 msgid "Enlightenment cannot set up its config system.\n"
 msgstr "Enlightenment bunun yapılandırma sistemini ayarlayamadı!\n"
 
-#: src/bin/e_main.c:572
+#: src/bin/e_main.c:576
 msgid "Enlightenment cannot set up its environment.\n"
 msgstr "Enlightenment bunun çalışma alanını ayarlayamadı!\n"
 
-#: src/bin/e_main.c:589
+#: src/bin/e_main.c:593
 msgid ""
 "Enlightenment cannot set up paths for finding files.\n"
 "Perhaps you are out of memory?"
@@ -3745,19 +3745,19 @@ msgstr ""
 "Enlightenment dosyaları bulmak için yolları ayarlayamadı.\n"
 "Bellek tükenmiş olabilir?"
 
-#: src/bin/e_main.c:606
+#: src/bin/e_main.c:610
 msgid "Enlightenment cannot set up its font system.\n"
 msgstr "Enlightenment bunun yazıtipi sistemini ayarlayamadı!\n"
 
-#: src/bin/e_main.c:619
+#: src/bin/e_main.c:623
 msgid "Enlightenment cannot set up its theme system.\n"
 msgstr "Enlightenment bunun tema sistemini ayarlayamadı!\n"
 
-#: src/bin/e_main.c:631
+#: src/bin/e_main.c:635
 msgid "Setup Message Bus"
 msgstr "Mesaj altsistemi kurulumu"
 
-#: src/bin/e_main.c:637
+#: src/bin/e_main.c:641
 msgid ""
 "Enlightenment cannot create a dbus session connection.\n"
 "At best this will break many things, at worst it will hard lock your "
@@ -3765,7 +3765,7 @@ msgid ""
 "If you're sure you know what you're doing, export E_NO_DBUS_SESSION=1"
 msgstr ""
 
-#: src/bin/e_main.c:650
+#: src/bin/e_main.c:654
 msgid ""
 "Enlightenment cannot initialize the FDO desktop system.\n"
 "Perhaps you lack permissions on ~/.cache/efreet or are\n"
@@ -3775,43 +3775,39 @@ msgstr ""
 "~/.cache/efreet üzerinde yetkiniz olmayabilir veya\n"
 "yeterli bellek/disk boşluğu yoktur?"
 
-#: src/bin/e_main.c:659
+#: src/bin/e_main.c:663
 msgid "Starting International Support"
 msgstr "Uluslararasılaştırma Desteği Başlatılıyor"
 
-#: src/bin/e_main.c:663
+#: src/bin/e_main.c:667
 msgid "Enlightenment cannot set up its intl system.\n"
 msgstr "Enlightenment bunun iç sistemini kuramadı.\n"
 
-#: src/bin/e_main.c:676
+#: src/bin/e_main.c:680
 msgid "Setup Actions"
 msgstr "Eylemleri Ayarla"
 
-#: src/bin/e_main.c:680
+#: src/bin/e_main.c:684
 msgid "Enlightenment cannot set up its actions system.\n"
 msgstr "Enlightenment bunun etkileşim sistemini kuramadı.\n"
 
-#: src/bin/e_main.c:694
+#: src/bin/e_main.c:698
 msgid "Setup Powersave Modes"
 msgstr "Güç Koruma Kipi Ayarları"
 
-#: src/bin/e_main.c:698
+#: src/bin/e_main.c:702
 msgid "Enlightenment cannot set up its powersave modes.\n"
 msgstr "Enlightenment kendi güç koruma kiplerini ayarlayamaz.\n"
 
-#: src/bin/e_main.c:705
+#: src/bin/e_main.c:709
 msgid "Setup Screensaver"
 msgstr "Ekran Koruyucuyu Ayarla"
 
-#: src/bin/e_main.c:709
-msgid "Enlightenment cannot configure the X screensaver.\n"
-msgstr "Enlightenment X ekrankoruyucusunu ayarlayamadı.\n"
-
-#: src/bin/e_main.c:716
+#: src/bin/e_main.c:712
 msgid "Setup Screens"
 msgstr "Ekranları Ayarla"
 
-#: src/bin/e_main.c:720
+#: src/bin/e_main.c:716
 msgid ""
 "Enlightenment set up window management for all the screens on your system\n"
 "failed. Perhaps another window manager is running?\n"
@@ -3819,206 +3815,206 @@ msgstr ""
 "Enlightenment sisteminizdeki tüm ekranlardaki pencere yönetimini ayarlamada\n"
 "başarısız oldu. Başka bir pencere yöneticisi çalışıyor olabilir mi?\n"
 
-#: src/bin/e_main.c:730
+#: src/bin/e_main.c:726
 msgid "Enlightenment cannot set up its pointer system.\n"
 msgstr "Enlightenment bunun işaretleme sistemini kuramadı.\n"
 
-#: src/bin/e_main.c:740
+#: src/bin/e_main.c:736
 msgid "Enlightenment cannot set up its scale system.\n"
 msgstr "Enlightenment bunun ölçekleme sistemini kuramadı.\n"
 
-#: src/bin/e_main.c:751
+#: src/bin/e_main.c:747
 msgid "Enlightenment cannot set up its init screen.\n"
 msgstr "Enlightenment bunun giriş ekranını kuramadı.\n"
 
-#: src/bin/e_main.c:775
+#: src/bin/e_main.c:771
 msgid "Setup ACPI"
 msgstr "ACPI Ayarla"
 
-#: src/bin/e_main.c:782
+#: src/bin/e_main.c:778
 msgid "Setup Backlight"
 msgstr "Arka Işığı Ayarla"
 
-#: src/bin/e_main.c:786
+#: src/bin/e_main.c:782
 msgid "Enlightenment cannot configure the backlight.\n"
 msgstr "Enlightenment arkaışığı ayarlayamadı.\n"
 
-#: src/bin/e_main.c:792
+#: src/bin/e_main.c:788
 msgid "Setup DPMS"
 msgstr "DPMS Ayarla"
 
-#: src/bin/e_main.c:796
+#: src/bin/e_main.c:792
 msgid "Enlightenment cannot configure the DPMS settings.\n"
 msgstr "Enlightenment DPMS ayarlarını yapılandıramadı.\n"
 
-#: src/bin/e_main.c:803
+#: src/bin/e_main.c:799
 msgid "Setup Desklock"
 msgstr "Masaüstü Kilidini Ayarla"
 
-#: src/bin/e_main.c:807
+#: src/bin/e_main.c:803
 msgid "Enlightenment cannot set up its desk locking system.\n"
 msgstr "Enlightenment bunun masaüstü kilidini ayarlayamaz.\n"
 
-#: src/bin/e_main.c:817
+#: src/bin/e_main.c:813
 msgid "Setup Paths"
 msgstr "Ayar Yolları"
 
-#: src/bin/e_main.c:823
+#: src/bin/e_main.c:819
 msgid "Setup System Controls"
 msgstr "Sistem Kontrollerini Ayarla"
 
-#: src/bin/e_main.c:827
+#: src/bin/e_main.c:823
 msgid "Enlightenment cannot initialize the System Command system.\n"
 msgstr "Enlightenment Sistem Komutu sistemini başlatamadı.\n"
 
-#: src/bin/e_main.c:834
+#: src/bin/e_main.c:830
 msgid "Setup Execution System"
 msgstr "Çalıştırma Sistemini Ayarla"
 
-#: src/bin/e_main.c:838
+#: src/bin/e_main.c:834
 msgid "Enlightenment cannot set up its exec system.\n"
 msgstr "Enlightenment bunun çalıştırma sistemini ayarlayamaz.\n"
 
-#: src/bin/e_main.c:848
+#: src/bin/e_main.c:844
 msgid "Setup Filemanager"
 msgstr "Dosya Yöneticisini Kur"
 
-#: src/bin/e_main.c:852
+#: src/bin/e_main.c:848
 msgid "Enlightenment cannot initialize the File manager.\n"
 msgstr "Enlightenment Dosya yöneticisini başlatamadı.\n"
 
-#: src/bin/e_main.c:859
+#: src/bin/e_main.c:855
 msgid "Setup Message System"
 msgstr "Mesaj Sistemini Ayarla"
 
-#: src/bin/e_main.c:863
+#: src/bin/e_main.c:859
 msgid "Enlightenment cannot set up its msg system.\n"
 msgstr "Enlightenment bunun mesaj sistemini ayarlayamadı.\n"
 
-#: src/bin/e_main.c:870
+#: src/bin/e_main.c:866
 msgid "Setup Grab Input Handling"
 msgstr "Girdi Yakalama İşleyiciyi Yapılandır"
 
-#: src/bin/e_main.c:874
+#: src/bin/e_main.c:870
 msgid "Enlightenment cannot set up its grab input handling system.\n"
 msgstr "Enlightenment girdi yakalama işleyicisini ayarlayamadı.\n"
 
-#: src/bin/e_main.c:881
+#: src/bin/e_main.c:877
 msgid "Setup Modules"
 msgstr "Modülleri Ayarla"
 
-#: src/bin/e_main.c:885 src/bin/e_main.c:1064
+#: src/bin/e_main.c:881 src/bin/e_main.c:1060
 msgid "Enlightenment cannot set up its module system.\n"
 msgstr "Enlightenment modülleri ayarlayamadı.\n"
 
-#: src/bin/e_main.c:892
+#: src/bin/e_main.c:888
 msgid "Setup Remembers"
 msgstr "Hatırlamaları Ayarla"
 
-#: src/bin/e_main.c:896
+#: src/bin/e_main.c:892
 msgid "Enlightenment cannot setup remember settings.\n"
 msgstr "Enlightenment hatırlamaları ayarlayamadı.\n"
 
-#: src/bin/e_main.c:905
+#: src/bin/e_main.c:901
 #, fuzzy
 msgid "Setup Gadgets"
 msgstr "Masaüstü araçları"
 
-#: src/bin/e_main.c:914
+#: src/bin/e_main.c:910
 msgid "Setup Gadcon"
 msgstr "Araçları Yapılandırma"
 
-#: src/bin/e_main.c:918
+#: src/bin/e_main.c:914
 msgid "Enlightenment cannot set up its gadget control system.\n"
 msgstr "Enlightenment araç kontrol sistemini ayarlayamadı.\n"
 
-#: src/bin/e_main.c:925
+#: src/bin/e_main.c:921
 msgid "Setup Toolbars"
 msgstr "Araç çubuklarını Ayarla"
 
-#: src/bin/e_main.c:929
+#: src/bin/e_main.c:925
 msgid "Enlightenment cannot set up its toolbars.\n"
 msgstr "Enlightenment araç çubuklarını ayarlayamadı.\n"
 
-#: src/bin/e_main.c:936
+#: src/bin/e_main.c:932
 msgid "Setup Wallpaper"
 msgstr "Duvar Kağıdını Ayarla"
 
-#: src/bin/e_main.c:940
+#: src/bin/e_main.c:936
 msgid "Enlightenment cannot set up its desktop background system.\n"
 msgstr "Enlightenment masaüstü arkaplanı sistemini ayarlayamadı.\n"
 
-#: src/bin/e_main.c:947
+#: src/bin/e_main.c:943
 msgid "Setup Mouse"
 msgstr "Fareyi Ayarla"
 
-#: src/bin/e_main.c:951
+#: src/bin/e_main.c:947
 msgid "Enlightenment cannot configure the mouse settings.\n"
 msgstr "Enlightenment fare ayarlarını yapılandıramadı.\n"
 
-#: src/bin/e_main.c:957
+#: src/bin/e_main.c:953
 msgid "Setup Bindings"
 msgstr "Kısayolları Ayarla"
 
-#: src/bin/e_main.c:961
+#: src/bin/e_main.c:957
 msgid "Enlightenment cannot set up its bindings system.\n"
 msgstr "Enlightenment kısayol sistemini ayarlayamadı.\n"
 
-#: src/bin/e_main.c:968
+#: src/bin/e_main.c:964
 msgid "Setup Thumbnailer"
 msgstr "Ön İzlemeyi Ayarla"
 
-#: src/bin/e_main.c:972
+#: src/bin/e_main.c:968
 msgid "Enlightenment cannot initialize the Thumbnailing system.\n"
 msgstr "Enlightenment ön izleme sistemini başlatamadı.\n"
 
-#: src/bin/e_main.c:981
+#: src/bin/e_main.c:977
 msgid "Enlightenment cannot initialize the Icon Cache system.\n"
 msgstr "Enlightenment simge önbelleği sistemini başlatamadı.\n"
 
-#: src/bin/e_main.c:990
+#: src/bin/e_main.c:986
 msgid "Enlightenment cannot initialize the Update system.\n"
 msgstr "Enlightenment güncelleme sistemini başlatamadı.\n"
 
-#: src/bin/e_main.c:997
+#: src/bin/e_main.c:993
 msgid "Setup Desktop Environment"
 msgstr "Masaüstü Ortamını Ayarla"
 
-#: src/bin/e_main.c:1001
+#: src/bin/e_main.c:997
 msgid "Enlightenment cannot initialize its desktop environment.\n"
 msgstr "Enlightenment masaüstü ortamını başlatamadı.\n"
 
-#: src/bin/e_main.c:1008
+#: src/bin/e_main.c:1004
 msgid "Setup File Ordering"
 msgstr "Dosya Sıralamasını Ayarla"
 
-#: src/bin/e_main.c:1012
+#: src/bin/e_main.c:1008
 msgid "Enlightenment cannot set up its order file system.\n"
 msgstr "Enlightenment dosya sıralama sistemini ayarlayamadı.\n"
 
-#: src/bin/e_main.c:1023
+#: src/bin/e_main.c:1019
 msgid "Load Modules"
 msgstr "Modülleri Yükle"
 
-#: src/bin/e_main.c:1052
+#: src/bin/e_main.c:1048
 #, fuzzy
 msgid "Setup Bryces"
 msgstr "Ekranları Ayarla"
 
-#: src/bin/e_main.c:1060
+#: src/bin/e_main.c:1056
 msgid "Setup Shelves"
 msgstr "Rafları Ayarla"
 
-#: src/bin/e_main.c:1074
+#: src/bin/e_main.c:1070
 msgid "Almost Done"
 msgstr "Neredeyse Bitti"
 
-#: src/bin/e_main.c:1218
+#: src/bin/e_main.c:1214
 #, fuzzy, c-format
 msgid "Version: %s\n"
 msgstr "İzinler"
 
-#: src/bin/e_main.c:1227
+#: src/bin/e_main.c:1223
 #, fuzzy, c-format
 msgid ""
 "Options:\n"
@@ -4072,7 +4068,7 @@ msgstr ""
 "\t-i-really-know-what-i-am-doing-and-accept-full-responsibility-for-it\n"
 "\t\tEğer bu yardıma ihtiyacınız varsa, bu seçeneğe ihiyacınız kalmaz.\n"
 
-#: src/bin/e_main.c:1281
+#: src/bin/e_main.c:1277
 msgid ""
 "You are executing enlightenment directly. This is\n"
 "bad. Please do not execute the \"enlightenment\"\n"
@@ -4088,11 +4084,11 @@ msgstr ""
 "bunun gibi gerekli servisleri başlatacaktır.\n"
 "Enlightenment başlamadan önce bunlar gereklidir.\n"
 
-#: src/bin/e_main.c:1534
+#: src/bin/e_main.c:1538
 msgid "Testing Format Support"
 msgstr "Sınama Biçimi Desteği"
 
-#: src/bin/e_main.c:1538
+#: src/bin/e_main.c:1542
 msgid ""
 "Enlightenment found Evas can't create a buffer canvas. Please check\n"
 "Evas has Software Buffer engine support.\n"
@@ -4100,39 +4096,23 @@ msgstr ""
 "Enlightenment Evas'ın tampon kanvası oluşturamadığını algıladı. Evas'ın\n"
 "Software Buffer motoru desteği olduğunu kontrol edin.\n"
 
-#: src/bin/e_main.c:1549
+#: src/bin/e_main.c:1560
+#, fuzzy, c-format
 msgid ""
-"Enlightenment found Evas can't load SVG files. Check Evas has SVG loader "
+"Enlightenment found Evas can't load '%s' files. Check Evas has '%s' loader "
 "support.\n"
 msgstr ""
 "Enlightenment Evas'ın SVG dosyalarını yükleyemediğini buldu. Evas'ın SVG "
 "desteğini kontrol edin.\n"
 
-#: src/bin/e_main.c:1559
+#: src/bin/e_main.c:1567
+#, c-format
 msgid ""
-"Enlightenment found Evas can't load JPEG files. Check Evas has JPEG loader "
-"support.\n"
+"Enlightenment cannot access test image for '%s' filetype. Check your install "
+"for setup issues.\n"
 msgstr ""
-"Enlightenment Evas'ınJPEG dosyalarını yükleyemediğini buldu. Evas'ın JPEG "
-"desteğini kontrol edin.\n"
 
-#: src/bin/e_main.c:1569
-msgid ""
-"Enlightenment found Evas can't load PNG files. Check Evas has PNG loader "
-"support.\n"
-msgstr ""
-"Enlightenment Evas'ın PNG dosyalarını yükleyemediğini buldu. Evas'ın PNG "
-"desteğini kontrol edin.\n"
-
-#: src/bin/e_main.c:1579
-msgid ""
-"Enlightenment found Evas can't load EET files. Check Evas has EET loader "
-"support.\n"
-msgstr ""
-"Enlightenment Evas'ın EET dosyalarını yükleyemediğini buldu. Evas'ın EET "
-"desteğini kontrol edin.\n"
-
-#: src/bin/e_main.c:1593
+#: src/bin/e_main.c:1584
 msgid ""
 "Enlightenment found Evas can't load the 'Sans' font. Check Evas has "
 "fontconfig\n"
@@ -4143,19 +4123,19 @@ msgstr ""
 "desteği olduğunu ve fontconfig'in 'Sans' yazı tipini tanımladığını kontrol "
 "edin.\n"
 
-#: src/bin/e_main.c:1611
+#: src/bin/e_main.c:1604
 msgid "Enlightenment cannot create a compositor.\n"
 msgstr "Enlightenment birleşikliği oluşturamadı.\n"
 
-#: src/bin/e_main.c:1619
+#: src/bin/e_main.c:1612
 msgid "Setup DND"
 msgstr "DND Ayarla"
 
-#: src/bin/e_main.c:1623
+#: src/bin/e_main.c:1616
 msgid "Enlightenment cannot set up its dnd system.\n"
 msgstr "Enlightenment dnd sistemini ayarlayamadı.\n"
 
-#: src/bin/e_main.c:1739
+#: src/bin/e_main.c:1733
 #, c-format
 msgid ""
 "Enlightenment crashed early on start and has<br>been restarted. There was an "
@@ -4165,11 +4145,11 @@ msgstr ""
 "Enlightenment başlarken çöktü ve yeniden başlatıldı.<br>%s adlı modülde bir "
 "hata meydana geldi. Bu modül kapatıldı<br> ve artık çalıştırılamayacak."
 
-#: src/bin/e_main.c:1744 src/bin/e_main.c:1760
+#: src/bin/e_main.c:1738 src/bin/e_main.c:1754
 msgid "Enlightenment crashed early on start and has been restarted"
 msgstr "Enlightenment açılamadan çöktü ve yeniden başlatıldı"
 
-#: src/bin/e_main.c:1745
+#: src/bin/e_main.c:1739
 #, c-format
 msgid ""
 "Enlightenment crashed early on start and has been restarted.<br>There was an "
@@ -4179,7 +4159,7 @@ msgstr ""
 "Enlightenment başlarken çöktü ve yeniden başlatıldı.<br>%s adlı modülde bir "
 "hata meydana geldi. Bu modül kapatıldı<br> ve artık çalıştırılamayacak."
 
-#: src/bin/e_main.c:1753
+#: src/bin/e_main.c:1747
 msgid ""
 "Enlightenment crashed early on start and has<br>been restarted. All modules "
 "have been disabled<br>and will not be loaded to help remove any "
@@ -4191,7 +4171,7 @@ msgstr ""
 "çalıştırılmayacak. Modül yapılandırma<br>penceresinden modülleri tekrar "
 "seçmeniz için izin verildi.\n"
 
-#: src/bin/e_main.c:1761
+#: src/bin/e_main.c:1755
 msgid ""
 "Enlightenment crashed early on start and has been restarted.<br>All modules "
 "have been disabled and will not be loaded to help<br>remove any problem "
@@ -4283,7 +4263,7 @@ msgstr "Biliyorum"
 msgid "Enlightenment was unable to fork a child process:<br><br>%s<br>"
 msgstr "Enlightenment alt işlem yaratamadı:<br><br>%s<br>"
 
-#: src/bin/e_screensaver.c:194
+#: src/bin/e_screensaver.c:200
 msgid ""
 "You disabled the screensaver too fast.<br><br>Would you like to enable "
 "<b>presentation</b> mode and temporarily disable screen saver, lock and "
@@ -4399,7 +4379,7 @@ msgid "Rename Shelf"
 msgstr "Rafı Yeniden Adlandır"
 
 #: src/bin/e_shelf.c:2353 src/modules/conf_shelves/e_int_config_shelf.c:145
-#: src/modules/ibar/e_mod_main.c:489 src/modules/ibar/e_mod_main.c:1577
+#: src/modules/ibar/e_mod_main.c:491 src/modules/ibar/e_mod_main.c:1586
 msgid "Contents"
 msgstr "İçindekiler"
 
@@ -4420,16 +4400,16 @@ msgstr "Yenile"
 msgid "Starting %s"
 msgstr "%s başlatılıyor"
 
-#: src/bin/e_sys.c:502
+#: src/bin/e_sys.c:506
 msgid "Checking System Permissions"
 msgstr "Sistem İzinleri Kontrol Ediliyor"
 
-#: src/bin/e_sys.c:548 src/bin/e_sys.c:559 src/bin/e_sys.c:568
-#: src/bin/e_sys.c:577
+#: src/bin/e_sys.c:552 src/bin/e_sys.c:563 src/bin/e_sys.c:572
+#: src/bin/e_sys.c:581
 msgid "System Check Done"
 msgstr "Sistem Kontrolü Tamam"
 
-#: src/bin/e_sys.c:645
+#: src/bin/e_sys.c:649
 #, c-format
 msgid ""
 "Logout is taking too long.<br>Some applications refuse to close.<br>Do you "
@@ -4440,35 +4420,35 @@ msgstr ""
 "bu uygulamaları kapatmadan<br>çıkışa devem etmek istiyor musunuz?<br><br>%d "
 "saniye içinde otomatik <br>çıkış yapılacak."
 
-#: src/bin/e_sys.c:705
+#: src/bin/e_sys.c:709
 msgid "Logout problems"
 msgstr "Oturum kapatma sorunları"
 
-#: src/bin/e_sys.c:707
+#: src/bin/e_sys.c:711
 msgid "Logout now"
 msgstr "Oturumu kapat"
 
-#: src/bin/e_sys.c:709
+#: src/bin/e_sys.c:713
 msgid "Wait longer"
 msgstr "Biraz daha bekle"
 
-#: src/bin/e_sys.c:711
+#: src/bin/e_sys.c:715
 msgid "Cancel Logout"
 msgstr "Oturumu Kapatmayı İptal Et"
 
-#: src/bin/e_sys.c:769
+#: src/bin/e_sys.c:773
 msgid "Logout in progress"
 msgstr "Oturum Kapatma İşlemi Sürüyor"
 
-#: src/bin/e_sys.c:772
+#: src/bin/e_sys.c:776
 msgid "Logout in progress.<br><hilight>Please wait.</hilight>"
 msgstr "Çıkış işlemi sürüyor.<br><hilight>Lütfen bekleyin.</hilight>"
 
-#: src/bin/e_sys.c:802 src/bin/e_sys.c:858
+#: src/bin/e_sys.c:806 src/bin/e_sys.c:862
 msgid "Enlightenment is busy with another request"
 msgstr "Enlightenment başka bir istekle meşgul"
 
-#: src/bin/e_sys.c:807
+#: src/bin/e_sys.c:811
 msgid ""
 "Logging out.<br>You cannot perform other system actions<br>once a logout has "
 "begun."
@@ -4476,7 +4456,7 @@ msgstr ""
 "Oturum kapatılıyor.<br>Oturum kapatma işlemi başladığında<br>sistem "
 "işlemlerini gerçekleştiremezsiniz."
 
-#: src/bin/e_sys.c:814
+#: src/bin/e_sys.c:818
 #, fuzzy
 msgid ""
 "Powering off.<br>You cannot perform any other system actions<br>once a "
@@ -4485,7 +4465,7 @@ msgstr ""
 "Kapatılıyor.<br>Kapatma işlemi başladığında<br>sistem işlemlerini "
 "gerçekleştiremezsiniz."
 
-#: src/bin/e_sys.c:820
+#: src/bin/e_sys.c:824
 #, fuzzy
 msgid ""
 "Resetting.<br>You cannot perform any other system actions<br>once a reboot "
@@ -4494,7 +4474,7 @@ msgstr ""
 "Yeniden başlatılıyor.<br>Yeniden başlatma işlemi başladığında<br>sistem "
 "işlemlerini gerçekleştiremezsiniz."
 
-#: src/bin/e_sys.c:826
+#: src/bin/e_sys.c:830
 #, fuzzy
 msgid ""
 "Suspending.<br>You cannot perform any other system actions<br>until suspend "
@@ -4503,7 +4483,7 @@ msgstr ""
 "Uykuya alınıyor.<br>Bu işlem bitene kadar başka<br>sistem işlemleri "
 "gerçekleştiremezsiniz."
 
-#: src/bin/e_sys.c:832
+#: src/bin/e_sys.c:836
 #, fuzzy
 msgid ""
 "Hibernating.<br>You cannot perform any other system actions<br>until "
@@ -4512,35 +4492,35 @@ msgstr ""
 "Uykuya alınıyor.<br>Bu işlem bitene kadar başka<br>sistem işlemleri "
 "gerçekleştiremezsiniz."
 
-#: src/bin/e_sys.c:838 src/bin/e_sys.c:880
+#: src/bin/e_sys.c:842 src/bin/e_sys.c:884
 msgid "EEK! This should not happen"
 msgstr "OYY! Bu olmamalıydı"
 
-#: src/bin/e_sys.c:864
+#: src/bin/e_sys.c:868
 msgid "Power off failed."
 msgstr "Kapatma başarısız."
 
-#: src/bin/e_sys.c:868
+#: src/bin/e_sys.c:872
 msgid "Reset failed."
 msgstr "Sıfırlama başarısız."
 
-#: src/bin/e_sys.c:872
+#: src/bin/e_sys.c:876
 msgid "Suspend failed."
 msgstr "Askıya alma başarısız."
 
-#: src/bin/e_sys.c:876
+#: src/bin/e_sys.c:880
 msgid "Hibernate failed."
 msgstr "Uykuya alma başarısız."
 
-#: src/bin/e_sys.c:969
+#: src/bin/e_sys.c:973
 msgid "Power off.<br><hilight>Please wait.</hilight>"
 msgstr "Kapatılıyor.<br><hilight>Lütfen bekleyin.</hilight>"
 
-#: src/bin/e_sys.c:1012
+#: src/bin/e_sys.c:1016
 msgid "Resetting"
 msgstr "Sıfırlıyor"
 
-#: src/bin/e_sys.c:1015
+#: src/bin/e_sys.c:1019
 msgid "Resetting.<br><hilight>Please wait.</hilight>"
 msgstr "Sıfırlanıyor.<br><hilight>Lütfen bekleyin.</hilight>"
 
@@ -4861,7 +4841,7 @@ msgstr "Favorilere Ekle"
 msgid "Go up a Directory"
 msgstr "Yukarı Çık"
 
-#: src/modules/appmenu/e_mod_main.c:88
+#: src/modules/appmenu/e_mod_main.c:89
 msgid "Application Menu"
 msgstr "Uygulama Menüsü"
 
@@ -5158,7 +5138,7 @@ msgid "Clock Settings"
 msgstr "Saat Ayarları"
 
 #: src/modules/clock/e_mod_config.c:83 src/modules/clock/e_mod_main.c:692
-#: src/modules/clock/e_mod_main.c:886
+#: src/modules/clock/e_mod_main.c:900
 msgid "Clock"
 msgstr "Saat"
 
@@ -5228,7 +5208,7 @@ msgstr "%a, %e %b, %Y"
 msgid "%a, %x"
 msgstr "%a, %x"
 
-#: src/modules/clock/e_mod_main.c:886
+#: src/modules/clock/e_mod_main.c:900
 msgid "Toggle calendar"
 msgstr "Takvimi değiştir"
 
@@ -6760,29 +6740,34 @@ msgid "Power Management"
 msgstr "Güç Yönetimi"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:74
-#: src/modules/conf_randr/e_mod_main.c:40
+#: src/modules/conf_randr/e_mod_main.c:41
 msgid "Screen Setup"
 msgstr "Ekran Ayarı"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:436
 #: src/modules/conf_randr/e_int_config_randr2.c:662
-#: src/modules/conf_randr/e_int_config_randr2.c:907
+#: src/modules/conf_randr/e_int_config_randr2.c:908
 msgid "Clone"
 msgstr ""
 
 #: src/modules/conf_randr/e_int_config_randr2.c:438
 #: src/modules/conf_randr/e_int_config_randr2.c:673
-#: src/modules/conf_randr/e_int_config_randr2.c:908
+#: src/modules/conf_randr/e_int_config_randr2.c:909
 #, fuzzy
 msgid "Left of"
 msgstr "Sol"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:440
 #: src/modules/conf_randr/e_int_config_randr2.c:684
-#: src/modules/conf_randr/e_int_config_randr2.c:909
+#: src/modules/conf_randr/e_int_config_randr2.c:910
 #, fuzzy
 msgid "Right of"
 msgstr "Sağ"
+
+#: src/modules/conf_randr/e_int_config_randr2.c:446
+#, fuzzy
+msgid "Unconfigured"
+msgstr "Yapılandır"
 
 #: src/modules/conf_randr/e_int_config_randr2.c:760
 #, fuzzy
@@ -6793,44 +6778,44 @@ msgstr "Çıktı"
 msgid "Laptop lid"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:893
+#: src/modules/conf_randr/e_int_config_randr2.c:894
 msgid "Priority"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:905
+#: src/modules/conf_randr/e_int_config_randr2.c:906
 msgid "Relative"
 msgstr "Göreceli"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:919
+#: src/modules/conf_randr/e_int_config_randr2.c:920
 #, fuzzy
 msgid "To"
 msgstr "Üst"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:959
+#: src/modules/conf_randr/e_int_config_randr2.c:960
 #, fuzzy
 msgid "Use Profile"
 msgstr "Profil"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:975
+#: src/modules/conf_randr/e_int_config_randr2.c:976
 #, fuzzy
 msgid "Custom Scale"
 msgstr "Özel resim"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:984
+#: src/modules/conf_randr/e_int_config_randr2.c:985
 #, fuzzy
 msgid "Scale"
 msgstr "Yerel"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1008
+#: src/modules/conf_randr/e_int_config_randr2.c:1009
 #, fuzzy
 msgid "Restore setup on start"
 msgstr "Başlangıçta yenile"
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1017
+#: src/modules/conf_randr/e_int_config_randr2.c:1018
 msgid "Monitor hotplug"
 msgstr ""
 
-#: src/modules/conf_randr/e_int_config_randr2.c:1026
+#: src/modules/conf_randr/e_int_config_randr2.c:1027
 #, fuzzy
 msgid "Lid Events"
 msgstr "Olaylar"
@@ -8943,28 +8928,28 @@ msgstr ""
 msgid "Are you sure you want to delete this bar source?"
 msgstr "Bu çubuğu ve içeriğini silmek istediğinize emin misiniz?"
 
-#: src/modules/ibar/e_mod_main.c:368 src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:370 src/modules/ibar/e_mod_main.c:2845
 msgid "IBar"
 msgstr "IBar"
 
-#: src/modules/ibar/e_mod_main.c:478 src/modules/ibar/e_mod_main.c:1566
+#: src/modules/ibar/e_mod_main.c:480 src/modules/ibar/e_mod_main.c:1575
 msgid "Create new Icon"
 msgstr "Yeni simge oluştur"
 
-#: src/modules/ibar/e_mod_main.c:1597
+#: src/modules/ibar/e_mod_main.c:1606
 msgid "Add to bar"
 msgstr "IBar'a ekle"
 
-#: src/modules/ibar/e_mod_main.c:1603
+#: src/modules/ibar/e_mod_main.c:1612
 msgid "Remove from bar"
 msgstr "IBar'dan kaldır"
 
-#: src/modules/ibar/e_mod_main.c:1609
+#: src/modules/ibar/e_mod_main.c:1618
 #, c-format
 msgid "Icon %s"
 msgstr "Simge %s"
 
-#: src/modules/ibar/e_mod_main.c:2836
+#: src/modules/ibar/e_mod_main.c:2845
 msgid "Focus IBar"
 msgstr "IBar Odaklan"
 
@@ -10009,7 +9994,7 @@ msgstr "%1.0f px"
 msgid "Item height"
 msgstr "Öge yüksekliği"
 
-#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:777
+#: src/modules/tasks/e_mod_main.c:294 src/modules/tasks/e_mod_main.c:782
 msgid "Tasks"
 msgstr "Görevler"
 
@@ -10157,42 +10142,42 @@ msgstr "Yardım"
 msgid "Tiling Configuration"
 msgstr "Döşeme Yapılandırması"
 
-#: src/modules/tiling/e_mod_tiling.c:1361
+#: src/modules/tiling/e_mod_tiling.c:1371
 msgid "Floating"
 msgstr "Yüzen"
 
-#: src/modules/tiling/e_mod_tiling.c:1440
-#: src/modules/tiling/e_mod_tiling.c:1473
-#: src/modules/tiling/e_mod_tiling.c:1798
-#: src/modules/tiling/e_mod_tiling.c:1816
+#: src/modules/tiling/e_mod_tiling.c:1450
+#: src/modules/tiling/e_mod_tiling.c:1483
+#: src/modules/tiling/e_mod_tiling.c:1808
+#: src/modules/tiling/e_mod_tiling.c:1826
 msgid "Tiling"
 msgstr "Döşeme"
 
-#: src/modules/tiling/e_mod_tiling.c:1447
+#: src/modules/tiling/e_mod_tiling.c:1457
 msgid "Toggle floating"
 msgstr "Yüzerliği değiştir"
 
-#: src/modules/tiling/e_mod_tiling.c:1450
+#: src/modules/tiling/e_mod_tiling.c:1460
 msgid "Move the focused window up"
 msgstr "Odaklanan pencereyi yukarı taşı"
 
-#: src/modules/tiling/e_mod_tiling.c:1452
+#: src/modules/tiling/e_mod_tiling.c:1462
 msgid "Move the focused window down"
 msgstr "Odaklanan pencereyi aşağı taşı"
 
-#: src/modules/tiling/e_mod_tiling.c:1454
+#: src/modules/tiling/e_mod_tiling.c:1464
 msgid "Move the focused window left"
 msgstr "Odaklanan pencereyi sola taşı"
 
-#: src/modules/tiling/e_mod_tiling.c:1456
+#: src/modules/tiling/e_mod_tiling.c:1466
 msgid "Move the focused window right"
 msgstr "Odaklanan pencereyi sağa taşı"
 
-#: src/modules/tiling/e_mod_tiling.c:1459
+#: src/modules/tiling/e_mod_tiling.c:1469
 msgid "Toggle split mode"
 msgstr "Bölme modunu değiştir"
 
-#: src/modules/tiling/e_mod_tiling.c:1461
+#: src/modules/tiling/e_mod_tiling.c:1471
 msgid "Swap window"
 msgstr "Pencereyi takas et"
 
@@ -10556,6 +10541,30 @@ msgstr "Türev"
 #: src/modules/xkbswitch/e_mod_main.c:191
 msgid "NONE"
 msgstr "YOK"
+
+#~ msgid "Enlightenment cannot configure the X screensaver.\n"
+#~ msgstr "Enlightenment X ekrankoruyucusunu ayarlayamadı.\n"
+
+#~ msgid ""
+#~ "Enlightenment found Evas can't load JPEG files. Check Evas has JPEG "
+#~ "loader support.\n"
+#~ msgstr ""
+#~ "Enlightenment Evas'ınJPEG dosyalarını yükleyemediğini buldu. Evas'ın JPEG "
+#~ "desteğini kontrol edin.\n"
+
+#~ msgid ""
+#~ "Enlightenment found Evas can't load PNG files. Check Evas has PNG loader "
+#~ "support.\n"
+#~ msgstr ""
+#~ "Enlightenment Evas'ın PNG dosyalarını yükleyemediğini buldu. Evas'ın PNG "
+#~ "desteğini kontrol edin.\n"
+
+#~ msgid ""
+#~ "Enlightenment found Evas can't load EET files. Check Evas has EET loader "
+#~ "support.\n"
+#~ msgstr ""
+#~ "Enlightenment Evas'ın EET dosyalarını yükleyemediğini buldu. Evas'ın EET "
+#~ "desteğini kontrol edin.\n"
 
 #, fuzzy
 #~ msgid "Animation"

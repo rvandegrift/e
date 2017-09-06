@@ -38,7 +38,7 @@ static void             _clock_popup_free(Instance *inst);
 static Eio_Monitor *clock_tz_monitor = NULL;
 static Eio_Monitor *clock_tz2_monitor = NULL;
 static Eio_Monitor *clock_tzetc_monitor = NULL;
-static Eina_List *clock_eio_handlers = NULL;
+static Eina_List *handlers = NULL;
 Config *clock_config = NULL;
 
 static E_Config_DD *conf_edd = NULL;
@@ -839,6 +839,20 @@ _clock_time_update(void *d EINA_UNUSED, int type EINA_UNUSED, void *event EINA_U
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static Eina_Bool
+_clock_screensaver_on()
+{
+   E_FREE_FUNC(update_today, ecore_timer_del);
+   return ECORE_CALLBACK_RENEW;
+}
+
+static Eina_Bool
+_clock_screensaver_off()
+{
+   if (clock_instances) _update_today_timer(NULL);
+   return ECORE_CALLBACK_RENEW;
+}
+
 /* module setup */
 E_API E_Module_Api e_modapi =
 {
@@ -893,14 +907,16 @@ e_modapi_init(E_Module *m)
      clock_tz2_monitor = eio_monitor_add("/etc/timezone");
    if (ecore_file_is_dir("/etc"))
      clock_tzetc_monitor = eio_monitor_add("/etc");
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, EIO_MONITOR_ERROR, _clock_eio_error, NULL);
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, EIO_MONITOR_FILE_CREATED, _clock_eio_update, NULL);
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, EIO_MONITOR_FILE_MODIFIED, _clock_eio_update, NULL);
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, EIO_MONITOR_FILE_DELETED, _clock_eio_update, NULL);
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, EIO_MONITOR_SELF_DELETED, _clock_eio_update, NULL);
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, EIO_MONITOR_SELF_RENAME, _clock_eio_update, NULL);
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, E_EVENT_SYS_RESUME, _clock_time_update, NULL);
-   E_LIST_HANDLER_APPEND(clock_eio_handlers, ECORE_EVENT_SYSTEM_TIMEDATE_CHANGED, _clock_time_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, EIO_MONITOR_ERROR, _clock_eio_error, NULL);
+   E_LIST_HANDLER_APPEND(handlers, EIO_MONITOR_FILE_CREATED, _clock_eio_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, EIO_MONITOR_FILE_MODIFIED, _clock_eio_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, EIO_MONITOR_FILE_DELETED, _clock_eio_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, EIO_MONITOR_SELF_DELETED, _clock_eio_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, EIO_MONITOR_SELF_RENAME, _clock_eio_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, E_EVENT_SYS_RESUME, _clock_time_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_SYSTEM_TIMEDATE_CHANGED, _clock_time_update, NULL);
+   E_LIST_HANDLER_APPEND(handlers, E_EVENT_SCREENSAVER_ON, _clock_screensaver_on, NULL);
+   E_LIST_HANDLER_APPEND(handlers, E_EVENT_SCREENSAVER_OFF, _clock_screensaver_off, NULL);
 
    e_gadcon_provider_register(&_gadcon_class);
 

@@ -10,7 +10,7 @@ EINTERN void dnd_init(void);
 EINTERN void dnd_shutdown(void);
 
 static Ecore_Event_Handler *sync_handler;
-static E_Module *xwl_init(E_Module *m);
+static Eina_Bool xwl_init(void *d EINA_UNUSED);
 static void xwl_shutdown(void);
 
 /* local structures */
@@ -225,7 +225,7 @@ _cb_xserver_event(void *data EINA_UNUSED, Ecore_Fd_Handler *hdlr EINA_UNUSED)
         snprintf(xserver, sizeof(xserver), "%s", XWAYLAND_BIN);
         DBG("\tLaunching %s: %s", xserver, disp);
         if (execl(xserver, xserver, disp, "-rootless", "-listen", abs_fd,
-                  "-listen", unx_fd, "-terminate", "-shm",
+                  "-listen", unx_fd, "-terminate",
                   NULL) < 0)
           {
              ERR("Failed to exec %s: %m", XWAYLAND_BIN);
@@ -289,8 +289,10 @@ xinit(void *d, Ecore_Thread *eth)
 
    init_threads = dlsym(NULL, "XInitThreads");
    if (init_threads) init_threads();
+   else ERR("Could not resolve XInitThreads");
    open_display = dlsym(NULL, "XOpenDisplay");
    if (open_display) disp = open_display(d);
+   else ERR("Could not resolve XOpenDisplay");
    free(d);
    ecore_thread_feedback(eth, disp);
 }
@@ -350,25 +352,25 @@ _cb_sync_done(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNU
    return EINA_FALSE;
 }
 
-static E_Module *
-xwl_init(E_Module *m)
+static Eina_Bool
+xwl_init(void *d EINA_UNUSED)
 {
    char disp[8];
 
    /* make sure it's a wayland compositor */
-   if (e_comp->comp_type == E_PIXMAP_TYPE_X) return NULL;
+   if (e_comp->comp_type == E_PIXMAP_TYPE_X) return EINA_FALSE;
 
    if (getenv("DISPLAY"))
      {
         sync_handler = ecore_event_handler_add(ECORE_WL2_EVENT_SYNC_DONE, _cb_sync_done, NULL);
-        return NULL;
+        return EINA_FALSE;
      }
 
    DBG("LOAD XWAYLAND MODULE");
 
    /* alloc space for server struct */
    if (!(exs = calloc(1, sizeof(E_XWayland_Server))))
-     return NULL;
+     return EINA_FALSE;
 
 #ifdef HAVE_PULSE
  #ifdef EFL_VERSION_1_19
@@ -386,7 +388,7 @@ xwl_init(E_Module *m)
 
    do
      {
-        if (!setup_lock()) return NULL;
+        if (!setup_lock()) return EINA_FALSE;
 
         /* try to bind abstract socket */
         exs->abs_fd = _abstract_socket_bind(exs->disp);
@@ -404,7 +406,7 @@ xwl_init(E_Module *m)
              unlink(exs->lock);
              close(exs->abs_fd);
              free(exs);
-             return NULL;
+             return EINA_FALSE;
           }
         break;
      } while (1);
@@ -425,7 +427,7 @@ xwl_init(E_Module *m)
    /* setup listener for SIGUSR1 */
    exs->sig_hdlr = 
      ecore_event_handler_add(ECORE_EVENT_SIGNAL_USER, _cb_signal_event, exs);
-   return m;
+   return EINA_FALSE;
 }
 
 static void
@@ -459,7 +461,8 @@ E_API E_Module_Api e_modapi = { E_MODULE_API_VERSION, "XWayland" };
 E_API void *
 e_modapi_init(E_Module *m)
 {
-   return xwl_init(m);
+   ecore_timer_loop_add(2.0, xwl_init, NULL);
+   return m;
 }
 
 E_API int 

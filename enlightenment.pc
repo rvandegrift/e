@@ -14,7 +14,7 @@ release=ver-0.21
 Name: enlightenment
 Description: Enlightenment Window Manager
 Requires: evas >= 1.17.0 ecore >= 1.17.0 ecore-evas >= 1.17.0 ecore-con >= 1.17.0 ecore-ipc >= 1.17.0 ecore-file >= 1.17.0 eet >= 1.17.0 edje >= 1.17.0 efreet >= 1.17.0 efreet-mime >= 1.17.0 efreet-trash >= 1.17.0 eina >= 1.17.0 eldbus >= 1.17.0 eio >= 1.17.0 eo >= 1.17.0 elementary >= 1.17.0 emotion >= 1.17.0   eeze ecore-x >= 1.17.0
-Version: 0.21.5
+Version: 0.21.9
 Libs: -L${libdir}
 Libs.private:  -lm
 Cflags: -I${includedir} -DUSE_E_CONFIG_H

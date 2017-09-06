@@ -501,7 +501,7 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
      }
 
    e_comp_wl->selection.data_source = sel_source = source;
-   e_comp_wl->clipboard.xwl_owner = NULL;
+   e_comp_wl->clipboard.xwl_owner = 0;
    source->serial = e_comp_wl->selection.serial = serial;
 
    if (e_comp_wl->kbd.enabled)
@@ -536,7 +536,9 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
 static void
 _e_comp_wl_data_device_drag_finished(E_Drag *drag, int dropped)
 {
+   struct wl_resource *res = NULL;
    Evas_Object *o, *z;
+   E_Comp_Wl_Data_Source *data_source = e_comp_wl->drag_source;
 
    o = edje_object_part_swallow_get(drag->comp_object, "e.swallow.content");
    if (eina_streq(evas_object_type_get(o), "e_comp_object"))
@@ -553,53 +555,45 @@ _e_comp_wl_data_device_drag_finished(E_Drag *drag, int dropped)
    e_comp_wl->drag = NULL;
    e_comp_wl->drag_client = NULL;
    e_screensaver_inhibit_toggle(0);
-   if (e_comp_wl->selection.target && (!dropped))
+   if (dropped) return;
+#ifndef HAVE_WAYLAND_ONLY
+   if (e_comp_wl->selection.target && e_client_has_xwindow(e_comp_wl->selection.target))
      {
-#ifndef HAVE_WAYLAND_ONLY
-        if (e_client_has_xwindow(e_comp_wl->selection.target))
-          {
-             ecore_x_client_message32_send(e_client_util_win_get(e_comp_wl->selection.target),
-                                           ECORE_X_ATOM_XDND_DROP,
-                                           ECORE_X_EVENT_MASK_NONE,
-                                           e_comp->cm_selection, 0,
-                                           ecore_x_current_time_get(), 0, 0);
-          }
-        else
-#endif
-        {
-           struct wl_resource *res;
-           E_Comp_Wl_Data_Source *data_source = e_comp_wl->drag_source;
-
-           res = e_comp_wl_data_find_for_client(wl_resource_get_client(e_comp_wl->selection.target->comp_data->surface));
-           if (res)
-             {
-                if (data_source->accepted && data_source->current_dnd_action)
-                  {
-                     wl_data_device_send_drop(res);
-                     if (wl_resource_get_version(data_source->resource) >=
-                         WL_DATA_SOURCE_DND_DROP_PERFORMED_SINCE_VERSION)
-                       wl_data_source_send_dnd_drop_performed(data_source->resource);
-
-                     data_source->offer->in_ask = data_source->current_dnd_action ==
-                       WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK;
-                  }
-                else if (wl_resource_get_version(data_source->resource) >=
-                         WL_DATA_SOURCE_DND_FINISHED_SINCE_VERSION)
-                  wl_data_source_send_cancelled(data_source->resource);
-                wl_data_device_send_leave(res);
-             }
-#ifndef HAVE_WAYLAND_ONLY
-           if (e_comp_util_has_xwayland())
-             {
-                ecore_x_selection_owner_set(0, ECORE_X_ATOM_SELECTION_XDND,
-                                            ecore_x_current_time_get());
-                ecore_x_window_hide(e_comp->cm_selection);
-             }
-#endif
-           e_comp_wl->selection.target = NULL;
-           e_comp_wl->drag_source = NULL;
-        }
+        ecore_x_client_message32_send(e_client_util_win_get(e_comp_wl->selection.target),
+                                      ECORE_X_ATOM_XDND_DROP,
+                                      ECORE_X_EVENT_MASK_NONE,
+                                      e_comp->cm_selection, 0,
+                                      ecore_x_current_time_get(), 0, 0);
+        return;
      }
+#endif
+
+   if (e_comp_wl->selection.target)
+     res = e_comp_wl_data_find_for_client(wl_resource_get_client(e_comp_wl->selection.target->comp_data->surface));
+   if (res && data_source->accepted && data_source->current_dnd_action)
+     {
+        wl_data_device_send_drop(res);
+        if (wl_resource_get_version(data_source->resource) >=
+            WL_DATA_SOURCE_DND_DROP_PERFORMED_SINCE_VERSION)
+          wl_data_source_send_dnd_drop_performed(data_source->resource);
+
+        data_source->offer->in_ask = data_source->current_dnd_action ==
+          WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK;
+     }
+   else if (wl_resource_get_version(data_source->resource) >=
+                 WL_DATA_SOURCE_DND_FINISHED_SINCE_VERSION)
+     wl_data_source_send_cancelled(data_source->resource);
+   if (res) wl_data_device_send_leave(res);
+#ifndef HAVE_WAYLAND_ONLY
+   if (e_comp_util_has_xwayland())
+     {
+        ecore_x_selection_owner_set(0, ECORE_X_ATOM_SELECTION_XDND,
+                                    ecore_x_current_time_get());
+        ecore_x_window_hide(e_comp->cm_selection);
+     }
+#endif
+   e_comp_wl->selection.target = NULL;
+   e_comp_wl->drag_source = NULL;
 }
 
 static void
@@ -771,16 +765,19 @@ static void
 _e_comp_wl_data_cb_bind_manager(struct wl_client *client, void *data EINA_UNUSED, uint32_t version EINA_UNUSED, uint32_t id)
 {
    struct wl_resource *res;
+   pid_t pid;
 
    /* try to create data manager resource */
-   e_comp_wl->mgr.resource = res =
-       wl_resource_create(client, &wl_data_device_manager_interface, 3, id);
+   res = wl_resource_create(client, &wl_data_device_manager_interface, 3, id);
    if (!res)
      {
         ERR("Could not create data device manager");
         wl_client_post_no_memory(client);
         return;
      }
+   wl_client_get_credentials(client, &pid, NULL, NULL);
+   if (pid == getpid())
+     e_comp_wl->mgr.resource = res;
 
    wl_resource_set_implementation(res, &_e_manager_interface,
                                   e_comp->wl_comp_data, NULL);
@@ -946,15 +943,6 @@ _e_comp_wl_clipboard_create(void)
    wl_signal_add(&e_comp_wl->selection.signal, &e_comp_wl->clipboard.listener);
 }
 
-static void
-_e_comp_wl_data_device_target_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   E_Client *ec = data;
-
-   if (e_comp_wl->selection.target == ec)
-     e_comp_wl->selection.target = NULL;
-}
-
 E_API void
 e_comp_wl_data_device_send_enter(E_Client *ec)
 {
@@ -969,22 +957,16 @@ e_comp_wl_data_device_send_enter(E_Client *ec)
    if (!e_client_has_xwindow(ec))
      {
         E_Comp_Wl_Data_Source *drag_source = e_comp_wl->drag_source;
-        if (drag_source &&
-            drag_source->offer)
-          {
-             E_Comp_Wl_Data_Offer *offer;
-             /* Unlink the offer from the source */
-             offer = drag_source->offer;
-             offer->source = NULL;
-             drag_source->offer = NULL;
-             drag_source->accepted = 0;
-             wl_list_remove(&offer->source_destroy_listener.link);
-          }
         data_device_res =
           e_comp_wl_data_find_for_client(wl_resource_get_client(ec->comp_data->surface));
         if (!data_device_res) return;
         offer_res = e_comp_wl_data_device_send_offer(ec);
         if (e_comp_wl->drag_source && (!offer_res)) return;
+        if (e_client_has_xwindow(e_comp_wl->drag_client))
+          {
+             drag_source->offer->dnd_actions = drag_source->dnd_actions;
+             drag_source->offer->preferred_dnd_action = drag_source->current_dnd_action;
+          }
         data_offer_update_action(drag_source->offer);
         if (offer_res)
           {
@@ -993,8 +975,6 @@ e_comp_wl_data_device_send_enter(E_Client *ec)
           }
      }
    e_comp_wl->selection.target = ec;
-   evas_object_event_callback_add(ec->frame, EVAS_CALLBACK_DEL,
-                                  _e_comp_wl_data_device_target_del, ec);
 
 #ifndef HAVE_WAYLAND_ONLY
    if (e_client_has_xwindow(ec))
@@ -1053,8 +1033,6 @@ e_comp_wl_data_device_send_leave(E_Client *ec)
        e_client_has_xwindow(e_comp_wl->drag_client))
      return;
    if (e_comp_wl->drag && (e_comp_wl->drag->object == ec->frame)) return;
-   evas_object_event_callback_del_full(ec->frame, EVAS_CALLBACK_DEL,
-                                       _e_comp_wl_data_device_target_del, ec);
    if (e_comp_wl->selection.target == ec)
      e_comp_wl->selection.target = NULL;
 #ifndef HAVE_WAYLAND_ONLY
@@ -1067,6 +1045,20 @@ e_comp_wl_data_device_send_leave(E_Client *ec)
         return;
      }
 #endif
+   {
+      E_Comp_Wl_Data_Source *drag_source = e_comp_wl->drag_source;
+      if (drag_source &&
+          drag_source->offer)
+        {
+           E_Comp_Wl_Data_Offer *offer;
+           /* Unlink the offer from the source */
+           offer = drag_source->offer;
+           offer->source = NULL;
+           drag_source->offer = NULL;
+           drag_source->accepted = 0;
+           wl_list_remove(&offer->source_destroy_listener.link);
+        }
+   }
    res = e_comp_wl_data_find_for_client(wl_resource_get_client(ec->comp_data->surface));
    if (res)
      wl_data_device_send_leave(res);
@@ -1096,6 +1088,7 @@ e_comp_wl_data_device_keyboard_focus_set(void)
 {
    struct wl_resource *data_device_res, *offer_res = NULL, *focus;
    E_Comp_Wl_Data_Source *source;
+   E_Client *focused;
 
    if (!e_comp_wl->kbd.enabled)
      {
@@ -1108,6 +1101,7 @@ e_comp_wl_data_device_keyboard_focus_set(void)
         ERR("No focused resource");
         return;
      }
+   focused = wl_resource_get_user_data(focus);
    source = (E_Comp_Wl_Data_Source *)e_comp_wl->selection.data_source;
 
 #ifndef HAVE_WAYLAND_ONLY
@@ -1116,10 +1110,10 @@ e_comp_wl_data_device_keyboard_focus_set(void)
         if (!e_comp_util_has_xwayland()) break;
         if (e_comp_wl->clipboard.xwl_owner)
           {
-             if (e_client_has_xwindow(e_client_focused_get())) return;
+             if (e_client_has_xwindow(focused)) return;
              break;
           }
-        else if (source && e_client_has_xwindow(e_client_focused_get()))
+        else if (source && e_client_has_xwindow(focused))
           {
              /* wl -> x11 */
              ecore_x_selection_owner_set(e_comp->cm_selection,

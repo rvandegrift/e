@@ -39,7 +39,7 @@
 #  define container_of(ptr, type, member) \
    ({ \
       const __typeof__( ((type *)0)->member ) *__mptr = (ptr); \
-      (type *)( (char *)__mptr - offsetof(type,member) ); \
+      (type *)(void *)( (char *)__mptr - offsetof(type,member) ); \
    })
 
 typedef struct _E_Comp_Wl_Buffer E_Comp_Wl_Buffer;
@@ -220,7 +220,7 @@ struct _E_Comp_Wl_Data
      {
         void *source;
         struct wl_listener listener;
-        E_Client *xwl_owner;
+        Ecore_Window xwl_owner;
      } clipboard;
 
    struct
@@ -359,7 +359,7 @@ E_API E_Comp_Wl_Buffer *e_comp_wl_buffer_get(struct wl_resource *resource);
 
 E_API struct wl_signal e_comp_wl_surface_create_signal_get(void);
 E_API double e_comp_wl_idle_time_get(void);
-E_API Eina_Bool e_comp_wl_output_init(const char *id, const char *make, const char *model, int x, int y, int w, int h, int pw, int ph, unsigned int refresh, unsigned int subpixel, unsigned int transform);
+E_API Eina_Bool e_comp_wl_output_init(const char *id, const char *make, const char *model, int x, int y, int w, int h, int pw, int ph, unsigned int refresh, unsigned int subpixel, unsigned int transform, unsigned int num);
 E_API void e_comp_wl_output_remove(const char *id);
 
 EINTERN Eina_Bool e_comp_wl_key_down(Ecore_Event_Key *ev);

@@ -55,31 +55,7 @@ static E_Client_Layout_Cb _e_client_layout_cb = NULL;
 
 EINTERN void e_client_focused_set(E_Client *ec);
 
-static Eina_Inlist *_e_client_hooks[] =
-{
-   [E_CLIENT_HOOK_EVAL_PRE_FETCH] = NULL,
-   [E_CLIENT_HOOK_EVAL_FETCH] = NULL,
-   [E_CLIENT_HOOK_EVAL_PRE_POST_FETCH] = NULL,
-   [E_CLIENT_HOOK_EVAL_POST_FETCH] = NULL,
-   [E_CLIENT_HOOK_EVAL_PRE_FRAME_ASSIGN] = NULL,
-   [E_CLIENT_HOOK_EVAL_POST_FRAME_ASSIGN] = NULL,
-   [E_CLIENT_HOOK_EVAL_PRE_NEW_CLIENT] = NULL,
-   [E_CLIENT_HOOK_EVAL_POST_NEW_CLIENT] = NULL,
-   [E_CLIENT_HOOK_EVAL_END] = NULL,
-   [E_CLIENT_HOOK_FOCUS_SET] = NULL,
-   [E_CLIENT_HOOK_FOCUS_UNSET] = NULL,
-   [E_CLIENT_HOOK_NEW_CLIENT] = NULL,
-   [E_CLIENT_HOOK_DESK_SET] = NULL,
-   [E_CLIENT_HOOK_MOVE_BEGIN] = NULL,
-   [E_CLIENT_HOOK_MOVE_UPDATE] = NULL,
-   [E_CLIENT_HOOK_MOVE_END] = NULL,
-   [E_CLIENT_HOOK_RESIZE_BEGIN] = NULL,
-   [E_CLIENT_HOOK_RESIZE_UPDATE] = NULL,
-   [E_CLIENT_HOOK_RESIZE_END] = NULL,
-   [E_CLIENT_HOOK_DEL] = NULL,
-   [E_CLIENT_HOOK_UNREDIRECT] = NULL,
-   [E_CLIENT_HOOK_REDIRECT] = NULL,
-};
+static Eina_Inlist *_e_client_hooks[E_CLIENT_HOOK_LAST] = {NULL};
 
 ///////////////////////////////////////////
 
@@ -469,8 +445,11 @@ _e_client_free(E_Client *ec)
         ec->pixmap = NULL;
      }
 
-   e_comp_object_redirected_set(ec->frame, 0);
-   e_comp_object_render_update_del(ec->frame);
+   if (ec->frame)
+     {
+        e_comp_object_redirected_set(ec->frame, 0);
+        e_comp_object_render_update_del(ec->frame);
+     }
 
    E_OBJECT(ec)->references++;
    if (ec->fullscreen)
@@ -592,11 +571,12 @@ _e_client_del(E_Client *ec)
         else
           {
              if (!ec->exe_inst->deleted)
-               ec->exe_inst->clients = eina_list_remove(ec->exe_inst->clients, ec);
+               {
+                  ec->exe_inst->clients = eina_list_remove(ec->exe_inst->clients, ec);
+                  ec->exe_inst = NULL;
+               }
           }
      }
-   if (ec->exe_inst && (!ec->exe_inst->deleted))
-     ec->exe_inst = NULL;
 
    _e_client_mouse_action_end(ec);
    if (action_client == ec) _e_client_action_finish();
@@ -801,6 +781,12 @@ _e_client_move_begin(E_Client *ec)
    if (!_e_client_action_input_win_new()) return 0;
    ec->moving = 1;
    ecmove = ec;
+   if (!ec->lock_user_stacking)
+     {
+        if (e_config->border_raise_on_mouse_action)
+          evas_object_raise(ec->frame);
+     }
+
    _e_client_hook_call(E_CLIENT_HOOK_MOVE_BEGIN, ec);
    if (!ec->moving)
      {
@@ -808,11 +794,7 @@ _e_client_move_begin(E_Client *ec)
         _e_client_action_input_win_del();
         return 0;
      }
-   if (!ec->lock_user_stacking)
-     {
-        if (e_config->border_raise_on_mouse_action)
-          evas_object_raise(ec->frame);
-     }
+   E_FREE_FUNC(ec->raise_timer, ecore_timer_del);
    return 1;
 }
 
@@ -939,6 +921,7 @@ _e_client_resize_handle(E_Client *ec)
    int tw, th;
    Eina_List *skiplist = NULL;
 
+   if (e_comp->updating) return;
    x = ec->x;
    y = ec->y;
    w = ec->w;
@@ -1438,7 +1421,7 @@ _e_client_cb_evas_move(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UN
 
    _e_client_event_simple(ec, E_EVENT_CLIENT_MOVE);
 
-   _e_client_zone_update(ec);
+   if (!e_client_util_ignored_get(ec)) _e_client_zone_update(ec);
    evas_object_geometry_get(ec->frame, &x, &y, NULL, NULL);
    if ((e_config->transient.move) && (ec->transients))
      {
@@ -1470,7 +1453,7 @@ _e_client_cb_evas_resize(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_
 
    _e_client_event_simple(ec, E_EVENT_CLIENT_RESIZE);
 
-   _e_client_zone_update(ec);
+   if (!e_client_util_ignored_get(ec)) _e_client_zone_update(ec);
    evas_object_geometry_get(ec->frame, &x, &y, &w, &h);
    if ((e_config->transient.resize) && (ec->transients))
      {
@@ -1551,7 +1534,14 @@ _e_client_maximize_done(void *data, E_Efx_Map_Data *emd EINA_UNUSED, Evas_Object
 static Eina_Bool
 _e_client_maximize_run(E_Client *ec, int x, int y, int w, int h)
 {
-   if (e_config->window_maximize_animate && (!ec->maximize_anims_disabled) &&
+   int pw, ph;
+   Eina_Bool disabled = EINA_FALSE;
+   if (e_pixmap_size_get(ec->pixmap, &pw, &ph))
+      {
+         e_comp_object_frame_wh_adjust(ec->frame, pw, ph, &pw, &ph);
+         disabled = (w == pw) && (h == ph);
+      }
+   if ((!disabled) && e_config->window_maximize_animate && (!ec->maximize_anims_disabled) &&
        (!starting) && (!ec->changes.need_maximize))
      {
         evas_object_del(ec->agent);
@@ -1595,7 +1585,7 @@ _e_client_eval(E_Client *ec)
           }
         e_client_resize_limit(ec, &ec->w, &ec->h);
 
-        if (ec->re_manage)
+        if (ec->re_manage && e_comp_object_frame_exists(ec->frame))
           {
              int x = ec->x, y = ec->y;
              if (ec->x) e_comp_object_frame_xy_adjust(ec->frame, ec->x, 0, &ec->x, NULL);
@@ -1724,6 +1714,8 @@ _e_client_eval(E_Client *ec)
              else if ((e_config->window_placement_policy == E_WINDOW_PLACEMENT_SMART) || (e_config->window_placement_policy == E_WINDOW_PLACEMENT_ANTIGADGET))
                {
                   skiplist = eina_list_append(skiplist, ec);
+                  if (ec->transients)
+                    skiplist = eina_list_merge(skiplist, eina_list_clone(ec->transients));
                   if (ec->desk)
                     e_place_desk_region_smart(ec->desk, skiplist,
                                               ec->x, ec->y, ec->w, ec->h,
@@ -2252,7 +2244,12 @@ e_client_idler_before(void)
             )
           {
              if (e_config->screen_limits != E_CLIENT_OFFSCREEN_LIMIT_ALLOW_FULL)
-               _e_client_move_lost_window_to_center(ec);
+               {
+                  if (ec->parent)
+                    e_comp_object_util_center_on(ec->frame, ec->parent->frame);
+                  else
+                    _e_client_move_lost_window_to_center(ec);
+               }
           }
      }
 
@@ -2813,6 +2810,7 @@ e_client_mouse_move(E_Client *ec, Evas_Point *output)
 {
    EINA_SAFETY_ON_NULL_RETURN(ec);
    if (ec->iconic || e_client_util_ignored_get(ec)) return;
+   if ((ec->mouse.current.mx == output->x) && (ec->mouse.current.my == output->y)) return;
    ec->mouse.current.mx = output->x;
    ec->mouse.current.my = output->y;
    if (ec->moving)
@@ -3810,6 +3808,10 @@ e_client_maximize(E_Client *ec, E_Maximize max)
         EC_CHANGED(ec);
         return;
      }
+   if ((max & E_MAXIMIZE_TYPE) == E_MAXIMIZE_FULLSCREEN)
+     evas_object_smart_callback_call(ec->frame, "fullscreen", NULL);
+   else
+     evas_object_smart_callback_call(ec->frame, "maximize", NULL);
    evas_object_smart_callback_call(ec->frame, "maximize_pre", &max);
    if (!max) return;
    override = ec->maximize_override;
@@ -3819,24 +3821,31 @@ e_client_maximize(E_Client *ec, E_Maximize max)
    if (!(ec->maximized & E_MAXIMIZE_HORIZONTAL))
      {
         /* Horizontal hasn't been set */
-        ec->saved.x = ec->client.x - ec->zone->x;
-        ec->saved.w = ec->client.w;
+        if (ec->changes.pos)
+          e_comp_object_frame_xy_adjust(ec->frame, ec->x, 0, &ec->saved.x, NULL);
+        else
+          ec->saved.x = ec->client.x;
+        ec->saved.x -= ec->zone->x;
+        if (ec->visible)
+          ec->saved.w = ec->client.w;
      }
    if (!(ec->maximized & E_MAXIMIZE_VERTICAL))
      {
         /* Vertical hasn't been set */
-        ec->saved.y = ec->client.y - ec->zone->y;
-        ec->saved.h = ec->client.h;
+        if (ec->changes.pos)
+          e_comp_object_frame_xy_adjust(ec->frame, 0, ec->y, NULL, &ec->saved.y);
+        else
+          ec->saved.y = ec->client.y;
+        ec->saved.y -= ec->zone->y;
+        if (ec->visible)
+          ec->saved.h = ec->client.h;
      }
 
    ec->saved.zone = ec->zone->num;
    ec->saved.frame = e_comp_object_frame_exists(ec->frame) || (!e_comp_object_frame_allowed(ec->frame));
 
    ec->maximize_override = 1;
-   if ((max & E_MAXIMIZE_TYPE) == E_MAXIMIZE_FULLSCREEN)
-     evas_object_smart_callback_call(ec->frame, "fullscreen", NULL);
-   else
-     evas_object_smart_callback_call(ec->frame, "maximize", NULL);
+
    {
       int x, y, w, h;
       e_client_maximize_geometry_get(ec, max, &x, &y, &w, &h);
@@ -3906,6 +3915,7 @@ e_client_unmaximize_geometry_get(const E_Client *ec, E_Maximize max, int *mx, in
 E_API void
 e_client_unmaximize(E_Client *ec, E_Maximize max)
 {
+   E_Maximize unmax = max;
    E_OBJECT_CHECK(ec);
    E_OBJECT_TYPE_CHECK(ec, E_CLIENT_TYPE);
    if (!ec->zone) return;
@@ -3924,10 +3934,11 @@ e_client_unmaximize(E_Client *ec, E_Maximize max)
    if ((ec->shaded) || (ec->shading)) return;
 
    /* Remove directions not used */
-   max &= (ec->maximized & E_MAXIMIZE_DIRECTION);
-   evas_object_smart_callback_call(ec->frame, "unmaximize_pre", &max);
+   unmax &= (ec->maximized & E_MAXIMIZE_DIRECTION);
+   evas_object_smart_callback_call(ec->frame, "unmaximize_pre", &unmax);
    /* Can only remove existing maximization directions */
-   if (!max) return;
+   if ((!unmax) && (!ec->need_fullscreen)) return;
+   if (!unmax) unmax = max & (ec->maximized & E_MAXIMIZE_DIRECTION);
    if (ec->maximized & E_MAXIMIZE_TYPE)
      {
         ec->pre_res_change.valid = 0;
@@ -3958,23 +3969,25 @@ e_client_unmaximize(E_Client *ec, E_Maximize max)
              Eina_Bool horiz = EINA_FALSE, vert = EINA_FALSE;
              Eina_Bool fullscreen = !!eina_list_data_find(ec->desk->fullscreen_clients, ec);
 
-             e_client_unmaximize_geometry_get(ec, max, &x, &y, &w, &h);
-             if (max & E_MAXIMIZE_VERTICAL)
+             e_client_unmaximize_geometry_get(ec, unmax, &x, &y, &w, &h);
+             if (unmax & E_MAXIMIZE_VERTICAL)
                {
                   /* Remove vertical */
                   vert = EINA_TRUE;
-                  if ((max & E_MAXIMIZE_VERTICAL) == E_MAXIMIZE_VERTICAL)
+                  if ((unmax & E_MAXIMIZE_VERTICAL) == E_MAXIMIZE_VERTICAL)
                     {
+                       if ((ec->maximized & E_MAXIMIZE_LEFT) == E_MAXIMIZE_LEFT)
+                         ec->maximized &= ~E_MAXIMIZE_LEFT;
+                       if ((ec->maximized & E_MAXIMIZE_RIGHT) == E_MAXIMIZE_RIGHT)
+                         ec->maximized &= ~E_MAXIMIZE_RIGHT;
                        ec->maximized &= ~E_MAXIMIZE_VERTICAL;
-                       ec->maximized &= ~E_MAXIMIZE_LEFT;
-                       ec->maximized &= ~E_MAXIMIZE_RIGHT;
                     }
-                  if ((max & E_MAXIMIZE_LEFT) == E_MAXIMIZE_LEFT)
+                  if ((unmax & E_MAXIMIZE_LEFT) == E_MAXIMIZE_LEFT)
                     ec->maximized &= ~E_MAXIMIZE_LEFT;
-                  if ((max & E_MAXIMIZE_RIGHT) == E_MAXIMIZE_RIGHT)
+                  if ((unmax & E_MAXIMIZE_RIGHT) == E_MAXIMIZE_RIGHT)
                     ec->maximized &= ~E_MAXIMIZE_RIGHT;
                }
-             if (max & E_MAXIMIZE_HORIZONTAL)
+             if (unmax & E_MAXIMIZE_HORIZONTAL)
                {
                   /* Remove horizontal */
                   horiz = EINA_TRUE;
@@ -3991,13 +4004,13 @@ e_client_unmaximize(E_Client *ec, E_Maximize max)
                ec->maximize_override = 1;
              if (!fullscreen)
                evas_object_smart_callback_call(ec->frame, "unmaximize", NULL);
-             e_client_resize_limit(ec, &w, &h);
              if (ec->saved.frame &&
                (e_comp_object_frame_exists(ec->frame) || (!e_comp_object_frame_allowed(ec->frame))))
                {
                   e_comp_object_frame_xy_adjust(ec->frame, x, y, &x, &y);
                   e_comp_object_frame_wh_adjust(ec->frame, w, h, &w, &h);
                }
+             e_client_resize_limit(ec, &w, &h);
              if (fullscreen)
                evas_object_smart_callback_call(ec->frame, "unmaximize", NULL);
              if (!_e_client_maximize_run(ec, x, y, w, h))
@@ -4028,11 +4041,8 @@ e_client_fullscreen(E_Client *ec, E_Fullscreen policy)
 
    if ((ec->shaded) || (ec->shading) || ec->fullscreen) return;
    if ((!e_config->allow_above_fullscreen) && (!ec->desk->visible)) return;
-   if (ec->new_client)
-     {
-        ec->need_fullscreen = 1;
-        return;
-     }
+   ec->need_fullscreen = 1;
+   if (ec->new_client) return;
    if (e_comp->nocomp_ec && (ec->desk == e_comp->nocomp_ec->desk))
      e_comp->nocomp_ec = ec;
    ec->desk->fullscreen_clients = eina_list_append(ec->desk->fullscreen_clients, ec);
@@ -4047,10 +4057,21 @@ e_client_fullscreen(E_Client *ec, E_Fullscreen policy)
      }
    else
      {
-        ec->saved.x = ec->client.x - ec->zone->x;
-        ec->saved.y = ec->client.y - ec->zone->y;
-        ec->saved.w = ec->client.w;
-        ec->saved.h = ec->client.h;
+        if (ec->changes.pos)
+          e_comp_object_frame_xy_adjust(ec->frame, ec->x, ec->y, &ec->saved.x, &ec->saved.y);
+        else
+          {
+             ec->saved.x = ec->client.x;
+             ec->saved.y = ec->client.y;
+          }
+        ec->saved.x -= ec->zone->x;
+        ec->saved.y -= ec->zone->y;
+
+        if (ec->visible)
+          {
+             ec->saved.w = ec->client.w;
+             ec->saved.h = ec->client.h;
+          }
      }
    ec->saved.maximized = ec->maximized;
    ec->saved.zone = ec->zone->num;
@@ -4058,7 +4079,11 @@ e_client_fullscreen(E_Client *ec, E_Fullscreen policy)
 
    if (ec->maximized)
      {
+        Eina_Bool maximize_anims_disabled = ec->maximize_anims_disabled;
+
+        ec->maximize_anims_disabled = 1;
         e_client_unmaximize(ec, E_MAXIMIZE_BOTH);
+        ec->maximize_anims_disabled = maximize_anims_disabled;
         ec->saved.x = x;
         ec->saved.y = y;
         ec->saved.w = w;
@@ -4099,6 +4124,7 @@ e_client_fullscreen(E_Client *ec, E_Fullscreen policy)
    _e_client_event_simple(ec, E_EVENT_CLIENT_FULLSCREEN);
 
    e_remember_update(ec);
+   ec->need_fullscreen = 0;
 }
 
 E_API void
@@ -4133,8 +4159,14 @@ e_client_unfullscreen(E_Client *ec)
    ec->saved.frame = 0;
 
    if (ec->saved.maximized)
-     e_client_maximize(ec, (e_config->maximize_policy & E_MAXIMIZE_TYPE) |
-                       ec->saved.maximized);
+     {
+        Eina_Bool maximize_anims_disabled = ec->maximize_anims_disabled;
+        ec->changes.size = 0;
+        ec->maximize_anims_disabled = 1;
+        e_client_maximize(ec,
+          (e_config->maximize_policy & E_MAXIMIZE_TYPE) | ec->saved.maximized);
+        ec->maximize_anims_disabled = maximize_anims_disabled;
+     }
 
    evas_object_layer_set(ec->frame, ec->saved.layer);
 
@@ -4411,7 +4443,7 @@ e_client_act_resize_keyboard(E_Client *ec)
    EINA_SAFETY_ON_NULL_RETURN(ec);
    if (!ec->zone) return;
 
-   ec->resize_mode = E_POINTER_RESIZE_TL;
+   ec->resize_mode = E_POINTER_RESIZE_BR;
    ec->keyboard_resizing = 1;
    if (!e_client_resize_begin(ec))
      {
@@ -4753,6 +4785,11 @@ e_client_resize_begin(E_Client *ec)
        (ec->fullscreen) || (ec->lock_user_size))
      goto error;
    if (!_e_client_action_input_win_new()) goto error;
+   if (!ec->lock_user_stacking)
+     {
+        if (e_config->border_raise_on_mouse_action)
+          evas_object_raise(ec->frame);
+     }
    ecresize = ec;
    _e_client_hook_call(E_CLIENT_HOOK_RESIZE_BEGIN, ec);
    if (!e_client_util_resizing_get(ec))
@@ -4761,11 +4798,7 @@ e_client_resize_begin(E_Client *ec)
         _e_client_action_input_win_del();
         return EINA_FALSE;
      }
-   if (!ec->lock_user_stacking)
-     {
-        if (e_config->border_raise_on_mouse_action)
-          evas_object_raise(ec->frame);
-     }
+   E_FREE_FUNC(ec->raise_timer, ecore_timer_del);
    return EINA_TRUE;
 error:
    ec->resize_mode = E_POINTER_RESIZE_NONE;
@@ -4795,6 +4828,7 @@ e_client_signal_move_begin(E_Client *ec, const char *sig, const char *src EINA_U
    if (e_client_util_resizing_get(ec) || (ec->moving)) return;
    _e_client_moveinfo_gather(ec, sig);
    if (!_e_client_move_begin(ec)) return;
+   _e_client_action_init(ec);
    e_pointer_mode_push(ec, E_POINTER_MOVE);
    e_zone_edge_disable();
 }
@@ -4809,6 +4843,7 @@ e_client_signal_move_end(E_Client *ec, const char *sig EINA_UNUSED, const char *
    _e_client_move_end(ec);
    e_zone_edge_enable();
    e_zone_flip_coords_handle(ec->zone, -1, -1);
+   _e_client_action_finish();
 }
 
 E_API void
@@ -4856,6 +4891,7 @@ e_client_signal_resize_begin(E_Client *ec, const char *dir, const char *sig, con
    _e_client_moveinfo_gather(ec, sig);
    if (!e_client_resize_begin(ec))
      return;
+   _e_client_action_init(ec);
    e_pointer_mode_push(ec, ec->resize_mode);
 }
 
@@ -4869,6 +4905,7 @@ e_client_signal_resize_end(E_Client *ec, const char *dir EINA_UNUSED, const char
    _e_client_resize_end(ec);
    ec->changes.reset_gravity = 1;
    EC_CHANGED(ec);
+   _e_client_action_finish();
 }
 
 ////////////////////////////////////////////

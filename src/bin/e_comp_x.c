@@ -70,6 +70,8 @@ static int screen_size_index = -1;
 static Ecore_X_Atom backlight_atom = 0;
 extern double e_bl_val;
 
+static Eina_Hash *dead_wins;
+
 static void _e_comp_x_hook_client_pre_frame_assign(void *d EINA_UNUSED, E_Client *ec);
 
 static inline E_Comp_X_Client_Data *
@@ -118,11 +120,14 @@ _e_comp_x_focus_check(void)
    focused = e_client_focused_get();
    /* if there is no new focused or it is a non-X client,
     * focus comp canvas on focus-out */
-   if ((!focused) || (e_pixmap_type_get(focused->pixmap) != E_PIXMAP_TYPE_X))
+   if ((!focused) || (!e_client_has_xwindow(focused)))
      {
         focus_canvas_time = ecore_x_current_time_get();
         focus_time = 0;
-        e_grabinput_focus(e_comp->ee_win, E_FOCUS_METHOD_PASSIVE);
+        if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+          e_grabinput_focus(e_comp->ee_win, E_FOCUS_METHOD_PASSIVE);
+        else
+          e_grabinput_focus(e_comp->root, E_FOCUS_METHOD_PASSIVE);
      }
 }
 
@@ -1351,8 +1356,11 @@ _e_comp_x_show_request(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Eve
      (!e_comp_find_by_window(ev->parent)) ||
      (ev->parent != e_comp->root))
      {
-        ecore_x_window_show(ev->win);
-        return ECORE_CALLBACK_RENEW;
+        if ((!ec) && (!eina_hash_find(dead_wins, &ev->parent)))
+          {
+             ecore_x_window_show(ev->win);
+             return ECORE_CALLBACK_RENEW;
+          }
      }
    if (!ec)
      ec = _e_comp_x_client_new(ev->win, 0);
@@ -1539,8 +1547,9 @@ _e_comp_x_hide(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Windo
      {
         hid = EINA_TRUE;
         evas_object_hide(ec->frame);
-        e_hints_window_hidden_set(ec);
-        if (!ec->internal)
+        if (ec->internal)
+          e_hints_window_hidden_set(ec);
+        else
           {
              if (ec->exe_inst && ec->exe_inst->exe)
                ec->exe_inst->phony = 0;
@@ -2362,7 +2371,7 @@ static void
 _e_comp_x_mouse_in_job(void *d EINA_UNUSED)
 {
    if (mouse_client)
-     e_client_mouse_in(mouse_client, e_comp_canvas_x_root_adjust(mouse_in_coords.x), e_comp_canvas_x_root_adjust(mouse_in_coords.y));
+     e_client_mouse_in(mouse_client, e_comp_canvas_x_root_adjust(mouse_in_coords.x), e_comp_canvas_y_root_adjust(mouse_in_coords.y));
    mouse_in_job = NULL;
 }
 
@@ -2420,7 +2429,7 @@ _e_comp_x_mouse_out(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_
         E_FREE_FUNC(mouse_in_job, ecore_job_del);
      }
    if (ec->mouse.in)
-     e_client_mouse_out(ec, e_comp_canvas_x_root_adjust(ev->root.x), e_comp_canvas_x_root_adjust(ev->root.y));
+     e_client_mouse_out(ec, e_comp_canvas_x_root_adjust(ev->root.x), e_comp_canvas_y_root_adjust(ev->root.y));
    return ECORE_CALLBACK_RENEW;
 }
 
@@ -2519,7 +2528,7 @@ _e_comp_x_mouse_move(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_M
              if (top == e_comp->ee_win) return ECORE_CALLBACK_RENEW;
 
              x = e_comp_canvas_x_root_adjust(ev->root.x);
-             y = e_comp_canvas_x_root_adjust(ev->root.y);
+             y = e_comp_canvas_y_root_adjust(ev->root.y);
              for (tec = e_client_above_get(ec); tec; tec = e_client_above_get(tec))
                {
                   if (!evas_object_visible_get(tec->frame)) continue;
@@ -2888,6 +2897,22 @@ _e_comp_x_focus_in(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_W
    E_Client *ec, *focused;
 
    ec = _e_comp_x_client_find_by_window(ev->win);
+
+   if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
+     {
+        focused = e_client_focused_get();
+        if (ec && focused)
+          {
+             if ((!ec->override) && (ec != focused))
+               {
+                  ecore_x_window_focus(e_client_util_win_get(focused));
+                  ecore_x_icccm_take_focus_send(e_client_util_win_get(focused), ecore_x_current_time_get());
+               }
+          }
+        else
+          ecore_x_window_focus(e_comp->root);
+        return ECORE_CALLBACK_RENEW;
+     }
    if (!ec)
      {
         if ((ev->win == e_comp->ee_win) && (ev->time >= focus_canvas_time) && (!focus_time))
@@ -3253,7 +3278,7 @@ _e_comp_x_hook_client_pre_frame_assign(void *d EINA_UNUSED, E_Client *ec)
           }
      }
    ecore_x_window_show(win);
-   if (!ec->iconic)
+   if (ec->icccm.state != ECORE_X_WINDOW_STATE_HINT_WITHDRAWN)
      ecore_x_window_show(pwin);
 
    _e_comp_x_focus_init(ec);
@@ -3585,7 +3610,13 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
                                     &is_urgent))
           {
              if (ec->new_client)
-               ec->icccm.initial_state = ec->icccm.state;
+               {
+                  /* clients may unset iconic state when no wm is present */
+                  if (ec->netwm.state.hidden && (ec->icccm.state == ECORE_X_WINDOW_STATE_HINT_NORMAL))
+                    ec->icccm.initial_state = ECORE_X_WINDOW_STATE_HINT_ICONIC;
+                  else
+                    ec->icccm.initial_state = ec->icccm.state;
+               }
              if (state != ec->icccm.state)
                {
                   if (ec->icccm.state == ECORE_X_WINDOW_STATE_HINT_WITHDRAWN)
@@ -3594,7 +3625,8 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
                     {
                        ec->visible = 1;
                        ec->changes.visible = ec->new_client;
-                       if (!ec->new_client)
+                       if ((!ec->new_client) &&
+                         (ec->icccm.state == ECORE_X_WINDOW_STATE_HINT_NORMAL))
                          evas_object_show(ec->frame);
                     }
                }
@@ -3888,15 +3920,19 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
      {
         unsigned int val;
 
-        if (ecore_x_window_prop_card32_get(win, ECORE_X_ATOM_NET_WM_WINDOW_OPACITY, &val, 1) > 0)
+        if (ecore_x_netwm_opacity_get(win, &val))
           {
-             val = (val >> 24);
              if (ec->netwm.opacity != val)
                {
                   ec->netwm.opacity = val;
+                  evas_object_color_set(ec->frame,
+                    ec->netwm.opacity, ec->netwm.opacity, ec->netwm.opacity, ec->netwm.opacity);
                   rem_change = 1;
                }
+             ec->netwm.fetch.opacity = !ec->netwm.opacity;
           }
+        else
+          ec->netwm.fetch.opacity = 0;
      }
    if (ec->netwm.fetch.icon)
      {
@@ -4505,16 +4541,14 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
      }
    if (cd->fetch_gtk_frame_extents)
      {
-        unsigned char *data;
+        unsigned int *extents;
         int count;
 
         if (ecore_x_window_prop_property_get(win,
                                              ATM_GTK_FRAME_EXTENTS,
                                              ECORE_X_ATOM_CARDINAL, 32,
-                                             &data, &count))
+                                             (void *)(&extents), &count))
           {
-             unsigned int *extents = (unsigned int*)data;
-
              /* _GTK_FRAME_EXTENTS describes a region l/r/t/b pixels
               * from the "window" object in which shadows will be drawn.
               * this area should not be accounted for in sizing or
@@ -4526,7 +4560,7 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
                 (ec->x == ec->comp_data->initial_attributes.x) &&
                 (ec->y == ec->comp_data->initial_attributes.y))
                e_comp_object_frame_xy_adjust(ec->frame, ec->x, ec->y, &ec->x, &ec->y);
-             free(data);
+             free(extents);
           }
         cd->fetch_gtk_frame_extents = 0;
      }
@@ -4603,6 +4637,7 @@ _e_comp_x_hook_client_focus_unset(void *d EINA_UNUSED, E_Client *ec)
         focus_job_client = NULL;
         E_FREE_FUNC(focus_job, ecore_job_del);
      }
+   if (ec->override) return;
    unfocus_job_client = ec;
    if (!unfocus_job)
      unfocus_job = ecore_job_add(_e_comp_x_hook_client_focus_unset_job, NULL);
@@ -4619,7 +4654,7 @@ _e_comp_x_hook_client_focus_set_job(void *d EINA_UNUSED)
    focus_canvas_time = 0;
    if (!e_client_has_xwindow(ec))
      {
-        e_grabinput_focus(e_comp->ee_win, E_FOCUS_METHOD_PASSIVE);
+        e_grabinput_focus(e_comp->root, E_FOCUS_METHOD_PASSIVE);
         return;
      }
    _e_comp_x_focus_setdown(ec);
@@ -4647,6 +4682,7 @@ _e_comp_x_hook_client_focus_set(void *d EINA_UNUSED, E_Client *ec)
         unfocus_job_client = NULL;
         E_FREE_FUNC(unfocus_job, ecore_job_del);
      }
+   if (ec->override) return;
    focus_job_client = ec;
    if (!focus_job)
      focus_job = ecore_job_add(_e_comp_x_hook_client_focus_set_job, NULL);
@@ -4697,6 +4733,15 @@ _e_comp_x_hook_client_unredirect(void *d EINA_UNUSED, E_Client *ec)
    ecore_x_window_hide(e_comp->win);
 }
 
+static Eina_Bool
+_e_comp_x_dead_win_timer(void *d)
+{
+   uint32_t pwin = (uintptr_t)(uintptr_t*)d;
+
+   eina_hash_del_by_key(dead_wins, &pwin);
+   return EINA_FALSE;
+}
+
 static void
 _e_comp_x_hook_client_del(void *d EINA_UNUSED, E_Client *ec)
 {
@@ -4714,6 +4759,11 @@ _e_comp_x_hook_client_del(void *d EINA_UNUSED, E_Client *ec)
    if (unfocus_job_client == ec) unfocus_job_client = NULL;
    if ((!stopping) && cd && (!cd->deleted))
      ecore_x_window_prop_card32_set(win, E_ATOM_MANAGED, &visible, 1);
+   if (stopping && ec->iconic)
+     {
+        e_hints_window_iconic_set(ec);
+        e_hints_window_state_set(ec);
+     }
    if ((!ec->already_unparented) && cd && cd->reparented)
      {
         _e_comp_x_focus_setdown(ec);
@@ -4756,6 +4806,8 @@ _e_comp_x_hook_client_del(void *d EINA_UNUSED, E_Client *ec)
         eina_hash_del_by_key(clients_win_hash, &pwin);
         e_pixmap_parent_window_set(e_comp_x_client_pixmap_get(ec), 0);
         ecore_x_window_free(pwin);
+        eina_hash_add(dead_wins, &pwin, (void*)1);
+        ecore_timer_add(0.5, _e_comp_x_dead_win_timer, (uintptr_t*)(uintptr_t)pwin);
      }
 
    if (ec->hacks.mapping_change)
@@ -5229,7 +5281,7 @@ _e_comp_x_manage_windows(void)
           }
         if (ec)
           {
-             if (ec->override)
+             if (ec->override || (!ec->icccm.fetch.hints))
                {
                   _e_comp_x_client_evas_init(ec);
                   if (!ec->input_only)
@@ -5439,7 +5491,10 @@ _e_comp_x_setup(Ecore_X_Window root, int w, int h)
         if (!e_comp_canvas_init(w, h)) return EINA_FALSE;
      }
 
-   e_grabinput_focus(e_comp->ee_win, E_FOCUS_METHOD_PASSIVE);
+   if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+     e_grabinput_focus(e_comp->ee_win, E_FOCUS_METHOD_PASSIVE);
+   else
+     e_grabinput_focus(e_comp->root, E_FOCUS_METHOD_PASSIVE);
 
    /* init layers */
    for (i = e_comp_canvas_layer_map(E_LAYER_CLIENT_DESKTOP); i <= e_comp_canvas_layer_map(E_LAYER_CLIENT_PRIO); i++)
@@ -5549,6 +5604,7 @@ e_comp_x_init(void)
    clients_win_hash = eina_hash_int32_new(NULL);
    damages_hash = eina_hash_int32_new(NULL);
    alarm_hash = eina_hash_int32_new(NULL);
+   dead_wins = eina_hash_int32_new(NULL);
    frame_extents = eina_hash_string_superfast_new(free);
 
    h = eina_list_append(h, e_client_hook_add(E_CLIENT_HOOK_DESK_SET, _e_comp_x_hook_client_desk_set, NULL));
@@ -5600,7 +5656,8 @@ e_comp_x_init(void)
    E_LIST_HANDLER_APPEND(handlers, ECORE_X_EVENT_MAPPING_CHANGE, _e_comp_x_mapping_change, NULL);
 
    E_LIST_HANDLER_APPEND(handlers, ECORE_X_EVENT_WINDOW_FOCUS_IN, _e_comp_x_focus_in, NULL);
-   E_LIST_HANDLER_APPEND(handlers, ECORE_X_EVENT_WINDOW_FOCUS_OUT, _e_comp_x_focus_out, NULL);
+   if (e_comp->comp_type != E_PIXMAP_TYPE_WL)
+     E_LIST_HANDLER_APPEND(handlers, ECORE_X_EVENT_WINDOW_FOCUS_OUT, _e_comp_x_focus_out, NULL);
 
    E_LIST_HANDLER_APPEND(handlers, ECORE_X_EVENT_WINDOW_MOVE_RESIZE_REQUEST,
                          _e_comp_x_move_resize_request, NULL);
@@ -5688,7 +5745,6 @@ e_comp_x_shutdown(void)
      ecore_x_screensaver_custom_blanking_disable();
    if (x_fatal) return;
    e_atoms_shutdown();
-   e_randr2_shutdown();
    /* ecore_x_ungrab(); */
    ecore_x_focus_reset();
    ecore_x_events_allow_all();

@@ -58,14 +58,24 @@ _e_comp_wl_input_pointer_cb_cursor_set(struct wl_client *client, struct wl_resou
        if (client != wl_resource_get_client(ec->comp_data->surface)) continue;
        if (ec->mouse.in)
          {
-           got_mouse = EINA_TRUE;
-           break;
+            if (e_client_has_xwindow(ec))
+              got_mouse = E_INSIDE(ec->mouse.current.mx, ec->mouse.current.my,
+                ec->client.x, ec->client.y, ec->client.w, ec->client.h);
+            else
+              got_mouse = EINA_TRUE;
+            break;
          }
      }
-   if (!got_mouse) return;
+   if (!got_mouse)
+     {
+        if (ec && ec->mouse.in && (!surface_resource))
+          e_pointer_object_set(e_comp->pointer, NULL, 0, 0);
+        return;
+     }
    if (!surface_resource)
      {
-        e_pointer_object_set(e_comp->pointer, NULL, x, y);
+        ecore_evas_cursor_unset(e_comp->ee);
+        evas_object_hide(e_comp->pointer->o_ptr);
         return;
      }
    ec = wl_resource_get_user_data(surface_resource);
@@ -440,7 +450,7 @@ e_comp_wl_input_init(void)
 {
    /* set default seat name */
    if (!e_comp_wl->seat.name)
-     e_comp_wl->seat.name = "default";
+     e_comp_wl->seat.name = "seat0";
 
    e_comp_wl->xkb.fd = -1;
 
@@ -651,8 +661,13 @@ _e_comp_wl_input_context_keymap_set(struct xkb_keymap *keymap, struct xkb_contex
         dev = ecore_evas_data_get(e_comp->ee, "device");
         if (dev)
           {
-             ecore_drm2_device_keyboard_cached_context_set(dev, context);
-             ecore_drm2_device_keyboard_cached_keymap_set(dev, keymap);
+#ifndef EFL_VERSION_1_20
+             if (!E_EFL_VERSION_MINIMUM(1, 19, 99))
+               {
+                  ecore_drm2_device_keyboard_cached_context_set(dev, context);
+                  ecore_drm2_device_keyboard_cached_keymap_set(dev, keymap);
+               }
+#endif
           }
      }
 # else
@@ -748,9 +763,9 @@ _event_generate(const char *key, const char *keyname, int mods, Eina_Bool up)
     * /usr/share/X11/xkb/keycodes/evdev is probably what your system is using
     */
    keycode = _xkb_keymap_key_by_name(e_comp_wl->xkb.keymap, keyname ?: key);
-   if (!keycode)
+   if (keycode == -1)
      {
-        ERR("no keycode found for key '%s'", key);
+        ERR("no keycode found for key '%s'", keyname ?: key);
         return;
      }
    ev = calloc(1, sizeof(Ecore_Event_Key) + (2 * (strlen(key) + 1)));

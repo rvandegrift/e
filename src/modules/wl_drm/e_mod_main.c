@@ -56,19 +56,11 @@ _e_mod_drm_cb_activate(void *data EINA_UNUSED, int type EINA_UNUSED, void *event
 
    if (ev->active)
      {
-        E_Client *ec;
-
         if (session_state) goto end;
         session_state = EINA_TRUE;
 
         ecore_evas_show(e_comp->ee);
-        E_CLIENT_FOREACH(ec)
-          {
-             if (ec->visible && (!ec->input_only))
-               e_comp_object_damage(ec->frame, 0, 0, ec->w, ec->h);
-          }
-        e_comp_render_queue();
-        e_comp_shape_queue_block(0);
+        evas_damage_rectangle_add(e_comp->evas, 0, 0, e_comp->w, e_comp->h);
         ecore_event_add(E_EVENT_COMPOSITOR_ENABLE, NULL, NULL, NULL);
      }
    else
@@ -81,8 +73,6 @@ _e_mod_drm_cb_activate(void *data EINA_UNUSED, int type EINA_UNUSED, void *event
         evas_font_cache_flush(e_comp->evas);
         evas_render_dump(e_comp->evas);
 
-        e_comp_render_queue();
-        e_comp_shape_queue_block(1);
         ecore_event_add(E_EVENT_COMPOSITOR_DISABLE, NULL, NULL, NULL);
      }
 
@@ -91,56 +81,10 @@ end:
 }
 
 static Eina_Bool
-_e_mod_drm_cb_output(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+_e_mod_drm_cb_output(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
 {
-   const Eina_List *l;
-   E_Randr2_Screen *screen;
-   Eina_Bool connected = EINA_FALSE;
-   int subpixel = 0;
-#ifdef HAVE_DRM2
-   Ecore_Drm2_Event_Output_Changed *e;
-#else
-   Ecore_Drm_Event_Output *e;
-#endif
-
-   if (!(e = event)) goto end;
-
-   DBG("WL_DRM OUTPUT CHANGE");
-
-   EINA_LIST_FOREACH(e_randr2->screens, l, screen)
-     {
-        if ((!strcmp(screen->info.name, e->name)) && 
-            (!strcmp(screen->info.screen, e->model)))
-          {
-#ifdef HAVE_DRM2
-             connected = e->enabled;
-             subpixel = e->subpixel;
-#else
-             connected = e->plug;
-             subpixel = e->subpixel_order;
-#endif
-
-             if (connected)
-               {
-                  if (!e_comp_wl_output_init(screen->id, e->make, e->model,
-                                             e->x, e->y, e->w, e->h, 
-                                             e->phys_width, e->phys_height,
-                                             e->refresh, subpixel,
-                                             e->transform))
-                    {
-                       ERR("Could not setup new output: %s", screen->id);
-                    }
-               }
-             else
-               e_comp_wl_output_remove(screen->id);
-
-             break;
-          }
-     }
-
-end:
    if (!e_randr2_cfg->ignore_hotplug_events)
-     e_randr2_screen_refresh_queue(EINA_TRUE);
+     e_randr2_screen_refresh_queue(1);
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -678,8 +622,7 @@ _drm2_randr_apply(void)
         if (s->config.priority > top_priority)
           top_priority = s->config.priority;
 
-        ecore_drm2_output_mode_set(output, mode,
-                                   s->config.geom.x, s->config.geom.y);
+        ecore_drm2_output_mode_set(output, mode, 0, 0);
 
         /* TODO: cannot support rotations until we support planes
          * and we cannot support planes until Atomic support is in */
@@ -788,12 +731,27 @@ _drm2_read_pixels(E_Comp_Wl_Output *output, void *pixels)
    out = ecore_drm2_output_find(dev, output->x, output->y);
    if (!out) return;
 
-   fb = ecore_drm2_output_next_fb_get(out);
-   if (!fb)
+#ifdef EFL_VERSION_1_19
+   fb = ecore_drm2_output_latest_fb_get(out);
+   if (!fb) return;
+#else
+   if (E_EFL_VERSION_MINIMUM(1, 18, 99))
      {
-        fb = ecore_drm2_output_current_fb_get(out);
+        void *(*fn)(void*) = dlsym(NULL, "ecore_drm2_output_latest_fb_get");
+        if (!fn) return;
+        fb = fn(out);
         if (!fb) return;
      }
+   else
+     {
+        fb = ecore_drm2_output_next_fb_get(out);
+        if (!fb)
+          {
+             fb = ecore_drm2_output_current_fb_get(out);
+             if (!fb) return;
+          }
+     }
+#endif
 
    data = ecore_drm2_fb_data_get(fb);
    fstride = ecore_drm2_fb_stride_get(fb);

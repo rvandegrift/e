@@ -547,7 +547,7 @@ _e_fm2_icon_path(const E_Fm2_Icon *ic, char *buf, int buflen)
 static inline Eina_Bool
 _e_fm2_ext_is_edje(const char *ext)
 {
-#if E_FM2_SIMPLE_STRCASE_FILES
+#ifdef E_FM2_SIMPLE_STRCASE_FILES
    if ((ext[0] == 'e') && (ext[1] == 'd') && (ext[2] == 'j'))
      return 1;
    else if ((ext[0] == 'E') && (ext[1] == 'D') && (ext[2] == 'J'))
@@ -562,7 +562,7 @@ _e_fm2_ext_is_edje(const char *ext)
 static inline Eina_Bool
 _e_fm2_ext_is_desktop(const char *ext)
 {
-#if E_FM2_SIMPLE_STRCASE_FILES
+#ifdef E_FM2_SIMPLE_STRCASE_FILES
    if ((ext[0] == 'd') &&
        ((strcmp(ext + 1, "esktop") == 0) ||
         (strcmp(ext + 1, "irectory") == 0)))
@@ -586,7 +586,7 @@ _e_fm2_ext_is_desktop(const char *ext)
 static inline Eina_Bool
 _e_fm2_ext_is_imc(const char *ext)
 {
-#if E_FM2_SIMPLE_STRCASE_FILES
+#ifdef E_FM2_SIMPLE_STRCASE_FILES
    if ((ext[0] == 'i') && (ext[1] == 'm') && (ext[2] == 'c'))
      return 1;
    else if ((ext[0] == 'I') && (ext[1] == 'M') && (ext[2] == 'C'))
@@ -3223,7 +3223,7 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
 
          if (!e->data) return;
 
-#define UP(value, type) (value) = *(type *)p; p += sizeof(type)
+#define UP(value, type) (value) = *(type *)(void *)p; p += sizeof(type)
          UP(percent, int);
          UP(seconds, int);
          UP(done, off_t);
@@ -7061,7 +7061,7 @@ _e_fm2_cb_dnd_selection_notify(void *data, const char *type, void *event)
                     }
                }
           }
-        else
+        else if (sd->realpath)
           {
              if (_e_fm2_view_mode_get(sd) == E_FM2_VIEW_MODE_LIST && sd->order_file) /* list */
                {
@@ -11110,6 +11110,7 @@ _e_fm2_file_delete_yes_cb(void *data, E_Dialog *dialog)
                          }
                     }
                }
+                evas_object_pass_events_set(ici->ic->obj, 1);
           }
         eina_list_free(sel);
      }
@@ -11118,6 +11119,7 @@ _e_fm2_file_delete_yes_cb(void *data, E_Dialog *dialog)
         if (sel) eina_list_free(sel);
         _e_fm2_icon_realpath(ic, buf, sizeof(buf));
         if (e_filereg_file_protected(buf)) return;
+        evas_object_pass_events_set(ic->obj, 1);
         files = e_util_string_append_quoted(files, &size, &len, buf);
      }
    if (files)
