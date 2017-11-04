@@ -69,7 +69,6 @@ Package: e17
 Architecture: all
 Section: oldlibs
 Depends: enlightenment (>= ${source:Upstream-Version}), ${misc:Depends}
-Priority: extra
 Description: transitional e17 package
  This is a transitional dummy package to ease the migration from e17
  to enlightenment.  You can safely remove this package.
@@ -78,7 +77,6 @@ Package: e17-data
 Architecture: all
 Section: oldlibs
 Depends: enlightenment-data (>= ${source:Upstream-Version}), ${misc:Depends}
-Priority: extra
 Description: transitional e17-data package
  This is a transitional dummy package to ease the migration from e17-data
  to enlightenment-data.  You can safely remove this package.
