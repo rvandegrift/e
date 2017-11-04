@@ -1,5 +1,7 @@
 DISTCLEANFILES += src/bin/e_fm_shared_types.h
 
+EXTRA_DIST += src/bin/e_drm2.x
+
 efx_files = \
 src/bin/efx/efx_bumpmapping.c \
 src/bin/efx/efx.c \
@@ -21,13 +23,12 @@ E_CPPFLAGS = \
 -I$(top_srcdir) \
 -I$(top_srcdir)/src/bin \
 -I$(top_srcdir)/src/bin/efx \
--I$(top_srcdir)/src/bin/generated \
+-I$(top_builddir)/src/bin/generated \
 @e_cflags@ \
 @cf_cflags@ \
 @VALGRIND_CFLAGS@ \
 @EDJE_DEF@ \
 @WAYLAND_CFLAGS@ \
-@WAYLAND_EGL_CFLAGS@ \
 -DE_BINDIR=\"$(bindir)\" \
 -DPACKAGE_BIN_DIR=\"@PACKAGE_BIN_DIR@\" \
 -DPACKAGE_LIB_DIR=\"@PACKAGE_LIB_DIR@\" \
@@ -40,7 +41,8 @@ src/bin/enlightenment \
 src/bin/enlightenment_imc \
 src/bin/enlightenment_start \
 src/bin/enlightenment_filemanager \
-src/bin/enlightenment_open
+src/bin/enlightenment_open \
+src/bin/enlightenment_askpass
 
 internal_bindir = $(libdir)/enlightenment/utils
 internal_bin_PROGRAMS = \
@@ -49,11 +51,9 @@ src/bin/enlightenment_fm_op \
 src/bin/enlightenment_sys \
 src/bin/enlightenment_thumb \
 src/bin/enlightenment_elm_cfgtool \
-src/bin/enlightenment_static_grabber
+src/bin/enlightenment_static_grabber \
+src/bin/enlightenment_alert
 
-if ! HAVE_WAYLAND_ONLY
-internal_bin_PROGRAMS += src/bin/enlightenment_alert
-endif
 if HAVE_FREEBSD
 internal_bin_PROGRAMS += src/bin/enlightenment_ckpasswd
 endif
@@ -71,6 +71,7 @@ src/bin/e_bg.h \
 src/bin/e_bindings.h \
 src/bin/e_bryce.h \
 src/bin/e_client.h \
+src/bin/e_client_volume.h \
 src/bin/e_client.x \
 src/bin/e_color_dialog.h  \
 src/bin/e_color.h \
@@ -116,9 +117,11 @@ src/bin/e_font.h \
 src/bin/e_gadcon.h \
 src/bin/e_gadcon_popup.h \
 src/bin/e_gadget.h \
+src/bin/e_gadget_types.h \
 src/bin/e_grabinput.h \
 src/bin/e_grab_dialog.h \
 src/bin/e.h \
+src/bin/e_macros.h \
 src/bin/e_hints.h \
 src/bin/e_icon.h \
 src/bin/e_ilist.h \
@@ -227,6 +230,8 @@ src/bin/e_comp_wl_input.h \
 src/bin/e_comp_wl.h
 endif
 
+enlightenment_gen_src =
+MAINTAINERCLEANFILES += $(enlightenment_gen_src)
 
 enlightenment_src = \
 src/bin/e_about.c \
@@ -240,6 +245,7 @@ src/bin/e_bindings.c \
 src/bin/e_bryce.c \
 src/bin/e_bryce_editor.c \
 src/bin/e_client.c \
+src/bin/e_client_volume.c \
 src/bin/e_color.c \
 src/bin/e_color_dialog.c \
 src/bin/e_comp.c \
@@ -393,32 +399,86 @@ src/bin/e_xsettings.c
 endif
 
 if HAVE_WAYLAND
+#Stolen from weston's Makefile.am and modified for Enlightenment
+.SECONDEXPANSION:
+
+define protostability
+$(if $(findstring unstable,$1),unstable,stable)
+endef
+
+define protoname
+$(shell echo $1 | sed 's/\([a-z\-]\+\)-[a-z]\+-v[0-9]\+/\1/')
+endef
+
+%-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability,$$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) code < $< > $@
+
+%-server-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability,$$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) server-header < $< > $@
+
+%-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability,$$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) client-header < $< > $@
+
+%-protocol.c : $(top_srcdir)/src/protocol/$(notdir $$*).xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) code < $< > $@
+
+%-server-protocol.h : $(top_srcdir)/src/protocol/$(notdir $$*).xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) server-header < $< > $@
+
+%-client-protocol.h : $(top_srcdir)/src/protocol/$(notdir $$*).xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) client-header < $< > $@
+#End of weston stuff
+
 enlightenment_src += \
-src/bin/generated/linux-dmabuf-unstable-v1-server-protocol.h \
-src/bin/generated/linux-dmabuf-unstable-v1-protocol.c \
-src/bin/generated/www-protocol.c \
-src/bin/generated/www-protocol.h \
-src/bin/generated/session-recovery.c \
-src/bin/generated/session-recovery.h \
-src/bin/generated/e_comp_wl_screenshooter_server.c \
-src/bin/generated/e_comp_wl_screenshooter_server.h \
 src/bin/e_comp_wl_data.c \
 src/bin/e_comp_wl_input.c \
 src/bin/e_comp_wl_dmabuf.c \
 src/bin/e_comp_wl.c \
-src/bin/e_comp_wl_extensions.c
+src/bin/e_comp_wl_extensions.c \
+src/bin/e_comp_wl_extensions_tizen.c
+
+enlightenment_gen_src += \
+src/bin/generated/linux-dmabuf-unstable-v1-server-protocol.h \
+src/bin/generated/linux-dmabuf-unstable-v1-protocol.c \
+src/bin/generated/session-recovery-protocol.c \
+src/bin/generated/session-recovery-server-protocol.h \
+src/bin/generated/www-protocol.c \
+src/bin/generated/www-server-protocol.h \
+src/bin/generated/action_route-protocol.c \
+src/bin/generated/action_route-server-protocol.h \
+src/bin/generated/xdg-foreign-unstable-v1-protocol.c \
+src/bin/generated/xdg-foreign-unstable-v1-server-protocol.h \
+src/bin/generated/relative-pointer-unstable-v1-protocol.c \
+src/bin/generated/relative-pointer-unstable-v1-server-protocol.h \
+src/bin/generated/pointer-constraints-unstable-v1-protocol.c \
+src/bin/generated/pointer-constraints-unstable-v1-server-protocol.h \
+src/bin/generated/efl-aux-hints-protocol.c \
+src/bin/generated/efl-aux-hints-server-protocol.h
+
+src/bin/e_comp_wl_extensions.c: \
+ $(enlightenment_gen_src)
+
+src/bin/e_comp_wl.c: \
+ src/bin/generated/www-server-protocol.h
+
+src/bin/e_comp_wl_dmabuf.c: \
+ src/bin/generated/linux-dmabuf-unstable-v1-server-protocol.h
+
 endif
 
-src_bin_enlightenment_CPPFLAGS = $(E_CPPFLAGS) -DE_LOGGING=1 @WAYLAND_CFLAGS@ @WAYLAND_EGL_CFLAGS@ @ECORE_X_CFLAGS@
+src_bin_enlightenment_CPPFLAGS = $(E_CPPFLAGS) -DE_LOGGING=1 @WAYLAND_CFLAGS@ @ECORE_X_CFLAGS@
 src_bin_enlightenment_SOURCES = \
 src/bin/e_main.c \
 $(enlightenment_src)
 
+nodist_src_bin_enlightenment_SOURCES = $(enlightenment_gen_src)
+
 src_bin_enlightenment_LDFLAGS = -export-dynamic
-src_bin_enlightenment_LDADD = @e_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ @WAYLAND_LIBS@ @WL_DRM_LIBS@ @WAYLAND_EGL_LIBS@ -lm @SHM_OPEN_LIBS@ @ECORE_X_LIBS@
+src_bin_enlightenment_LDADD = @e_libs@ @dlopen_libs@ @cf_libs@ @VALGRIND_LIBS@ @WAYLAND_LIBS@ @WL_DRM_LIBS@ -lm @SHM_OPEN_LIBS@ @ECORE_X_LIBS@
 
 src_bin_enlightenment_imc_SOURCES = \
 src/bin/e.h \
+src/bin/e_macros.h \
 src/bin/e_config_data.c \
 src/bin/e_imc_main.c \
 src/bin/e_intl_data.c
@@ -431,12 +491,18 @@ src/bin/e_start_main.c
 src_bin_enlightenment_start_CPPFLAGS = $(E_CPPFLAGS) @E_START_CFLAGS@
 src_bin_enlightenment_start_LDADD = @dlopen_libs@ @E_START_LIBS@
 
+src_bin_enlightenment_askpass_SOURCES = \
+src/bin/e_askpass_main.c
+
+src_bin_enlightenment_askpass_LDADD = @E_ASKPASS_LIBS@
+src_bin_enlightenment_askpass_CPPFLAGS = $(E_CPPFLAGS)
+
 src_bin_enlightenment_thumb_SOURCES = \
 src/bin/e_sha1.c \
 src/bin/e_thumb_main.c \
 src/bin/e_user.c
 
-src_bin_enlightenment_thumb_LDADD = @E_THUMB_LIBS@
+src_bin_enlightenment_thumb_LDADD = @e_libs@
 src_bin_enlightenment_thumb_CPPFLAGS = $(E_CPPFLAGS)
 
 src_bin_enlightenment_elm_cfgtool_SOURCES = \
@@ -475,10 +541,7 @@ endif
 src_bin_enlightenment_alert_SOURCES = \
 src/bin/e_alert_main.c
 
-src_bin_enlightenment_alert_LDADD = @E_ALERT_LIBS@
-if HAVE_WAYLAND
-src_bin_enlightenment_alert_LDADD += @dlopen_libs@
-endif
+src_bin_enlightenment_alert_LDADD = @E_ALERT_LIBS@ @dlopen_libs@
 src_bin_enlightenment_alert_CPPFLAGS = @E_ALERT_CFLAGS@
 
 src_bin_enlightenment_filemanager_SOURCES = \

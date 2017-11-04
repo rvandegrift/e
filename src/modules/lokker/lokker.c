@@ -16,6 +16,8 @@ typedef struct Lokker_Popup
    Evas_Object *comp_object;
    Evas_Object *bg_object;
    Evas_Object *login_box;
+   Eina_Bool show_anim : 1;
+   Eina_Bool hide_anim : 1;
 } Lokker_Popup;
 
 typedef struct Lokker_Data
@@ -334,6 +336,14 @@ _text_login_box_add(Lokker_Popup *lp)
 }
 
 static void
+_lokker_cb_show_done(void *data, Evas_Object *obj EINA_UNUSED, const char *sig EINA_UNUSED, const char *src EINA_UNUSED)
+{
+   Lokker_Popup *lp = data;
+
+   e_desklock_zone_block_set(lp->zone, 1);
+}
+
+static void
 _lokker_popup_add(E_Zone *zone)
 {
    E_Zone *current_zone;
@@ -395,6 +405,17 @@ _lokker_popup_add(E_Zone *zone)
    evas_object_move(lp->bg_object, zone->x, zone->y);
    evas_object_resize(lp->bg_object, zone->w, zone->h);
    evas_object_show(lp->bg_object);
+   {
+      const char *s;
+      s = edje_object_data_get(lp->bg_object, "show_signal");
+      lp->show_anim = s && (atoi(s) == 1);
+      e_desklock_zone_block_set(zone, !lp->show_anim);
+      if (lp->show_anim)
+        edje_object_signal_callback_add(lp->bg_object, "e,action,show,done", "e",
+                                        _lokker_cb_show_done, lp);
+      s = edje_object_data_get(lp->bg_object, "hide_signal");
+      lp->hide_anim = s && (atoi(s) == 1);
+   }
    lp->comp_object = e_comp_object_util_add(lp->bg_object, 0);
    {
       char buf[1024];
@@ -455,15 +476,46 @@ _lokker_popup_add(E_Zone *zone)
 }
 
 static void
+_lokker_cb_hide_done(void *data, Evas_Object *obj, const char *sig EINA_UNUSED, const char *src EINA_UNUSED)
+{
+   Evas_Object *comp_object = evas_object_data_get(obj, "comp_object");
+   edje_object_signal_callback_del(obj, "e,action,hide,done", "e",
+                                   _lokker_cb_hide_done);
+   evas_object_del(data);
+   evas_object_del(obj);
+   evas_object_hide(comp_object);
+   evas_object_del(comp_object);
+}
+
+static void
 _lokker_popup_free(Lokker_Popup *lp)
 {
    if (!lp) return;
 
-   evas_object_hide(lp->comp_object);
-   evas_object_del(lp->comp_object);
-   evas_object_del(lp->bg_object);
-   evas_object_del(lp->login_box);
-
+   e_desklock_zone_block_set(lp->zone, !lp->hide_anim);
+   if (lp->hide_anim)
+     {
+        evas_object_data_set(lp->bg_object, "comp_object", lp->comp_object);
+        evas_object_data_set(lp->bg_object, "login_box", lp->login_box);
+        edje_object_signal_callback_add(lp->bg_object,
+                                        "e,action,hide,done", "e",
+                                        _lokker_cb_hide_done,
+                                        lp->login_box);
+        edje_object_signal_emit(lp->bg_object, "e,action,hide", "e");
+        edje_object_signal_emit(lp->login_box, "e,action,hide", "e");
+        lp->bg_object = NULL;
+        lp->login_box = NULL;
+     }
+   else
+     {
+        evas_object_del(lp->bg_object);
+        evas_object_del(lp->login_box);
+        evas_object_hide(lp->comp_object);
+        evas_object_del(lp->comp_object);
+        lp->comp_object = NULL;
+        lp->bg_object = NULL;
+        lp->login_box = NULL;
+     }
    free(lp);
 }
 
@@ -531,8 +583,8 @@ _lokker_cb_exit(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
         _lokker_null();
         e_desklock_hide();
         e_util_dialog_show(_("Authentication System Error"),
-                           _("Authentication via PAM had errors setting up the<br>"
-                             "authentication session. The error code was <hilight>%i</hilight>.<br>"
+                           _("Authentication via PAM had errors setting up the<ps/>"
+                             "authentication session. The error code was <hilight>%i</hilight>.<ps/>"
                              "This is bad and should not be happening. Please report this bug.")
                            , ev->exited ? ev->exit_code : ev->exit_signal);
      }
@@ -670,20 +722,35 @@ _lokker_check_auth(void)
    return 0;
 }
 
-static Eina_Bool
-_lokker_cb_key_down(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+EINTERN Eina_Bool
+lokker_key_up(Ecore_Event_Key *ev)
 {
-   Ecore_Event_Key *ev = event;
-
+   if (e_comp->comp_type == E_PIXMAP_TYPE_X) return ECORE_CALLBACK_DONE;
    if (!strcmp(ev->key, "Caps_Lock"))
      {
-        if(ev->modifiers & ECORE_EVENT_LOCK_CAPS)
-          _lokker_caps_hint_update("");
-        else
+        if ((ev->modifiers & ECORE_EVENT_LOCK_CAPS) == ECORE_EVENT_LOCK_CAPS)
           _lokker_caps_hint_update(_("Caps Lock is On"));
+        else
+          _lokker_caps_hint_update("");
         return ECORE_CALLBACK_DONE;
      }
+   return ECORE_CALLBACK_DONE;
+}
 
+EINTERN Eina_Bool
+lokker_key_down(Ecore_Event_Key *ev)
+{
+   if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+     {
+        if (!strcmp(ev->key, "Caps_Lock"))
+          {
+             if(ev->modifiers & ECORE_EVENT_LOCK_CAPS)
+               _lokker_caps_hint_update("");
+             else
+               _lokker_caps_hint_update(_("Caps Lock is On"));
+             return ECORE_CALLBACK_DONE;
+          }
+     }
    if (edd->state == LOKKER_STATE_CHECKING) return ECORE_CALLBACK_DONE;
 
    if (!strcmp(ev->key, "Escape"))
@@ -777,7 +844,6 @@ lokker_lock(void)
    total_zone_num = eina_list_count(e_comp->zones);
 
    /* handlers */
-   E_LIST_HANDLER_APPEND(edd->handlers, ECORE_EVENT_KEY_DOWN, _lokker_cb_key_down, NULL);
    E_LIST_HANDLER_APPEND(edd->handlers, E_EVENT_ZONE_ADD, _lokker_cb_zone_add, NULL);
    E_LIST_HANDLER_APPEND(edd->handlers, E_EVENT_ZONE_DEL, _lokker_cb_zone_del, NULL);
    E_LIST_HANDLER_APPEND(edd->handlers, E_EVENT_ZONE_MOVE_RESIZE, _lokker_cb_zone_move_resize, NULL);

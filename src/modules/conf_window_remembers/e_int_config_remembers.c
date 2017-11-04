@@ -207,7 +207,7 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
    e_widget_ilist_freeze(cfdata->list);
    e_widget_ilist_clear(cfdata->list);
 
-   ll = e_config->remembers;
+   ll = eina_list_clone(e_config->remembers);
    ll = eina_list_sort(ll, -1, _cb_sort);
 
    ic = e_icon_add(evas);
@@ -224,6 +224,7 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
         if ((rem->name) && (!strcmp(rem->name, "E"))) continue;
         /* Filter out the module config remembers */
         if ((rem->class) && (rem->class[0] == '_')) continue;
+        if (rem->apply & E_REMEMBER_APPLY_UUID) continue;
 
         if (rem->name)
           e_widget_ilist_append(cfdata->list, NULL, rem->name, NULL, rem, NULL);
@@ -279,6 +280,7 @@ _fill_remembers(E_Config_Dialog_Data *cfdata)
    e_widget_ilist_thaw(cfdata->list);
    edje_thaw();
    evas_event_thaw(evas);
+   eina_list_free(ll);
 
    e_widget_disabled_set(cfdata->btn, 1);
 }

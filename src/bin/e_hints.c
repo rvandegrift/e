@@ -792,37 +792,44 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
 
       case ECORE_X_WINDOW_STATE_MAXIMIZED_VERT:
       case ECORE_X_WINDOW_STATE_MAXIMIZED_HORZ:
+      case INT_MAX:
       {
-         E_Maximize max[] =
+         int max[] =
          {
             [ECORE_X_WINDOW_STATE_MAXIMIZED_VERT] = E_MAXIMIZE_VERTICAL,
             [ECORE_X_WINDOW_STATE_MAXIMIZED_HORZ] = E_MAXIMIZE_HORIZONTAL,
          };
+         E_Maximize m;
+
+         if (state > ECORE_X_WINDOW_STATE_MAXIMIZED_HORZ)
+           m = E_MAXIMIZE_BOTH;
+         else
+           m = max[state];
          if (ec->lock_client_maximize) return;
          switch (action)
            {
             case ECORE_X_WINDOW_STATE_ACTION_REMOVE:
-              if ((ec->maximized & max[state]) == max[state])
-                e_client_unmaximize(ec, max[state]);
+              if ((ec->maximized & m) == m)
+                e_client_unmaximize(ec, m);
               break;
 
             case ECORE_X_WINDOW_STATE_ACTION_ADD:
-              if ((ec->maximized & max[state]) == max[state]) break;
+              if ((ec->maximized & m) == m) break;
               ec->changes.need_maximize = 1;
               ec->maximized &= ~E_MAXIMIZE_TYPE;
-              ec->maximized |= (e_config->maximize_policy & E_MAXIMIZE_TYPE) | max[state];
+              ec->maximized |= (e_config->maximize_policy & E_MAXIMIZE_TYPE) | m;
               EC_CHANGED(ec);
               break;
 
             case ECORE_X_WINDOW_STATE_ACTION_TOGGLE:
-              if ((ec->maximized & max[state]) == max[state])
+              if ((ec->maximized & m) == m)
                 {
-                   e_client_unmaximize(ec, max[state]);
+                   e_client_unmaximize(ec, m);
                    break;
                 }
               ec->changes.need_maximize = 1;
               ec->maximized &= ~E_MAXIMIZE_TYPE;
-              ec->maximized |= (e_config->maximize_policy & E_MAXIMIZE_TYPE) | max[state];
+              ec->maximized |= (e_config->maximize_policy & E_MAXIMIZE_TYPE) | m;
               EC_CHANGED(ec);
               break;
            }
@@ -859,6 +866,7 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
                   ec->netwm.state.skip_taskbar = 0;
                   ec->netwm.update.state = 1;
                   EC_CHANGED(ec);
+                  e_client_prop_misc_changed(ec);
                }
              break;
 
@@ -868,6 +876,7 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
                   ec->netwm.state.skip_taskbar = 1;
                   ec->netwm.update.state = 1;
                   EC_CHANGED(ec);
+                  e_client_prop_misc_changed(ec);
                }
              break;
 
@@ -875,6 +884,7 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
              ec->netwm.state.skip_taskbar = !ec->netwm.state.skip_taskbar;
              ec->netwm.update.state = 1;
              EC_CHANGED(ec);
+             e_client_prop_misc_changed(ec);
              break;
           }
         break;
@@ -888,6 +898,7 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
                   ec->netwm.state.skip_pager = 0;
                   ec->netwm.update.state = 1;
                   EC_CHANGED(ec);
+                  e_client_prop_misc_changed(ec);
                }
              break;
 
@@ -897,6 +908,7 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
                   ec->netwm.state.skip_pager = 1;
                   ec->netwm.update.state = 1;
                   EC_CHANGED(ec);
+                  e_client_prop_misc_changed(ec);
                }
              break;
 
@@ -904,6 +916,7 @@ e_hints_window_state_update(E_Client *ec, int state, int action)
              ec->netwm.state.skip_pager = !ec->netwm.state.skip_pager;
              ec->netwm.update.state = 1;
              EC_CHANGED(ec);
+             e_client_prop_misc_changed(ec);
              break;
           }
         break;
@@ -1668,3 +1681,244 @@ e_hints_scale_update(void)
 #endif
 }
 
+
+#ifdef HAVE_WAYLAND
+static Eina_List *aux_hints_supported = NULL;
+
+static E_Comp_Client_Data *
+e_pixmap_cdata_get(E_Pixmap *cp)
+{
+   return e_pixmap_client_get(cp)->comp_data;
+}
+
+E_API const Eina_List *
+e_hints_aux_hint_supported_add(const char *hint)
+{
+   Eina_List *l;
+   const char *supported;
+
+   EINA_LIST_FOREACH(aux_hints_supported, l, supported)
+     {
+        if (!strcmp(supported, hint))
+          return aux_hints_supported;
+     }
+
+   aux_hints_supported = eina_list_append(aux_hints_supported, hint);
+
+   return aux_hints_supported;
+}
+
+E_API const Eina_List *
+e_hints_aux_hint_supported_del(const char *hint)
+{
+   Eina_List *l;
+   const char *supported;
+
+   EINA_LIST_FOREACH(aux_hints_supported, l, supported)
+     {
+        if (!strcmp(supported, hint))
+          {
+             aux_hints_supported = eina_list_remove(aux_hints_supported, hint);
+             break;
+          }
+     }
+
+   return aux_hints_supported;
+}
+
+E_API const Eina_List *
+e_hints_aux_hint_supported_get(void)
+{
+   return aux_hints_supported;
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_add(E_Client *ec, int32_t id, const char *name, const char *val)
+{
+   if (!ec) return EINA_FALSE;
+   return e_hints_aux_hint_add_with_pixmap(ec->pixmap, id, name, val, -1);
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_add_fd(E_Client *ec, int32_t id, const char *name, int32_t fd)
+{
+   if (!ec) return EINA_FALSE;
+   return e_hints_aux_hint_add_with_pixmap(ec->pixmap, id, name, NULL, fd);
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_change(E_Client *ec, int32_t id, const char *val)
+{
+   if (!ec) return EINA_FALSE;
+   return e_hints_aux_hint_change_with_pixmap(ec->pixmap, id, val, -1);
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_change_fd(E_Client *ec, int32_t id, int32_t fd)
+{
+   if (!ec) return EINA_FALSE;
+   return e_hints_aux_hint_change_with_pixmap(ec->pixmap, id, NULL, fd);
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_del(E_Client *ec, int32_t id)
+{
+   if (!ec) return EINA_FALSE;
+   return e_hints_aux_hint_del_with_pixmap(ec->pixmap, id);
+}
+
+E_API const char *
+e_hints_aux_hint_value_get(E_Client *ec, const char *name)
+{
+   if (!ec) return NULL;
+   return e_hints_aux_hint_value_get_with_pixmap(ec->pixmap, name);
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_add_with_pixmap(E_Pixmap *cp, int32_t id, const char *name, const char *val, int32_t fd)
+{
+   E_Comp_Wl_Client_Data *cdata;
+   Eina_Bool found = EINA_FALSE;
+   E_Comp_Wl_Aux_Hint *hint;
+   Eina_List *l;
+
+   if (!cp) return EINA_FALSE;
+   cdata = (E_Comp_Wl_Client_Data*)e_pixmap_cdata_get(cp);
+   if (!cdata) return EINA_FALSE;
+
+   EINA_LIST_FOREACH(cdata->aux_hint.hints, l, hint)
+     {
+        if (hint->id == id)
+          {
+             if (strcmp(hint->val, val) != 0)
+               {
+                  eina_stringshare_del(hint->val);
+                  hint->val = eina_stringshare_add(val);
+                  hint->fd = fd;
+                  hint->changed = EINA_TRUE;
+                  if (hint->deleted)
+                    hint->deleted = EINA_FALSE;
+                  cdata->aux_hint.changed = 1;
+               }
+             found = EINA_TRUE;
+             break;
+          }
+     }
+
+   if (!found)
+     {
+        hint = E_NEW(E_Comp_Wl_Aux_Hint, 1);
+        EINA_SAFETY_ON_NULL_RETURN_VAL(hint, EINA_FALSE);
+
+        memset(hint, 0, sizeof(E_Comp_Wl_Aux_Hint));
+
+        hint->id = id;
+        hint->hint = eina_stringshare_add(name);
+        hint->val = eina_stringshare_add(val);
+        hint->fd = fd;
+        hint->changed = EINA_TRUE;
+        hint->deleted = EINA_FALSE;
+        cdata->aux_hint.hints = eina_list_append(cdata->aux_hint.hints, hint);
+        cdata->aux_hint.changed = 1;
+     }
+
+   if (!found)
+     return EINA_TRUE;
+
+   return EINA_FALSE;
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_change_with_pixmap(E_Pixmap *cp, int32_t id, const char *val, int32_t fd)
+{
+   E_Comp_Wl_Client_Data *cdata;
+   Eina_List *l;
+   E_Comp_Wl_Aux_Hint *hint;
+   Eina_Bool found = EINA_FALSE;
+
+   if (!cp) return EINA_FALSE;
+   cdata = (E_Comp_Wl_Client_Data*)e_pixmap_cdata_get(cp);
+   if (!cdata) return EINA_FALSE;
+
+   EINA_LIST_FOREACH(cdata->aux_hint.hints, l, hint)
+     {
+        if (hint->id == id)
+          {
+             if ((hint->val) && (strcmp(hint->val, val) != 0))
+               {
+                  eina_stringshare_del(hint->val);
+                  hint->val = eina_stringshare_add(val);
+                  hint->fd = fd;
+                  hint->changed = EINA_TRUE;
+                  cdata->aux_hint.changed = 1;
+               }
+
+             if (hint->deleted)
+               hint->deleted = EINA_FALSE;
+
+             found = EINA_TRUE;
+             break;
+          }
+     }
+
+   if (found)
+     return EINA_TRUE;
+
+   return EINA_FALSE;
+}
+
+E_API Eina_Bool
+e_hints_aux_hint_del_with_pixmap(E_Pixmap *cp, int32_t id)
+{
+   E_Comp_Wl_Client_Data *cdata;
+   Eina_List *l, *ll;
+   E_Comp_Wl_Aux_Hint *hint;
+   int res = -1;
+
+   if (!cp) return EINA_FALSE;
+   cdata = (E_Comp_Wl_Client_Data*)e_pixmap_cdata_get(cp);
+   if (!cdata) return EINA_FALSE;
+
+   EINA_LIST_FOREACH_SAFE(cdata->aux_hint.hints, l, ll, hint)
+     {
+        if (hint->id == id)
+          {
+             hint->changed = EINA_TRUE;
+             hint->deleted = EINA_TRUE;
+             cdata->aux_hint.changed = 1;
+             res = hint->id;
+             break;
+          }
+     }
+
+   if (res == -1)
+     return EINA_FALSE;
+
+   return EINA_TRUE;
+}
+
+E_API const char *
+e_hints_aux_hint_value_get_with_pixmap(E_Pixmap *cp, const char *name)
+{
+   E_Comp_Wl_Client_Data *cdata;
+   Eina_List *l;
+   E_Comp_Wl_Aux_Hint *hint;
+   const char *res = NULL;
+
+   if (!cp) return NULL;
+   cdata = (E_Comp_Wl_Client_Data*)e_pixmap_cdata_get(cp);
+   if (!cdata) return NULL;
+
+   EINA_LIST_REVERSE_FOREACH(cdata->aux_hint.hints, l, hint)
+     {
+        if ((!hint->deleted) &&
+            (!strcmp(hint->hint, name)))
+          {
+             res =  hint->val;
+             break;
+          }
+     }
+
+   return res;
+}
+#endif

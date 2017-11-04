@@ -89,6 +89,7 @@ struct _E_Comp_X_Client_Data
          Ecore_X_Illume_Window_State state;
       } win_state;
    } illume;
+   Ecore_X_Stack_Type stack;
 #ifdef HAVE_WAYLAND
    uint32_t surface_id;
 #endif
@@ -117,6 +118,9 @@ EINTERN void e_comp_x_nocomp_end(void);
 EINTERN void e_comp_x_xwayland_client_setup(E_Client *ec, E_Client *wc);
 
 E_API E_Pixmap *e_comp_x_client_pixmap_get(const E_Client *ec);
+
+EINTERN Eina_Bool _e_comp_x_screensaver_on();
+EINTERN Eina_Bool _e_comp_x_screensaver_off();
 
 # endif
 #endif

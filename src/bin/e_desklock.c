@@ -28,7 +28,8 @@ static Eina_List *tasks = NULL;
 static Eina_List *show_hooks = NULL;
 static Eina_List *hide_hooks = NULL;
 
-static Eina_List *block_rects = NULL;
+static Evas_Object *block_rects[32] = {NULL};
+static Eina_Bool block_zone[32] = {EINA_FALSE};
 
 static Eina_List *desklock_ifaces = NULL;
 static E_Desklock_Interface *current_iface = NULL;
@@ -146,6 +147,12 @@ e_desklock_interface_append(E_Desklock_Interface *iface)
      }
 }
 
+EINTERN E_Desklock_Interface *
+e_desklock_interface_current_get(void)
+{
+   return current_iface;
+}
+
 E_API void
 e_desklock_interface_remove(E_Desklock_Interface *iface)
 {
@@ -238,6 +245,7 @@ e_desklock_show(Eina_Bool suspend)
    E_Event_Desklock *ev;
    E_Desklock_Show_Cb show_cb;
    E_Desklock_Hide_Cb hide_cb;
+   E_Zone *zone;
 
    if (_e_desklock_state) return EINA_TRUE;
 
@@ -253,18 +261,18 @@ e_desklock_show(Eina_Bool suspend)
         if (e_config->xkb.lock_layout)
           e_xkb_layout_set(e_config->xkb.lock_layout);
         _e_custom_desklock_exe =
-          ecore_exe_run(e_config->desklock_custom_desklock_cmd, NULL);
+          e_util_exe_safe_run(e_config->desklock_custom_desklock_cmd, NULL);
         _e_desklock_state = EINA_TRUE;
         e_bindings_disabled_set(1);
         /* TODO: ensure layer is correct on external desklocks? */
         return 1;
      }
 
-#ifndef HAVE_PAM
+#if ! defined(HAVE_PAM) && ! defined(__OpenBSD__)
    if (e_desklock_is_system())
      {
         e_util_dialog_show(_("Error - no PAM support"),
-                           _("No PAM support was built into Enlightenment, so<br>"
+                           _("No PAM support was built into Enlightenment, so<ps/>"
                              "desk locking is disabled."));
         return 0;
      }
@@ -274,8 +282,6 @@ e_desklock_show(Eina_Bool suspend)
      {
         if (!e_config->desklock_passwd)
           {
-             E_Zone *zone;
-
              zone = e_zone_current_get();
              if (zone)
                e_configure_registry_call("screen/screen_lock", NULL, NULL);
@@ -289,16 +295,24 @@ e_desklock_show(Eina_Bool suspend)
         if (!show_cb()) goto fail;
      }
 
-   {
-      Evas_Object *o;
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
+     {
+        Evas_Object *o;
 
-      o = evas_object_rectangle_add(e_comp->evas);
-      block_rects = eina_list_append(block_rects, o);
-      evas_object_color_set(o, 0, 0, 0, 255);
-      evas_object_resize(o, 99999, 99999);
-      evas_object_layer_set(o, E_LAYER_DESKLOCK);
-      evas_object_show(o);
-   }
+        if (zone->num >= EINA_C_ARRAY_LENGTH(block_rects))
+          {
+             CRI("> %lu screens connected????",
+                 (unsigned long)EINA_C_ARRAY_LENGTH(block_rects));
+             break;
+          }
+        o = evas_object_rectangle_add(e_comp->evas);
+        block_rects[zone->num] = o;
+        evas_object_color_set(o, 0, 0, 0, 0);
+        evas_object_geometry_set(o, zone->x, zone->y, zone->w, zone->h);
+        evas_object_layer_set(o, E_LAYER_DESKLOCK);
+        if (!block_zone[zone->num])
+          evas_object_show(o);
+     }
    if (e_config->desklock_language)
      e_intl_language_set(e_config->desklock_language);
 
@@ -344,6 +358,7 @@ e_desklock_show(Eina_Bool suspend)
    e_util_env_set("E_DESKLOCK_LOCKED", "locked");
    _e_desklock_state = EINA_TRUE;
    e_bindings_disabled_set(1);
+   e_screensaver_update();
    return 1;
 lang_fail:
    if (e_config->desklock_language)
@@ -381,7 +396,15 @@ e_desklock_hide(void)
 
    e_comp_override_del();
    e_comp_shape_queue();
-   E_FREE_LIST(block_rects, evas_object_del);
+   {
+      unsigned int n;
+
+      for (n = 0; n < EINA_C_ARRAY_LENGTH(block_rects); n++)
+        {
+           E_FREE_FUNC(block_rects[n], evas_object_del);
+           block_zone[n] = EINA_FALSE;
+        }
+   }
    //e_comp_block_window_del();
    if (e_config->desklock_language)
      e_intl_language_set(e_config->language);
@@ -398,6 +421,8 @@ e_desklock_hide(void)
    ev->on = 0;
    ev->suspend = 1;
    ecore_event_add(E_EVENT_DESKLOCK, ev, NULL, NULL);
+
+   e_screensaver_update();
 
    if (e_desklock_is_external())
      {
@@ -581,7 +606,7 @@ _e_desklock_ask_presentation_mode(void)
    e_dialog_title_set(dia, _("Activate Presentation Mode?"));
    e_dialog_icon_set(dia, "dialog-ask", 64);
    e_dialog_text_set(dia,
-                     _("You unlocked your desktop too fast.<br><br>"
+                     _("You unlocked your desktop too fast.<ps/><ps/>"
                        "Would you like to enable <b>presentation</b> mode and "
                        "temporarily disable screen saver, lock and power saving?"));
 
@@ -687,4 +712,22 @@ _e_desklock_cb_randr(void *data EINA_UNUSED, int type EINA_UNUSED, void *event E
    e_desklock_hide();
    e_desklock_show(EINA_FALSE);
    return ECORE_CALLBACK_PASS_ON;
+}
+
+E_API void
+e_desklock_zone_block_set(const E_Zone *zone, Eina_Bool block)
+{
+   EINA_SAFETY_ON_NULL_RETURN(zone);
+   if (zone->num >= EINA_C_ARRAY_LENGTH(block_rects))
+     {
+        CRI("> %lu screens connected????",
+            (unsigned long)EINA_C_ARRAY_LENGTH(block_rects));
+        return;
+     }
+   block_zone[zone->num] = !!block;
+   if (!block_rects[zone->num]) return;
+   if (block)
+     evas_object_show(block_rects[zone->num]);
+   else
+     evas_object_hide(block_rects[zone->num]);
 }

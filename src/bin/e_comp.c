@@ -38,9 +38,10 @@ static double ecore_frametime = 0;
 
 static int _e_comp_log_dom = -1;
 
-E_API int E_EVENT_COMPOSITOR_RESIZE = -1;
+E_API int E_EVENT_COMPOSITOR_UPDATE = -1;
 E_API int E_EVENT_COMPOSITOR_DISABLE = -1;
 E_API int E_EVENT_COMPOSITOR_ENABLE = -1;
+E_API int E_EVENT_COMPOSITOR_XWAYLAND_INIT = -1;
 
 //////////////////////////////////////////////////////////////////////////
 #undef DBG
@@ -184,28 +185,28 @@ _e_comp_fps_update(void)
 {
    if (conf->fps_show)
      {
-        if (e_comp->fps_bg) return;
+        if (e_comp->canvas->fps_bg) return;
 
-        e_comp->fps_bg = evas_object_rectangle_add(e_comp->evas);
-        evas_object_color_set(e_comp->fps_bg, 0, 0, 0, 128);
-        evas_object_layer_set(e_comp->fps_bg, E_LAYER_MAX);
-        evas_object_name_set(e_comp->fps_bg, "e_comp->fps_bg");
-        evas_object_lower(e_comp->fps_bg);
-        evas_object_show(e_comp->fps_bg);
+        e_comp->canvas->fps_bg = evas_object_rectangle_add(e_comp->evas);
+        evas_object_color_set(e_comp->canvas->fps_bg, 0, 0, 0, 128);
+        evas_object_layer_set(e_comp->canvas->fps_bg, E_LAYER_MAX);
+        evas_object_name_set(e_comp->canvas->fps_bg, "e_comp->canvas->fps_bg");
+        evas_object_lower(e_comp->canvas->fps_bg);
+        evas_object_show(e_comp->canvas->fps_bg);
 
-        e_comp->fps_fg = evas_object_text_add(e_comp->evas);
-        evas_object_text_font_set(e_comp->fps_fg, "Sans", 10);
-        evas_object_text_text_set(e_comp->fps_fg, "???");
-        evas_object_color_set(e_comp->fps_fg, 255, 255, 255, 255);
-        evas_object_layer_set(e_comp->fps_fg, E_LAYER_MAX);
-        evas_object_name_set(e_comp->fps_bg, "e_comp->fps_fg");
-        evas_object_stack_above(e_comp->fps_fg, e_comp->fps_bg);
-        evas_object_show(e_comp->fps_fg);
+        e_comp->canvas->fps_fg = evas_object_text_add(e_comp->evas);
+        evas_object_text_font_set(e_comp->canvas->fps_fg, "Sans", 10);
+        evas_object_text_text_set(e_comp->canvas->fps_fg, "???");
+        evas_object_color_set(e_comp->canvas->fps_fg, 255, 255, 255, 255);
+        evas_object_layer_set(e_comp->canvas->fps_fg, E_LAYER_MAX);
+        evas_object_name_set(e_comp->canvas->fps_bg, "e_comp->canvas->fps_fg");
+        evas_object_stack_above(e_comp->canvas->fps_fg, e_comp->canvas->fps_bg);
+        evas_object_show(e_comp->canvas->fps_fg);
      }
    else
      {
-        E_FREE_FUNC(e_comp->fps_fg, evas_object_del);
-        E_FREE_FUNC(e_comp->fps_bg, evas_object_del);
+        E_FREE_FUNC(e_comp->canvas->fps_fg, evas_object_del);
+        E_FREE_FUNC(e_comp->canvas->fps_bg, evas_object_del);
      }
 }
 
@@ -220,6 +221,7 @@ _e_comp_cb_nocomp_begin(void)
 
    ecf = _e_comp_fullscreen_check();
    if (!ecf) return;
+   e_object_ref(E_OBJECT(ecf));
    e_comp->nocomp_ec = ecf;
    E_CLIENT_FOREACH(ec)
      if (ec != ecf) e_client_redirected_set(ec, 0);
@@ -356,7 +358,7 @@ _e_comp_nocomp_end(void)
         evas_object_layer_set(e_comp->nocomp_ec->frame, layer);
         e_comp->nocomp_ec->fullscreen = fs;
      }
-   e_comp->nocomp_ec = NULL;
+   E_FREE_FUNC(e_comp->nocomp_ec, e_object_unref);
 }
 
 static Eina_Bool
@@ -397,7 +399,7 @@ _e_comp_cb_update(void)
         Evas_Coord x = 0, y = 0, w = 0, h = 0;
         E_Zone *z;
 
-        t = ecore_time_get();
+        t = ecore_loop_time_get();
         if (conf->fps_average_range < 1)
           conf->fps_average_range = 30;
         else if (conf->fps_average_range > 120)
@@ -414,9 +416,9 @@ _e_comp_cb_update(void)
         if (e_comp->frameskip >= conf->fps_average_range)
           {
              e_comp->frameskip = 0;
-             evas_object_text_text_set(e_comp->fps_fg, buf);
+             evas_object_text_text_set(e_comp->canvas->fps_fg, buf);
           }
-        evas_object_geometry_get(e_comp->fps_fg, NULL, NULL, &w, &h);
+        evas_object_geometry_get(e_comp->canvas->fps_fg, NULL, NULL, &w, &h);
         w += 8;
         h += 8;
         z = e_zone_current_get();
@@ -444,9 +446,9 @@ _e_comp_cb_update(void)
                   break;
                }
           }
-        evas_object_move(e_comp->fps_bg, x, y);
-        evas_object_resize(e_comp->fps_bg, w, h);
-        evas_object_move(e_comp->fps_fg, x + 4, y + 4);
+        evas_object_move(e_comp->canvas->fps_bg, x, y);
+        evas_object_resize(e_comp->canvas->fps_bg, w, h);
+        evas_object_move(e_comp->canvas->fps_fg, x + 4, y + 4);
      }
    if (conf->lock_fps)
      {
@@ -515,7 +517,7 @@ nocomp:
              else if ((!e_comp->nocomp) && (!e_comp->nocomp_override))
                {
                   if (!e_comp->nocomp_delay_timer)
-                    e_comp->nocomp_delay_timer = ecore_timer_add(1.0, _e_comp_cb_nocomp_begin_timeout, NULL);
+                    e_comp->nocomp_delay_timer = ecore_timer_loop_add(1.0, _e_comp_cb_nocomp_begin_timeout, NULL);
                }
           }
      }
@@ -568,7 +570,7 @@ _e_comp_shapes_update_object_checker_function_thingy(Evas_Object *o)
    Eina_List *l;
    E_Zone *zone;
 
-   if (o == e_comp->bg_blank_object) return EINA_TRUE;
+   if (o == e_comp->canvas->resize_object) return EINA_TRUE;
    EINA_LIST_FOREACH(e_comp->zones, l, zone)
      {
         if ((o == zone->over) || (o == zone->base)) return EINA_TRUE;
@@ -840,15 +842,13 @@ _e_comp_free(E_Comp *c)
 #endif
 
    ecore_evas_free(c->ee);
-   eina_stringshare_del(c->name);
 
    if (c->render_animator) ecore_animator_del(c->render_animator);
    if (c->update_job) ecore_job_del(c->update_job);
-   if (c->screen_job) ecore_job_del(c->screen_job);
    if (c->nocomp_delay_timer) ecore_timer_del(c->nocomp_delay_timer);
    if (c->nocomp_override_timer) ecore_timer_del(c->nocomp_override_timer);
    ecore_job_del(c->shape_job);
-
+   free(c->canvas);
    free(c);
 }
 
@@ -889,6 +889,8 @@ _e_comp_screensaver_on(void *data EINA_UNUSED, int type EINA_UNUSED, void *event
    if (e_comp->saver) return ECORE_CALLBACK_RENEW;
    e_comp_override_add();
    e_comp->saver = EINA_TRUE;
+   // XXX: this is not quite right - need to wait for signals from theme
+   // before freezing render animator
    if (e_comp->render_animator)
      ecore_animator_freeze(e_comp->render_animator);
    EINA_LIST_FOREACH(e_comp->zones, l, zone)
@@ -1016,10 +1018,11 @@ e_comp_init(void)
    ecore_frametime = ecore_animator_frametime_get();
    shape_debug = !!getenv("E_SHAPE_DEBUG");
 
-   E_EVENT_COMPOSITOR_RESIZE = ecore_event_type_new();
+   E_EVENT_COMPOSITOR_UPDATE = ecore_event_type_new();
    E_EVENT_COMP_OBJECT_ADD = ecore_event_type_new();
    E_EVENT_COMPOSITOR_DISABLE = ecore_event_type_new();
    E_EVENT_COMPOSITOR_ENABLE = ecore_event_type_new();
+   E_EVENT_COMPOSITOR_XWAYLAND_INIT = ecore_event_type_new();
 
    ignores = eina_hash_pointer_new(NULL);
 
@@ -1348,7 +1351,7 @@ e_comp_style_selector_create(Evas *evas, const char **source)
      }
    evas_object_data_set(orec0, "list", style_list);
    evas_object_data_set(oi, "style_shadows", style_shadows);
-   timer = ecore_timer_add(3.0, _style_demo, oi);
+   timer = ecore_timer_loop_add(3.0, _style_demo, oi);
    evas_object_data_set(oi, "style_timer", timer);
    evas_object_data_set(oi, "style_demo_state", (void *)1);
    e_widget_size_min_get(oi, &wmw, &wmh);
@@ -1369,8 +1372,8 @@ e_comp_new(void)
      CRI("CANNOT REPLACE EXISTING COMPOSITOR");
    e_comp = E_OBJECT_ALLOC(E_Comp, E_COMP_TYPE, _e_comp_free);
    if (!e_comp) return NULL;
+   e_comp->canvas = E_NEW(E_Comp_Canvas, 1);
 
-   e_comp->name = eina_stringshare_add(_("Compositor"));
    e_comp->render_animator = ecore_animator_add(_e_comp_cb_animator, NULL);
    ecore_animator_freeze(e_comp->render_animator);
    return e_comp;
@@ -1607,7 +1610,7 @@ e_comp_override_timed_pop(void)
    if (e_comp->nocomp_override_timer)
      e_comp->nocomp_override--;
    else
-     e_comp->nocomp_override_timer = ecore_timer_add(1.0, _e_comp_override_expire, NULL);
+     e_comp->nocomp_override_timer = ecore_timer_loop_add(1.0, _e_comp_override_expire, NULL);
 }
 
 E_API unsigned int
@@ -1622,7 +1625,9 @@ e_comp_e_object_layer_get(const E_Object *obj)
       case E_GADCON_CLIENT_TYPE:
         gc = ((E_Gadcon_Client *)(void *)(obj))->gadcon;
         EINA_SAFETY_ON_NULL_RETURN_VAL(gc, 0);
+        EINA_FALLTHROUGH;
         /* no break */
+
       case E_GADCON_TYPE:
         if (!gc) gc = (E_Gadcon *)obj;
         if (gc->shelf) return gc->shelf->layer;
@@ -1666,11 +1671,16 @@ e_comp_grab_input(Eina_Bool mouse, Eina_Bool kbd)
           {
              if (ec)
                evas_object_focus_set(ec->frame, 0);
+
+#ifdef HAVE_WAYLAND
+             e_comp_wl_extension_pointer_unconstrain(NULL);
+#endif
           }
 
         ret = EINA_TRUE;
         e_comp->input_mouse_grabs += mouse;
         e_comp->input_key_grabs += kbd;
+
         if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
           {
              if (ec && (!e_object_is_del(E_OBJECT(ec))))
@@ -1725,13 +1735,13 @@ e_comp_ungrab_input(Eina_Bool mouse, Eina_Bool kbd)
 E_API Eina_Bool
 e_comp_util_kbd_grabbed(void)
 {
-   return e_menu_grab_window_get() || e_client_action_get() || e_grabinput_key_win_get();
+   return e_menu_is_active() || e_client_action_get() || e_grabinput_key_win_get();
 }
 
 E_API Eina_Bool
 e_comp_util_mouse_grabbed(void)
 {
-   return e_menu_grab_window_get() || e_client_action_get() || e_grabinput_mouse_win_get();
+   return e_menu_is_active() || e_client_action_get() || e_grabinput_mouse_win_get();
 }
 
 E_API void
@@ -1796,4 +1806,32 @@ e_comp_util_object_is_above_nocomp(Evas_Object *obj)
    else
      return EINA_TRUE;
    return EINA_FALSE;
+}
+
+E_API void
+e_comp_clients_rescale(void)
+{
+   int i;
+
+   for (i = 0; i < 11; i++)
+     {
+        Eina_List *tmp = NULL;
+        E_Client *ec;
+
+        if (!e_comp->layers[i].clients) continue;
+        /* Make temporary list as e_client_res_change_geometry_restore
+         * rearranges the order. */
+        EINA_INLIST_FOREACH(e_comp->layers[i].clients, ec)
+          {
+             if ((!e_client_util_ignored_get(ec)) && (!e_object_is_del(E_OBJECT(ec))))
+               tmp = eina_list_append(tmp, ec);
+          }
+
+        EINA_LIST_FREE(tmp, ec)
+          {
+             ec->pre_res_change.valid = 0;
+             if (ec->maximized || ec->fullscreen)
+               e_client_rescale(ec);
+          }
+     }
 }

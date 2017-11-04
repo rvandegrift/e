@@ -425,10 +425,10 @@ _ibar_new(Evas_Object *parent, Instance *inst)
    elm_box_align_set(b->o_outerbox, 0.5, 0.5);
    b->o_box = elm_box_add(e_win_evas_object_win_get(parent));
    E_EXPAND(b->o_box);
-   E_FILL(b->o_box);
+   E_ALIGN(b->o_box, 0, EVAS_HINT_FILL);
    elm_box_homogeneous_set(b->o_box, 1);
    elm_box_horizontal_set(b->o_box, 1);
-   elm_box_align_set(b->o_box, 0.5, 0.5);
+   elm_box_align_set(b->o_box, 0, 0.5);
    elm_box_pack_end(b->o_outerbox, b->o_box);
    if (inst->ci->dir[0] != '/')
      e_user_dir_snprintf(buf, sizeof(buf), "applications/bar/%s/.order",
@@ -863,9 +863,9 @@ _ibar_cb_icon_menu_client_menu_del(void *data, Evas *e EINA_UNUSED, Evas_Object 
    evas_object_event_callback_del(obj, EVAS_CALLBACK_HIDE, _ibar_cb_icon_menu_client_menu_del);
    if (!b->menu_icon) return;
    if (b->menu_icon->hide_timer)
-     ecore_timer_reset(b->menu_icon->hide_timer);
+     ecore_timer_loop_reset(b->menu_icon->hide_timer);
    else
-     b->menu_icon->hide_timer = ecore_timer_add(0.5, _ibar_cb_out_hide_delay, b->menu_icon);
+     b->menu_icon->hide_timer = ecore_timer_loop_add(0.5, _ibar_cb_out_hide_delay, b->menu_icon);
 }
 
 static void
@@ -981,11 +981,11 @@ _ibar_icon_signal_emit(IBar_Icon *ic, const char *sig, const char *src)
    if (ic->o_holder)
      edje_object_signal_emit(ic->o_holder, sig, src);
    if (ic->o_icon && e_icon_edje_get(ic->o_icon))
-     edje_object_signal_emit(e_icon_edje_get(ic->o_icon), sig, src);
+     e_icon_edje_emit(ic->o_icon, sig, src);
    if (ic->o_holder2)
      edje_object_signal_emit(ic->o_holder2, sig, src);
    if (ic->o_icon2 && e_icon_edje_get(ic->o_icon2))
-     edje_object_signal_emit(e_icon_edje_get(ic->o_icon2), sig, src);
+     e_icon_edje_emit(ic->o_icon2, sig, src);
 }
 
 static void
@@ -1097,13 +1097,14 @@ _ibar_cb_icon_menu_hide_begin(IBar_Icon *ic)
 }
 
 static void
-_ibar_cb_icon_menu_mouse_up(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+_ibar_cb_icon_menu_mouse_up(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    IBar_Icon *ic;
    E_Client *ec = data;
    Evas_Event_Mouse_Up *ev = event_info;
 
    ic = evas_object_data_get(obj, "ibar_icon");
+   if (!ic) return;
    if (ev->button == 3)
      {
         e_int_client_menu_show(ec, ev->canvas.x, ev->canvas.y, 0, ev->timestamp);
@@ -1216,15 +1217,38 @@ _ibar_cb_icon_menu_desk_change(void *data, Evas_Object *obj EINA_UNUSED, void *e
 }
 
 static void
+_ibar_icon_menu_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   IBar_Icon *ic = data;
+
+   E_FREE_FUNC(ic->hide_timer, ecore_timer_del);
+}
+
+static void
+_ibar_icon_menu_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   IBar_Icon *ic = data;
+
+   if (e_comp_util_mouse_grabbed()) return;
+   if (ic->hide_timer)
+     ecore_timer_loop_reset(ic->hide_timer);
+   else
+     ic->hide_timer = ecore_timer_loop_add(0.5, _ibar_cb_out_hide_delay, ic);
+}
+
+static void
 _ibar_cb_icon_menu_img_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    int w, h;
    E_Client *ec;
    IBar_Icon *ic;
 
-   ic = evas_object_data_del(data, "ibar_icon");
+   ic = evas_object_data_del(obj, "ibar_icon");
    if (!ic) return; //menu is closing
-   if (ic) ic->client_objs = eina_list_remove(ic->client_objs, obj);
+
+   evas_object_data_del(obj, "ibar_icon");
+   ic->client_objs = eina_list_remove(ic->client_objs, obj);
+
    if (!ic->menu) return; //who knows
    edje_object_part_box_remove(ic->menu->o_bg, "e.box", data);
    ec = evas_object_data_get(obj, "E_Client");
@@ -1265,32 +1289,32 @@ _ibar_cb_icon_menu_img_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, vo
 }
 
 static void
-_ibar_icon_menu_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   IBar_Icon *ic = data;
-
-   E_FREE_FUNC(ic->hide_timer, ecore_timer_del);
-}
-
-static void
-_ibar_icon_menu_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   IBar_Icon *ic = data;
-
-   if (e_comp_util_mouse_grabbed()) return;
-   if (ic->hide_timer)
-     ecore_timer_reset(ic->hide_timer);
-   else
-     ic->hide_timer = ecore_timer_add(0.5, _ibar_cb_out_hide_delay, ic);
-}
-
-static void
 _ibar_cb_icon_frame_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    IBar_Icon *ic = evas_object_data_del(obj, "ibar_icon");
-   if (ic) ic->client_objs = eina_list_remove(ic->client_objs, obj);
+
+   if (ic)
+     {
+        evas_object_data_del(obj, "ibar_icon");
+        ic->client_objs = eina_list_remove(ic->client_objs, obj);
+     }
    e_comp_object_signal_callback_del_full(data, "e,state,*focused", "e", _ibar_cb_icon_menu_focus_change, obj);
    evas_object_smart_callback_del_full(data, "desk_change", _ibar_cb_icon_menu_desk_change, obj);
+}
+
+static Eina_Bool
+_ibar_menu_client_have(IBar_Icon *ic, E_Client *ec)
+{
+   Eina_List *l;
+   Evas_Object *o;
+   E_Client *ec2;
+
+   EINA_LIST_FOREACH(ic->client_objs, l, o)
+     {
+        ec2 = evas_object_data_get(o, "client");
+        if (ec2 == ec) return EINA_TRUE;
+     }
+   return EINA_FALSE;
 }
 
 static Eina_Bool
@@ -1298,25 +1322,34 @@ _ibar_icon_menu_client_add(IBar_Icon *ic, E_Client *ec)
 {
    Evas_Object *o, *it, *img;
    Eina_Stringshare *txt;
+   E_Client *ec2;
    int w, h;
 
    if (ec->netwm.state.skip_taskbar || e_client_util_ignored_get(ec)) return EINA_FALSE;
    if (e_client_util_is_popup(ec)) return EINA_FALSE;
    o = ic->menu->o_bg;
    it = edje_object_add(e_comp->evas);
-   ic->client_objs = eina_list_append(ic->client_objs, it);
    e_comp_object_util_del_list_append(ic->menu->comp_object, it);
    e_theme_edje_object_set(it, "base/theme/modules/ibar",
                            "e/modules/ibar/menu/item");
-   img = e_comp_object_util_mirror_add(ec->frame);
-   ic->client_objs = eina_list_append(ic->client_objs, img);
-   e_comp_object_signal_callback_add(ec->frame, "e,state,*focused", "e", _ibar_cb_icon_menu_focus_change, it);
-   evas_object_smart_callback_add(ec->frame, "desk_change", _ibar_cb_icon_menu_desk_change, it);
+   evas_object_data_set(it, "ibar_icon", ic);
+   evas_object_data_set(it, "client", ec);
+   ic->client_objs = eina_list_append(ic->client_objs, it);
    evas_object_event_callback_add(it, EVAS_CALLBACK_DEL,
                                   _ibar_cb_icon_frame_del, ec->frame);
+
+   ec2 = e_client_stack_active_adjust(ec);
+
+   img = e_comp_object_util_mirror_add(ec2->frame);
+   evas_object_data_set(img, "ibar_icon", ic);
+   ic->client_objs = eina_list_append(ic->client_objs, img);
    evas_object_event_callback_add(img, EVAS_CALLBACK_DEL,
                                   _ibar_cb_icon_menu_img_del, it);
-   txt = e_client_util_name_get(ec);
+
+   e_comp_object_signal_callback_add(ec2->frame, "e,state,*focused", "e", _ibar_cb_icon_menu_focus_change, it);
+   evas_object_smart_callback_add(ec2->frame, "desk_change", _ibar_cb_icon_menu_desk_change, it);
+
+   txt = e_client_util_name_get(ec2);
    w = ec->client.w;
    h = ec->client.h;
    e_comp_object_util_del_list_append(ic->menu->comp_object, img);
@@ -1335,7 +1368,6 @@ _ibar_icon_menu_client_add(IBar_Icon *ic, E_Client *ec)
    evas_object_size_hint_min_set(it, w, h);
    evas_object_show(it);
    evas_object_event_callback_add(it, EVAS_CALLBACK_MOUSE_UP, _ibar_cb_icon_menu_mouse_up, ec);
-   evas_object_data_set(it, "ibar_icon", ic);
    edje_object_part_box_append(o, "e.box", it);
    return EINA_TRUE;
 }
@@ -1374,8 +1406,12 @@ _ibar_icon_menu(IBar_Icon *ic, Eina_Bool grab)
 
         EINA_LIST_FOREACH(exe->clients, ll, ec)
           {
-             if (_ibar_icon_menu_client_add(ic, ec))
-               empty = EINA_FALSE;
+             ec = e_client_stack_bottom_get(ec);
+             if (!_ibar_menu_client_have(ic, ec))
+               {
+                  if (_ibar_icon_menu_client_add(ic, ec))
+                    empty = EINA_FALSE;
+               }
           }
      }
    if (empty)
@@ -1415,6 +1451,7 @@ _ibar_exec_new_client_show(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, vo
    E_Client *ec = e_comp_object_client_get(obj);
 
    if (!ic->menu) return;
+   if (_ibar_menu_client_have(ic, ec)) return;
    _ibar_icon_menu_client_add(ic, ec);
    _ibar_icon_menu_recalc(ic);
    ic->menu_pending = eina_list_remove(ic->menu_pending, ec);
@@ -1478,9 +1515,9 @@ _ibar_cb_icon_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UN
    if (!ic->ibar->inst->ci->dont_icon_menu_mouseover)
      {
         if (ic->show_timer)
-          ecore_timer_reset(ic->show_timer);
+          ecore_timer_loop_reset(ic->show_timer);
         else
-          ic->show_timer = ecore_timer_add(0.2, _ibar_icon_mouse_in_timer, ic);
+          ic->show_timer = ecore_timer_loop_add(0.2, _ibar_icon_mouse_in_timer, ic);
      }
 }
 
@@ -1509,9 +1546,9 @@ _ibar_cb_icon_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_U
    if (!ic->ibar->inst->ci->dont_icon_menu_mouseover)
      {
         if (ic->hide_timer)
-          ecore_timer_reset(ic->hide_timer);
+          ecore_timer_loop_reset(ic->hide_timer);
         else
-          ic->hide_timer = ecore_timer_add(0.75, _ibar_cb_out_hide_delay, ic);
+          ic->hide_timer = ecore_timer_loop_add(0.75, _ibar_cb_out_hide_delay, ic);
      }
 }
 
@@ -1541,7 +1578,7 @@ _ibar_cb_icon_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_
         ic->drag.dnd = 0;
         ic->mouse_down = 1;
         if (!ic->timer)
-          ic->timer = ecore_timer_add(0.35, _ibar_cb_icon_menu_cb, ic);
+          ic->timer = ecore_timer_loop_add(0.35, _ibar_cb_icon_menu_cb, ic);
      }
    else if (ev->button == 2)
      {
@@ -1675,6 +1712,7 @@ _ibar_cb_icon_wheel(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSE
    if (!ic->exes) return;
 
    cur = e_client_focused_get();
+   cur = e_client_stack_bottom_get(cur);
    if (cur && cur->exe_inst)
      {
         EINA_LIST_FOREACH(ic->exes, l, exe)
@@ -1808,7 +1846,7 @@ _ibar_icon_go(IBar_Icon *ic, Eina_Bool keep_going)
      }
    _ibar_icon_signal_emit(ic, "e,action,exec", "e");
    if (keep_going)
-     ic->reset_timer = ecore_timer_add(1.0, _ibar_cb_icon_reset, ic);
+     ic->reset_timer = ecore_timer_loop_add(1.0, _ibar_cb_icon_reset, ic);
 }
 
 static void
@@ -2599,11 +2637,12 @@ _ibar_cb_client_prop(void *d EINA_UNUSED, int t EINA_UNUSED, E_Event_Client_Prop
           skip = EINA_FALSE;
           break;
        }
+   ec = e_client_stack_active_adjust(ev->ec);
    EINA_LIST_FOREACH(ibars, l, b)
      {
         IBar_Icon *ic;
 
-        ic = eina_hash_find(b->icon_hash, _desktop_name_get(ev->ec->exe_inst->desktop));
+        ic = eina_hash_find(b->icon_hash, _desktop_name_get(ec->exe_inst->desktop));
         if (skip && (!ic)) continue;
         if (!skip)
           {
@@ -2612,20 +2651,20 @@ _ibar_cb_client_prop(void *d EINA_UNUSED, int t EINA_UNUSED, E_Event_Client_Prop
                   if (ic->starting) _ibar_icon_signal_emit(ic, "e,state,started", "e");
                   ic->starting = EINA_FALSE;
                   if (!ic->exes) _ibar_icon_signal_emit(ic, "e,state,on", "e");
-                  if (!eina_list_data_find(ic->exes, ev->ec->exe_inst))
-                    ic->exes = eina_list_append(ic->exes, ev->ec->exe_inst);
+                  if (!eina_list_data_find(ic->exes, ec->exe_inst))
+                    ic->exes = eina_list_append(ic->exes, ec->exe_inst);
                }
             else if (!b->inst->ci->dont_add_nonorder)
               {
                  _ibar_sep_create(b);
-                 _ibar_icon_notinorder_new(b, ev->ec->exe_inst);
+                 _ibar_icon_notinorder_new(b, ec->exe_inst);
                  _ibar_resize_handle(b);
               }
           }
         else
           {
-             ic->exes = eina_list_remove(ic->exes, ev->ec->exe_inst);
-             if (ic->exe_inst == ev->ec->exe_inst) ic->exe_inst = NULL;
+             ic->exes = eina_list_remove(ic->exes, ec->exe_inst);
+             if (ic->exe_inst == ec->exe_inst) ic->exe_inst = NULL;
              if (!ic->exes)
                {
                   if (ic->not_in_order)

@@ -434,6 +434,11 @@ gadman_gadget_edit_start(E_Gadcon_Client *gcc)
    else if (Man->drag_gcc[gcc->gadcon->id - ID_GADMAN_LAYER_BASE])
      e_object_unref(E_OBJECT(Man->drag_gcc[gcc->gadcon->id - ID_GADMAN_LAYER_BASE]));
 
+   if (gcc->gadcon->id - ID_GADMAN_LAYER_BASE == 1)
+     {
+        /* don't set edit if overlay isn't visible */
+        if (!Man->visible) return;
+     }
    EINA_LIST_FOREACH(Man->gadcons[gcc->gadcon->id - ID_GADMAN_LAYER_BASE], l, gc)
      gc->editing = 1;
    gc = gcc->gadcon;
@@ -993,7 +998,8 @@ _apply_widget_position(E_Gadcon_Client *gcc)
    /* something broke the config's geom, make it visible so it can be
     * resized/deleted
     */
-   if ((gcc->cf->geom.pos_x < 0) || (gcc->cf->geom.pos_y < 0) || (!gcc->cf->geom.size_w) || (!gcc->cf->geom.size_h))
+   if ((gcc->cf->geom.pos_x < 0) || (gcc->cf->geom.pos_y < 0) ||
+       (!EINA_DBL_NONZERO(gcc->cf->geom.size_w)) || (!EINA_DBL_NONZERO(gcc->cf->geom.size_h)))
      {
         gcc->cf->style = eina_stringshare_add(gcc->client_class->default_style ?: E_GADCON_CLIENT_STYLE_INSET);
         gcc->style = eina_stringshare_ref(gcc->cf->style);
@@ -1584,6 +1590,7 @@ _e_gadman_handlers_add(void)
 {
    E_LIST_HANDLER_APPEND(_gadman_hdls, E_EVENT_ZONE_ADD, _e_gadman_cb_zone_change, NULL);
    E_LIST_HANDLER_APPEND(_gadman_hdls, E_EVENT_ZONE_MOVE_RESIZE, _e_gadman_cb_zone_change, NULL);
+   E_LIST_HANDLER_APPEND(_gadman_hdls, E_EVENT_ZONE_USEFUL_GEOMETRY_CHANGED, _e_gadman_cb_zone_change, NULL);
    E_LIST_HANDLER_APPEND(_gadman_hdls, E_EVENT_ZONE_DEL, _e_gadman_cb_zone_change, NULL);
    E_LIST_HANDLER_APPEND(_gadman_hdls, E_EVENT_MODULE_UPDATE, _gadman_module_cb, NULL);
    E_LIST_HANDLER_APPEND(_gadman_hdls, E_EVENT_MODULE_INIT_END, _gadman_module_init_end_cb, NULL);
@@ -1636,7 +1643,7 @@ _e_gadman_cb_zone_change(void *data EINA_UNUSED, int type, void *event)
 
    if (!Man) return ECORE_CALLBACK_RENEW;
    if (gadman_locked) return ECORE_CALLBACK_RENEW;
-   if (type == E_EVENT_ZONE_MOVE_RESIZE)
+   if ((type == E_EVENT_ZONE_MOVE_RESIZE) || (type == E_EVENT_ZONE_USEFUL_GEOMETRY_CHANGED))
      {
         /* probably zone dirty being set */
         EINA_LIST_FOREACH(Man->gadcons[GADMAN_LAYER_BG], l, gc)

@@ -7,6 +7,14 @@
 #define PKITV07 (ctxt->v_maj == 0) && (ctxt->v_min == 7)
 #define PKITV08 (ctxt->v_maj == 0) && (ctxt->v_min == 8)
 
+// PackageKit dbus interface contains bitfield constants which
+// aren't introspectable. we define here. still cannot find the proper doc!
+#define PK_PROVIDES_ANY 1
+#define PK_FILTER_ENUM_NOT_INSTALLED 1 << 3
+#define PK_FILTER_ENUM_NEWEST 1 << 16
+#define PK_FILTER_ENUM_ARCH 1 << 18
+#define PK_TRANSACTION_FLAG_ENUM_ONLY_TRUSTED 1 << 1
+
 typedef enum {
    PK_INFO_ENUM_UNKNOWN,
    PK_INFO_ENUM_INSTALLED,
@@ -58,6 +66,7 @@ typedef struct _E_PackageKit_Module_Context
    Eldbus_Connection *conn;
    Eldbus_Proxy *packagekit;
    Eldbus_Proxy *transaction;
+   double transaction_progress;
 
    E_Config_DD *conf_edd;
    PackageKit_Config *config;
@@ -70,16 +79,23 @@ typedef struct _E_PackageKit_Instance
    E_Gadcon_Client *gcc;
    Evas_Object *gadget;
    E_Gadcon_Popup *popup;
-   Evas_Object *popup_ilist;
-   Evas_Object *popup_label;
+   Evas_Object *popup_title_entry;
+   Evas_Object *popup_error_label;
+   Evas_Object *popup_install_button;
+   Evas_Object *popup_progressbar;
+   Evas_Object *popup_genlist;
+   Elm_Genlist_Item_Class *popup_genlist_itc;
+   Eina_Bool popup_help_mode;
 } E_PackageKit_Instance;
 
 typedef struct _E_PackageKit_Package
 {
+   const char *pkg_id;
    const char *name;
    const char *summary;
    const char *version;
    PackageKit_Package_Info info;
+   Eina_Bool to_be_installed;
 } E_PackageKit_Package;
 
 
@@ -93,10 +109,11 @@ void      packagekit_create_transaction_and_exec(E_PackageKit_Module_Context *ct
                                                  E_PackageKit_Transaction_Func func);
 void      packagekit_get_updates(E_PackageKit_Module_Context *ctxt, const char *transaction);
 void      packagekit_refresh_cache(E_PackageKit_Module_Context *ctxt, const char *transaction);
+void      packagekit_update_packages(E_PackageKit_Module_Context *ctxt, const char *transaction);
 void      packagekit_icon_update(E_PackageKit_Module_Context *ctxt, Eina_Bool working);
 void      packagekit_popup_new(E_PackageKit_Instance *inst);
 void      packagekit_popup_del(E_PackageKit_Instance *inst);
-void      packagekit_popup_update(E_PackageKit_Instance *inst);
+void      packagekit_popup_update(E_PackageKit_Instance *inst, Eina_Bool rebuild_list);
 
 
 #endif

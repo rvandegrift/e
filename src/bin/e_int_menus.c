@@ -87,9 +87,21 @@ _e_int_menus_augmentation_find(const char *key)
 }
 
 static void
+_e_int_menus_wallpaper_cb()
+{
+   e_configure_registry_call("appearance/wallpaper", NULL, NULL);
+}
+
+static void
 _e_int_menus_bryce_cb()
 {
    e_bryce_edit(NULL);
+}
+
+static void
+_e_int_menus_desktop_gadget_add_cb()
+{
+   e_gadget_site_desktop_edit(e_comp->canvas->gadget_site);
 }
 
 #ifdef ISCOMFITOR
@@ -338,13 +350,20 @@ e_int_menus_desktops_new(void)
    e_menu_pre_activate_callback_set(subm, _e_int_menus_shelves_pre_cb, NULL);
    e_menu_item_submenu_set(mi, subm);
 
-   if (E_EFL_VERSION_MINIMUM(1, 17, 99))
-     {
-        mi = e_menu_item_new(m);
-        e_menu_item_label_set(mi, _("Add Bryce"));
-        e_util_menu_item_theme_icon_set(mi, "list-add");
-        e_menu_item_callback_set(mi, _e_int_menus_bryce_cb, NULL);
-     }
+   mi = e_menu_item_new(m);
+   e_menu_item_label_set(mi, _("Change Wallpaper"));
+   e_util_menu_item_theme_icon_set(mi, "preferences-desktop-wallpaper");
+   e_menu_item_callback_set(mi, _e_int_menus_wallpaper_cb, NULL);
+
+   mi = e_menu_item_new(m);
+   e_menu_item_label_set(mi, _("Add Bryce"));
+   e_util_menu_item_theme_icon_set(mi, "list-add");
+   e_menu_item_callback_set(mi, _e_int_menus_bryce_cb, NULL);
+
+   mi = e_menu_item_new(m);
+   e_menu_item_label_set(mi, _("Add Gadgets To Desktop"));
+   e_util_menu_item_theme_icon_set(mi, "list-add");
+   e_menu_item_callback_set(mi, _e_int_menus_desktop_gadget_add_cb, NULL);
 
    mi = e_menu_item_new(m);
    e_menu_item_separator_set(mi, 1);
@@ -900,9 +919,9 @@ _e_int_menus_apps_thread_new(E_Menu *m, const char *dir)
    e_object_del_attach_func_set(E_OBJECT(mn), NULL);
 
    if (_e_int_menus_app_cleaner)
-     ecore_timer_reset(_e_int_menus_app_cleaner);
+     ecore_timer_loop_reset(_e_int_menus_app_cleaner);
    else
-     _e_int_menus_app_cleaner = ecore_timer_add(300, _e_int_menus_app_cleaner_cb, NULL);
+     _e_int_menus_app_cleaner = ecore_timer_loop_add(300, _e_int_menus_app_cleaner_cb, NULL);
    eina_stringshare_del(dir);
    if (m)
      {
@@ -944,7 +963,7 @@ _e_int_menus_apps_start(void *data, E_Menu *m)
      }
    if (!menu) return;
    if (_e_int_menus_app_cleaner)
-     ecore_timer_reset(_e_int_menus_app_cleaner);
+     ecore_timer_loop_reset(_e_int_menus_app_cleaner);
    eina_stringshare_del(dir);
    _e_int_menus_apps_scan(m, menu);
    if (m->pre_activate_cb.func == _e_int_menus_apps_start)
@@ -1445,7 +1464,10 @@ _e_int_menus_clients_pre_cb(void *data EINA_UNUSED, E_Menu *m)
         if (ec->user_skip_winlist || e_client_util_ignored_get(ec)) continue;
         if ((ec->zone == zone) || (ec->iconic) ||
             (ec->zone != zone && e_config->clientlist_include_all_zones))
-          clients = eina_list_append(clients, ec);
+          {
+             if (ec->stack.next == NULL)
+               clients = eina_list_append(clients, ec);
+          }
      }
 
    dat = (Main_Data *)e_object_data_get(E_OBJECT(m));
@@ -1601,11 +1623,7 @@ _e_int_menus_clients_item_cb(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi 
 
    if (!ec->iconic) e_desk_show(ec->desk);
    if (!ec->lock_user_stacking) evas_object_raise(ec->frame);
-   if (!ec->lock_focus_out)
-     {
-        e_util_pointer_center(ec);
-        evas_object_focus_set(ec->frame, 1);
-     }
+   e_client_focus_set_with_pointer(ec);
 }
 
 static void

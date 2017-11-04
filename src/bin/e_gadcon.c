@@ -790,6 +790,8 @@ e_gadcon_canvas_zone_geometry_get(E_Gadcon *gc, int *x, int *y, int *w, int *h)
    E_OBJECT_TYPE_CHECK_RETURN(gc, E_GADCON_TYPE, 0);
    if (!gc->ecore_evas) return 0;
    ecore_evas_geometry_get(gc->ecore_evas, x, y, w, h);
+   *x = 0;
+   *y = 0;
 // so much relies on this down here to have been broken... ie return comp-relative coords.
 //   if (gc->zone)
 //     {
@@ -1939,7 +1941,7 @@ e_gadcon_client_autoscroll_update(E_Gadcon_Client *gcc, Evas_Coord x, Evas_Coord
           d = 1.0;
         if (!gcc->scroll_timer)
           gcc->scroll_timer =
-            ecore_timer_add(0.01, _e_gadcon_cb_client_scroll_timer, gcc);
+            ecore_timer_loop_add(0.01, _e_gadcon_cb_client_scroll_timer, gcc);
         if (!gcc->scroll_animator)
           gcc->scroll_animator =
             ecore_animator_add(_e_gadcon_cb_client_scroll_animator, gcc);
@@ -3039,12 +3041,12 @@ _e_gadcon_cb_dnd_enter(void *data, const char *type EINA_UNUSED, void *event)
 
                   w = gc->zone->w;
                   h = gc->zone->h;
-                  if ((!gc->new_gcc->config.pos_x) && (!gc->new_gcc->config.pos_y))
+                  if ((!EINA_DBL_NONZERO(gc->new_gcc->config.pos_x)) && (!EINA_DBL_NONZERO(gc->new_gcc->config.pos_y)))
                     {
                        gc->new_gcc->config.pos_x = (double)ev->x / (double)w;
                        gc->new_gcc->config.pos_y = (double)ev->y / (double)h;
                     }
-                  if ((!gc->new_gcc->config.size_w) && (!gc->new_gcc->config.size_h))
+                  if ((!EINA_DBL_NONZERO(gc->new_gcc->config.size_w)) && (!EINA_DBL_NONZERO(gc->new_gcc->config.size_h)))
                     {
                        evas_object_geometry_get(gcc->o_frame ? : gcc->o_base, NULL, NULL, &gw, &gh);
                        gc->new_gcc->config.size_w = (double)gw / (double)w;
@@ -3283,7 +3285,7 @@ _e_gadcon_client_cb_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj
              if (gcc->instant_edit_timer)
                ecore_timer_del(gcc->instant_edit_timer);
              gcc->instant_edit_timer =
-               ecore_timer_add(1.0, _e_gadcon_client_cb_instant_edit_timer,
+               ecore_timer_loop_add(1.0, _e_gadcon_client_cb_instant_edit_timer,
                                gcc);
           }
      }

@@ -3,9 +3,12 @@
 static void _e_xkb_update_event(int);
 
 static void _e_xkb_type_reconfig(E_Pixmap_Type comp_type);
+static void _e_xkb_type_update(E_Pixmap_Type comp_type, int cur_group);
 
 static int _e_xkb_cur_group = -1;
 static Ecore_Event_Handler *xkb_state_handler = NULL, *xkb_new_keyboard_handler = NULL;
+
+static Ecore_Exe *cur_exe;
 
 #ifndef HAVE_WAYLAND_ONLY
 static int skip_new_keyboard = 0;
@@ -93,18 +96,29 @@ _xkb_new_state(void* data EINA_UNUSED, int type EINA_UNUSED, void *event)
 
    ecore_timer_del(save_group);
 
-   save_group = ecore_timer_add(0.5, _e_xkb_save_group, (void*)(intptr_t)ev->group);
+   save_group = ecore_timer_loop_add(0.5, _e_xkb_save_group, (void*)(intptr_t)ev->group);
 
    return ECORE_CALLBACK_PASS_ON;
 }
 #endif
+
+static Eina_Bool
+kb_exe_del(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Exe_Event_Del *ev)
+{
+   if (ev->exe == cur_exe)
+     cur_exe = NULL;
+   return ECORE_CALLBACK_RENEW;
+}
 
 /* externally accessible functions */
 E_API int
 e_xkb_init(E_Pixmap_Type comp_type)
 {
    if (!E_EVENT_XKB_CHANGED)
-     E_EVENT_XKB_CHANGED = ecore_event_type_new();
+     {
+        E_EVENT_XKB_CHANGED = ecore_event_type_new();
+        ecore_event_handler_add(ECORE_EXE_EVENT_DEL, (Ecore_Event_Handler_Cb)kb_exe_del, NULL);
+     }
 #ifndef HAVE_WAYLAND_ONLY
    if (comp_type == E_PIXMAP_TYPE_X)
      {
@@ -117,7 +131,12 @@ e_xkb_init(E_Pixmap_Type comp_type)
    _e_xkb_type_reconfig(comp_type);
 
    if (comp_type == E_PIXMAP_TYPE_X)
-     ecore_timer_add(1.5, _e_xkb_init_timer, NULL);
+     ecore_timer_loop_add(1.5, _e_xkb_init_timer, NULL);
+   else if (comp_type == E_PIXMAP_TYPE_WL)
+     {
+        _eval_cur_group();
+        _e_xkb_type_update(comp_type, e_config->xkb.cur_group);
+     }
 
    return 1;
 }
@@ -217,7 +236,8 @@ _e_x_xkb_reconfig(void)
    skip_new_keyboard ++;
 #endif
    INF("SET XKB RUN: %s", eina_strbuf_string_get(buf));
-   ecore_exe_run(eina_strbuf_string_get(buf), NULL);
+   E_FREE_FUNC(cur_exe, ecore_exe_kill);
+   cur_exe = ecore_exe_run(eina_strbuf_string_get(buf), NULL);
    eina_strbuf_free(buf);
 }
 
@@ -240,18 +260,28 @@ _e_x_xkb_update(int cur_group)
      }
 }
 
+
 static void
 _e_wl_xkb_update(int cur_group)
+{
+#ifdef HAVE_WAYLAND
+   e_comp_wl_input_keymap_index_set(cur_group);
+   _e_xkb_update_event(cur_group);
+#else
+   (void)cur_group;
+#endif
+}
+
+
+static void
+_e_wl_xkb_reconfig(void)
 {
 #ifdef HAVE_WAYLAND
    E_Config_XKB_Option *op;
    E_Config_XKB_Layout *cl;
    Eina_Strbuf *options, *layouts, *variants;
-   Eina_List *l, *selected;
+   Eina_List *l;
 
-   if (cur_group == -1) {
-     cur_group = e_config->xkb.cur_group;
-   }
 
    options = eina_strbuf_new();
 
@@ -269,28 +299,10 @@ _e_wl_xkb_update(int cur_group)
    variants = eina_strbuf_new();
 
    //search for the correct layout
-   selected = eina_list_nth_list(e_config->xkb.used_layouts, cur_group);
-   if (!selected) selected = e_config->xkb.used_layouts;
-   /* create layouts */
-   //first walk from the selected layout to the end
-   EINA_LIST_FOREACH(selected, l, cl)
-     {
-        if (cl->name)
-          {
-             eina_strbuf_append(layouts, cl->name);
-             eina_strbuf_append_char(layouts, ',');
-          }
 
-        if (cl->variant)
-          {
-             eina_strbuf_append(variants, cl->variant);
-             eina_strbuf_append_char(variants, ',');
-          }
-     }
-   //then append all item from the first to the selected
+   /* create layouts */
    EINA_LIST_FOREACH(e_config->xkb.used_layouts, l, cl)
      {
-        if (selected == l) break;
         if (cl->name)
           {
              eina_strbuf_append(layouts, cl->name);
@@ -303,10 +315,8 @@ _e_wl_xkb_update(int cur_group)
              eina_strbuf_append_char(variants, ',');
           }
      }
+
    /* collect model to use */
-   l = eina_list_nth_list(e_config->xkb.used_layouts, cur_group);
-   if (!l) return;
-   cl = eina_list_data_get(l);
 
    /* set keymap to the compositor */
    e_comp_wl_input_keymap_set(NULL,
@@ -316,13 +326,9 @@ _e_wl_xkb_update(int cur_group)
       eina_strbuf_string_get(options) //list of options
    );
 
-   e_config->xkb.cur_group = cur_group;
-   _e_xkb_update_event(cur_group);
    eina_strbuf_free(variants);
    eina_strbuf_free(layouts);
    eina_strbuf_free(options);
-#else
-   (void) cur_group;
 #endif
 }
 
@@ -332,10 +338,7 @@ _e_xkb_type_reconfig(E_Pixmap_Type comp_type)
    if (comp_type == E_PIXMAP_TYPE_X)
      _e_x_xkb_reconfig();
    else if (comp_type == E_PIXMAP_TYPE_WL)
-     {
-        _eval_cur_group();
-        _e_wl_xkb_update(e_config->xkb.cur_group);
-     }
+     _e_wl_xkb_reconfig();
 }
 
 E_API void
@@ -344,13 +347,22 @@ e_xkb_reconfig(void)
    _e_xkb_type_reconfig(e_comp->comp_type);
 }
 
-E_API void
-e_xkb_update(int cur_group)
+static void
+_e_xkb_type_update(E_Pixmap_Type comp_type, int cur_group)
 {
-   if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
+   e_config->xkb.cur_group = cur_group;
+   e_config_save_queue();
+
+   if (comp_type == E_PIXMAP_TYPE_WL)
      _e_wl_xkb_update(cur_group);
    else
      _e_x_xkb_update(cur_group);
+}
+
+E_API void
+e_xkb_update(int cur_group)
+{
+   _e_xkb_type_update(e_comp->comp_type, cur_group);
 }
 
 E_API void
@@ -461,6 +473,7 @@ e_xkb_e_icon_flag_setup(Evas_Object *eicon, const char *name)
    char buf[PATH_MAX];
 
    e_xkb_flag_file_get(buf, sizeof(buf), name);
+   e_icon_preload_set(eicon, EINA_FALSE);
    e_icon_file_set(eicon, buf);
    e_icon_size_get(eicon, &w, &h);
    edje_extern_object_aspect_set(eicon, EDJE_ASPECT_CONTROL_BOTH, w, h);

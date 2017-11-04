@@ -27,10 +27,12 @@ struct _E_Config_Dialog_Data
    Evas_Object *profile_list_obj;
    Evas_Object *scale_custom_obj;
    Evas_Object *scale_value_obj;
+   Evas_Object *policy_obj;
    int restore;
    int hotplug;
    int acpi;
    int screen;
+   E_Randr2_Policy policy;
 };
 
 typedef struct
@@ -79,6 +81,18 @@ e_int_config_randr2(Evas_Object *parent EINA_UNUSED, const char *params)
 }
 
 /* local functions */
+static double
+_multiplier_for_scale(double scale)
+{
+   return scale / elm_config_scale_get();
+}
+
+static double
+_scale_for_multiplier(double multiplier)
+{
+   return multiplier * elm_config_scale_get();
+}
+
 static void *
 _create_data(E_Config_Dialog *cfd EINA_UNUSED)
 {
@@ -89,6 +103,7 @@ _create_data(E_Config_Dialog *cfd EINA_UNUSED)
    cfdata->restore = e_randr2_cfg->restore;
    cfdata->hotplug = !e_randr2_cfg->ignore_hotplug_events;
    cfdata->acpi = !e_randr2_cfg->ignore_acpi_events;
+   cfdata->policy = e_randr2_cfg->default_policy;
    return cfdata;
 }
 
@@ -366,7 +381,7 @@ _basic_screen_info_fill(E_Config_Dialog_Data *cfdata, E_Config_Randr2_Screen *cs
              cfdata->freelist = eina_list_append(cfdata->freelist, mode_cbdata);
              /* printf("mode add %p %p %p\n", mode_cbdata, cfdata->modes_obj, it); */
              if ((cs->mode_w == m->w) && (cs->mode_h == m->h) &&
-                 (cs->mode_refresh == m->refresh))
+                 (fabs(cs->mode_refresh - m->refresh) < 0.01 ))
                it_sel = it;
           }
      }
@@ -458,13 +473,14 @@ _basic_screen_info_fill(E_Config_Dialog_Data *cfdata, E_Config_Randr2_Screen *cs
           {
              elm_check_state_set(cfdata->scale_custom_obj, EINA_TRUE);
              elm_object_disabled_set(cfdata->scale_value_obj, EINA_FALSE);
-             elm_slider_value_set(cfdata->scale_value_obj, cs->scale_multiplier);
+             elm_slider_value_set(cfdata->scale_value_obj, 
+                                  _scale_for_multiplier(cs->scale_multiplier));
           }
         else
           {
              elm_check_state_set(cfdata->scale_custom_obj, EINA_FALSE);
              elm_object_disabled_set(cfdata->scale_value_obj, EINA_TRUE);
-             elm_slider_value_set(cfdata->scale_value_obj, 1.0);
+             elm_slider_value_set(cfdata->scale_value_obj, elm_config_scale_get());
           }
      }
    else
@@ -606,16 +622,16 @@ _cb_custom_scale_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event E
    E_Config_Dialog_Data *cfdata = data;
    E_Config_Randr2_Screen *cs = _config_screen_find(cfdata);
    if (!cs) return;
+
+   elm_slider_value_set(cfdata->scale_value_obj, elm_config_scale_get());
    if (elm_check_state_get(obj))
      {
         elm_object_disabled_set(cfdata->scale_value_obj, EINA_FALSE);
-        elm_slider_value_set(cfdata->scale_value_obj, 1.0);
         cs->scale_multiplier = 1.0;
      }
    else
      {
         elm_object_disabled_set(cfdata->scale_value_obj, EINA_TRUE);
-        elm_slider_value_set(cfdata->scale_value_obj, 0.0);
         cs->scale_multiplier = 0.0;
      }
    e_config_dialog_changed_set(cfdata->cfd, EINA_TRUE);
@@ -627,7 +643,8 @@ _cb_scale_value_changed(void *data, Evas_Object *obj EINA_UNUSED, void *event EI
    E_Config_Dialog_Data *cfdata = data;
    E_Config_Randr2_Screen *cs = _config_screen_find(cfdata);
    if (!cs) return;
-   cs->scale_multiplier = elm_slider_value_get(cfdata->scale_value_obj);
+   cs->scale_multiplier =
+     _multiplier_for_scale(elm_slider_value_get(cfdata->scale_value_obj));
    e_config_dialog_changed_set(cfdata->cfd, EINA_TRUE);
 }
 
@@ -725,6 +742,66 @@ _cb_enabled_changed(void *data, Evas_Object *obj, void *event EINA_UNUSED)
    if (!cs) return;
    cs->enabled = elm_check_state_get(obj);
    printf("RR: enabled = %i\n", cs->enabled);
+   e_config_dialog_changed_set(cfdata->cfd, EINA_TRUE);
+}
+
+static void
+_policy_text_update(E_Config_Dialog_Data *cfdata)
+{
+   char pbuf[128];
+   const char *policy[] =
+   {
+      _("Ignore"),
+      _("Extend"),
+      _("Clone"),
+      _("Ask")
+   };
+
+   snprintf(pbuf, sizeof(pbuf), _("Hotplug Policy (%s)"), policy[cfdata->policy]);
+   elm_object_text_set(cfdata->policy_obj, pbuf);
+}
+
+static void
+_cb_policy_ignore(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Config_Dialog_Data *cfdata = data;
+
+   if (cfdata->policy == E_RANDR2_POLICY_NONE) return;
+   cfdata->policy = E_RANDR2_POLICY_NONE;
+   _policy_text_update(cfdata);
+   e_config_dialog_changed_set(cfdata->cfd, EINA_TRUE);
+}
+
+static void
+_cb_policy_ask(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Config_Dialog_Data *cfdata = data;
+
+   if (cfdata->policy == E_RANDR2_POLICY_ASK) return;
+   cfdata->policy = E_RANDR2_POLICY_ASK;
+   _policy_text_update(cfdata);
+   e_config_dialog_changed_set(cfdata->cfd, EINA_TRUE);
+}
+
+static void
+_cb_policy_extend(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Config_Dialog_Data *cfdata = data;
+
+   if (cfdata->policy == E_RANDR2_POLICY_EXTEND) return;
+   cfdata->policy = E_RANDR2_POLICY_EXTEND;
+   _policy_text_update(cfdata);
+   e_config_dialog_changed_set(cfdata->cfd, EINA_TRUE);
+}
+
+static void
+_cb_policy_clone(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Config_Dialog_Data *cfdata = data;
+
+   if (cfdata->policy == E_RANDR2_POLICY_CLONE) return;
+   cfdata->policy = E_RANDR2_POLICY_CLONE;
+   _policy_text_update(cfdata);
    e_config_dialog_changed_set(cfdata->cfd, EINA_TRUE);
 }
 
@@ -986,6 +1063,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas EINA_UNUSED, E_Config_Dialog_Data
    elm_slider_unit_format_set(o, "%1.1f");
    elm_slider_span_size_set(o, 100);
    elm_slider_min_max_set(o, 0.5, 5.5);
+   elm_slider_value_set(o, elm_config_scale_get());
    elm_table_pack(tb, o, 2, 13, 1, 1);
    evas_object_show(o);
    cfdata->scale_value_obj = o;
@@ -1030,6 +1108,17 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas EINA_UNUSED, E_Config_Dialog_Data
    evas_object_show(o);
    evas_object_smart_callback_add(o, "changed", _cb_acpi_changed, cfdata);
 
+   cfdata->policy_obj = o = elm_hoversel_add(win);
+   evas_object_size_hint_weight_set(o, 0.0, 0.0);
+   evas_object_size_hint_align_set(o, EVAS_HINT_FILL, 0.5);
+   _policy_text_update(cfdata);
+   elm_hoversel_item_add(o, _("Clone"), NULL, ELM_ICON_NONE, _cb_policy_clone, cfdata);
+   elm_hoversel_item_add(o, _("Extend"), NULL, ELM_ICON_NONE, _cb_policy_extend, cfdata);
+   elm_hoversel_item_add(o, _("Ask"), NULL, ELM_ICON_NONE, _cb_policy_ask, cfdata);
+   elm_hoversel_item_add(o, _("Ignore"), NULL, ELM_ICON_NONE, _cb_policy_ignore, cfdata);
+   elm_box_pack_end(bx2, o);
+   evas_object_show(o);
+
    evas_smart_objects_calculate(evas_object_evas_get(win));
 
    e_util_win_auto_resize_fill(win);
@@ -1047,6 +1136,7 @@ _basic_apply(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
    e_randr2_cfg->restore = cfdata->restore;
    e_randr2_cfg->ignore_hotplug_events = !cfdata->hotplug;
    e_randr2_cfg->ignore_acpi_events = !cfdata->acpi;
+   e_randr2_cfg->default_policy = cfdata->policy;
 
    printf("APPLY....................\n");
    EINA_LIST_FOREACH(cfdata->screens, l, cs2)

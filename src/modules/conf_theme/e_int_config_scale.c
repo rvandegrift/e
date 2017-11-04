@@ -52,7 +52,7 @@ _scale_preview_sel_set(Evas_Object *ob, int sel)
         v = (int)(unsigned long)evas_object_data_get(ob, "scale");
         scl = (double)v / 1000.0;
         if (sc) *sc = scl;
-        e_config_dialog_changed_set(cfdata->cfd, (scl != e_config->scale.factor));
+        e_config_dialog_changed_set(cfdata->cfd, (!EINA_DBL_EQ(scl, e_config->scale.factor)));
         if (evas_object_data_get(ob, "dpi"))
           {
              cfdata->use_dpi = EINA_TRUE;
@@ -229,6 +229,18 @@ _basic_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data
    if (e_comp->comp_type == E_PIXMAP_TYPE_X)
      dpi = ecore_x_dpi_get();
 #endif
+#ifdef HAVE_WAYLAND
+   if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
+     {
+        int xdpi = 0, ydpi = 0;
+
+        ecore_evas_screen_dpi_get(e_comp->ee, &xdpi, &ydpi);
+        if (xdpi == 0) xdpi = 75;
+        if (ydpi == 0) ydpi = 75;
+        dpi = ((xdpi + ydpi) / 2);
+     }
+#endif
+
    if ((dpi > 0) && (cfdata->base_dpi > 0))
      sc = (double)dpi / (double)cfdata->base_dpi;
    
@@ -294,6 +306,7 @@ _adv_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *
    Evas_Object *o, *otb, *ow;
    E_Radio_Group *rg;
    char buff[256] = {0};
+   int dpi = 0;
 
    _fill_data(cfdata);
    if (cfdata->obs) cfdata->obs = eina_list_free(cfdata->obs);
@@ -311,9 +324,22 @@ _adv_create(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dialog_Data *
 
 #ifndef HAVE_WAYLAND_ONLY
    if (e_comp->comp_type == E_PIXMAP_TYPE_X)
-     snprintf(buff, sizeof(buff),
-              _("Base DPI (Currently %i DPI)"), ecore_x_dpi_get());
+     dpi = ecore_x_dpi_get();
 #endif
+#ifdef HAVE_WAYLAND
+   if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
+     {
+        int xdpi = 0, ydpi = 0;
+
+        ecore_evas_screen_dpi_get(e_comp->ee, &xdpi, &ydpi);
+        if (xdpi == 0) xdpi = 75;
+        if (ydpi == 0) ydpi = 75;
+        dpi = ((xdpi + ydpi) / 2);
+     }
+#endif
+
+   snprintf(buff, sizeof(buff), _("Base DPI (Currently %i DPI)"), dpi);
+
    ow = e_widget_label_add(evas, buff);
    cfdata->gui.adv.dpi_lbl = ow;
    e_widget_list_object_append(o, ow, 1, 1, 0.5);
@@ -396,9 +422,9 @@ _adv_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 
    return (use_dpi != e_config->scale.use_dpi) ||
           (use_custom != e_config->scale.use_custom) ||
-          (cfdata->min != e_config->scale.min) ||
-          (cfdata->max != e_config->scale.max) ||
-          (cfdata->factor != e_config->scale.factor) ||
+          (!EINA_DBL_EQ(cfdata->min, e_config->scale.min)) ||
+          (!EINA_DBL_EQ(cfdata->max, e_config->scale.max)) ||
+          (!EINA_DBL_EQ(cfdata->factor, e_config->scale.factor)) ||
           (cfdata->base_dpi != e_config->scale.base_dpi);
 }
 

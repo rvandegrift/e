@@ -3,6 +3,8 @@
 #include "window_tree.h"
 #include "e_mod_tiling.h"
 
+void tiling_window_tree_dump(Window_Tree *root, int level);
+
 void
 tiling_window_tree_walk(Window_Tree *root, void (*func)(void *))
 {
@@ -26,7 +28,7 @@ tiling_window_tree_free(Window_Tree *root)
 }
 
 static void
-_tiling_window_tree_split_add(Window_Tree *parent, Window_Tree *new_node)
+_tiling_window_tree_split_add(Window_Tree *parent, Window_Tree *new_node, Eina_Bool append)
 {
    /* Make a new node for the parent client and split the weights in half. */
    Window_Tree *new_parent_client = calloc(1, sizeof(*new_node));
@@ -38,10 +40,13 @@ _tiling_window_tree_split_add(Window_Tree *parent, Window_Tree *new_node)
    new_parent_client->weight = 0.5;
    new_node->weight = 0.5;
 
-   parent->children =
-     eina_inlist_append(parent->children, EINA_INLIST_GET(new_parent_client));
-   parent->children =
-     eina_inlist_append(parent->children, EINA_INLIST_GET(new_node));
+   parent->children = eina_inlist_append(parent->children, EINA_INLIST_GET(new_parent_client));
+
+   if (append)
+     parent->children = eina_inlist_append(parent->children, EINA_INLIST_GET(new_node));
+   else
+     parent->children = eina_inlist_prepend(parent->children, EINA_INLIST_GET(new_node));
+
 }
 static void
 _tiling_window_tree_parent_add(Window_Tree *parent, Window_Tree *new_node, Window_Tree *rel, Eina_Bool append)
@@ -88,65 +93,57 @@ _tiling_window_tree_split_type_get(Window_Tree *node)
    return ret % 2;
 }
 
-Window_Tree *
-tiling_window_tree_add(Window_Tree *root, Window_Tree *parent,
-                       E_Client *client, Tiling_Split_Type split_type)
-{
-   Window_Tree *orig_parent = parent;
-   Window_Tree *new_node = calloc(1, sizeof(*new_node));
+#define VERIFY_TYPE(t) if (t > TILING_SPLIT_VERTICAL || t < 0) { ERR("Invalid insert type"); return root; }
 
-   new_node->client = client;
+Window_Tree *
+tiling_window_tree_insert(Window_Tree *root, Window_Tree *buddy,
+                          E_Client *client, Tiling_Split_Type split_type, Eina_Bool before)
+{
+   Window_Tree *new_node;
+   Window_Tree *parent;
    Tiling_Split_Type parent_split_type;
 
-   if (split_type > TILING_SPLIT_VERTICAL)
-     {
-        free(new_node);
-        return root;
-     }
-   else if (!root)
-     {
-        new_node->weight = 1.0;
-        return new_node;
-     }
-   else if (!parent)
-     {
-        parent = root;
-        parent_split_type = _tiling_window_tree_split_type_get(parent);
-        if ((parent_split_type != split_type) && (parent->children))
-          {
-             parent = (Window_Tree *)(void *)parent->children;
-          }
-     }
+   VERIFY_TYPE(split_type)
 
-   parent_split_type = _tiling_window_tree_split_type_get(parent);
+   new_node = calloc(1, sizeof(*new_node));
+   new_node->client = client;
 
-   if (parent_split_type == split_type)
+   if (!root)
      {
-        if (parent->children)
-          {
-             _tiling_window_tree_parent_add(parent, new_node, NULL, EINA_TRUE);
-          }
-        else
-          {
-             _tiling_window_tree_split_add(parent, new_node);
-          }
+        root = calloc(1, sizeof(*root));
+        root->weight = 1.0;
+
+        _tiling_window_tree_parent_add(root, new_node, NULL, !before);
      }
    else
      {
-        Window_Tree *grand_parent = parent->parent;
-
-        if (grand_parent && grand_parent->children)
+        //if there is no buddy we are going to take the last child of the root
+        if (!buddy)
           {
-             _tiling_window_tree_parent_add(grand_parent, new_node, orig_parent, EINA_TRUE);
+             buddy = root;
+             do
+               {
+                  buddy = EINA_INLIST_CONTAINER_GET(eina_inlist_last(buddy->children), Window_Tree);
+               }
+             while (!buddy->client);
           }
         else
           {
-             root = calloc(1, sizeof(*root));
-             _tiling_window_tree_split_add(parent, new_node);
-             root->weight = 1.0;
-             root->children =
-               eina_inlist_append(root->children, EINA_INLIST_GET(parent));
-             parent->parent = root;
+             //make sure this buddy has a client,
+             if (!buddy->client) free(new_node);
+             EINA_SAFETY_ON_TRUE_RETURN_VAL(!buddy->client, root);
+          }
+
+        parent = buddy->parent;
+        parent_split_type = _tiling_window_tree_split_type_get(parent);
+
+        if (parent_split_type == split_type)
+          {
+             _tiling_window_tree_parent_add(parent, new_node, buddy, !before);
+          }
+        else
+          {
+             _tiling_window_tree_split_add(buddy, new_node, !before);
           }
      }
 
@@ -405,7 +402,7 @@ _tiling_window_tree_node_resize_direction(Window_Tree *node,
      }
 
    /* If it's at the edge, try the grandpa of the parent. */
-   if (weight == 0.0)
+   if (!EINA_DBL_NONZERO(weight))
      {
         if (parent->parent && parent->parent->parent)
           {
@@ -457,7 +454,7 @@ tiling_window_tree_node_resize(Window_Tree *node, int w_dir, double w_diff,
         h_parent = parent;
      }
 
-   if ((h_diff != 1.0) && h_parent)
+   if ((!eina_dbl_exact(h_diff, 1.0)) && h_parent)
      {
         Window_Tree *tmp_node = (h_parent == parent) ? node : parent;
 
@@ -466,7 +463,7 @@ tiling_window_tree_node_resize(Window_Tree *node, int w_dir, double w_diff,
                                                     h_diff, h_dir);
      }
 
-   if ((w_diff != 1.0) && w_parent)
+   if ((!eina_dbl_exact(w_diff, 1.0)) && w_parent)
      {
         Window_Tree *tmp_node = (w_parent == parent) ? node : parent;
 
@@ -640,7 +637,7 @@ _tiling_window_tree_node_join(Window_Tree *root, Window_Tree *node, Eina_Bool di
              //unref has not changed the tree
              if (!pn->children)
                {
-                  _tiling_window_tree_split_add(pn, node);
+                  _tiling_window_tree_split_add(pn, node, EINA_TRUE);
                }
              else
                {
@@ -729,4 +726,3 @@ tiling_window_tree_dump(Window_Tree *root, int level)
         tiling_window_tree_dump(itr, level + 1);
      }
 }
-

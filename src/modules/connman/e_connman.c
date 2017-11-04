@@ -196,6 +196,92 @@ static void _service_parse_prop_changed(struct Connman_Service *cs,
         _dbus_str_array_to_eina(value, &cs->security, 2);
         DBG("New security count: %d", eina_array_count(cs->security));
      }
+   else if (strcmp(prop_name, "Proxy") == 0)
+      {
+         Eldbus_Message_Iter* proxy_dict = NULL;
+         const char* method = "direct";
+         Eina_Array *proxy_servers = NULL, *proxy_excludes = NULL;
+         Eldbus_Message_Iter* proxy_dict_entry = NULL;
+
+         //  'Proxy': {'Excludes': [], 'Method': 'manual', 'Servers': []}
+         if (!eldbus_message_iter_arguments_get(value, "a{sv}", &proxy_dict))
+            {
+               ERR("Error getting arguments.");
+               return;
+            }
+
+         while (eldbus_message_iter_get_and_next(proxy_dict, 'e',
+             &proxy_dict_entry))
+            {
+               Eldbus_Message_Iter* proxy_dict_entry_val = NULL;
+               char* proxy_dict_entry_key = NULL;
+               if (!eldbus_message_iter_arguments_get(proxy_dict_entry, "sv",
+                       &proxy_dict_entry_key,
+                       &proxy_dict_entry_val))
+                  continue;
+               if (strcmp(proxy_dict_entry_key, "Excludes") == 0)
+                  {
+                     _dbus_str_array_to_eina(proxy_dict_entry_val, &proxy_excludes, 4);
+                  }
+               else if (strcmp(proxy_dict_entry_key, "Method") == 0)
+                  {
+                     EINA_SAFETY_ON_FALSE_RETURN(eldbus_message_iter_arguments_get(
+                         proxy_dict_entry_val, "s", &method));
+                  }
+               else if (strcmp(proxy_dict_entry_key, "Servers") == 0)
+                  {
+                     _dbus_str_array_to_eina(proxy_dict_entry_val, &proxy_servers, 4);
+                  }
+            }
+
+         if (strcmp(method, "manual") == 0)
+            {
+               if (eina_array_count(proxy_servers) > 0)
+                  {
+                     DBG("New {all,http{,s}}_proxy: %s",
+                         (const char*)eina_array_data_get(proxy_servers, 0));
+                     e_env_set("ALL_PROXY", eina_array_data_get(proxy_servers, 0));
+                     e_env_set("http_proxy", eina_array_data_get(proxy_servers, 0));
+                     e_env_set("HTTPS_PROXY", eina_array_data_get(proxy_servers, 0));
+                  }
+               if (eina_array_count(proxy_excludes) > 0)
+                  {
+                     Eina_Strbuf *buf;
+                     Eina_Array_Iterator it;
+                     unsigned int i;
+                     const char *p;
+
+                     buf = eina_strbuf_new();
+                     EINA_ARRAY_ITER_NEXT(proxy_excludes, i, p, it)
+                        {
+                           if (i)
+                             eina_strbuf_append_char(buf, ',');
+                           eina_strbuf_append(buf, p);
+                        }
+                     DBG("New no_proxy: %s", eina_strbuf_string_get(buf));
+                     e_env_set("NO_PROXY", eina_strbuf_string_get(buf));
+                     eina_strbuf_free(buf);
+                  }
+            }
+         else if (strcmp(method, "direct") == 0)
+            {
+               e_env_unset("ALL_PROXY");
+               e_env_unset("http_proxy");
+               e_env_unset("HTTPS_PROXY");
+               e_env_unset("NO_PROXY");
+            }
+
+         if (proxy_excludes)
+            {
+               _eina_str_array_clean(proxy_excludes);
+               eina_array_free(proxy_excludes);
+            }
+         if (proxy_servers)
+            {
+               _eina_str_array_clean(proxy_servers);
+               eina_array_free(proxy_servers);
+            }
+      }
 }
 
 static void _service_prop_dict_changed(struct Connman_Service *cs,
@@ -578,13 +664,13 @@ static void _manager_get_prop_cb(void *data, const Eldbus_Message *msg,
 
    if (eldbus_message_error_get(msg, &name, &text))
      {
-        ERR("Could not get properties. %s: %s", name, text);
+        WRN("Could not get properties. %s: %s", name, text);
         return;
      }
 
    if (!eldbus_message_arguments_get(msg, "a{sv}", &array))
      {
-        ERR("Error getting arguments.");
+        WRN("Error getting arguments.");
         return;
      }
 
@@ -635,13 +721,13 @@ static void _manager_get_wifi_prop_cb(void *data, const Eldbus_Message *msg,
 
    if (eldbus_message_error_get(msg, &name, &message))
      {
-        ERR("Could not get properties. %s: %s", name, message);
+        WRN("Could not get properties. %s: %s", name, message);
         return;
      }
 
    if (!eldbus_message_arguments_get(msg, "a{sv}", &array))
      {
-        ERR("Error getting arguments.");
+        WRN("Error getting arguments.");
         return;
      }
 

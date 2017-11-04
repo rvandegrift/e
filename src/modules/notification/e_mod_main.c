@@ -60,14 +60,14 @@ _notification_show_presentation(Eina_Bool enabled)
      {
         summary = _("Entered Presentation Mode");
         body = _("Enlightenment has now entered <b>presentation</b> mode."
-                 "<br>During presentation mode, screen saver, lock and "
+                 "<ps/>During presentation mode, screen saver, lock and "
                  "power saving will be disabled so you are not interrupted.");
      }
    else
      {
         summary = _("Exited Presentation Mode");
         body = _("Presentation mode has been exited."
-                 "<br>Now screen saver, lock and "
+                 "<ps/>Now screen saver, lock and "
                  "power saving settings will be restored.");
      }
 
@@ -82,14 +82,14 @@ _notification_show_offline(Eina_Bool enabled)
    if (enabled)
      {
         summary = _("Enter Offline Mode");
-        body = _("Enlightenment is in <b>offline</b> mode.<br>"
+        body = _("Enlightenment is in <b>offline</b> mode.<ps/>"
                  "During offline mode, modules that use network will stop "
                  "polling remote services.");
      }
    else
      {
         summary = _("Exited Offline Mode");
-        body = _("Now in <b>online</b> mode.<br>"
+        body = _("Now in <b>online</b> mode.<ps/>"
                  "Now modules that use network will "
                  "resume regular tasks.");
      }
@@ -217,7 +217,7 @@ e_modapi_init(E_Module *m)
    notification_cfg->handler = ecore_event_handler_add
          (E_EVENT_CONFIG_MODE_CHANGED, (Ecore_Event_Handler_Cb)_notification_cb_config_mode_changed,
          notification_cfg);
-   notification_cfg->initial_mode_timer = ecore_timer_add
+   notification_cfg->initial_mode_timer = ecore_timer_loop_add
        (0.1, (Ecore_Task_Cb)_notification_cb_initial_mode_timer, notification_cfg);
 
    notification_mod = m;

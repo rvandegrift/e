@@ -1,6 +1,7 @@
 #include "config.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
@@ -32,7 +33,6 @@
 #include <errno.h>
 
 #include <Eina.h>
-#include <Evas.h>
 
 # ifdef E_API
 #  undef E_API
@@ -58,8 +58,6 @@
 #   define E_API
 #  endif
 # endif
-
-# define E_CSERVE
 
 static Eina_Bool stop_ptrace = EINA_FALSE;
 
@@ -277,32 +275,6 @@ _sigusr1(int x EINA_UNUSED, siginfo_t *info EINA_UNUSED, void *data EINA_UNUSED)
    sigaction(SIGUSR1, &action, NULL);
 }
 
-#ifdef E_CSERVE
-static pid_t
-_cserve2_start()
-{
-   pid_t cs_child;
-   cs_child = fork();
-   if (cs_child == 0)
-     {
-        char *cs_args[2] = { NULL, NULL };
-
-        cs_args[0] = (char *)evas_cserve_path_get();
-        execv(cs_args[0], cs_args);
-        exit(-1);
-     }
-   else if (cs_child > 0)
-     {
-        putenv("EVAS_CSERVE2=1");
-     }
-   else
-     {
-        unsetenv("EVAS_CSERVE2");
-     }
-   return cs_child;
-}
-#endif
-
 static void
 _print_usage(const char *hstr)
 {
@@ -495,6 +467,56 @@ _e_call_alert(int child, siginfo_t sig, int exit_gdb, const char *backtrace_str,
    return system(buf);
 }
 
+static int
+path_contains(const char *path)
+{
+   char *realp, *realp2, *env2 = NULL, *p, *p2;
+   char buf[PATH_MAX], buf2[PATH_MAX];
+   const char *env;
+   ssize_t p_len;
+   int ret = 0;
+
+   if (!path) return ret;
+   realp = realpath(path, buf);
+   if (!realp) realp = (char *)path;
+
+   env = getenv("PATH");
+   if (!env) goto done;
+   env2 = strdup(env);
+   if (!env2) goto done;
+
+   p = env2;
+   while (p)
+     {
+        p2 = strchr(p, ':');
+
+        if (p2) p_len = p2 - p;
+        else p_len = strlen(p);
+
+        if (p_len <= 0) goto next;
+        if (p2) *p2 = 0;
+        realp2 = realpath(p, buf2);
+        if (realp2)
+          {
+             if (!strcmp(realp, realp2)) goto ok;
+          }
+        else
+          {
+             if (!strcmp(realp, p)) goto ok;
+          }
+next:
+        if (p2) p = p2 + 1;
+        else break;
+     }
+   // failed to find
+   goto done;
+ok:
+   ret = 1;
+done:
+   free(env2);
+   return ret;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -504,13 +526,10 @@ main(int argc, char **argv)
    char buf[16384], **args, *home;
    char valgrind_path[PATH_MAX] = "";
    const char *valgrind_log = NULL;
+   const char *bindir;
    Eina_Bool really_know = EINA_FALSE;
    struct sigaction action;
    pid_t child = -1;
-#ifdef E_CSERVE
-   pid_t cs_child = -1;
-   Eina_Bool cs_use = EINA_FALSE;
-#endif
    Eina_Bool restart = EINA_TRUE;
 
    unsetenv("NOTIFY_SOCKET");
@@ -592,10 +611,12 @@ main(int argc, char **argv)
           }
      }
 
-   if (really_know)
-     _env_path_append("PATH", eina_prefix_bin_get(pfx));
-   else
-     _env_path_prepend("PATH", eina_prefix_bin_get(pfx));
+   bindir = eina_prefix_bin_get(pfx);
+   if (!path_contains(bindir))
+     {
+        if (really_know) _env_path_append("PATH", bindir);
+        else _env_path_prepend("PATH", bindir);
+     }
 
    if ((valgrind_mode || valgrind_tool) &&
        !find_valgrind(valgrind_path, sizeof(valgrind_path)))
@@ -616,40 +637,8 @@ main(int argc, char **argv)
    home = getenv("HOME");
    if (home)
      {
-        const char *tmps;
-#if 1
-        FILE *f;
-        /* mtrack memory tracker support */
-        /* if you have ~/.e-mtrack, then the tracker will be enabled
-         * using the content of this file as the path to the mtrack.so
-         * shared object that is the mtrack preload */
-        snprintf(buf, sizeof(buf), "%s/.e-mtrack", home);
-        f = fopen(buf, "r");
-        if (f)
-          {
-             if (fgets(buf, sizeof(buf), f))
-               {
-                  int len = strlen(buf);
-                  if ((len > 1) && (buf[len - 1] == '\n'))
-                    {
-                       buf[len - 1] = 0;
-                       len--;
-                    }
-                  env_set("LD_PRELOAD", buf);
-//                  env_set("MTRACK", "track");
-//                  env_set("E_START_MTRACK", "track");
-//                  snprintf(buf, sizeof(buf), "%s/.e-mtrack.log", home);
-//                  env_set("MTRACK_TRACE_FILE", buf);
-                  env_set("MTRACK", "debug");
-                  env_set("MTRACK_FREE_FILL", "1");
-                  env_set("MTRACK_ALLOC_FILL", "2");
-                  env_set("MTRACK_CANARY_SIZE", "16");
-                  env_set("MTRACK_CANARY", "3");
-               }
-             fclose(f);
-          }
-#endif
-        tmps = getenv("XDG_DATA_HOME");
+        const char *tmps = getenv("XDG_DATA_HOME");
+
         if (tmps)
           snprintf(buf, sizeof(buf), "%s/Applications/.bin", tmps);
         else
@@ -673,15 +662,6 @@ main(int argc, char **argv)
 
    if (valgrind_tool || valgrind_mode)
      really_know = EINA_TRUE;
-
-   /* not run at the moment !! */
-#ifdef E_CSERVE
-   if (getenv("E_CSERVE"))
-     {
-        cs_use = EINA_TRUE;
-        cs_child = _cserve2_start();
-     }
-#endif
 
    /* Now looping until */
    while (restart)
@@ -708,7 +688,7 @@ main(int argc, char **argv)
         /* now loop until done */
 not_done:
         result = waitpid(child, &status, WNOHANG);
-        /* Wait for evas_cserve2 and E */
+        /* Wait for E */
         if (!result)
           result = waitpid(-1, &status, 0);
 
@@ -768,43 +748,9 @@ not_done:
                   _e_ptrace_detach(child, 0, really_know);
                }
           }
-#ifdef E_CSERVE
-        else if (cs_use && (result == cs_child))
-          {
-             if (WIFSIGNALED(status))
-               {
-                  printf("E - cserve2 terminated with signal %d\n",
-                         WTERMSIG(status));
-                  cs_child = _cserve2_start();
-               }
-             else if (WIFEXITED(status))
-               {
-                  printf("E - cserve2 exited with code %d\n",
-                         WEXITSTATUS(status));
-                  cs_child = -1;
-               }
-          }
-#endif
         if (!done)
           goto not_done;
      }
-
-#ifdef E_CSERVE
-   if (cs_child > 0)
-     {
-        pid_t result;
-        int status;
-
-        alarm(2);
-        kill(cs_child, SIGINT);
-        result = waitpid(cs_child, &status, 0);
-        if (result != cs_child)
-          {
-             printf("E - cserve2 did not shutdown in 2 seconds, killing!\n");
-             kill(cs_child, SIGKILL);
-          }
-     }
-#endif
 
    return -1;
 }

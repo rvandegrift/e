@@ -24,7 +24,7 @@ E_API void
 e_util_wakeup(void)
 {
    if (_e_util_dummy_timer) return;
-   _e_util_dummy_timer = ecore_timer_add(0.0, _e_util_wakeup_cb, NULL);
+   _e_util_dummy_timer = ecore_timer_loop_add(0.0, _e_util_wakeup_cb, NULL);
 }
 
 E_API void
@@ -132,9 +132,9 @@ e_util_immortal_check(void)
    if (wins)
      {
         e_util_dialog_show(_("Cannot exit - immortal windows."),
-                           _("Some windows are left still around with the Lifespan lock enabled. This means<br>"
-                             "that Enlightenment will not allow itself to exit until these windows have<br>"
-                             "been closed or have the lifespan lock removed.<br>"));
+                           _("Some windows are left still around with the Lifespan lock enabled. This means<ps/>"
+                             "that Enlightenment will not allow itself to exit until these windows have<ps/>"
+                             "been closed or have the lifespan lock removed.<ps/>"));
         /* FIXME: should really display a list of these lifespan locked */
         /* windows in a dialog and let the user disable their locks in */
         /* this dialog */
@@ -224,7 +224,8 @@ e_util_icon_theme_set(Evas_Object *obj, const char *icon)
 {
    if (icon && (icon[0] == '/'))
      {
-        if (e_icon_file_set(obj, icon)) return 1;
+        e_icon_file_set(obj, icon);
+        return 1;
      }
    if (e_config->icon_theme_overrides)
      {
@@ -695,7 +696,7 @@ e_util_dir_check(const char *dir)
      {
         if (!ecore_file_mkpath(dir))
           {
-             e_util_dialog_show(_("Error creating directory"), _("Failed to create directory: %s .<br>Check that you have correct permissions set."), dir);
+             e_util_dialog_show(_("Error creating directory"), _("Failed to create directory: %s .<ps/>Check that you have correct permissions set."), dir);
              return 0;
           }
      }
@@ -703,7 +704,7 @@ e_util_dir_check(const char *dir)
      {
         if (!ecore_file_is_dir(dir))
           {
-             e_util_dialog_show(_("Error creating directory"), _("Failed to create directory: %s .<br>A file of that name already exists."), dir);
+             e_util_dialog_show(_("Error creating directory"), _("Failed to create directory: %s .<ps/>A file of that name already exists."), dir);
              return 0;
           }
      }
@@ -870,14 +871,14 @@ _e_util_conf_timer_old(void *data)
 {
    char *module_name = data;
    char buf[4096];
-   char *msg = _("Configuration data needed upgrading. Your old configuration<br>"
-                 "has been wiped and a new set of defaults initialized. This<br>"
-                 "will happen regularly during development, so don't report a<br>"
-                 "bug. This means the module needs new configuration<br>"
-                 "data by default for usable functionality that your old<br>"
-                 "configuration lacked. This new set of defaults will fix<br>"
-                 "that by adding it in. You can re-configure things now to your<br>"
-                 "liking. Sorry for the hiccup in your configuration.<br>");
+   char *msg = _("Configuration data needed upgrading. Your old configuration<ps/>"
+                 "has been wiped and a new set of defaults initialized. This<ps/>"
+                 "will happen regularly during development, so don't report a<ps/>"
+                 "bug. This means the module needs new configuration<ps/>"
+                 "data by default for usable functionality that your old<ps/>"
+                 "configuration lacked. This new set of defaults will fix<ps/>"
+                 "that by adding it in. You can re-configure things now to your<ps/>"
+                 "liking. Sorry for the hiccup in your configuration.<ps/>");
 
    snprintf(buf, sizeof(buf), N_("%s Configuration Updated"), module_name);
    e_util_dialog_internal(buf, msg);
@@ -894,14 +895,14 @@ _e_util_conf_timer_new(void *data)
    char *msg =
      _("Your module configuration is NEWER "
        "than the module version. This is "
-       "very<br>strange. This should not happen unless"
-       " you downgraded<br>the module or "
+       "very<ps/>strange. This should not happen unless"
+       " you downgraded<ps/>the module or "
        "copied the configuration from a place where"
-       "<br>a newer version of the module "
-       "was running. This is bad and<br>as a "
+       "<ps/>a newer version of the module "
+       "was running. This is bad and<ps/>as a "
        "precaution your configuration has been now "
-       "restored to<br>defaults. Sorry for the "
-       "inconvenience.<br>");
+       "restored to<ps/>defaults. Sorry for the "
+       "inconvenience.<ps/>");
 
    snprintf(buf, sizeof(buf), _("%s Configuration Updated"), module_name);
    e_util_dialog_internal(buf, msg);
@@ -915,13 +916,13 @@ e_util_module_config_check(const char *module_name, int loaded, int current)
 {
    if (loaded > current)
      {
-        ecore_timer_add(1.0, _e_util_conf_timer_new, strdup(module_name));
+        ecore_timer_loop_add(1.0, _e_util_conf_timer_new, strdup(module_name));
         return EINA_FALSE;
      }
    loaded -= loaded % 1000000, current -= current % 1000000;
    if (loaded < current)
      {
-        ecore_timer_add(1.0, _e_util_conf_timer_old, strdup(module_name));
+        ecore_timer_loop_add(1.0, _e_util_conf_timer_old, strdup(module_name));
         return EINA_FALSE;
      }
 
@@ -1048,8 +1049,8 @@ _e_util_size_debug_stack(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Objec
    fprintf(stderr, "RESTACK %s %d OBJ[%s%s%p]: (%d,%d) - %dx%d\n", evas_object_visible_get(obj) ? "VIS" : "HID", evas_object_layer_get(obj), name ?: "", name ? "|" : "", obj, x, y, w, h);
 }
 
-static void
-_e_util_size_debug(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+E_API void
+e_util_size_debug(Evas_Object *obj)
 {
    int x, y, w, h;
    const char *name;
@@ -1057,6 +1058,12 @@ _e_util_size_debug(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj
    evas_object_geometry_get(obj, &x, &y, &w, &h);
    name = evas_object_name_get(obj);
    fprintf(stderr, "%s %d OBJ[%s%s%p]: (%d,%d) - %dx%d\n", evas_object_visible_get(obj) ? "VIS" : "HID", evas_object_layer_get(obj), name ?: evas_object_type_get(obj), "|", obj, x, y, w, h);
+}
+
+static void
+_e_util_size_debug(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   e_util_size_debug(obj);
 }
 
 E_API void
@@ -1480,7 +1487,21 @@ e_util_open(const char *exe, void *data)
    snprintf(sb, size, "%s/enlightenment_open ", e_prefix_bin_get());
    len = strlen(sb);
    sb = e_util_string_append_quoted(sb, &size, &len, exe);
-   ret = ecore_exe_run(sb, data);
+   ret = e_util_exe_safe_run(sb, data);
    free(sb);
    return ret;
+}
+
+E_API Ecore_Exe *
+e_util_exe_safe_run(const char *cmd, void *data)
+{
+   Ecore_Exe_Flags flags = ECORE_EXE_NONE;
+
+#if (ECORE_VERSION_MAJOR >= 1) && (ECORE_VERSION_MINOR >= 21)
+   flags |= ECORE_EXE_ISOLATE_IO;
+#else
+   flags |= 1024; // isolate_io is bit 10 .... it will be ignored if
+                  // efl doesnt do it, so harmless
+#endif
+   return ecore_exe_pipe_run(cmd, flags, data);
 }

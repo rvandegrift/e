@@ -46,7 +46,7 @@ typedef enum
 /* increment this whenever a new set of config values are added but the users
  * config doesn't need to be wiped - simply new values need to be put in
  */
-#define E_CONFIG_FILE_GENERATION 21
+#define E_CONFIG_FILE_GENERATION 24
 #define E_CONFIG_FILE_VERSION    ((E_CONFIG_FILE_EPOCH * 1000000) + E_CONFIG_FILE_GENERATION)
 
 #define E_CONFIG_BINDINGS_VERSION 0 // DO NOT INCREMENT UNLESS YOU WANT TO WIPE ALL BINDINGS!!!!!
@@ -58,7 +58,7 @@ struct _E_Config
    int         show_splash; // GUI
    const char *desktop_default_background; // GUI
    Eina_List  *desktop_backgrounds; // GUI
-   const char *desktop_default_name;
+   const char *desktop_default_name; // DEAD
    Eina_List  *desktop_names; // GUI
    double      menus_scroll_speed; // GUI
    double      menus_fast_mouse_move_threshhold; // GUI
@@ -221,9 +221,12 @@ struct _E_Config
    int                       screensaver_expose; // GUI
    unsigned char             screensaver_ask_presentation; // GUI
    double                    screensaver_ask_presentation_timeout; // GUI
+   int                       screensaver_desklock_timeout; // GUI
 
    int                       screensaver_wake_on_notify; // GUI
    int                       screensaver_wake_on_urgent; // GUI
+
+   unsigned char             suspend_connected_standby; // GUI
 
    unsigned char             screensaver_suspend; // GUI
    unsigned char             screensaver_suspend_on_ac; // GUI

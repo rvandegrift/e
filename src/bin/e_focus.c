@@ -18,13 +18,13 @@ e_focus_event_mouse_in(E_Client *ec)
    E_FREE_FUNC(ec->raise_timer, ecore_timer_del);
    if (e_config->use_auto_raise)
      {
-        if (e_config->auto_raise_delay == 0.0)
+        if (eina_dbl_exact(e_config->auto_raise_delay, 0.0))
           {
              if (!ec->lock_user_stacking)
                evas_object_raise(ec->frame);
           }
         else
-          ec->raise_timer = ecore_timer_add(e_config->auto_raise_delay, _e_focus_raise_timer, ec);
+          ec->raise_timer = ecore_timer_loop_add(e_config->auto_raise_delay, _e_focus_raise_timer, ec);
      }
 }
 

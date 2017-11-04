@@ -165,6 +165,7 @@ e_desktop_client_create(E_Client *ec)
 
 // disable this
 //   if (ec->netwm.startup_id > 0) desktop->startup_notify = 1;
+#ifndef HAVE_WAYLAND_ONLY
    if (ec->netwm.icons)
      {
         /* FIXME
@@ -180,6 +181,7 @@ e_desktop_client_create(E_Client *ec)
         else
           fprintf(stderr, "Could not save file from ARGB: %s\n", path);
      }
+#endif
    return desktop;
 }
 
@@ -208,12 +210,12 @@ e_desktop_client_edit(E_Client *ec)
    if ((!bname) && (!bclass))
      {
         e_util_dialog_show(_("Incomplete Window Properties"),
-                           _("The window you are creating an icon for<br>"
-                             "does not contain window name and class<br>"
-                             "properties. Without these, you will have to<br>"
-                             "use the window title instead. This will only<br>"
-                             "work if the window title is the same at<br>"
-                             "the time the window starts up, and does not<br>"
+                           _("The window you are creating an icon for<ps/>"
+                             "does not contain window name and class<ps/>"
+                             "properties. Without these, you will have to<ps/>"
+                             "use the window title instead. This will only<ps/>"
+                             "work if the window title is the same at<ps/>"
+                             "the time the window starts up, and does not<ps/>"
                              "change."));
      }
 #endif

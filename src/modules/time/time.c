@@ -119,8 +119,11 @@ time_datestring_format(Instance *inst, char *buf, int bufsz)
         strftime(buf, bufsz, "%F", (const struct tm *)tm);
         break;
       case CLOCK_DATE_DISPLAY_CUSTOM:
+/* disable warning for known-safe code */
+DISABLE_WARNING(format-nonliteral, format-nonliteral, format-nonliteral)
         if (!strftime(buf, bufsz, inst->cfg->time_str[1] ?: default_str, (const struct tm *)tm))
           strncpy(buf, "ERROR", bufsz - 1);
+ENABLE_WARNING(format-nonliteral, format-nonliteral, format-nonliteral)
         break;
       default: break;
      }
@@ -141,8 +144,11 @@ time_string_format(Instance *inst, char *buf, int bufsz)
    tt = (time_t)(timev.tv_sec);
    tm = localtime(&tt);
    TZUNSET();
+/* disable warning for known-safe code */
+DISABLE_WARNING(format-nonliteral, format-nonliteral, format-nonliteral)
    if (!strftime(buf, bufsz, inst->cfg->time_str[0] ?: default_fmt, (const struct tm *)tm))
      strncpy(buf, "ERROR", bufsz - 1);
+ENABLE_WARNING(format-nonliteral, format-nonliteral, format-nonliteral)
    return tm->tm_sec;
 }
 
@@ -270,10 +276,17 @@ _update_today_timer(void *data EINA_UNUSED)
 
    t_tomorrow = mktime(&today) + 24 * 60 * 60;
    if (update_today) ecore_timer_interval_set(update_today, t_tomorrow - t);
-   else update_today = ecore_timer_add(t_tomorrow - t, _update_today_timer, NULL);
+   else update_today = ecore_timer_loop_add(t_tomorrow - t, _update_today_timer, NULL);
+   clock_date_update();
    return EINA_TRUE;
 }
 
+static void
+_time_changed(void)
+{
+   _update_today_timer(NULL);
+   clock_instances_redo();
+}
 
 static Eina_Bool
 _clock_eio_update(void *d EINA_UNUSED, int type EINA_UNUSED, void *event)
@@ -286,7 +299,9 @@ _clock_eio_update(void *d EINA_UNUSED, int type EINA_UNUSED, void *event)
      {
         if (eina_streq(ev->filename, "/etc/localtime") ||
             eina_streq(ev->filename, "/etc/timezone"))
-          clock_instances_redo();
+          {
+             _time_changed();
+          }
      }
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -294,7 +309,7 @@ _clock_eio_update(void *d EINA_UNUSED, int type EINA_UNUSED, void *event)
 static Eina_Bool
 _clock_time_update(void *d EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
 {
-   clock_instances_redo();
+   _time_changed();
    return ECORE_CALLBACK_PASS_ON;
 }
 

@@ -165,7 +165,7 @@ notification_popup_notify(E_Notification_Notify *n,
 
 
    if (n->timeout > 0)
-     popup->timer = ecore_timer_add(n->timeout, (Ecore_Task_Cb)_notification_timer_cb, popup);
+     popup->timer = ecore_timer_loop_add(n->timeout, (Ecore_Task_Cb)_notification_timer_cb, popup);
 }
 
 void
@@ -470,12 +470,11 @@ _notification_popup_refresh(Popup_Data *popup)
              if (!popup->app_icon)
                {
                   popup->app_icon = e_icon_add(popup->e);
-                  if (!e_icon_file_set(popup->app_icon, uri ? uri->path : icon_path))
-                    {
-                       evas_object_del(popup->app_icon);
-                       popup->app_icon = NULL;
-                    }
-                  else e_icon_size_get(popup->app_icon, &w, &h);
+                  e_icon_file_set(popup->app_icon, uri ? uri->path : icon_path);
+                  // XXX: FIXME: this disallows for async to work
+                  // e_icon_size_get(popup->app_icon, &w, &h);
+                  w = width;
+                  h = height;
                }
              efreet_uri_free(uri);
           }
@@ -601,7 +600,7 @@ _notification_format_message(Popup_Data *popup)
    edje_object_part_text_unescaped_set(o, "notification.text.title",
                              popup->notif->summary);
    /* FIXME: Filter to only include allowed markup? */
-   /* We need to replace \n with <br>. FIXME: We need to handle all the
+   /* We need to replace \n with <ps/>. FIXME: We need to handle all the
    * newline kinds, and paragraph separator. ATM this will suffice. */
    eina_strbuf_append(buf, popup->notif->body);
    eina_strbuf_replace_all(buf, "\n", "<br/>");

@@ -1,14 +1,14 @@
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_define([v_maj], [0])
-m4_define([v_min], [21])
-m4_define([v_mic], [9])
+m4_define([v_min], [22])
+m4_define([v_mic], [0])
 m4_define([v_rev], m4_esyscmd([(git rev-list --count HEAD 2>/dev/null || echo 0) | tr -d '\n']))dnl
 ##--   When released, remove the dnl on the below line
 m4_undefine([v_rev])
-m4_define([relname], [0.21.9])
+m4_define([relname], [0.22.0])
 ##--   When doing snapshots - change soname. remove dnl on below line
-m4_define([relname], [ver-0.21])
+m4_define([relname], [0.22])
 dnl m4_define([v_rel], [-release relname])
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_ifdef([v_rev], [m4_define([v_ver], [v_maj.v_min.v_mic.v_rev])], [m4_define([v_ver], [v_maj.v_min.v_mic])])
@@ -34,7 +34,7 @@ AH_BOTTOM([
 #endif /* EFL_CONFIG_H__ */
 ])
 
-AM_INIT_AUTOMAKE([1.11 dist-xz -Wno-portability])
+AM_INIT_AUTOMAKE([1.11 dist-xz -Wno-portability tar-ustar])
 AM_SILENT_RULES([yes])
 
 AC_USE_SYSTEM_EXTENSIONS
@@ -91,8 +91,12 @@ extern char **environ;
 AC_DEFINE(HAVE_ENVIRON, 1, [Have environ var])
     ])
 
-efl_version="1.17.0"
+efl_version="1.20.5"
 AC_SUBST(efl_version)
+
+#We use ecore_drm2 beta API
+efl_ecore_drm2_version="1.20.5"
+AC_SUBST(efl_ecore_drm2_version)
 
 AC_CHECK_HEADERS([sys/timerfd.h sys/ptrace.h arpa/inet.h netinet/in.h])
 
@@ -174,10 +178,10 @@ AC_SUBST([PACKAGE_SYSCONF_DIR])
 #######################################
 ## Simple X11 build/link
 
-AC_ARG_ENABLE(simple-x11,
-  AS_HELP_STRING([--enable-simple-x11], [enable simple x11 linking]),
-  [ want_evas_simple_x11=$enableval ]
-)
+##AC_ARG_ENABLE(simple-x11,
+##  AS_HELP_STRING([--enable-simple-x11], [enable simple x11 linking]),
+##  [ want_evas_simple_x11=$enableval ]
+##)
     
 dnl x_dir=""
 dnl x_cflags=""
@@ -467,13 +471,16 @@ PKG_CHECK_MODULES(E_REMOTE, [
 
 PKG_CHECK_MODULES(E_START, [
   eina >= ${efl_version}
-  evas >= ${efl_version}
 ])
 
 PKG_CHECK_MODULES(E_IMC, [
   ecore-file >= ${efl_version}
   eet >= ${efl_version}
   eina >= ${efl_version}
+])
+
+PKG_CHECK_MODULES(E_ASKPASS, [
+  elementary >= ${efl_version}
 ])
 
 PKG_CHECK_MODULES(E_THUMB, [
@@ -581,7 +588,6 @@ EDJE_DEF=$EDJE_DEF" -DE_PROFILE"=$profile
 AC_SUBST([EDJE_DEF])
 
 PKG_CHECK_MODULES(EET, [eet >= ${efl_version}])
-EFL_WITH_BIN([edje], [edje-cc], [edje_cc])
 EFL_WITH_BIN([eet], [eet-eet], [eet])
 EFL_WITH_BIN([eldbus], [eldbus_codegen], [eldbus-codegen])
 
@@ -589,6 +595,8 @@ AC_DEFINE(E_INTERNAL, 1, "This define can be used to wrap internal E stuff, as c
 
 have_openbsd="no"
 have_freebsd="no"
+have_dragonfly="no"
+have_netbsd="no"
 BATTERY_LDFLAGS=
 case "$host_os" in
   darwin*)
@@ -598,15 +606,23 @@ case "$host_os" in
   openbsd*)
     have_openbsd="yes"
   ;;
+  netbsd*)
+    have_netbsd="yes"
+  ;;
   freebsd*)
     have_freebsd="yes"
+  ;;
+  dragonfly*)
+    have_dragonfly="yes"
   ;;
 esac
 
 AC_SUBST([BATTERY_CFLAGS])
 AC_SUBST([BATTERY_LDFLAGS])
 AM_CONDITIONAL([HAVE_OPENBSD], [test "x${have_openbsd}" = "xyes"])
+AM_CONDITIONAL([HAVE_NETBSD], [test "x${have_netbsd}" = "xyes"])
 AM_CONDITIONAL([HAVE_FREEBSD], [test "x${have_freebsd}" = "xyes"])
+AM_CONDITIONAL([HAVE_DRAGONFLY], [test "x${have_dragonfly}" = "xyes"])
 
 ##have_exchange=no
 ##AC_ARG_ENABLE(exchange,
@@ -665,40 +681,27 @@ AC_SUBST(SHM_OPEN_LIBS)
 AC_SUBST([SOUND_CFLAGS])
 AC_SUBST([SOUND_LIBS])
 
-have_wayland_egl=no
-AC_ARG_ENABLE([wayland-egl],
-  AS_HELP_STRING([--enable-wayland-egl],[enable wayland to render using EGL @<:@default=disabled@:>@]),
-  [e_cv_want_wayland_egl=$enableval],
-  [e_cv_want_wayland_egl=no])
-AC_MSG_CHECKING([whether wayland EGL support is enabled])
-AC_MSG_RESULT([${e_cv_want_wayland_egl}])
-
 if test "x${e_cv_want_wayland_only}" != "xno" ;then
-  PKG_CHECK_MODULES([WAYLAND], [ecore-wl2 >= 1.18 wayland-server >= 1.11.0 wayland-client >= 1.11.0 xkbcommon uuid],
+  PKG_CHECK_MODULES([WAYLAND], [ecore-wl2 >= 1.18 wayland-server >= 1.11.0 wayland-client >= 1.11.0 wayland-protocols >= 1.9 wayland-scanner >= 1.11.0 xkbcommon uuid],
     [
       have_wayland=yes
       have_wayland_dep=true
+      AC_ARG_VAR([wayland_scanner], [The wayland-scanner executable])
+      AC_PATH_PROG([wayland_scanner], [wayland-scanner])
+      if test x$wayland_scanner = x; then
+        PKG_CHECK_MODULES(WAYLAND_SCANNER, [wayland-scanner])
+        wayland_scanner=`$PKG_CONFIG --variable=wayland_scanner wayland-scanner`
+      fi
+      ac_wayland_protocols_pkgdatadir=`$PKG_CONFIG --variable=pkgdatadir wayland-protocols`
+      AC_SUBST(WAYLAND_PROTOCOLS_DATADIR, $ac_wayland_protocols_pkgdatadir)
+      AC_SUBST(WAYLAND, "true")
       AC_DEFINE_UNQUOTED([HAVE_WAYLAND],[1],[enable wayland support])
     ])
 else
   have_wayland=no
 fi
 
-if test "x${have_wayland}" = "xyes"; then
-  if test "x${e_cv_want_wayland_egl}" != "xno";then
-    PKG_CHECK_MODULES([WAYLAND_EGL], [egl >= 7.10],
-      [
-        have_wayland_egl=yes
-        AC_DEFINE_UNQUOTED([HAVE_WAYLAND_EGL],[1],[enable wayland client EGL support])
-      ],
-      [have_wayland_egl=no])
-  else
-    have_wayland_egl=no
-  fi
-fi
-
 AM_CONDITIONAL([HAVE_WAYLAND], [test "x${have_wayland}" = "xyes"])
-AM_CONDITIONAL([HAVE_WAYLAND_EGL], [test "x${have_wayland_egl}" = "xyes"])
 
 if test "x${e_cv_want_wayland_only}" != "xyes"; then
   PKG_CHECK_MODULES([ECORE_X], [ecore-x >= ${efl_version}])
@@ -733,6 +736,17 @@ define([CHECK_MODULE_WL_WL],
 ])
 AM_CONDITIONAL([HAVE_WL_WL], [test "x${WL_WL}" = "xtrue"])
 
+WL_BUFFER=false
+define([CHECK_MODULE_WL_BUFFER],
+[
+  if test "x${have_wayland}" = "xyes"; then
+    WL_BUFFER=true
+  else
+    WL_BUFFER=false
+  fi
+])
+AM_CONDITIONAL([HAVE_WL_BUFFER], [test "x${WL_BUFFER}" = "xtrue"])
+
 WL_DESKTOP_SHELL=false
 define([CHECK_MODULE_WL_DESKTOP_SHELL],
 [
@@ -759,15 +773,14 @@ WL_DRM=false
 define([CHECK_MODULE_WL_DRM],
 [
   if test "x${have_wayland}" = "xyes" ; then
-    PKG_CHECK_EXISTS([ecore-drm2 >= $efl_version], [have_ecore_drm2="yes"], [have_ecore_drm2="no"])
+    PKG_CHECK_EXISTS([ecore-drm2 >= $efl_ecore_drm2_version], [have_ecore_drm2="yes"], [have_ecore_drm2="no"])
     if test "x${have_ecore_drm2}" = "xyes"; then
-      AC_E_CHECK_PKG(WL_DRM, [ ecore-drm2 >= $efl_version ecore >= $efl_version eina >= $efl_version ],
+      AC_E_CHECK_PKG(WL_DRM, [ ecore-drm2 >= $efl_ecore_drm2_version elput >= $efl_version ecore >= $efl_version eina >= $efl_version ],
         [
           WL_DRM=true
-          AC_DEFINE_UNQUOTED([HAVE_DRM2],[1],[enable ecore-drm2 support])
         ], [WL_DRM=false])
     else
-      AC_E_CHECK_PKG(WL_DRM, [ ecore-drm >= $efl_version ], [WL_DRM=true], [WL_DRM=false])
+      WL_DRM=false
     fi
   else
     WL_DRM=false
@@ -866,15 +879,16 @@ AC_E_OPTIONAL_MODULE([packagekit], true)
 AC_E_OPTIONAL_MODULE([wl_desktop_shell], $have_wayland_dep)
 AC_E_OPTIONAL_MODULE([wl_x11], $have_wayland_dep, [CHECK_MODULE_WL_X11])
 AC_E_OPTIONAL_MODULE([wl_wl], $have_wayland_dep)
+AC_E_OPTIONAL_MODULE([wl_buffer], $have_wayland_dep)
 #AC_E_OPTIONAL_MODULE([wl_fb], $have_wayland_dep, [CHECK_MODULE_WL_FB])
 AC_E_OPTIONAL_MODULE([wl_drm], $have_wayland_dep, [CHECK_MODULE_WL_DRM])
 AC_E_OPTIONAL_MODULE([wl_text_input], $have_wayland_dep)
 AC_E_OPTIONAL_MODULE([wl_weekeyboard], $have_wayland_dep)
-AC_E_OPTIONAL_MODULE([policy_mobile], true)
 AC_E_OPTIONAL_MODULE([geolocation], true)
 AC_E_OPTIONAL_MODULE([xwayland], $have_wayland_dep, [CHECK_MODULE_XWAYLAND])
 AC_E_OPTIONAL_MODULE([wireless], true)
 AC_E_OPTIONAL_MODULE([time], true)
+AC_E_OPTIONAL_MODULE([sysinfo], true)
 
 if test "x${HAVE_WL_X11}" != "xyes" && test "x${have_wayland}" = "xyes" && test "x${HAVE_XWAYLAND}" != "xyes"; then
   AC_DEFINE_UNQUOTED([HAVE_WAYLAND_ONLY],[1],[enable wayland-only version of enlightenment])
@@ -887,35 +901,28 @@ AM_CONDITIONAL([HAVE_WAYLAND_ONLY], [test "x${have_wayland_only}" = "xyes"])
 
 e_alert_requires="\
   evas >= $efl_version \
-  ecore >= $efl_version \
-  xcb \
-  xcb-shape \
-  xcb-keysyms \
   eina >= ${efl_version} \
   ecore >= ${efl_version} \
   ecore-ipc >= ${efl_version}"
 
 if test "x${have_wayland}" = "xyes"; then
   if test "x${HAVE_WL_DRM}" = "xyes"; then
-    if test "x${have_ecore_drm2}" = "xyes"; then
       e_alert_requires="\
         $e_alert_requires \
         ecore-input >= ${efl_version} \
-        ecore-drm2 >= ${efl_version} \
-        evas >= ${efl_version}"
-    else
-      e_alert_requires="\
-        $e_alert_requires \
-        ecore-input >= ${efl_version} \
-        ecore-drm >= ${efl_version} \
-        evas >= ${efl_version}"
-    fi
+        ecore-drm2 >= ${efl_ecore_drm2_version}"
  fi
 fi
 
 if test "x${have_wayland_only}" != "xyes"; then
-  PKG_CHECK_MODULES(E_ALERT, [$e_alert_requires])
+  e_alert_requires="\
+    $e_alert_requires \
+    xcb \
+    xcb-shape \
+    xcb-keysyms"
 fi
+
+PKG_CHECK_MODULES(E_ALERT, [$e_alert_requires])
 
 if test "x${have_wayland_only}" != "xyes"; then
   e_requires="$e_requires ecore-x >= $efl_version"
@@ -948,12 +955,10 @@ if test "x${have_wayland_only}" != "xyes"; then
 fi
 
 e_libs="$E_LIBS $LIBINTL $fnmatch_libs $execinfo_libs"
-e_cflags="-DUSE_E_CONFIG_H $E_CFLAGS"
-e_configflags="-DUSE_E_CONFIG_H"
+e_cflags="$E_CFLAGS"
 
 AC_SUBST([e_libs])
 AC_SUBST([e_cflags])
-AC_SUBST([e_configflags])
 AC_SUBST([requirements_e])
 
 HALT="/sbin/shutdown -h now"
@@ -1005,18 +1010,19 @@ AC_SUBST([MOUNT])
 AC_SUBST([UMOUNT])
 AC_SUBST([EJECT])
 
-m4_ifndef([v_rel],
+m4_ifdef([v_rev],
    [
-    EFL_COMPILER_FLAG([-Wshadow])
     EFL_COMPILER_FLAG([-Wall])
-    EFL_COMPILER_FLAG([-Wpointer-arith])
     EFL_COMPILER_FLAG([-W])
+    EFL_COMPILER_FLAG([-Wpointer-arith])
+    EFL_COMPILER_FLAG([-Wshadow])
     EFL_COMPILER_FLAG([-Wno-missing-field-initializers])
     EFL_COMPILER_FLAG([-Wfloat-equal])
     EFL_COMPILER_FLAG([-Wuninitialized])
     EFL_COMPILER_FLAG([-Wundef])
     EFL_COMPILER_FLAG([-Wcast-align])
     EFL_COMPILER_FLAG([-Wformat=2])
+    EFL_COMPILER_FLAG([-Wno-format-y2k])
    ])
 
 SUID_CFLAGS=
@@ -1050,61 +1056,10 @@ AC_SUBST([SUID_LDFLAGS])
 
 AC_OUTPUT([
 Makefile
-enlightenment.spec
 enlightenment.pc
 src/bin/e_fm_shared_types.h
-src/modules/ibar/module.desktop
-src/modules/clock/module.desktop
-src/modules/pager/module.desktop
-src/modules/pager_plain/module.desktop
-src/modules/battery/module.desktop
-src/modules/temperature/module.desktop
-src/modules/notification/module.desktop
-src/modules/cpufreq/module.desktop
-src/modules/ibox/module.desktop
-src/modules/start/module.desktop
-src/modules/winlist/module.desktop
-src/modules/fileman/module.desktop
-src/modules/fileman_opinfo/module.desktop
-src/modules/conf/module.desktop
-src/modules/conf_theme/module.desktop
-src/modules/conf_intl/module.desktop
-src/modules/conf_applications/module.desktop
-src/modules/conf_display/module.desktop
-src/modules/conf_shelves/module.desktop
-src/modules/conf_bindings/module.desktop
-src/modules/conf_window_remembers/module.desktop
-src/modules/conf_window_manipulation/module.desktop
-src/modules/conf_menus/module.desktop
-src/modules/conf_dialogs/module.desktop
-src/modules/conf_performance/module.desktop
-src/modules/conf_paths/module.desktop
-src/modules/conf_interaction/module.desktop
-src/modules/msgbus/module.desktop
-src/modules/conf_randr/module.desktop
-src/modules/gadman/module.desktop
-src/modules/mixer/module.desktop
-src/modules/connman/module.desktop
-src/modules/bluez4/module.desktop
-src/modules/syscon/module.desktop
-src/modules/everything/module.desktop
 src/modules/everything/everything.pc
-src/modules/systray/module.desktop
-src/modules/appmenu/module.desktop
-src/modules/quickaccess/module.desktop
-src/modules/teamwork/module.desktop
-src/modules/shot/module.desktop
-src/modules/backlight/module.desktop
-src/modules/geolocation/module.desktop
-src/modules/tasks/module.desktop
-src/modules/xkbswitch/module.desktop
-src/modules/tiling/module.desktop
-src/modules/music-control/module.desktop
-src/modules/packagekit/module.desktop
-src/modules/wl_desktop_shell/module.desktop
-src/modules/wireless/module.desktop
-src/modules/time/module.desktop
-data/xsession/enlightenment.desktop
+data/session/enlightenment.desktop
 data/etc/sysactions.conf
 data/units/enlightenment.service
 doc/Doxyfile
@@ -1124,7 +1079,6 @@ Summary:
  * prefix..........: $(txt_strip $prefix)
  * CFLAGS..........: $(txt_strip $CFLAGS)
  * LDFLAGS.........: $(txt_strip $LDFLAGS)
- * edje_cc.........: ${edje_cc}
  * eet.............: ${eet_eet}
  * eldbus-codegen..: ${eldbus_codegen}
 SUMMARY_EOF

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#ifdef HAVE_DRM2
+#ifdef HAVE_WL_DRM
 # define EFL_BETA_API_SUPPORT
 #endif
 
@@ -15,29 +15,22 @@
 #include <Eina.h>
 #include <Ecore.h>
 #include <Ecore_Ipc.h>
-#include <dlfcn.h>
+#ifndef HAVE_WAYLAND_ONLY
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/shape.h>
 #include <X11/keysym.h>
-
-#define E_EFL_VERSION_MINIMUM(MAJ, MIN, MIC) \
-  ((eina_version->major > MAJ) || (eina_version->minor > MIN) ||\
-   ((eina_version->minor == MIN) && (eina_version->micro >= MIC)))
-
+#endif
 #ifdef HAVE_WL_DRM
 # include <Ecore_Input.h>
-# ifdef HAVE_DRM2
-#  include <Ecore_Drm2.h>
-# else
-#  include <Ecore_Drm.h>
-# endif
+# include <Ecore_Drm2.h>
 # include <Evas.h>
 # include <Evas_Engine_Buffer.h>
+# include "e_drm2.x"
 #endif
 
 #ifdef HAVE_WL_DRM
-# ifdef HAVE_DRM2
+
 /* DRM_FORMAT_XRGB8888 and fourcc_code borrowed from <drm_fourcc.h>
  *
  * Copyright 2011 Intel Corporation
@@ -61,17 +54,17 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#  define fourcc_code(a, b, c, d) \
+# define fourcc_code(a, b, c, d) \
    ((uint32_t)(a) | ((uint32_t)(b) << 8) | \
        ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
-#  define DRM_FORMAT_XRGB8888 \
+# define DRM_FORMAT_XRGB8888 \
    fourcc_code('X', 'R', '2', '4') /* [31:0] x:R:G:B 8:8:8:8 little endian */
-# endif
 #endif
 
 #define WINDOW_WIDTH   320
 #define WINDOW_HEIGHT  240
 
+#ifndef HAVE_WAYLAND_ONLY
 #ifndef XCB_ATOM_NONE
 # define XCB_ATOM_NONE 0
 #endif
@@ -105,9 +98,9 @@ static xcb_window_t btn2 = 0;
 static xcb_font_t font = 0;
 static xcb_gcontext_t gc = 0;
 static int fa = 0, fw = 0;
+#endif
 static int sw = 0, sh = 0;
 static int fh = 0;
-
 static const char *title = NULL, *str1 = NULL, *str2 = NULL;
 static int ret = 0, sig = 0;
 static pid_t pid;
@@ -376,11 +369,9 @@ _e_alert_drm_run(void)
    ecore_main_loop_begin();
 }
 
-#  ifdef HAVE_DRM2
 static Ecore_Drm2_Device *dev = NULL;
 static Ecore_Drm2_Fb *buffer = NULL;
 static Ecore_Drm2_Output *output = NULL;
-static int fd = 0;
 
 static int
 _e_alert_drm_connect(void)
@@ -393,25 +384,19 @@ _e_alert_drm_connect(void)
         return 0;
      }
 
-   if (!ecore_drm2_init())
+   if (!e_drm2_compat_init() || !ecore_drm2_init())
      {
         printf("\tCannot init ecore_drm\n");
         return 0;
      }
 
-   dev = ecore_drm2_device_find("seat0", 0);
+   dev = e_drm2_device_open("seat0", 0);
    if (!dev)
      {
         printf("\tCannot find drm device\n");
         return 0;
      }
 
-   fd = ecore_drm2_device_open(dev);
-   if (fd < 0)
-     {
-        printf("\tCannot open drm device\n");
-        return 0;
-     }
 
    if (!ecore_drm2_outputs_create(dev))
      {
@@ -420,7 +405,7 @@ _e_alert_drm_connect(void)
      }
 
    output = ecore_drm2_output_find(dev, 0, 0);
-   if (output) ecore_drm2_output_crtc_size_get(output, &sw, &sh);
+   if (output) e_drm2_output_info_get(output, NULL, NULL, &sw, &sh, NULL);
    fprintf(stderr, "\tOutput Size: %d %d\n", sw, sh);
 
    ecore_event_handler_add(ECORE_EVENT_KEY_DOWN,
@@ -439,7 +424,7 @@ _e_alert_drm_create(void)
 
    fh = 13;
 
-   buffer = ecore_drm2_fb_create(fd, sw, sh, 24, 32, DRM_FORMAT_XRGB8888);
+   buffer = e_drm2_fb_create(dev, sw, sh, 24, 32, DRM_FORMAT_XRGB8888);
 
    method = evas_render_method_lookup("buffer");
    if (method <= 0)
@@ -493,17 +478,7 @@ _e_alert_drm_display(void)
    updates = evas_render_updates(canvas);
    evas_render_updates_free(updates);
 
-#ifdef EFL_VERSION_1_19
    ecore_drm2_fb_flip(buffer, output);
-#else
-   if (E_EFL_VERSION_MINIMUM(1, 18, 99))
-     {
-        void (*fn)(void*, void*) = dlsym(NULL, "ecore_drm2_fb_flip");
-        if (fn) fn(buffer, output);
-     }
-   else
-     ecore_drm2_fb_flip(buffer, output, NULL);
-#endif
 }
 
 static void
@@ -516,167 +491,14 @@ _e_alert_drm_shutdown(void)
    if (dev)
      {
         ecore_drm2_outputs_destroy(dev);
-        ecore_drm2_device_close(dev);
-        ecore_drm2_device_free(dev);
+        e_drm2_device_close(dev);
      }
 
    ecore_drm2_shutdown();
    evas_shutdown();
+   e_drm2_compat_shutdown();
 }
 
-#  else
-static Ecore_Drm_Device *dev = NULL;
-static Ecore_Drm_Fb *buffer;
-
-static int
-_e_alert_drm_connect(void)
-{
-   fprintf(stderr, "E_Alert Drm Connect\n");
-
-   if (!evas_init())
-     {
-        printf("\tCannot init evas\n");
-        return 0;
-     }
-
-   if (!ecore_drm_init())
-     {
-        printf("\tCannot init ecore_drm\n");
-        return 0;
-     }
-
-   dev = ecore_drm_device_find(NULL, NULL);
-   if (!dev)
-     {
-        printf("\tCannot find drm device\n");
-        return 0;
-     }
-
-   if (!ecore_drm_launcher_connect(dev))
-     {
-        printf("\tCannot connect to drm device\n");
-        return 0;
-     }
-
-   if (!ecore_drm_device_open(dev))
-     {
-        printf("\tCannot open drm device\n");
-        return 0;
-     }
-
-   if (!ecore_drm_outputs_create(dev))
-     {
-        printf("\tCannot create drm outputs\n");
-        return 0;
-     }
-
-   if (!ecore_drm_inputs_create(dev))
-     {
-        printf("\tCannot create drm inputs\n");
-        return 0;
-     }
-
-   ecore_drm_outputs_geometry_get(dev, NULL, NULL, &sw, &sh);
-   fprintf(stderr, "\tOutput Size: %d %d\n", sw, sh);
-
-   ecore_event_handler_add(ECORE_EVENT_KEY_DOWN,
-                           _e_alert_drm_cb_key_down, NULL);
-
-   return 1;
-}
-
-static void
-_e_alert_drm_create(void)
-{
-   int method = 0;
-
-   fprintf(stderr, "E_Alert Drm Create\n");
-
-   fh = 13;
-
-   if (!ecore_drm_device_software_setup(dev))
-     {
-        printf("\tFailed to setup software mode\n");
-        return;
-     }
-
-   buffer = ecore_drm_fb_create(dev, sw, sh);
-   memset(buffer->mmap, 0, buffer->size);
-
-   method = evas_render_method_lookup("buffer");
-   if (method <= 0)
-     {
-        fprintf(stderr, "\tCould not get evas render method\n");
-        return;
-     }
-
-   canvas = evas_new();
-   if (!canvas)
-     {
-        fprintf(stderr, "\tFailed to create new canvas\n");
-        return;
-     }
-
-   evas_output_method_set(canvas, method);
-   evas_output_size_set(canvas, sw, sh);
-   evas_output_viewport_set(canvas, 0, 0, sw, sh);
-
-   Evas_Engine_Info_Buffer *einfo;
-   einfo = (Evas_Engine_Info_Buffer *)evas_engine_info_get(canvas);
-   if (!einfo)
-     {
-        printf("\tFailed to get evas engine info\n");
-        evas_free(canvas);
-        return;
-     }
-
-   einfo->info.depth_type = EVAS_ENGINE_BUFFER_DEPTH_ARGB32;
-   einfo->info.dest_buffer = buffer->mmap;
-   einfo->info.dest_buffer_row_bytes = (sw * sizeof(int));
-   einfo->info.use_color_key = 0;
-   einfo->info.alpha_threshold = 0;
-   einfo->info.func.new_update_region = NULL;
-   einfo->info.func.free_update_region = NULL;
-   evas_engine_info_set(canvas, (Evas_Engine_Info *)einfo);
-
-   _e_alert_drm_draw_outline();
-   _e_alert_drm_draw_title_outline();
-   _e_alert_drm_draw_title();
-   _e_alert_drm_draw_text();
-   _e_alert_drm_draw_button_outlines();
-}
-
-static void
-_e_alert_drm_display(void)
-{
-   Eina_List *updates;
-
-   printf("E_Alert Drm Display\n");
-
-   updates = evas_render_updates(canvas);
-   evas_render_updates_free(updates);
-
-   ecore_drm_fb_send(dev, buffer, NULL, NULL);
-}
-
-static void
-_e_alert_drm_shutdown(void)
-{
-   printf("E_Alert Drm Shutdown\n");
-
-   evas_free(canvas);
-
-   if (dev)
-     {
-        ecore_drm_device_close(dev);
-        ecore_drm_launcher_disconnect(dev);
-        ecore_drm_device_free(dev);
-     }
-
-   ecore_drm_shutdown();
-   evas_shutdown();
-}
-#  endif
 #endif
 
 int
@@ -739,8 +561,11 @@ main(int argc, char **argv)
         _e_alert_drm_run();
         _e_alert_drm_shutdown();
      }
+#endif
+#if defined(HAVE_WL_DRM) && !defined(HAVE_WAYLAND_ONLY)
    else
 #endif
+#ifndef HAVE_WAYLAND_ONLY
      {
         if (!_e_alert_connect())
           {
@@ -753,14 +578,14 @@ main(int argc, char **argv)
         _e_alert_run();
         _e_alert_shutdown();
      }
-
+#endif
    ecore_shutdown();
 
    /* ret == 1 => restart e => exit code 1 */
    /* ret == 2 => exit e => any code will do that */
    return ret;
 }
-
+#ifndef HAVE_WAYLAND_ONLY
 /* local functions */
 static int
 _e_alert_connect(void)
@@ -1311,3 +1136,4 @@ _e_alert_draw_button_text(void)
 
    xcb_image_text_8(conn, strlen(str2), btn2, gc, x, (10 + fa), str2);
 }
+#endif

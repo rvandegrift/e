@@ -92,9 +92,10 @@ e_winlist_show(E_Zone *zone, E_Winlist_Filter filter)
 {
    int x, y, w, h;
    Evas_Object *o;
-   Eina_List *l;
+   Eina_List *l, *ll;
    E_Desk *desk;
    E_Client *ec;
+   E_Winlist_Win *ww;
    Eina_List *wmclasses = NULL;
 
    E_OBJECT_CHECK_RETURN(zone, 0);
@@ -169,6 +170,14 @@ e_winlist_show(E_Zone *zone, E_Winlist_Filter filter)
    EINA_LIST_FOREACH(e_client_focus_stack_get(), l, ec)
      {
         Eina_Bool pick;
+
+        // skip if we already have it in winlist
+        EINA_LIST_FOREACH(_wins, ll, ww)
+          {
+             if (e_client_stack_bottom_get(ww->client) ==
+                 e_client_stack_bottom_get(ec)) break;
+          }
+        if (ll) continue;
         switch (filter)
           {
            case E_WINLIST_FILTER_CLASS_WINDOWS:
@@ -208,8 +217,6 @@ e_winlist_show(E_Zone *zone, E_Winlist_Filter filter)
 
    if ((eina_list_count(_wins) > 1))
      {
-        E_Winlist_Win *ww;
-
         ww = eina_list_data_get(_win_selected);
         if (ww && (ww->client == _last_client))
           e_winlist_next();
@@ -371,18 +378,18 @@ e_winlist_prev(void)
 static int
 point_line_dist(int x, int y, int lx1, int ly1, int lx2, int ly2)
 {
-   double xx, yy, dx, dy, dist;
-   double a = x - lx1;
-   double b = y - ly1;
-   double c = lx2 - lx1;
-   double d = ly2 - ly1;
+   int xx, yy, dx, dy;
+   int a = x - lx1;
+   int b = y - ly1;
+   int c = lx2 - lx1;
+   int d = ly2 - ly1;
 
-   double dot = (a * c) + (b * d);
-   double len_sq = (c * c) + (d * d);
-   double param = -1;
+   int dot = (a * c) + (b * d);
+   int len_sq = (c * c) + (d * d);
+   double dist, param = -1.0;
 
    // if line is 0 length
-   if (len_sq != 0) param = dot / len_sq;
+   if (len_sq) param = (double)dot / len_sq;
 
    if (param < 0)
      {
@@ -396,14 +403,14 @@ point_line_dist(int x, int y, int lx1, int ly1, int lx2, int ly2)
      }
    else
      {
-        xx = lx1 + (param * c);
-        yy = ly1 + (param * d);
+        xx = lx1 + lround(param * c);
+        yy = ly1 + lround(param * d);
    }
 
    dx = x - xx;
    dy = y - yy;
    dist = sqrt((dx * dx) + (dy * dy));
-   return (int)dist;
+   return lround(dist);
 }
 
 void
@@ -649,7 +656,9 @@ _e_winlist_client_add(E_Client *ec, E_Zone *zone, E_Desk *desk)
    ww->bg_object = o;
    e_theme_edje_object_set(o, "base/theme/winlist",
                            "e/widgets/winlist/item");
-   edje_object_part_text_set(o, "e.text.label", e_client_util_name_get(ww->client));
+   edje_object_part_text_set(o, "e.text.label",
+                             e_client_util_name_get
+                             (e_client_stack_active_adjust(ww->client)));
    evas_object_show(o);
    if (edje_object_part_exists(ww->bg_object, "e.swallow.icon"))
      {
@@ -713,6 +722,30 @@ _e_winlist_client_del(E_Client *ec)
 }
 
 static void
+_e_winlist_client_replace(E_Client *ec, E_Client *ec_new)
+{
+   E_Winlist_Win *ww;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(_wins, l, ww)
+     {
+        if (ww->client == ec)
+          {
+             Evas_Coord mw, mh;
+
+             edje_object_part_text_set(ww->bg_object, "e.text.label",
+                                       e_client_util_name_get(ec_new));
+             edje_object_size_min_calc(ww->bg_object, &mw, &mh);
+             E_WEIGHT(ww->bg_object, 1, 0);
+             E_FILL(ww->bg_object);
+             evas_object_size_hint_min_set(ww->bg_object, mw, mh);
+             evas_object_size_hint_max_set(ww->bg_object, 9999, mh);
+             return;
+          }
+     }
+}
+
+static void
 _e_winlist_activate_nth(int n)
 {
    Eina_List *l;
@@ -740,8 +773,7 @@ _e_winlist_activate(void)
    ww = _win_selected->data;
    edje_object_signal_emit(ww->bg_object, "e,state,selected", "e");
    if (ww->icon_object && e_icon_edje_get(ww->icon_object))
-     edje_object_signal_emit(e_icon_edje_get(ww->icon_object),
-                             "e,state,selected", "e");
+     e_icon_edje_emit(ww->icon_object, "e,state,selected", "e");
 
    if ((ww->client->iconic) &&
        (e_config->winlist_list_uncover_while_selecting))
@@ -835,8 +867,7 @@ _e_winlist_deactivate(void)
    edje_object_part_text_set(_bg_object, "e.text.label", "");
    edje_object_signal_emit(ww->bg_object, "e,state,unselected", "e");
    if (ww->icon_object && e_icon_edje_get(ww->icon_object))
-     edje_object_signal_emit(e_icon_edje_get(ww->icon_object),
-                             "e,state,unselected", "e");
+     e_icon_edje_emit(ww->icon_object, "e,state,unselected", "e");
    if (!ww->client->lock_focus_in)
      evas_object_focus_set(ww->client->frame, 0);
 }
@@ -859,7 +890,7 @@ _e_winlist_show_active(void)
      {
         _scroll_to = 1;
         if (!_scroll_timer)
-          _scroll_timer = ecore_timer_add(0.01, _e_winlist_scroll_timer, NULL);
+          _scroll_timer = ecore_timer_loop_add(0.01, _e_winlist_scroll_timer, NULL);
         if (!_animator)
           _animator = ecore_animator_add(_e_winlist_animator, NULL);
      }
@@ -895,10 +926,25 @@ _e_winlist_cb_event_border_add(void *data EINA_UNUSED, int type EINA_UNUSED,
                                void *event)
 {
    E_Event_Client *ev = event;
+   E_Client *ec = ev->ec;
+   Eina_List *l;
+   E_Winlist_Win *ww;
 
-   if (_e_winlist_client_add(ev->ec, _winlist_zone,
-                         e_desk_current_get(_winlist_zone)))
+   // get base client
+   ec = e_client_stack_bottom_get(ec);
+   // skip if we already have it in winlist
+   EINA_LIST_FOREACH(_wins, l, ww)
+     {
+        if (ww->client == ec)
+          {
+             _e_winlist_client_replace(ec, e_client_stack_active_adjust(ec));
+             goto done;
+          }
+     }
+   if (_e_winlist_client_add(ec, _winlist_zone,
+                             e_desk_current_get(_winlist_zone)))
      _e_winlist_size_adjust();
+done:
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -907,8 +953,10 @@ _e_winlist_cb_event_border_remove(void *data EINA_UNUSED, int type EINA_UNUSED,
                                   void *event)
 {
    E_Event_Client *ev = event;
+   E_Client *ec = ev->ec;
 
-   _e_winlist_client_del(ev->ec);
+   if (!ec->stack.prev) _e_winlist_client_del(ec);
+   else _e_winlist_client_replace(ec, e_client_stack_active_adjust(ec));
    _e_winlist_size_adjust();
    return ECORE_CALLBACK_PASS_ON;
 }

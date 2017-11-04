@@ -83,7 +83,7 @@ static void         _e_menu_category_free_cb(E_Menu_Category *cat);
 static void         _e_menu_cb_mouse_evas_down(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED);
 
 /* local subsystem globals */
-static Ecore_Window _e_menu_win = 0;
+static Ecore_Window _e_menu_win = UINT_MAX;
 static Eina_List *_e_active_menus = NULL;
 static E_Menu_Item *_e_active_menu_item = NULL;
 static E_Menu_Item *_e_prev_active_menu_item = NULL;
@@ -241,6 +241,7 @@ e_menu_activate_key(E_Menu *m, E_Zone *zone, int x, int y, int w, int h, int dir
         break;
 
       case E_MENU_POP_DIRECTION_RIGHT:
+        _e_menu_realize(m);
         m->cur.x = x + w;
         m->cur.y = y;
         _e_menu_activate_first();
@@ -296,7 +297,7 @@ e_menu_activate_mouse(E_Menu *m, E_Zone *zone, int x, int y, int w, int h, int d
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
    if (_e_active_menus) e_menu_hide_all();
-   _e_menu_activate_time = activate_time;
+   _e_menu_activate_time = 0;
    _e_menu_activate_floating = 0;
    _e_menu_activate_internal(m, zone);
    if (!m->zone)
@@ -350,7 +351,8 @@ e_menu_activate_mouse(E_Menu *m, E_Zone *zone, int x, int y, int w, int h, int d
    pmi = _e_menu_item_active_get();
    if (pmi) e_menu_item_active_set(pmi, 0);
    pending_feed = 1;
-   pending_activate_time = activate_time;
+   if (!activate_time) activate_time = lround(ecore_loop_time_get() * 1000);
+   _e_menu_activate_time = pending_activate_time = activate_time;
 }
 
 E_API void
@@ -1153,8 +1155,9 @@ e_menu_idler_before(void)
                }
              m->prev.x = m->cur.x;
              m->prev.y = m->cur.y;
+             _e_menu_lock = 1;
              evas_object_move(m->comp_object, m->cur.x, m->cur.y);
-
+             _e_menu_lock = 0;
           }
      }
    /* phase 3. show all the menus that want to be shown */
@@ -1192,19 +1195,25 @@ e_menu_idler_before(void)
 
    if (!_e_active_menus)
      {
-        if (_e_menu_win)
+        if (_e_menu_win == e_comp->ee_win)
           {
              e_comp_ungrab_input(1, 1);
-             _e_menu_win = 0;
+             _e_menu_win = UINT_MAX;
              e_bindings_disabled_set(0);
           }
      }
 }
 
-E_API Ecore_Window
-e_menu_grab_window_get(void)
+E_API Eina_Bool
+e_menu_is_active(void)
 {
-   return _e_menu_win;
+   return _e_menu_win == e_comp->ee_win;
+}
+
+E_API E_Menu *
+e_menu_active_get(void)
+{
+   return _e_active_menus ? eina_list_last_data_get(_e_active_menus) : NULL;
 }
 
 /* local subsystem functions */
@@ -1636,6 +1645,7 @@ _e_menu_realize(E_Menu *m)
      }
 
    m->comp_object = e_comp_object_util_add(o, E_COMP_OBJECT_TYPE_MENU);
+   evas_object_data_set(m->comp_object, "E_Menu", m);
    if (!m->parent_item)
      e_comp_object_util_autoclose(m->comp_object, _e_menu_cb_mouse_evas_down, _e_menu_cb_key_down, m);
    evas_object_name_set(m->comp_object, "m->comp_object");
@@ -1883,12 +1893,12 @@ _e_menu_activate_internal(E_Menu *m, E_Zone *zone)
      m->pre_activate_cb.func(m->pre_activate_cb.data, m);
    m->fast_mouse = 0;
    m->pending_new_submenu = 0;
-   if (!_e_menu_win)
+   if (_e_menu_win != e_comp->ee_win)
      {
         _e_menu_win = e_comp->ee_win;
         if (!e_comp_grab_input(1, 1))
           {
-             _e_menu_win = 0;
+             _e_menu_win = UINT_MAX;
              return;
           }
         e_bindings_disabled_set(1);
@@ -1964,6 +1974,7 @@ static void
 _e_menu_submenu_activate(E_Menu_Item *mi)
 {
    if (!mi->menu->active) return;
+   if (mi->submenu && mi->submenu->active) return;
    if (mi->menu->fast_mouse)
      {
         mi->menu->pending_new_submenu = 1;
@@ -2539,10 +2550,7 @@ _e_menu_item_ensure_onscreen(E_Menu_Item *mi)
 
    if (!mi->menu) return;
    if (!mi->menu->zone) return;
-   x = mi->menu->cur.x;
-   y = mi->menu->cur.y;
-   w = mi->menu->cur.w;
-   h = mi->menu->cur.h;
+   evas_object_geometry_get(mi->container_object, &x, &y, &w, &h);
    if ((x + w) > (mi->menu->zone->x + mi->menu->zone->w))
      dx = (mi->menu->zone->x + mi->menu->zone->w) - (x + w);
    else if (x < mi->menu->zone->x)
@@ -2553,6 +2561,28 @@ _e_menu_item_ensure_onscreen(E_Menu_Item *mi)
      dy = mi->menu->zone->y - y;
    if ((dx != 0) || (dy != 0))
      _e_menu_scroll_by(dx, dy);
+}
+
+static void
+_e_menu_auto_place_vert(E_Menu *m, int x, int y, int w, int h)
+{
+   int zx, zy, zw, zh;
+
+   e_zone_useful_geometry_get(m->zone, &zx, &zy, &zw, &zh);
+   if (E_CONTAINS(zx, zy, zw, zh, m->cur.x, y, m->cur.w, m->cur.h))
+     {
+        if (w + h > 2)
+          {
+             if (E_INTERSECTS(m->cur.x, y, m->cur.w, m->cur.h, x, y, w, h))
+               m->cur.y = y + h - m->cur.h;
+             else
+               m->cur.y = y;
+          }
+        else
+          m->cur.y = y;
+     }
+   else
+     m->cur.y = y + h - m->cur.h;
 }
 
 static int
@@ -2581,18 +2611,14 @@ _e_menu_auto_place(E_Menu *m, int x, int y, int w, int h)
        (double)(m->zone->h - h);
    else
      yr = 0.0;
+
    if ((xr + yr) < 0.99) /* top or left */
      {
         if (((1.0 - yr) + xr) <= 1.0)
           {
              /* L */
              m->cur.x = x + w;
-             if (y < (m->zone->y + ((m->zone->h * 1) / 3)))
-               m->cur.y = y;
-             else if (y < (m->zone->y + ((m->zone->h * 2) / 3)))
-               m->cur.y = y + ((h - m->cur.h) / 2);
-             else
-               m->cur.y = y + h - m->cur.h;
+             _e_menu_auto_place_vert(m, x, y, w, h);
              return 1;
           }
         else
@@ -2626,12 +2652,7 @@ _e_menu_auto_place(E_Menu *m, int x, int y, int w, int h)
           {
              /* R */
              m->cur.x = x - m->cur.w;
-             if (y < (m->zone->y + ((m->zone->h * 1) / 3)))
-               m->cur.y = y;
-             else if (y < (m->zone->y + ((m->zone->h * 2) / 3)))
-               m->cur.y = y + ((h - m->cur.h) / 2);
-             else
-               m->cur.y = y + h - m->cur.h;
+             _e_menu_auto_place_vert(m, x, y, w, h);
              return 2;
           }
      }

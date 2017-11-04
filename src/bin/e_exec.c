@@ -270,8 +270,6 @@ e_exec_phony(E_Client *ec)
         return NULL;
      }
    inst->used = 1;
-   ec->exe_inst = inst;
-   inst->clients = eina_list_append(inst->clients, ec);
    if (ec->zone) inst->screen = ec->zone->num;
    if (ec->desk)
      {
@@ -284,6 +282,7 @@ e_exec_phony(E_Client *ec)
    else eina_hash_add(e_exec_instances, inst->key, lnew);
    inst->ref++;
    ecore_event_add(E_EVENT_EXEC_NEW, inst, _e_exec_cb_exec_new_free, inst);
+   e_exec_instance_client_add(inst, ec);
    return inst;
 }
 
@@ -452,19 +451,19 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
              free(inst);
              e_util_dialog_show
                (_("Run Error"),
-               _("Enlightenment was unable to change to directory:<br>"
-                 "<br>"
+               _("Enlightenment was unable to change to directory:<ps/>"
+                 "<ps/>"
                  "%s"),
                desktop->path);
              return NULL;
           }
-        exe = ecore_exe_run(exec, inst);
+        exe = e_util_exe_safe_run(exec, inst);
         if (chdir(buf))
           {
              e_util_dialog_show
                (_("Run Error"),
-               _("Enlightenment was unable to restore to directory:<br>"
-                 "<br>"
+               _("Enlightenment was unable to restore to directory:<ps/>"
+                 "<ps/>"
                  "%s"),
                buf);
              free(inst);
@@ -490,17 +489,17 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
                             eina_strbuf_append(sb, tdesktop->exec);
                             eina_strbuf_append(sb, " -e ");
                             eina_strbuf_append_escaped(sb, exec);
-                            exe = ecore_exe_run(eina_strbuf_string_get(sb),
-                                                inst);
+                            exe = e_util_exe_safe_run
+                              (eina_strbuf_string_get(sb), inst);
                             eina_strbuf_free(sb);
                          }
                     }
                   else
-                    exe = ecore_exe_run(exec, inst);
+                    exe = e_util_exe_safe_run(exec, inst);
                   efreet_desktop_free(tdesktop);
                }
              else
-               exe = ecore_exe_run(exec, inst);
+               exe = e_util_exe_safe_run(exec, inst);
           }
         else if (desktop && desktop->url)
           {
@@ -511,19 +510,19 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
              snprintf(sb, size, "%s/enlightenment_open ", e_prefix_bin_get());
              len = strlen(sb);
              sb = e_util_string_append_quoted(sb, &size, &len, desktop->url);
-             exe = ecore_exe_run(sb, inst);
+             exe = e_util_exe_safe_run(sb, inst);
              free(sb);
           }
         else
-          exe = ecore_exe_run(exec, inst);
+          exe = e_util_exe_safe_run(exec, inst);
      }
 
    if (!exe)
      {
         free(inst);
         e_util_dialog_show(_("Run Error"),
-                           _("Enlightenment was unable to fork a child process:<br>"
-                             "<br>"
+                           _("Enlightenment was unable to fork a child process:<ps/>"
+                             "<ps/>"
                              "%s"),
                            exec);
         return NULL;
@@ -548,7 +547,7 @@ _e_exec_cb_exec(void *data, Efreet_Desktop *desktop, char *exec, int remaining)
    inst->exe = exe;
    inst->startup_id = startup_id;
    inst->launch_time = ecore_time_get();
-   inst->expire_timer = ecore_timer_add(e_config->exec.expire_timeout,
+   inst->expire_timer = ecore_timer_loop_add(e_config->exec.expire_timeout,
                                         _e_exec_cb_expire_timer, inst);
    l = eina_hash_find(e_exec_instances, inst->key);
    lnew = eina_list_append(l, inst);
@@ -591,7 +590,6 @@ static Eina_Bool
 _e_exec_instance_free(E_Exec_Instance *inst)
 {
    Eina_List *instances;
-   E_Client *ec;
 
    if (inst->ref) return EINA_FALSE;
    E_FREE_LIST(inst->watchers, free);
@@ -616,21 +614,7 @@ _e_exec_instance_free(E_Exec_Instance *inst)
         ecore_event_add(E_EVENT_EXEC_DEL, inst, _e_exec_cb_exec_del_free, inst);
         return EINA_FALSE;
      }
-   if (inst->desktop)
-     e_exec_start_pending = eina_list_remove(e_exec_start_pending,
-                                             inst->desktop);
-   if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
-   EINA_LIST_FREE(inst->clients, ec)
-     {
-        ec->exe_inst = NULL;
-        e_object_unref(E_OBJECT(ec));
-     }
-   if (inst->desktop) efreet_desktop_free(inst->desktop);
-   if (!inst->phony)
-     {
-        if (inst->exe) ecore_exe_data_set(inst->exe, NULL);
-     }
-   free(inst);
+
    return EINA_TRUE;
 }
 
@@ -668,9 +652,27 @@ static void
 _e_exec_cb_exec_del_free(void *data, void *ev EINA_UNUSED)
 {
    E_Exec_Instance *inst = data;
+   E_Client *ec;
 
    inst->ref--;
-   _e_exec_instance_free(inst);
+
+   if (inst->desktop)
+     e_exec_start_pending = eina_list_remove(e_exec_start_pending,
+                                             inst->desktop);
+   if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
+
+   EINA_LIST_FREE(inst->clients, ec)
+     {
+        ec->exe_inst = NULL;
+        e_object_unref(E_OBJECT(ec));
+     }
+
+   if (inst->desktop) efreet_desktop_free(inst->desktop);
+   if (!inst->phony)
+     {
+        if (inst->exe) ecore_exe_data_set(inst->exe, NULL);
+     }
+   free(inst);
 }
 
 static Eina_Bool
@@ -710,10 +712,10 @@ _e_exec_cb_exit(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 
                   e_dialog_title_set(dia, _("Application run error"));
                   snprintf(buf, sizeof(buf),
-                           _("Enlightenment was unable to run the application:<br>"
-                             "<br>"
-                             "%s<br>"
-                             "<br>"
+                           _("Enlightenment was unable to run the application:<ps/>"
+                             "<ps/>"
+                             "%s<ps/>"
+                             "<ps/>"
                              "The application failed to start."),
                            ecore_exe_cmd_get(ev->exe));
                   e_dialog_text_set(dia, buf);
@@ -752,7 +754,7 @@ _e_exec_cb_exit(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
      {
         inst->exe = NULL;
         if (inst->expire_timer) ecore_timer_del(inst->expire_timer);
-        inst->expire_timer = ecore_timer_add(e_config->exec.expire_timeout, _e_exec_cb_instance_finish, inst);
+        inst->expire_timer = ecore_timer_loop_add(e_config->exec.expire_timeout, _e_exec_cb_instance_finish, inst);
      }
    else
  */

@@ -502,10 +502,10 @@ tw_link_hide(E_Client *ec, const char *uri)
        ((tw_tmpfile && eina_streq(evas_object_data_get(tw_mod->pop, "uri"), tw_tmpfile)) ||
          eina_streq(evas_object_data_get(tw_mod->pop, "uri"), uri)))
      {
-        if (tw_config->mouse_out_delay)
+        if (EINA_DBL_NONZERO(tw_config->mouse_out_delay))
           {
-             if (tw_hide_timer) ecore_timer_reset(tw_hide_timer);
-             else tw_hide_timer = ecore_timer_add(tw_config->mouse_out_delay, tw_hide, NULL);
+             if (tw_hide_timer) ecore_timer_loop_reset(tw_hide_timer);
+             else tw_hide_timer = ecore_timer_loop_add(tw_config->mouse_out_delay, tw_hide, NULL);
           }
         else
           tw_hide(NULL);
@@ -622,7 +622,7 @@ media_cleaner_cb(void *data)
         if (ic->timestamp >= now)
           {
              /* stop the idler for now to avoid pointless spinning */
-             ecore_timer_add(24 * 60 * 60, (Ecore_Task_Cb)tw_idler_start, NULL);
+             ecore_timer_loop_add(24 * 60 * 60, (Ecore_Task_Cb)tw_idler_start, NULL);
              media_cleaner[mcl->video] = NULL;
              tw_cache_list[mcl->video] = mcl;
              return EINA_FALSE;
@@ -671,7 +671,7 @@ tw_media_add(const char *url, Eina_Binbuf *buf, unsigned long long timestamp, Ei
    if (!media[video]) return -1;
    if (!tw_config->allowed_media_age) return 0; //disk caching disabled
 
-   sha1 = sha1_encode(eina_binbuf_string_get(buf), eina_binbuf_length_get(buf));
+   sha1 = sha1_encode(buf);
    DBG("Media: %s - %s", url, sha1);
 
    list = eet_list(media[video], url, &lsize);
@@ -862,7 +862,7 @@ tw_video_closed_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
    evas_object_hide(obj);
    evas_object_hide(data);
    emotion_object_play_set(obj, EINA_FALSE);
-   ecore_timer_add(3.0, stupid_obj_del_workaround_hack, data);
+   ecore_timer_loop_add(3.0, stupid_obj_del_workaround_hack, data);
    if (!tw_tmpfile) return;
    eina_stringshare_replace(&tw_tmpfile, NULL);
 }
@@ -1122,10 +1122,10 @@ static void
 tw_handler_hide(void)
 {
    if (tw_mod->force || tw_mod->sticky) return;
-   if (tw_config->mouse_out_delay)
+   if (EINA_DBL_NONZERO(tw_config->mouse_out_delay))
      {
-        if (tw_hide_timer) ecore_timer_reset(tw_hide_timer);
-        else tw_hide_timer = ecore_timer_add(tw_config->mouse_out_delay, tw_hide, NULL);
+        if (tw_hide_timer) ecore_timer_loop_reset(tw_hide_timer);
+        else tw_hide_timer = ecore_timer_loop_add(tw_config->mouse_out_delay, tw_hide, NULL);
      }
    else
      tw_hide(NULL);

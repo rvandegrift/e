@@ -33,7 +33,7 @@ e_test(void)
    _e_test_internal();
 
 #ifdef DESKMIRROR_TEST
-   ecore_timer_add(2.0, deskmirror_test, NULL);
+   ecore_timer_loop_add(2.0, deskmirror_test, NULL);
 #endif
 }
 
@@ -48,14 +48,14 @@ _e_test_timer(void *data)
      {
         e_menu_deactivate(m);
         e_object_del(E_OBJECT(m));
-        ecore_timer_add(0.05, _e_test_timer, NULL);
+        ecore_timer_loop_add(0.05, _e_test_timer, NULL);
         return 0;
      }
    m = e_int_menus_main_new();
    e_menu_activate_mouse(m,
                          eina_list_data_get(e_comp->zones),
                          0, 0, 1, 1, E_MENU_POP_DIRECTION_DOWN, 0);
-   ecore_timer_add(0.05, _e_test_timer, m);
+   ecore_timer_loop_add(0.05, _e_test_timer, m);
    return 0;
 }
 
@@ -131,7 +131,7 @@ _e_test_internal(void)
    e_menu_activate_mouse(m,
                          eina_list_data_get(e_comp->zones),
                          0, 0, 1, 1, E_MENU_POP_DIRECTION_DOWN, 0);
-   ecore_timer_add(0.02, _e_test_timer, m);
+   ecore_timer_loop_add(0.02, _e_test_timer, m);
 }
 
 #elif 0
@@ -152,7 +152,7 @@ _e_test_internal(void)
    dia = e_dialog_new(c, "E", "_test");
    e_object_del_attach_func_set(E_OBJECT(dia), _e_test_dialog_del);
    e_dialog_title_set(dia, "A Test Dialog");
-   e_dialog_text_set(dia, "A Test Dialog<br>And another line<br><hilight>Hilighted Text</hilight>");
+   e_dialog_text_set(dia, "A Test Dialog<ps/>And another line<ps/><hilight>Hilighted Text</hilight>");
    e_dialog_icon_set(dia, "preference-plugin", 64);
    e_dialog_button_add(dia, "OK", NULL, NULL, NULL);
    e_dialog_button_add(dia, "Apply", "system-restart", NULL, NULL);
@@ -230,13 +230,13 @@ _e_test_timer(void *data)
    if (data == NULL)
      {
         dia = _e_test_dia(tcon);
-        ecore_timer_add(0.2, _e_test_timer, dia);
+        ecore_timer_loop_add(0.2, _e_test_timer, dia);
      }
    else
      {
         dia = data;
         e_object_del(E_OBJECT(dia));
-        ecore_timer_add(0.2, _e_test_timer, NULL);
+        ecore_timer_loop_add(0.2, _e_test_timer, NULL);
      }
    return 0;
 }
@@ -411,16 +411,16 @@ _e_test_internal(void)
 #if 0
    e_widget_textblock_markup_set(o,
                                  "<title>A title</title>"
-                                 "This is some text<br>"
-                                 "Blah blah<br>"
-                                 "<hilight>hilighted text</hilight><br>"
-                                 "<br>"
-                                 "More lines of text<br>"
-                                 "And yet more lines of text<br>"
-                                 "A very very long line of text that SHOULD be getting word wrapped because it is so long.<br>"
-                                 "And another line<br>"
-                                 "Some more<br>"
-                                 "Smelly fish on a stick<br>"
+                                 "This is some text<ps/>"
+                                 "Blah blah<ps/>"
+                                 "<hilight>hilighted text</hilight><ps/>"
+                                 "<ps/>"
+                                 "More lines of text<ps/>"
+                                 "And yet more lines of text<ps/>"
+                                 "A very very long line of text that SHOULD be getting word wrapped because it is so long.<ps/>"
+                                 "And another line<ps/>"
+                                 "Some more<ps/>"
+                                 "Smelly fish on a stick<ps/>"
                                  "Whatever."
                                  );
 #else
@@ -744,7 +744,7 @@ _e_test_internal(void)
 static void
 _e_test_internal(void)
 {
-   ecore_timer_add(1.0, _e_test_timer, c);
+   ecore_timer_loop_add(1.0, _e_test_timer, c);
 }
 
 #elif 0
@@ -811,7 +811,7 @@ _e_test_timer(void *data)
 static void
 _e_test_internal(void)
 {
-   ecore_timer_add(1.0, _e_test_timer, c);
+   ecore_timer_loop_add(1.0, _e_test_timer, c);
 }
 
 #elif 0
@@ -878,7 +878,7 @@ _e_test_timer(void *data)
 static void
 _e_test_internal(void)
 {
-   ecore_timer_add(1.0, _e_test_timer, c);
+   ecore_timer_loop_add(1.0, _e_test_timer, c);
 }
 
 #else

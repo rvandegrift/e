@@ -67,8 +67,8 @@ clock_init(void)
         e_action_predef_name_set(N_("Clock"), N_("Toggle calendar"), "clock", "show_calendar", NULL, 0);
      }
 
-   e_gadget_type_add("Digital Clock", digital_clock_create, digital_clock_wizard);
-   e_gadget_type_add("Analog Clock", analog_clock_create, analog_clock_wizard);
+   e_gadget_type_add("Digital Clock", digital_clock_create, NULL);
+   e_gadget_type_add("Analog Clock", analog_clock_create, NULL);
    time_init();
 }
 
@@ -121,7 +121,6 @@ E_API E_Module_Api e_modapi =
 E_API void *
 e_modapi_init(E_Module *m)
 {
-   if (!E_EFL_VERSION_MINIMUM(1, 17, 99)) return NULL;
    clock_init();
 
    time_config->module = m;

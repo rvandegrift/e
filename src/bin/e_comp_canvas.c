@@ -3,6 +3,7 @@
 static Eina_List *handlers;
 static Ecore_Timer *timer_post_screensaver_lock = NULL;
 static Ecore_Timer *timer_post_screensaver_on = NULL;
+static Ecore_Timer *timer_pointer_freeze = NULL;
 
 static void
 _e_comp_canvas_cb_del()
@@ -10,6 +11,7 @@ _e_comp_canvas_cb_del()
    E_FREE_LIST(handlers, ecore_event_handler_del);
    E_FREE_FUNC(timer_post_screensaver_lock, ecore_timer_del);
    E_FREE_FUNC(timer_post_screensaver_on, ecore_timer_del);
+   E_FREE_FUNC(timer_pointer_freeze, ecore_timer_del);
 }
 
 static void
@@ -59,6 +61,7 @@ _e_comp_canvas_render_post(void *data EINA_UNUSED, Evas *e EINA_UNUSED, void *ev
         ec->on_post_updates = EINA_FALSE;
         if (!e_object_is_del(E_OBJECT(ec)))
           e_pixmap_image_clear(ec->pixmap, 1);
+        evas_object_smart_callback_call(ec->frame, "post_render", NULL);
         UNREFD(ec, 111);
         e_object_unref(E_OBJECT(ec));
      }
@@ -105,6 +108,18 @@ static Eina_Bool
 _key_down(int ctx, Ecore_Event_Key *ev)
 {
    e_screensaver_notidle();
+   if (e_desklock_state_get() && (ctx == E_BINDING_CONTEXT_MANAGER))
+     {
+        E_Desklock_Interface *iface = e_desklock_interface_current_get();
+        if (iface && iface->key_down)
+          {
+#ifdef HAVE_WAYLAND
+             if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
+               e_comp_wl_key_down(ev, NULL);
+#endif
+             return iface->key_down(ev);
+          }
+     }
    if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root))
      {
         E_Client *ec;
@@ -122,7 +137,7 @@ _key_down(int ctx, Ecore_Event_Key *ev)
            (!e_comp->screen->key_down) || (!e_comp->screen->key_down(ev))) &&
      !e_bindings_key_down_event_handle(ctx, E_OBJECT(e_comp), ev)
 #ifdef HAVE_WAYLAND
-       && !e_comp_wl_key_down(ev)
+       && !e_comp_wl_key_down(ev, NULL)
 #endif
          ;
 }
@@ -143,12 +158,24 @@ static Eina_Bool
 _key_up(int ctx, Ecore_Event_Key *ev)
 {
    e_screensaver_notidle();
+   if (e_desklock_state_get() && (ctx == E_BINDING_CONTEXT_MANAGER))
+     {
+        E_Desklock_Interface *iface = e_desklock_interface_current_get();
+        if (iface && iface->key_up)
+          {
+#ifdef HAVE_WAYLAND
+             if (e_comp->comp_type == E_PIXMAP_TYPE_WL)
+               e_comp_wl_key_up(ev, NULL);
+#endif
+             return iface->key_up(ev);
+          }
+     }
    if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root)) return ECORE_CALLBACK_PASS_ON;
    return ((!e_comp->screen) ||
            (!e_comp->screen->key_up) || (!e_comp->screen->key_up(ev))) &&
      !e_bindings_key_up_event_handle(ctx, E_OBJECT(e_comp), ev)
 #ifdef HAVE_WAYLAND
-       && !e_comp_wl_key_up(ev)
+       && !e_comp_wl_key_up(ev, NULL)
 #endif
          ;
 }
@@ -170,7 +197,14 @@ _e_comp_cb_mouse_up(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_Bu
 {
    if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root))
      return ECORE_CALLBACK_PASS_ON;
-   return !e_bindings_mouse_down_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev);
+   if (e_bindings_mouse_down_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev))
+     return ECORE_CALLBACK_DONE;
+
+#ifdef HAVE_WAYLAND
+   return e_comp_wl_grab_client_mouse_button(ev);
+#else
+   return ECORE_CALLBACK_RENEW;
+#endif
 }
 
 static Eina_Bool
@@ -178,7 +212,13 @@ _e_comp_cb_mouse_down(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_
 {
    if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (ev->event_window != e_comp->root))
      return ECORE_CALLBACK_PASS_ON;
-   return !e_bindings_mouse_down_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev);
+   if (e_bindings_mouse_down_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev))
+     return ECORE_CALLBACK_DONE;
+#ifdef HAVE_WAYLAND
+   return e_comp_wl_grab_client_mouse_button(ev);
+#else
+   return ECORE_CALLBACK_RENEW;
+#endif
 }
 
 static Eina_Bool
@@ -189,15 +229,37 @@ _e_comp_cb_mouse_wheel(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse
    return !e_bindings_wheel_ecore_event_handle(E_BINDING_CONTEXT_MANAGER, E_OBJECT(e_comp), ev);
 }
 
+#ifdef HAVE_WAYLAND
+static Eina_Bool
+_e_comp_cb_mouse_move(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Mouse_Move *ev)
+{
+   static int x = -9999, y = -9999;
+
+   if (e_comp->comp_type != E_PIXMAP_TYPE_WL) return ECORE_CALLBACK_RENEW;
+   if (x == -9999)
+     x = ev->x, y = ev->y;
+   if ((x == ev->x) && (y == ev->y)) return ECORE_CALLBACK_RENEW;
+   if (e_client_focused_get() && (!e_comp_util_mouse_grabbed()))
+     {
+        if ((!e_comp->screen) || (!e_comp->screen->relative_motion))
+          {
+             e_comp_wl_extension_relative_motion_event(ecore_time_unix_get() * 1000ULL,
+               ev->x - x, ev->y - y, 0, 0);
+          }
+        x = ev->x, y = ev->y;
+        if (e_comp_wl_extension_pointer_constraints_update(e_client_focused_get(), ev->x, ev->y))
+          return ECORE_CALLBACK_CANCEL;
+     }
+   x = ev->x, y = ev->y;
+   return e_comp_wl_grab_client_mouse_move(ev);
+}
+#endif
+
 ////////////////////////////////////
 
 static Eina_Bool
-_e_comp_cb_zone_change(void *d EINA_UNUSED, int t, E_Event_Zone_Move_Resize *ev)
+_e_comp_cb_zone_change()
 {
-   if (ev->zone->useful_geometry_dirty && (t == E_EVENT_ZONE_MOVE_RESIZE))
-     {
-        if (!e_zone_useful_geometry_get(ev->zone, NULL, NULL, NULL, NULL)) return ECORE_CALLBACK_RENEW;
-     }
    e_comp_canvas_update();
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -219,32 +281,48 @@ _e_comp_canvas_screensaver_active(void *d EINA_UNUSED, Evas_Object *obj EINA_UNU
 {
    if (timer_post_screensaver_on) return;
    /* thawed in _e_comp_screensaver_off() */
-   timer_post_screensaver_on = ecore_timer_add
+   timer_post_screensaver_on = ecore_timer_loop_add
      (1.0, _e_comp_cb_screensaver_active_delay, NULL);
 }
 
 static Eina_Bool
 _e_comp_cb_timer_post_screensaver_lock(void *data EINA_UNUSED)
 {
+   // XXX: the below should instntly show desklock and have no transition
+   // or animation
    e_desklock_show_autolocked();
    timer_post_screensaver_lock = NULL;
    return ECORE_CALLBACK_CANCEL;
 }
 
 static Eina_Bool
+_e_comp_cb_screensaver_ponter_freeze_cb(void *data EINA_UNUSED)
+{
+   e_pointers_freeze_set(EINA_TRUE);
+   timer_pointer_freeze = NULL;
+   return EINA_FALSE;
+}
+
+static Eina_Bool
 _e_comp_cb_screensaver_on()
 {
+   // XXX: this is not quite right. this here should be called after e_comp.c
+   // and freinds have emitted "e,state,screensaver,on" AND gotten a signal
+   // reply from the theme to say it's done with this animation before
+   // doing the below
    if (e_config->desklock_autolock_screensaver)
      {
         E_FREE_FUNC(timer_post_screensaver_lock, ecore_timer_del);
         if (e_config->desklock_post_screensaver_time <= 1.0)
           e_desklock_show_autolocked();
         else
-          timer_post_screensaver_lock = ecore_timer_add
+          timer_post_screensaver_lock = ecore_timer_loop_add
               (e_config->desklock_post_screensaver_time,
               _e_comp_cb_timer_post_screensaver_lock, NULL);
      }
-   e_pointers_freeze_set(1);
+   if (timer_pointer_freeze) ecore_timer_del(timer_pointer_freeze);
+   timer_pointer_freeze = ecore_timer_add
+     (10.0, _e_comp_cb_screensaver_ponter_freeze_cb, NULL);
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -253,7 +331,12 @@ _e_comp_cb_screensaver_off()
 {
    E_FREE_FUNC(timer_post_screensaver_lock, ecore_timer_del);
    E_FREE_FUNC(timer_post_screensaver_on, ecore_timer_del);
-   e_pointers_freeze_set(0);
+   e_pointers_freeze_set(EINA_FALSE);
+   if (timer_pointer_freeze)
+     {
+        ecore_timer_del(timer_pointer_freeze);
+        timer_pointer_freeze = NULL;
+     }
    return ECORE_CALLBACK_PASS_ON;
 }
 ////////////////////////////////////
@@ -283,20 +366,33 @@ e_comp_canvas_init(int w, int h)
 {
    Evas_Object *o;
    Eina_List *screens;
+   char *bsize;
 
-   e_comp->evas = ecore_evas_get(e_comp->ee);
    e_comp->w = w;
    e_comp->h = h;
+   bsize = getenv("E_COMP_SIZE");
+   if (bsize)
+     {
+        int ew = w, eh = h;
+
+        if (sscanf(bsize, "%dx%d", &ew, &eh) == 2)
+          {
+             if ((w > 0) && (h > 0))
+               e_comp->w = ew, e_comp->h = eh;
+          }
+     }
+
+   e_comp->evas = ecore_evas_get(e_comp->ee);
 
    if (e_first_frame)
      evas_event_callback_add(e_comp->evas, EVAS_CALLBACK_RENDER_POST, _e_comp_canvas_cb_first_frame, NULL);
    o = evas_object_rectangle_add(e_comp->evas);
-   e_comp->bg_blank_object = o;
+   e_comp->canvas->resize_object = o;
    evas_object_layer_set(o, E_LAYER_BOTTOM);
    evas_object_move(o, 0, 0);
    evas_object_resize(o, e_comp->w, e_comp->h);
    evas_object_color_set(o, 0, 0, 0, 255);
-   evas_object_name_set(o, "comp->bg_blank_object");
+   evas_object_name_set(o, "comp->canvas->resize_object");
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN, (Evas_Object_Event_Cb)_e_comp_canvas_cb_mouse_down, NULL);
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_UP, (Evas_Object_Event_Cb)_e_comp_canvas_cb_mouse_up, NULL);
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_IN, (Evas_Object_Event_Cb)_e_comp_canvas_cb_mouse_in, NULL);
@@ -338,6 +434,8 @@ e_comp_canvas_init(int w, int h)
 
    evas_event_callback_add(e_comp->evas, EVAS_CALLBACK_RENDER_PRE, _e_comp_canvas_prerender, NULL);
    ecore_evas_resize(e_comp->ee, w, h);
+   if ((!after_restart) || (!e_comp_x))
+     ecore_evas_pointer_warp(e_comp->ee, e_comp->w / 2, e_comp->h / 2);
 
    return EINA_TRUE;
 }
@@ -348,8 +446,8 @@ e_comp_canvas_clear(void)
    evas_event_freeze(e_comp->evas);
    edje_freeze();
 
-   E_FREE_FUNC(e_comp->fps_fg, evas_object_del);
-   E_FREE_FUNC(e_comp->fps_bg, evas_object_del);
+   E_FREE_FUNC(e_comp->canvas->fps_fg, evas_object_del);
+   E_FREE_FUNC(e_comp->canvas->fps_bg, evas_object_del);
    E_FREE_FUNC(e_comp->autoclose.rect, evas_object_del);
    E_FREE_FUNC(e_comp->shape_job, ecore_job_del);
    E_FREE_FUNC(e_comp->pointer, e_object_del);
@@ -500,7 +598,6 @@ e_comp_canvas_update(void)
    Eina_List *l, *screens, *zones = NULL, *ll;
    E_Zone *zone;
    E_Screen *scr;
-   int i;
    Eina_Bool changed = EINA_FALSE;
 
    screens = (Eina_List *)e_xinerama_screens_get();
@@ -594,31 +691,12 @@ e_comp_canvas_update(void)
           }
      }
 
-   for (i = 0; i < 11; i++)
-     {
-        Eina_List *tmp = NULL;
-        E_Client *ec;
-
-        if (!e_comp->layers[i].clients) continue;
-        /* Make temporary list as e_client_res_change_geometry_restore
-         * rearranges the order. */
-        EINA_INLIST_FOREACH(e_comp->layers[i].clients, ec)
-          {
-             if ((!e_client_util_ignored_get(ec)) && (!e_object_is_del(E_OBJECT(ec))))
-               tmp = eina_list_append(tmp, ec);
-          }
-
-        EINA_LIST_FREE(tmp, ec)
-          {
-             e_client_res_change_geometry_save(ec);
-             e_client_res_change_geometry_restore(ec);
-          }
-     }
+   e_comp_clients_rescale();
    if (!changed) return;
    if (!starting)
      {
         e_object_ref(E_OBJECT(e_comp));
-        ecore_event_add(E_EVENT_COMPOSITOR_RESIZE, NULL, _e_comp_canvas_event_compositor_resize_free, NULL);
+        ecore_event_add(E_EVENT_COMPOSITOR_UPDATE, NULL, _e_comp_canvas_event_compositor_resize_free, NULL);
      }
 
    EINA_LIST_FOREACH(e_comp->zones, l, zone)
@@ -635,8 +713,10 @@ e_comp_canvas_update(void)
                }
           }
         e_comp_canvas_zone_update(zone);
+        if (!starting)
+          e_bindings_edge_reset();
      }
-   evas_object_resize(e_comp->bg_blank_object, e_comp->w, e_comp->h);
+   evas_object_resize(e_comp->canvas->resize_object, e_comp->w, e_comp->h);
 }
 
 E_API void
@@ -790,6 +870,37 @@ e_comp_canvas_feed_mouse_up(unsigned int activate_time)
      }
 }
 
+E_API Evas_Object *
+e_comp_canvas_event_grabber_add(void)
+{
+   E_Zone *zone;
+   Eina_List *l;
+   Evas_Object *o;
+
+   o = evas_object_event_grabber_add(e_comp->evas);
+   EINA_LIST_FOREACH(e_comp->zones, l, zone)
+     {
+#define EDGE_ADD(E) \
+        if (zone->E) \
+          evas_object_smart_member_add(zone->E, o)
+
+        EDGE_ADD(edge.top);
+        EDGE_ADD(edge.right);
+        EDGE_ADD(edge.bottom);
+        EDGE_ADD(edge.left);
+
+        EDGE_ADD(corner.left_top);
+        EDGE_ADD(corner.right_top);
+        EDGE_ADD(corner.top_left);
+        EDGE_ADD(corner.top_right);
+        EDGE_ADD(corner.left_bottom);
+        EDGE_ADD(corner.right_bottom);
+        EDGE_ADD(corner.bottom_left);
+        EDGE_ADD(corner.bottom_right);
+     }
+   return o;
+}
+
 EINTERN void
 e_comp_canvas_intercept(void)
 {
@@ -797,6 +908,9 @@ e_comp_canvas_intercept(void)
    E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_MOUSE_BUTTON_DOWN, _e_comp_cb_mouse_down, NULL);
    E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_MOUSE_BUTTON_UP, _e_comp_cb_mouse_up, NULL);
    E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_MOUSE_WHEEL, _e_comp_cb_mouse_wheel, NULL);
+#ifdef HAVE_WAYLAND
+   E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_MOUSE_MOVE, _e_comp_cb_mouse_move, NULL);
+#endif
    E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_DOWN, _e_comp_cb_key_down, NULL);
    E_LIST_HANDLER_APPEND(handlers, ECORE_EVENT_KEY_UP, _e_comp_cb_key_up, NULL);
 }

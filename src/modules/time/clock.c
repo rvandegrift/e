@@ -207,7 +207,7 @@ _clock_timer(void *d EINA_UNUSED)
    if (clock_timer)
      ecore_timer_interval_set(clock_timer, sec);
    else
-     clock_timer = ecore_timer_add(sec, _clock_timer, NULL);
+     clock_timer = ecore_timer_loop_add(sec, _clock_timer, NULL);
    return EINA_TRUE;
 }
 
@@ -297,16 +297,38 @@ _clock_sizing_changed_cb(void *data, Evas_Object *obj EINA_UNUSED, const char *e
 }
 
 static void
-clock_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+_clock_gadget_removed_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+   Instance *inst = data;
+
+   if (inst->o_clock != event_info) return;
+   if (!inst->cfg) return;
+   time_config->items = eina_list_remove(time_config->items, inst->cfg);
+   eina_stringshare_del(inst->cfg->timezone);
+   eina_stringshare_del(inst->cfg->time_str[0]);
+   eina_stringshare_del(inst->cfg->time_str[1]);
+   E_FREE(inst->cfg);
+}
+
+static void
+clock_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Instance *inst = data;
    Eina_List *l;
    Eina_Bool advanced = EINA_FALSE, seconds = EINA_FALSE;
 
+   evas_object_smart_callback_del_full(e_gadget_site_get(obj), "gadget_removed", _clock_gadget_removed_cb, inst);
    clock_instances = eina_list_remove(clock_instances, inst);
    evas_object_del(inst->popup);
    time_daynames_clear(inst);
+   if (inst->cfg)
+     {
+        advanced |= !!inst->cfg->advanced;
+        seconds |= !!inst->cfg->show_seconds;
+        if (inst->cfg->inst == inst) inst->cfg->inst = NULL;
+     }
    free(inst);
+   if ((!advanced) && (!seconds)) return;
    EINA_LIST_FOREACH(clock_instances, l, inst)
      {
         advanced |= !!inst->cfg->advanced;
@@ -333,9 +355,11 @@ _conf_item_get(int *id, Eina_Bool digital)
 
    ci = E_NEW(Config_Item, 1);
    if (!*id)
-     ci->id = time_config->items ? eina_list_count(time_config->items) + 1 : 1;
-   else
+     *id = ci->id = time_config->items ? eina_list_count(time_config->items) + 1 : 1;
+   else if (*id < 0)
      ci->id = -1;
+   else
+     ci->id = *id;
 
    ci->weekend.start = 6;
    ci->weekend.len = 2;
@@ -358,20 +382,8 @@ static Evas_Object *
 _clock_gadget_configure(Evas_Object *g)
 {
    Instance *inst = evas_object_data_get(g, "clock");
+   inst->cfg->inst = inst;
    return config_clock(inst->cfg, e_comp_object_util_zone_get(g));
-}
-
-static void
-_clock_gadget_removed_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
-{
-   Instance *inst = data;
-
-   if (inst->o_clock != event_info) return;
-   time_config->items = eina_list_remove(time_config->items, inst->cfg);
-   eina_stringshare_del(inst->cfg->timezone);
-   eina_stringshare_del(inst->cfg->time_str[0]);
-   eina_stringshare_del(inst->cfg->time_str[1]);
-   E_FREE(inst->cfg);
 }
 
 static void
@@ -384,7 +396,7 @@ _clock_gadget_created_cb(void *data, Evas_Object *obj, void *event_info EINA_UNU
    if (inst->cfg->advanced)
      {
         _clock_timer(NULL);
-        ecore_timer_reset(clock_timer);
+        ecore_timer_loop_reset(clock_timer);
      }
    _eval_instance_size(inst);
 }
@@ -453,50 +465,6 @@ analog_clock_create(Evas_Object *parent, int *id, E_Gadget_Site_Orient orient)
    return clock_create(parent, inst, orient);
 }
 
-typedef struct Wizard_Item
-{
-   E_Gadget_Wizard_End_Cb cb;
-   void *data;
-   int id;
-} Wizard_Item;
-
-static void
-_wizard_end(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   Wizard_Item *wi = data;
-
-   wi->cb(wi->data, wi->id);
-   free(wi);
-}
-
-static void
-clock_wizard(E_Gadget_Wizard_End_Cb cb, void *data, Eina_Bool digital)
-{
-   int id = 0;
-   Config_Item *ci;
-   Wizard_Item *wi;
-
-   wi = E_NEW(Wizard_Item, 1);
-   wi->cb = cb;
-   wi->data = data;
-
-   ci = _conf_item_get(&id, digital);
-   wi->id = ci->id;
-   evas_object_event_callback_add(config_clock(ci, NULL), EVAS_CALLBACK_DEL, _wizard_end, wi); 
-}
-
-EINTERN void
-digital_clock_wizard(E_Gadget_Wizard_End_Cb cb, void *data)
-{
-   clock_wizard(cb, data, 1);
-}
-
-EINTERN void
-analog_clock_wizard(E_Gadget_Wizard_End_Cb cb, void *data)
-{
-   clock_wizard(cb, data, 0);
-}
-
 EINTERN void
 time_config_update(Config_Item *ci)
 {
@@ -514,7 +482,7 @@ time_config_update(Config_Item *ci)
               advanced |= inst->cfg->advanced;
               if (!inst->cfg->advanced) continue;
               _clock_timer(NULL);
-              ecore_timer_reset(clock_timer);
+              ecore_timer_loop_reset(clock_timer);
            }
         _eval_instance_size(inst);
      }
@@ -532,4 +500,19 @@ clock_timer_set(Eina_Bool set)
      }
    else
      E_FREE_FUNC(clock_timer, ecore_timer_del);
+}
+
+EINTERN void
+clock_date_update(void)
+{
+   Eina_List *l;
+   Instance *inst;
+   char buf[128];
+
+   EINA_LIST_FOREACH(clock_instances, l, inst)
+     {
+        time_datestring_format(inst, buf, sizeof(buf) - 1);
+        elm_object_part_text_set(inst->o_clock, "e.text.sub", buf);
+        _eval_instance_size(inst);
+     }
 }

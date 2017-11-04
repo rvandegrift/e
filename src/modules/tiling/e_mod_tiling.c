@@ -18,10 +18,24 @@ typedef struct geom_t
    int x, y, w, h;
 } geom_t;
 
+typedef enum {
+   POSITION_TOP = 0,
+   POSITION_RIGHT = 1,
+   POSITION_BOTTOM = 2,
+   POSITION_LEFT = 3
+} Position_On_Client;
+
 typedef struct Client_Extra
 {
    E_Client *client;
    geom_t    expected;
+   struct
+   {
+      Eina_Bool drag;
+      Evas_Object *hint, *ic;
+      Ecore_Event_Handler *move, *up;
+      int x,y; /* start points */
+   } drag;
    struct
    {
       geom_t      geom;
@@ -43,6 +57,11 @@ typedef struct _Instance
    E_Menu           *lmenu;
 } Instance;
 
+typedef struct {
+   E_Desk *desk;
+   Tiling_Split_Type type;
+} Desk_Split_Type;
+
 struct tiling_g tiling_g = {
    .module = NULL,
    .config = NULL,
@@ -58,6 +77,8 @@ static void             _foreach_desk(void (*func)(E_Desk *desk));
 static Eina_Bool _toggle_tiling_based_on_state(E_Client *ec, Eina_Bool restore);
 static void _edje_tiling_icon_set(Evas_Object *o);
 static void _desk_config_apply(E_Desk *d, int old_nb_stacks, int new_nb_stacks);
+static void _update_current_desk(E_Desk *new);
+static void _client_drag_terminate(E_Client *ec);
 
 /* Func Proto Requirements for Gadcon */
 static E_Gadcon_Client *_gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style);
@@ -79,18 +100,21 @@ static struct tiling_mod_main_g
    E_Config_DD         *config_edd, *vdesk_edd;
    Ecore_Event_Handler *handler_client_resize, *handler_client_move,
                        *handler_client_iconify, *handler_client_uniconify,
-                       *handler_desk_set, *handler_compositor_resize;
-   E_Client_Hook       *handler_client_resize_begin, *handler_client_add;
+                       *handler_desk_set, *handler_compositor_resize,
+                       *handler_desk_show;
+   E_Client_Hook       *handler_client_resize_begin, *handler_client_add,
+                       *handler_move_begin, *handler_move_end;
    E_Client_Menu_Hook  *client_menu_hook;
 
    Tiling_Info         *tinfo;
    Eina_Hash           *info_hash;
    Eina_Hash           *client_extras;
+   Eina_Hash           *desk_type;
 
    E_Action            *act_togglefloat, *act_move_up, *act_move_down, *act_move_left,
                        *act_move_right, *act_toggle_split_mode, *act_swap_window;
 
-   Tiling_Split_Type    split_type;
+   Desk_Split_Type     *current_split_type;
 
    struct {
         Evas_Object *comp_obj;
@@ -100,7 +124,7 @@ static struct tiling_mod_main_g
    } split_popup;
 } _G =
 {
-   .split_type = TILING_SPLIT_HORIZONTAL,
+
 };
 
 /* Define the class and gadcon functions this module provides */
@@ -125,13 +149,21 @@ get_current_desk(void)
 }
 
 static Tiling_Split_Type
-_current_tiled_state(void)
+_current_tiled_state(Eina_Bool allow_float)
 {
-   Tiling_Split_Type type = _G.split_type;
+   //update the current desk in case something has changed it
+   _update_current_desk(get_current_desk());
 
-   if (type == TILING_SPLIT_FLOAT)
+   if (!_G.current_split_type)
+     {
+        ERR("Invalid state, the current field can never be NULL");
+        return TILING_SPLIT_HORIZONTAL;
+     }
+
+   if (!allow_float &&
+       _G.current_split_type->type == TILING_SPLIT_FLOAT)
      return TILING_SPLIT_HORIZONTAL;
-   return type;
+   return _G.current_split_type->type;
 }
 
 static Tiling_Info *
@@ -444,8 +476,11 @@ _reapply_tree(void)
      {
         e_zone_desk_useful_geometry_get(_G.tinfo->desk->zone, _G.tinfo->desk, &zx, &zy, &zw, &zh);
 
-        tiling_window_tree_apply(_G.tinfo->tree, zx, zy, zw, zh,
-                                 tiling_g.config->window_padding);
+        if (zw > 0 && zh > 0)
+          tiling_window_tree_apply(_G.tinfo->tree, zx, zy, zw, zh,
+                                   tiling_g.config->window_padding);
+        else
+          ERR("The zone desk geomtry was not usefull at all (%d,%d,%d,%d)", zx, zy, zw, zh);
      }
 }
 
@@ -519,7 +554,7 @@ _desk_config_apply(E_Desk *d, int old_nb_stacks, int new_nb_stacks)
 
         E_CLIENT_FOREACH(ec)
           {
-             _add_client(ec, _G.split_type);
+             _add_client(ec, _current_tiled_state(EINA_TRUE));
           }
 
         _reapply_tree();
@@ -558,6 +593,139 @@ _e_client_check_based_on_state_cb(void *data, Evas_Object *obj EINA_UNUSED,
 {
    E_Client *ec = data;
    _toggle_tiling_based_on_state(ec, EINA_TRUE);
+}
+
+/**
+ * Find the next tiled client under the current coordinates
+ */
+static Window_Tree*
+_tilable_client(int x, int y)
+{
+   E_Client *ec;
+
+   E_CLIENT_FOREACH(ec)
+     {
+        Eina_Rectangle c;
+        Window_Tree *wt;
+
+        e_client_geometry_get(ec, &c.x, &c.y, &c.w, &c.h);
+
+        if (!eina_rectangle_coords_inside(&c, x, y)) continue;
+
+        if (!(wt = tiling_window_tree_client_find(_G.tinfo->tree, ec))) continue;
+
+        return wt;
+     }
+  return NULL;
+}
+
+static Position_On_Client
+_calculate_position_preference(E_Client *ec)
+{
+   int x,y;
+   float bounded_x, bounded_y;
+   Eina_Rectangle rect;
+   evas_pointer_canvas_xy_get(e_comp->evas, &x, &y);
+
+   e_client_geometry_get(ec, &rect.x, &rect.y, &rect.w, &rect.h);
+
+   if (!eina_rectangle_coords_inside(&rect, x, y))
+     {
+        ERR("Coorinates are not in there");
+        return -1;
+     }
+
+   //for the calculation we think of a X cross in the rectangle
+   bounded_x = ((float)x - rect.x)/((float)rect.w);
+   bounded_y = ((float)y - rect.y)/((float)rect.h);
+
+   if (bounded_y < bounded_x)
+     {
+        //right upper part
+        if (bounded_y < (1.0 - bounded_x))
+          {
+             //left upper
+             return POSITION_TOP;
+          }
+        else
+          {
+             //right lower
+             return POSITION_RIGHT;
+          }
+     }
+   else
+     {
+        //lower left part
+        if (bounded_y < (1.0 - bounded_x))
+          {
+             //left upper
+             return POSITION_LEFT;
+          }
+        else
+          {
+             //right lower
+             return POSITION_BOTTOM;
+          }
+     }
+
+
+}
+
+static void
+_insert_client_prefered(E_Client *ec)
+{
+   Window_Tree *parent;
+   Tiling_Split_Type type = TILING_SPLIT_VERTICAL;
+   Eina_Bool before;
+   int x,y;
+
+   evas_pointer_canvas_xy_get(e_comp->evas, &x, &y);
+   parent = _tilable_client(x,y);
+
+   if (parent)
+     {
+        //calculate a good position where we would like to stay
+        Position_On_Client c;
+
+        c = _calculate_position_preference(parent->client);
+        if (c == POSITION_TOP || c == POSITION_BOTTOM)
+          {
+             before = (c == POSITION_TOP);
+             type = TILING_SPLIT_VERTICAL;
+          }
+        else
+          {
+             before = (c == POSITION_LEFT);
+             type = TILING_SPLIT_HORIZONTAL;
+          }
+
+        _G.tinfo->tree = tiling_window_tree_insert(_G.tinfo->tree, parent, ec, type, before);
+     }
+   else
+     {
+        _G.tinfo->tree = tiling_window_tree_insert(_G.tinfo->tree, NULL, ec, _current_tiled_state(EINA_FALSE), EINA_FALSE);
+     }
+}
+
+static void
+_insert_client(E_Client *ec, Tiling_Split_Type type)
+{
+   E_Client *ec_focused = e_client_focused_get();
+   Window_Tree *place = NULL;
+
+   if (ec_focused == ec)
+     {
+        _insert_client_prefered(ec);
+     }
+   else
+     {
+        //otherwise place next to the given client
+        place = tiling_window_tree_client_find(_G.tinfo->tree,
+                                               ec_focused);
+        _G.tinfo->tree = tiling_window_tree_insert(_G.tinfo->tree, place, ec, type, EINA_FALSE);
+
+     }
+
 }
 
 static Eina_Bool
@@ -599,26 +767,7 @@ _add_client(E_Client *ec, Tiling_Split_Type type)
    _client_apply_settings(ec, extra);
 
    /* Window tree updating. */
-   {
-      E_Client *ec_focused = e_client_focused_get();
-
-      /* If focused is NULL, it should return the root. */
-      Window_Tree *parent = tiling_window_tree_client_find(_G.tinfo->tree,
-                                                           ec_focused);
-
-      if (!parent && (ec_focused != ec))
-        {
-           Client_Extra *extra_focused =
-             eina_hash_find(_G.client_extras, &ec_focused);
-           if (_G.tinfo->tree && extra_focused && extra_focused->tiled)
-             {
-                ERR("Couldn't find tree item for focused client %p. Using root..", e_client_focused_get());
-             }
-        }
-
-      _G.tinfo->tree =
-        tiling_window_tree_add(_G.tinfo->tree, parent, ec, type);
-   }
+   _insert_client(ec, type);
 
    if (started)
      _reapply_tree();
@@ -643,6 +792,11 @@ _client_remove_no_apply(E_Client *ec)
              ERR("No extra for %p", ec);
           }
         return EINA_FALSE;
+     }
+
+   if (extra->drag.drag)
+     {
+        _client_drag_terminate(ec);
      }
 
    if (!extra->tiled)
@@ -700,14 +854,32 @@ toggle_floating(E_Client *ec)
      }
    else
      {
-        _add_client(ec, _current_tiled_state());
+        _add_client(ec, _current_tiled_state(EINA_FALSE));
      }
 }
 
 void
 tiling_e_client_does_not_fit(E_Client *ec)
 {
+   E_Notification_Notify n;
+   Eina_Strbuf *buf;
+
+   buf = eina_strbuf_new();
+   if (ec->netwm.name)
+     eina_strbuf_append_printf(buf, "Window %s cannot be tiled\n", ec->netwm.name);
+   else
+     eina_strbuf_append(buf, "A Window cannot be tiled\n");
+
+   memset(&n, 0, sizeof(n));
+   n.app_name = _("Tiling");
+   n.icon.icon = "dialog-error";
+   n.summary = _("Window cannot be tiled");
+   n.body = eina_strbuf_string_get(buf);
+   n.timeout = 2000;
+   e_notification_client_send(&n, NULL, NULL);
    toggle_floating(ec);
+
+   eina_strbuf_string_free(buf);
 }
 
 static void
@@ -898,13 +1070,13 @@ _tiling_split_type_changed_popup(void)
 
         evas_object_show(comp_obj);
 
-        _G.split_popup.timer = ecore_timer_add(TILING_POPUP_TIMEOUT, _split_type_popup_timer_del_cb, NULL);
+        _G.split_popup.timer = ecore_timer_loop_add(TILING_POPUP_TIMEOUT, _split_type_popup_timer_del_cb, NULL);
      }
    else
      {
         if (desk != _G.split_popup.desk)
           e_comp_object_util_center_on_zone(comp_obj, e_zone_current_get());
-        ecore_timer_reset(_G.split_popup.timer);
+        ecore_timer_loop_reset(_G.split_popup.timer);
      }
 
 
@@ -912,24 +1084,39 @@ _tiling_split_type_changed_popup(void)
 }
 
 static void
-_tiling_split_type_next(void)
+_tiling_gadgets_update(void)
 {
    Instance *inst;
    Eina_List *itr;
-   _G.split_type = (_G.split_type + 1) % TILING_SPLIT_LAST;
-
-   /* If we don't allow floating, skip it. */
-   if (!tiling_g.config->have_floating_mode &&
-       (_G.split_type == TILING_SPLIT_FLOAT))
-     {
-        _G.split_type = (_G.split_type + 1) % TILING_SPLIT_LAST;
-     }
 
    EINA_LIST_FOREACH(tiling_g.gadget_instances, itr, inst)
      {
         _gadget_icon_set(inst);
      }
+}
 
+static void
+_tiling_split_type_next(void)
+{
+   //update the current desk in case something has changed it
+   _update_current_desk(get_current_desk());
+
+   if (!_G.current_split_type)
+     {
+        ERR("Invalid state, current split type is NULL");
+        return;
+     }
+
+   _G.current_split_type->type = (_G.current_split_type->type + 1) % TILING_SPLIT_LAST;
+
+   /* If we don't allow floating, skip it. */
+   if (!tiling_g.config->have_floating_mode &&
+       (_G.current_split_type->type == TILING_SPLIT_FLOAT))
+     {
+        _G.current_split_type->type = (_G.current_split_type->type + 1) % TILING_SPLIT_LAST;
+     }
+
+   _tiling_gadgets_update();
    _tiling_split_type_changed_popup();
 }
 
@@ -1007,7 +1194,7 @@ _move_or_resize(E_Client *ec)
          default:
            break;
         }
-      if ((w_diff != 1.0) || (h_diff != 1.0))
+      if ((!eina_dbl_exact(w_diff, 1.0)) || (!eina_dbl_exact(h_diff, 1.0)))
         {
            if (!tiling_window_tree_node_resize(item, w_dir, w_diff, h_dir,
                                                h_diff))
@@ -1244,7 +1431,7 @@ _add_hook(void *data EINA_UNUSED, E_Client *ec)
    if (e_object_is_del(E_OBJECT(ec)))
      return;
 
-   _add_client(ec, _G.split_type);
+   _add_client(ec, _current_tiled_state(EINA_TRUE));
 }
 
 static Eina_Bool
@@ -1273,7 +1460,7 @@ _toggle_tiling_based_on_state(E_Client *ec, Eina_Bool restore)
      }
    else if (!extra->tiled && is_tilable(ec))
      {
-        _add_client(ec, _current_tiled_state());
+        _add_client(ec, _current_tiled_state(EINA_FALSE));
 
         return EINA_TRUE;
      }
@@ -1301,7 +1488,34 @@ _desk_set_hook(void *data EINA_UNUSED, int type EINA_UNUSED,
 {
    DBG("%p: from (%d,%d) to (%d,%d)", ev->ec, ev->desk->x, ev->desk->y,
        ev->ec->desk->x, ev->ec->desk->y);
+   Client_Extra *extra = eina_hash_find(_G.client_extras, &ev->ec);
 
+   if (!extra)
+     {
+        return true;
+     }
+
+   //check the state of the new desk
+   if (desk_should_tile_check(ev->ec->desk))
+     {
+        if (extra->drag.drag)
+          {
+             ev->ec->hidden = EINA_TRUE;
+             e_client_comp_hidden_set(ev->ec, EINA_TRUE);
+             evas_object_hide(ev->ec->frame);
+             return true;
+          }
+     }
+   else
+     {
+        if (extra->drag.drag)
+          {
+             _client_drag_terminate(ev->ec);
+             extra->floating = EINA_TRUE;
+          }
+     }
+
+   //check if we should remove that here
    if (desk_should_tile_check(ev->desk))
      {
         if (tiling_window_tree_client_find(_G.tinfo->tree, ev->ec))
@@ -1310,11 +1524,10 @@ _desk_set_hook(void *data EINA_UNUSED, int type EINA_UNUSED,
              _remove_client(ev->ec);
           }
      }
-
-   if (!desk_should_tile_check(ev->ec->desk))
-     return true;
-
-   _add_client(ev->ec, _current_tiled_state());
+   if (desk_should_tile_check(ev->ec->desk))
+     {
+        _add_client(ev->ec, _current_tiled_state(EINA_FALSE));
+     }
 
    return true;
 }
@@ -1397,10 +1610,209 @@ _clear_border_extras(void *data)
    E_FREE(extra);
 }
 
+static void
+_clear_desk_types(void *data)
+{
+   free(data);
+}
+
 E_API E_Module_Api e_modapi = {
    E_MODULE_API_VERSION,
    "Tiling"
 };
+
+static unsigned char
+_client_drag_mouse_up(void *data, int event EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   E_Client *ec = data;
+   Client_Extra *extra = tiling_entry_func(ec);
+
+   if (!extra) return ECORE_CALLBACK_PASS_ON;
+
+   if (extra->drag.drag)
+     _client_drag_terminate(data);
+
+   //remove the events
+   E_FREE_FUNC(extra->drag.move, ecore_event_handler_del);
+   E_FREE_FUNC(extra->drag.up, ecore_event_handler_del);
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static unsigned char
+_client_drag_mouse_move(void *data, int event EINA_UNUSED, void *event_info)
+{
+   Ecore_Event_Mouse_Move *ev = event_info;
+   Window_Tree *client;
+   int x,y;
+   E_Client *ec = data;
+   Client_Extra *extra = tiling_entry_no_desk_func(data);
+
+   if (!extra)
+     {
+        return ECORE_CALLBACK_PASS_ON;
+     }
+
+   if (evas_object_visible_get(ec->frame))
+     {
+        /*only initiaze the drag when x and y is different */
+        if (extra->drag.x == ev->x && extra->drag.y == ev->y) return ECORE_CALLBACK_PASS_ON;
+
+        _client_remove_no_apply(ec);
+
+        extra->drag.drag = EINA_TRUE;
+        e_comp_grab_input(EINA_TRUE, EINA_FALSE);
+
+        ec->hidden = EINA_TRUE;
+        e_client_comp_hidden_set(ec, EINA_TRUE);
+        evas_object_hide(ec->frame);
+
+        _reapply_tree();
+     }
+
+   //now check if we can hint somehow
+   evas_pointer_canvas_xy_get(e_comp->evas, &x, &y);
+
+
+   //create hint if not there
+   if (!extra->drag.hint)
+     {
+        extra->drag.hint = edje_object_add(e_comp->evas);
+        if (!e_theme_edje_object_set(extra->drag.hint,
+                                     "base/theme/modules/tiling",
+                                     "modules/tiling/indicator"))
+          edje_object_file_set(extra->drag.hint, _G.edj_path, "modules/tiling/indicator");
+        evas_object_layer_set(extra->drag.hint, E_LAYER_CLIENT_DRAG);
+        evas_object_show(extra->drag.hint);
+
+        extra->drag.ic = e_client_icon_add(ec, evas_object_evas_get(e_comp->evas));
+        edje_object_part_swallow(extra->drag.hint, "e.client.icon", extra->drag.ic);
+        evas_object_show(extra->drag.ic);
+     }
+
+   //if there is nothing below, we cannot hint to anything
+   client = _tilable_client(x, y);
+   if (client)
+     {
+        Position_On_Client c;
+
+        c = _calculate_position_preference(client->client);
+
+        Eina_Rectangle pos = client->client->client;
+        if (c == POSITION_LEFT)
+          evas_object_geometry_set(extra->drag.hint, pos.x, pos.y, pos.w/2, pos.h);
+        else if (c == POSITION_RIGHT)
+          evas_object_geometry_set(extra->drag.hint, pos.x+pos.w/2, pos.y, pos.w/2, pos.h);
+        else if (c == POSITION_BOTTOM)
+          evas_object_geometry_set(extra->drag.hint, pos.x, pos.y + pos.h/2, pos.w, pos.h/2);
+        else if (c == POSITION_TOP)
+          evas_object_geometry_set(extra->drag.hint, pos.x, pos.y, pos.w, pos.h/2);
+        evas_object_show(extra->drag.hint);
+     }
+   else
+     {
+        //if there is no client, just highlight the zone
+        Eina_Rectangle geom;
+        E_Zone *zone = e_zone_current_get();
+        e_zone_useful_geometry_get(zone, &geom.x, &geom.y, &geom.w, &geom.h);
+        evas_object_geometry_set(extra->drag.hint, EINA_RECTANGLE_ARGS(&geom));
+        evas_object_show(extra->drag.hint);
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static void
+_client_drag_terminate(E_Client *ec)
+{
+   Client_Extra *extra = tiling_entry_no_desk_func(ec);
+
+   if (!extra)
+     {
+        return;
+     }
+
+   //we grappend the comp when we started the drag
+   e_comp_ungrab_input(EINA_TRUE, EINA_FALSE);
+
+   //insert the client at the position where the up was
+   if (desk_should_tile_check(get_current_desk()))
+     {
+        _insert_client_prefered(ec);
+        extra->tiled = EINA_TRUE;
+     }
+
+   //remove the hint object
+   E_FREE_FUNC(extra->drag.hint, evas_object_del);
+   E_FREE_FUNC(extra->drag.ic, evas_object_del);
+
+   //bring up the client again
+   ec->hidden = EINA_FALSE;
+   e_client_comp_hidden_set(ec, EINA_FALSE);
+   evas_object_show(ec->frame);
+
+   //remove the events
+   E_FREE_FUNC(extra->drag.move, ecore_event_handler_del);
+   E_FREE_FUNC(extra->drag.up, ecore_event_handler_del);
+
+   _reapply_tree();
+
+   evas_object_focus_set(ec->frame, EINA_TRUE);
+
+   extra->drag.drag = EINA_FALSE;
+}
+
+static void
+_client_move_begin(void *data EINA_UNUSED, E_Client *ec)
+{
+   Client_Extra *extra = tiling_entry_func(ec);
+
+   if (!extra || !extra->tiled)
+     {
+        return;
+     }
+
+   //listen for mouse moves when the move starts we are starting a drag
+   evas_pointer_canvas_xy_get(e_comp->evas, &extra->drag.x, &extra->drag.y);
+   extra->drag.move = ecore_event_handler_add(ECORE_EVENT_MOUSE_MOVE, _client_drag_mouse_move, ec);
+   extra->drag.up = ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP, _client_drag_mouse_up, ec);
+
+}
+
+static void
+_update_current_desk(E_Desk *new)
+{
+   Desk_Split_Type *type;
+
+   type = eina_hash_find(_G.desk_type, &new);
+
+   if (!type)
+     {
+        type = calloc(1, sizeof(Desk_Split_Type));
+        type->desk = new;
+        type->type = TILING_SPLIT_HORIZONTAL;
+        eina_hash_add(_G.desk_type, &new, type);
+     }
+
+   _G.current_split_type = type;
+}
+
+static bool
+_desk_shown(void *data EINA_UNUSED, int types EINA_UNUSED, void *event_info)
+{
+   E_Event_Desk_Show *ev = event_info;
+
+   if (!ev->desk)
+     {
+        ERR("The shown desk can never be NULL!");
+        return ECORE_CALLBACK_PASS_ON;
+     }
+
+   _update_current_desk(ev->desk);
+   _tiling_gadgets_update();
+
+   return ECORE_CALLBACK_PASS_ON;
+}
 
 E_API void *
 e_modapi_init(E_Module *m)
@@ -1421,7 +1833,7 @@ e_modapi_init(E_Module *m)
 
    _G.info_hash = eina_hash_pointer_new(_clear_info_hash);
    _G.client_extras = eina_hash_pointer_new(_clear_border_extras);
-
+   _G.desk_type = eina_hash_pointer_new(_clear_desk_types);
 #define HANDLER(_h, _e, _f)                                \
   _h = ecore_event_handler_add(E_EVENT_##_e,               \
                                (Ecore_Event_Handler_Cb)_f, \
@@ -1429,8 +1841,15 @@ e_modapi_init(E_Module *m)
 
    _G.handler_client_resize_begin =
       e_client_hook_add(E_CLIENT_HOOK_RESIZE_BEGIN, _resize_begin_hook, NULL);
-   _G.handler_client_add =
-      e_client_hook_add(E_CLIENT_HOOK_EVAL_PRE_FRAME_ASSIGN, _add_hook, NULL);
+   _G.handler_move_begin =
+      e_client_hook_add(E_CLIENT_HOOK_MOVE_BEGIN, _client_move_begin, NULL);
+
+   if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+     _G.handler_client_add =
+        e_client_hook_add(E_CLIENT_HOOK_EVAL_PRE_FRAME_ASSIGN, _add_hook, NULL);
+   else
+     _G.handler_client_add =
+        e_client_hook_add(E_CLIENT_HOOK_UNIGNORE, _add_hook, NULL);
    HANDLER(_G.handler_client_resize, CLIENT_RESIZE, _resize_hook);
    HANDLER(_G.handler_client_move, CLIENT_MOVE, _move_hook);
 
@@ -1438,8 +1857,9 @@ e_modapi_init(E_Module *m)
    HANDLER(_G.handler_client_uniconify, CLIENT_UNICONIFY, _iconify_hook);
 
    HANDLER(_G.handler_desk_set, CLIENT_DESK_SET, _desk_set_hook);
-   HANDLER(_G.handler_compositor_resize, COMPOSITOR_RESIZE,
+   HANDLER(_G.handler_compositor_resize, COMPOSITOR_UPDATE,
            _compositor_resize_hook);
+   HANDLER(_G.handler_desk_show, DESK_SHOW, _desk_shown);
 #undef HANDLER
 
 #define ACTION_ADD(_action, _cb, _title, _value, _params, _example, _editable) \
@@ -1466,7 +1886,7 @@ e_modapi_init(E_Module *m)
               N_("Move the focused window right"), "move_right", NULL, NULL, 0);
 
    ACTION_ADD(_G.act_toggle_split_mode, _e_mod_action_toggle_split_mode,
-              N_("Toggle split mode"), "toggle_split_mode", NULL, NULL, 0);
+              N_("Toggle split mode for new windows."), "toggle_split_mode", NULL, NULL, 0);
 
    ACTION_ADD(_G.act_swap_window, NULL, N_("Swap window"), "swap_window", NULL,
               NULL, 0);
@@ -1527,18 +1947,21 @@ e_modapi_init(E_Module *m)
    desk = get_current_desk();
    _G.tinfo = _initialize_tinfo(desk);
 
+   _update_current_desk(get_current_desk());
+
    /* Add all the existing windows. */
    {
       E_Client *ec;
 
       E_CLIENT_FOREACH(ec)
       {
-         _add_client(ec, _G.split_type);
+         _add_client(ec, _current_tiled_state(EINA_TRUE));
       }
    }
    started = EINA_TRUE;
    _reapply_tree();
    e_gadcon_provider_register(&_gc_class);
+
 
    return m;
 }
@@ -1672,7 +2095,7 @@ static Eina_Stringshare *_current_gad_id = NULL;
 static void
 _edje_tiling_icon_set(Evas_Object *o)
 {
-   switch (_G.split_type)
+   switch (_current_tiled_state(EINA_TRUE))
      {
       case TILING_SPLIT_HORIZONTAL:
         edje_object_signal_emit(o, "tiling,mode,horizontal", "e");

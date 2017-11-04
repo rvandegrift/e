@@ -134,6 +134,7 @@ typedef enum E_Client_Property
    E_CLIENT_PROPERTY_GRAVITY = (1 << 5),
    E_CLIENT_PROPERTY_NETWM_STATE = (1 << 6),
    E_CLIENT_PROPERTY_STICKY = (1 << 7),
+   E_CLIENT_PROPERTY_MISC = (1 << 31),
 } E_Client_Property;
 
 typedef struct E_Client E_Client;
@@ -169,6 +170,7 @@ typedef enum _E_Client_Hook_Point
    E_CLIENT_HOOK_DEL,
    E_CLIENT_HOOK_UNREDIRECT,
    E_CLIENT_HOOK_REDIRECT,
+   E_CLIENT_HOOK_UNIGNORE,
    E_CLIENT_HOOK_LAST,
 } E_Client_Hook_Point;
 
@@ -266,6 +268,13 @@ struct E_Client
 
    E_Action                  *cur_mouse_action;
 
+   struct {
+      E_Client               *next;
+      E_Client               *prev;
+      int                     ignore;
+      Eina_Bool               focus_skip : 1;
+   } stack;
+
    int               border_size; //size of client's border
 
    struct
@@ -311,6 +320,7 @@ struct E_Client
       int          zone;
       E_Maximize   maximized;
       Eina_Bool    frame : 1;
+      Eina_Bool    set : 1;
    } saved;
 
    struct
@@ -402,9 +412,9 @@ struct E_Client
       unsigned int  desktop;
       Eina_Stringshare *name;
       Eina_Stringshare *icon_name;
-
+#ifndef HAVE_WAYLAND_ONLY
       Ecore_X_Icon *icons;
-
+#endif
       int           num_icons;
       unsigned int  user_time;
       unsigned char opacity;
@@ -518,8 +528,9 @@ struct E_Client
             unsigned char     wait_for_done : 1;
             unsigned char     use : 1;
          } profile;
-         unsigned char  centered : 1;
-         unsigned char  video : 1;
+         Eina_Bool stack : 1;
+         unsigned char      centered : 1;
+         unsigned char      video : 1;
       } state;
 
       struct
@@ -528,6 +539,7 @@ struct E_Client
          unsigned char video_parent : 1;
          unsigned char video_position : 1;
          unsigned char profile : 1;
+         unsigned char stack : 1;
       } fetch;
    } e;
 
@@ -574,6 +586,7 @@ struct E_Client
       Eina_Bool internal_state : 1;
       Eina_Bool need_maximize : 1;
       Eina_Bool need_unmaximize : 1;
+      Eina_Bool need_rescale : 1;
    } changes;
 
    unsigned int       visible : 1; // client is set to be visible by display server (never use this)
@@ -671,6 +684,7 @@ struct E_Client
    Ecore_Timer               *raise_timer;
    E_Client_Move_Intercept_Cb move_intercept_cb;
    E_Remember                *remember;
+   E_Remember                *sr_remember;
 
    Efreet_Desktop            *desktop;
    E_Exec_Instance           *exe_inst;
@@ -687,6 +701,13 @@ struct E_Client
    E_Focus_Policy             focus_policy_override;
 
    Eina_Stringshare *uuid;
+
+   Eina_List *sinks;
+   int volume;
+   int volume_min;
+   int volume_max;
+   unsigned char mute : 1;
+   unsigned char volume_control_enabled : 1;
 
    Eina_Bool override : 1;
    Eina_Bool input_only : 1;
@@ -746,6 +767,7 @@ E_API extern int E_EVENT_CLIENT_FULLSCREEN;
 E_API extern int E_EVENT_CLIENT_UNFULLSCREEN;
 
 
+
 EINTERN void e_client_idler_before(void);
 EINTERN Eina_Bool e_client_init(void);
 EINTERN void e_client_shutdown(void);
@@ -764,6 +786,7 @@ E_API void e_client_mouse_up(E_Client *ec, int button, Evas_Point *output, E_Bin
 E_API void e_client_mouse_move(E_Client *ec, Evas_Point *output);
 E_API void e_client_res_change_geometry_save(E_Client *bd);
 E_API void e_client_res_change_geometry_restore(E_Client *ec);
+E_API void e_client_rescale(E_Client *ec);
 E_API void e_client_zone_set(E_Client *ec, E_Zone *zone);
 E_API void e_client_geometry_get(E_Client *ec, int *x, int *y, int *w, int *h);
 E_API E_Client *e_client_above_get(const E_Client *ec);
@@ -800,6 +823,7 @@ E_API void e_client_urgent_set(E_Client *ec, Eina_Bool urgent);
 E_API void e_client_stick(E_Client *ec);
 E_API void e_client_unstick(E_Client *ec);
 E_API void e_client_pinned_set(E_Client *ec, Eina_Bool set);
+E_API void e_client_prop_misc_changed(E_Client *ec);
 E_API void e_client_comp_hidden_set(E_Client *ec, Eina_Bool hidden);
 E_API Eina_Bool e_client_border_set(E_Client *ec, const char *name);
 E_API void e_client_act_move_keyboard(E_Client *ec);
@@ -831,8 +855,18 @@ E_API Eina_Bool e_client_has_xwindow(const E_Client *ec);
 E_API Eina_Bool e_client_desk_window_profile_available_check(E_Client *ec, const char *profile);
 E_API void      e_client_desk_window_profile_wait_desk_set(E_Client *ec, E_Desk *desk);
 E_API void      e_client_layout_cb_set(E_Client_Layout_Cb cb);
+E_API Eina_List *e_client_stack_list_prepare(E_Client *ec);
+E_API void       e_client_stack_list_finish(Eina_List *list);
+E_API E_Client  *e_client_stack_top_get(E_Client *ec);
+E_API E_Client  *e_client_stack_bottom_get(E_Client *ec);
+E_API E_Client  *e_client_stack_active_adjust(E_Client *ec);
+E_API Eina_Bool  e_client_stack_focused_get(E_Client *ec);
+E_API Eina_Bool  e_client_stack_iconified_get(E_Client *ec);
+E_API Eina_Bool  e_client_stack_urgent_get(E_Client *ec);
 
 YOLO E_API void e_client_focus_stack_set(Eina_List *l);
 
+E_API void e_client_parent_set(E_Client *ec, E_Client *parent);
+E_API void e_client_transients_restack(E_Client *ec);
 #include "e_client.x"
 #endif

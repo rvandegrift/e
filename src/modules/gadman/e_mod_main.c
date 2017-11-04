@@ -170,22 +170,35 @@ _gadman_desktop_menu_cb(void *data EINA_UNUSED, E_Menu *m, E_Menu_Item *mi EINA_
      }
 }
 
-static void
-_gadman_desktop_menu(void *d EINA_UNUSED, E_Menu *m, void *icon)
+static E_Menu_Item *
+_gadman_menu_insert_get(E_Menu *menu)
 {
-   E_Menu_Item *mi;
+   E_Menu_Item *mi, *prev_mi = NULL;
+   Eina_List *l;
 
-   mi = eina_list_data_get(m->items);
+   EINA_LIST_FOREACH(menu->items, l, mi)
+     {
+        if (!strcmp(mi->label, _("Change Wallpaper")))
+          return prev_mi;
+        prev_mi = mi;
+     }
+
+   return NULL;
+}
+
+static void
+_gadman_desktop_menu(void *d EINA_UNUSED, E_Menu *m, void *icon EINA_UNUSED)
+{
+   E_Menu_Item *mi, *pos;
+
+   pos = _gadman_menu_insert_get(m);
    /* don't add twice */
-   if (mi->cb.func == _gadman_desktop_menu_cb) return;
+   if (pos->cb.func == _gadman_desktop_menu_cb) return;
 
-   mi = e_menu_item_new_relative(m, NULL);
+   mi = e_menu_item_new_relative(m, pos);
    e_menu_item_label_set(mi, _("Change Gadgets"));
-   e_menu_item_icon_edje_set(mi, icon, "icon");
+   e_util_menu_item_theme_icon_set(mi, "preferences-desktop-shelf");
    e_menu_item_callback_set(mi, _gadman_desktop_menu_cb, NULL);
-
-   mi = e_menu_item_new_relative(m, mi);
-   e_menu_item_separator_set(mi, 1);
 }
 
 static void
@@ -218,7 +231,8 @@ gadman_gadget_add_handler(void *d EINA_UNUSED, int type EINA_UNUSED, E_Event_Gad
    if (!Man->waiting) return ECORE_CALLBACK_RENEW;
    l = eina_list_data_find_list(Man->waiting, ev->gcc->gadcon);
    if (!l) return ECORE_CALLBACK_RENEW;
-   if (ev->gcc->cf->geom.pos_x || ev->gcc->cf->geom.pos_y || ev->gcc->cf->geom.size_w || ev->gcc->cf->geom.size_h)
+   if (EINA_DBL_NONZERO(ev->gcc->cf->geom.pos_x) || EINA_DBL_NONZERO(ev->gcc->cf->geom.pos_y) ||
+       EINA_DBL_NONZERO(ev->gcc->cf->geom.size_w) || EINA_DBL_NONZERO(ev->gcc->cf->geom.size_h))
      return ECORE_CALLBACK_RENEW;
    if ((ev->gcc->gadcon->new_gcc) && (ev->gcc->gadcon->new_gcc == ev->gcc))
      return ECORE_CALLBACK_RENEW;

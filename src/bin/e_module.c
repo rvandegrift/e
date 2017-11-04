@@ -13,6 +13,7 @@ static void      _e_module_dialog_disable_create(const char *title, const char *
 static void      _e_module_cb_dialog_disable(void *data, E_Dialog *dia);
 static void      _e_module_event_update_free(void *data, void *event);
 static Eina_Bool _e_module_cb_idler(void *data);
+static int       _e_module_sort_name(const void *d1, const void *d2);
 static int       _e_module_sort_priority(const void *d1, const void *d2);
 static void      _e_module_whitelist_check(void);
 static Eina_Bool _e_module_desktop_list_cb(const Eina_Hash *hash EINA_UNUSED, const void *key, void *data, void *fdata);
@@ -153,6 +154,7 @@ _module_is_important(const char *name)
    const char *list[] =
    {
       "xwayland",
+      "wl_buffer",
       "wl_desktop_shell",
       "wl_drm",
       "wl_fb",
@@ -264,12 +266,28 @@ E_API void
 e_module_all_load(void)
 {
    Eina_List *l, *ll;
-   E_Config_Module *em;
+   E_Config_Module *em, *em2;
    char buf[128];
 
    _e_modules_initting = EINA_TRUE;
    if (_e_module_path_lists) return;
 
+   // remove duplicate modules in load
+   e_config->modules =
+     eina_list_sort(e_config->modules, 0, _e_module_sort_name);
+   EINA_LIST_FOREACH_SAFE(e_config->modules, l, ll, em)
+     {
+        if ((!em) || (!ll)) continue;
+        em2 = ll->data;
+        if (!em2) continue;
+
+        if (!strcmp(em->name, em2->name))
+          {
+             eina_stringshare_del(em->name);
+             e_config->modules = eina_list_remove_list(e_config->modules, l);
+             free(em);
+          }
+     }
    e_config->modules =
      eina_list_sort(e_config->modules, 0, _e_module_sort_priority);
 
@@ -332,11 +350,11 @@ e_module_new(const char *name)
    char body[4096], title[1024];
    const char *modpath = NULL;
    char *s;
-   Eina_List *l, *ll;
-   E_Config_Module *em;
    int in_list = 0;
 
    if (!name) return NULL;
+   if (eina_hash_find(_e_modules_hash, name)) return NULL;
+
    m = E_OBJECT_ALLOC(E_Module, E_MODULE_TYPE, _e_module_free);
    if (name[0] != '/')
      {
@@ -367,9 +385,9 @@ e_module_new(const char *name)
    if (!modpath)
      {
         snprintf(body, sizeof(body),
-                 _("There was an error loading the module named: %s<br>"
-                   "No module named %s could be found in the<br>"
-                   "module search directories.<br>"), name, buf);
+                 _("There was an error loading the module named: %s<ps/>"
+                   "No module named %s could be found in the<ps/>"
+                   "module search directories.<ps/>"), name, buf);
         _e_module_dialog_disable_create(_("Error loading Module"), body, m);
         m->error = 1;
         goto init_done;
@@ -378,15 +396,16 @@ e_module_new(const char *name)
    if (!m->handle)
      {
         snprintf(body, sizeof(body),
-                 _("There was an error loading the module named: %s<br>"
-                   "The full path to this module is:<br>"
-                   "%s<br>"
-                   "The error reported was:<br>"
-                   "%s<br>"), name, buf, dlerror());
+                 _("There was an error loading the module named: %s<ps/>"
+                   "The full path to this module is:<ps/>"
+                   "%s<ps/>"
+                   "The error reported was:<ps/>"
+                   "%s<ps/>"), name, buf, dlerror());
         _e_module_dialog_disable_create(_("Error loading Module"), body, m);
         m->error = 1;
         goto init_done;
      }
+   m->file = eina_stringshare_ref(modpath);
    m->api = dlsym(m->handle, "e_modapi");
    m->func.init = dlsym(m->handle, "e_modapi_init");
    m->func.shutdown = dlsym(m->handle, "e_modapi_shutdown");
@@ -395,11 +414,11 @@ e_module_new(const char *name)
    if ((!m->func.init) || (!m->api))
      {
         snprintf(body, sizeof(body),
-                 _("There was an error loading the module named: %s<br>"
-                   "The full path to this module is:<br>"
-                   "%s<br>"
-                   "The error reported was:<br>"
-                   "%s<br>"),
+                 _("There was an error loading the module named: %s<ps/>"
+                   "The full path to this module is:<ps/>"
+                   "%s<ps/>"
+                   "The error reported was:<ps/>"
+                   "%s<ps/>"),
                  name, buf, _("Module does not contain all needed functions"));
         _e_module_dialog_disable_create(_("Error loading Module"), body, m);
         m->api = NULL;
@@ -415,9 +434,9 @@ e_module_new(const char *name)
    if (m->api->version != E_MODULE_API_VERSION)
      {
         snprintf(body, sizeof(body),
-                 _("Module API Error<br>Error initializing Module: %s<br>"
-                   "It requires a module API version of: %i.<br>"
-                   "The module API advertized by Enlightenment is: %i.<br>"),
+                 _("Module API Error<ps/>Error initializing Module: %s<ps/>"
+                   "It requires a module API version of: %i.<ps/>"
+                   "The module API advertized by Enlightenment is: %i.<ps/>"),
                  _(m->api->name), m->api->version, E_MODULE_API_VERSION);
 
         snprintf(title, sizeof(title), _("Enlightenment %s Module"),
@@ -459,22 +478,6 @@ init_done:
                   m->dir = eina_stringshare_add(s2);
                   free(s2);
                }
-          }
-     }
-   EINA_LIST_FOREACH_SAFE(e_config->modules, l, ll, em)
-     {
-        if (!em) continue;
-        if (em->name == m->name)
-          {
-             if (in_list)
-               {
-                  /* duplicate module config */
-                  e_config->modules = eina_list_remove_list(e_config->modules, l);
-                  eina_stringshare_del(em->name);
-                  free(em);
-               }
-             else
-               in_list = 1;
           }
      }
    if (!in_list)
@@ -798,8 +801,8 @@ _e_module_dialog_disable_show(const char *title, const char *body, E_Module *m)
 
    dia = e_dialog_new(NULL, "E", "_module_unload_dialog");
 
-   snprintf(buf, sizeof(buf), "%s<br>%s", body,
-            _("What action should be taken with this module?<br>"));
+   snprintf(buf, sizeof(buf), "%s<ps/>%s", body,
+            _("What action should be taken with this module?<ps/>"));
 
    e_dialog_title_set(dia, title);
    e_dialog_icon_set(dia, "enlightenment", 64);
@@ -830,7 +833,7 @@ _e_module_dialog_disable_create(const char *title, const char *body, E_Module *m
    dd->title = strdup(title);
    dd->body = strdup(body);
    dd->m = m;
-   ecore_timer_add(1.5, (Ecore_Task_Cb)_e_module_dialog_disable_timer, dd);
+   ecore_timer_loop_add(1.5, (Ecore_Task_Cb)_e_module_dialog_disable_timer, dd);
 }
 
 static void
@@ -891,6 +894,18 @@ _e_module_cb_idler(void *data EINA_UNUSED)
 }
 
 static int
+_e_module_sort_name(const void *d1, const void *d2)
+{
+   const E_Config_Module *m1, *m2;
+
+   m1 = d1;
+   if (!m1->name) return -1;
+   m2 = d2;
+   if (!m2->name) return 1;
+   return strcmp(m1->name, m2->name);
+}
+
+static int
 _e_module_sort_priority(const void *d1, const void *d2)
 {
    const E_Config_Module *m1, *m2;
@@ -946,16 +961,16 @@ _e_module_whitelist_dialog_timer(void *badl)
                       "E", "_module_whitelist_dialog");
    sbuf = eina_strbuf_new();
    eina_strbuf_append
-     (sbuf, _("The following modules are not standard ones for<br>"
-              "Enlightenment and may cause bugs and crashes.<br>"
-              "Please remove them before reporting any bugs.<br>"
-              "<br>"
-              "The module list is as follows:<br>"
-              "<br>"));
+     (sbuf, _("The following modules are not standard ones for<ps/>"
+              "Enlightenment and may cause bugs and crashes.<ps/>"
+              "Please remove them before reporting any bugs.<ps/>"
+              "<ps/>"
+              "The module list is as follows:<ps/>"
+              "<ps/>"));
    EINA_LIST_FOREACH(badl, l, s)
      {
         eina_strbuf_append(sbuf, s);
-        eina_strbuf_append(sbuf, "<br>");
+        eina_strbuf_append(sbuf, "<ps/>");
      }
 
    e_dialog_title_set(dia, _("Unstable module tainting"));
@@ -1009,6 +1024,7 @@ _e_module_whitelist_check(void)
       "ibox",
       "layout",
       "lokker",
+      "luncher",
       "mixer",
       "msgbus",
       "notification",
@@ -1019,6 +1035,7 @@ _e_module_whitelist_check(void)
       "shot",
       "start",
       "syscon",
+      "sysinfo",
       "systray",
       "tasks",
       "teamwork",
@@ -1028,6 +1045,7 @@ _e_module_whitelist_check(void)
       "winlist",
       "wireless",
       "wizard",
+      "wl_buffer",
       "wl_desktop_shell",
       "wl_x11",
       "wl_wl",
@@ -1101,7 +1119,7 @@ _e_module_whitelist_check(void)
 #endif
 
    if (eina_list_count(badl) != known)
-     ecore_timer_add(1.5, _e_module_whitelist_dialog_timer, badl);
+     ecore_timer_loop_add(1.5, _e_module_whitelist_dialog_timer, badl);
    else
      {
         EINA_LIST_FREE(badl, s)

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Name=Enlightenment Askpass
+Comment=Enlightenment Password Request
+Comment[it]=Richiesta password per Enlightenment
+Icon=enlightenment-askpass
+OnlyShowIn=Enlightenment;
+Exec=enlightenment_askpass
+Terminal=false
+Categories=System
+StartupNotify=false
+StartupWMClass=enlighenment_askpass
+NoDisplay=true

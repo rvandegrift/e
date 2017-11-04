@@ -84,10 +84,6 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
    inst->warning = NULL;
    inst->popup_battery = NULL;
 
-#ifdef HAVE_EEZE
-   eeze_init();
-#endif
-
    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
                                   _button_cb_mouse_down, inst);
    battery_config->instances =
@@ -101,10 +97,6 @@ static void
 _gc_shutdown(E_Gadcon_Client *gcc)
 {
    Instance *inst;
-
-#ifdef HAVE_EEZE
-   eeze_shutdown();
-#endif
 
    inst = gcc->data;
    if (battery_config)
@@ -297,7 +289,13 @@ _battery_device_update(void)
    int acnum = 0;
 
    EINA_LIST_FOREACH(device_ac_adapters, l, ac)
-     if (ac->present) acnum++;
+     {
+        if (ac->present)
+          {
+             acnum++;
+             have_power = 1;
+          }
+     }
 
    EINA_LIST_FOREACH(device_batteries, l, bat)
      {
@@ -368,8 +366,8 @@ _battery_config_updated(void)
      {
 #ifdef HAVE_EEZE
         ok = _battery_udev_start();
-#elif defined __OpenBSD__
-        ok = _battery_openbsd_start();
+#elif defined __OpenBSD__ || defined __DragonFly__ || defined __FreeBSD__ || defined __NetBSD__
+        ok = _battery_sysctl_start();
 #else
         ok = _battery_upower_start();
 #endif
@@ -500,7 +498,7 @@ _battery_warning_popup(Instance *inst, int t, double percent)
        (!battery_config->alert_timer))
      {
         battery_config->alert_timer =
-          ecore_timer_add(battery_config->alert_timeout,
+          ecore_timer_loop_add(battery_config->alert_timeout,
                           _battery_cb_warning_popup_timeout, inst);
      }
 }
@@ -738,7 +736,7 @@ e_modapi_init(E_Module *m)
    E_CONFIG_VAL(D, T, alert_timeout, INT);
    E_CONFIG_VAL(D, T, suspend_below, INT);
    E_CONFIG_VAL(D, T, force_mode, INT);
-#if defined HAVE_EEZE || defined __OpenBSD__
+#if defined HAVE_EEZE || defined __OpenBSD__ || defined __NetBSD__
    E_CONFIG_VAL(D, T, fuzzy, INT);
 #endif
    E_CONFIG_VAL(D, T, desktop_notifications, INT);
@@ -753,7 +751,7 @@ e_modapi_init(E_Module *m)
         battery_config->alert_timeout = 0;
         battery_config->suspend_below = 0;
         battery_config->force_mode = 0;
-#if defined HAVE_EEZE || defined __OpenBSD__
+#if defined HAVE_EEZE || defined __OpenBSD__ || defined __NetBSD__
         battery_config->fuzzy = 0;
 #endif
         battery_config->desktop_notifications = 0;
@@ -826,8 +824,8 @@ e_modapi_shutdown(E_Module *m EINA_UNUSED)
 
 #ifdef HAVE_EEZE
    _battery_udev_stop();
-#elif defined __OpenBSD__
-   _battery_openbsd_stop();
+#elif defined (__OpenBSD__) || defined (__DragonFly__) || defined (__FreeBSD__) || defined (__NetBSD__)
+   _battery_sysctl_stop();
 #else
    _battery_upower_stop();
 #endif

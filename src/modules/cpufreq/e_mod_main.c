@@ -6,7 +6,7 @@
  *       in s->frequencies instead of available frequencies.
  */
 
-#if defined (__FreeBSD__) || defined (__OpenBSD__)
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined (__OpenBSD__)
 # include <sys/sysctl.h>
 #endif
 
@@ -96,6 +96,7 @@ _gc_init(E_Gadcon *gc, const char *name, const char *id, const char *style)
                                   _button_cb_mouse_down, inst);
    cpufreq_config->instances =
      eina_list_append(cpufreq_config->instances, inst);
+
    _cpufreq_face_update_available(inst);
 
    cpufreq_config->handler =
@@ -488,6 +489,9 @@ _cpufreq_set_governor(const char *governor)
 {
    char buf[4096];
    int ret;
+   struct stat st;
+
+   if (stat(cpufreq_config->set_exe_path, &st) < 0) return;
 
    snprintf(buf, sizeof(buf),
             "%s %s %s", cpufreq_config->set_exe_path, "governor", governor);
@@ -500,8 +504,8 @@ _cpufreq_set_governor(const char *governor)
           return;
         e_dialog_title_set(dia, "Enlightenment Cpufreq Module");
         e_dialog_icon_set(dia, "enlightenment", 64);
-        e_dialog_text_set(dia, _("There was an error trying to set the<br>"
-                                 "cpu frequency governor via the module's<br>"
+        e_dialog_text_set(dia, _("There was an error trying to set the<ps/>"
+                                 "cpu frequency governor via the module's<ps/>"
                                  "setfreq utility."));
         e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
         elm_win_center(dia->win, 1, 1);
@@ -515,7 +519,7 @@ _cpufreq_set_frequency(int frequency)
    char buf[4096];
    int ret;
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__DragonFly__)
    frequency /= 1000;
 #endif
    if (!cpufreq_config->status->can_set_frequency)
@@ -526,9 +530,9 @@ _cpufreq_set_frequency(int frequency)
           return;
         e_dialog_title_set(dia, "Enlightenment Cpufreq Module");
         e_dialog_icon_set(dia, "enlightenment", 64);
-        e_dialog_text_set(dia, _("Your kernel does not support setting the<br>"
-                                 "CPU frequency at all. You may be missing<br>"
-                                 "Kernel modules or features, or your CPU<br>"
+        e_dialog_text_set(dia, _("Your kernel does not support setting the<ps/>"
+                                 "CPU frequency at all. You may be missing<ps/>"
+                                 "Kernel modules or features, or your CPU<ps/>"
                                  "simply does not support this feature."));
         e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
         elm_win_center(dia->win, 1, 1);
@@ -552,8 +556,8 @@ _cpufreq_set_frequency(int frequency)
           return;
         e_dialog_title_set(dia, "Enlightenment Cpufreq Module");
         e_dialog_icon_set(dia, "enlightenment", 64);
-        e_dialog_text_set(dia, _("There was an error trying to set the<br>"
-                                 "cpu frequency setting via the module's<br>"
+        e_dialog_text_set(dia, _("There was an error trying to set the<ps/>"
+                                 "cpu frequency setting via the module's<ps/>"
                                  "setfreq utility."));
         e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
         elm_win_center(dia->win, 1, 1);
@@ -564,12 +568,14 @@ _cpufreq_set_frequency(int frequency)
 void
 _cpufreq_set_pstate(int min, int max)
 {
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+   (void) min;
+   (void) max;
+#else
    char buf[4096];
-   int ret;
-
    snprintf(buf, sizeof(buf),
             "%s %s %i %i %i", cpufreq_config->set_exe_path, "pstate", min, max, cpufreq_config->status->pstate_turbo);
-   ret = system(buf);
+   int ret = system(buf);
    if (ret != 0)
      {
         E_Dialog *dia;
@@ -578,13 +584,14 @@ _cpufreq_set_pstate(int min, int max)
           return;
         e_dialog_title_set(dia, "Enlightenment Cpufreq Module");
         e_dialog_icon_set(dia, "enlightenment", 64);
-        e_dialog_text_set(dia, _("There was an error trying to set the<br>"
-                                 "cpu power state setting via the module's<br>"
+        e_dialog_text_set(dia, _("There was an error trying to set the<ps/>"
+                                 "cpu power state setting via the module's<ps/>"
                                  "setfreq utility."));
         e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
         elm_win_center(dia->win, 1, 1);
         e_dialog_show(dia);
      }
+#endif
 }
 
 static Cpu_Status *
@@ -631,9 +638,11 @@ _cpufreq_cb_sort(const void *item1, const void *item2)
 static void
 _cpufreq_status_check_available(Cpu_Status *s)
 {
+   // FIXME: this assumes all cores accept the same freqs/ might be wrong
+#if !defined(__OpenBSD__)
    char buf[4096];
    Eina_List *l;
-   // FIXME: this assumes all cores accept the same freqs/ might be wrong
+#endif
 
 #if defined (__OpenBSD__)
    int p;
@@ -646,14 +655,14 @@ _cpufreq_status_check_available(Cpu_Status *s)
 
    /* storing percents */
    p = 100;
-   s->frequencies = eina_list_append(s->frequencies, (void *)p);
+   s->frequencies = eina_list_append(s->frequencies, (void *)(long int)p);
    p = 75;
-   s->frequencies = eina_list_append(s->frequencies, (void *)p);
+   s->frequencies = eina_list_append(s->frequencies, (void *)(long int)p);
    p = 50;
-   s->frequencies = eina_list_append(s->frequencies, (void *)p);
+   s->frequencies = eina_list_append(s->frequencies, (void *)(long int)p);
    p = 25;
-   s->frequencies = eina_list_append(s->frequencies, (void *)p);
-#elif defined (__FreeBSD__)
+   s->frequencies = eina_list_append(s->frequencies, (void *)(long int)p);
+#elif defined (__FreeBSD__) || defined(__DragonFly__)
    int freq;
    size_t len = sizeof(buf);
    char *pos, *q;
@@ -678,7 +687,7 @@ _cpufreq_status_check_available(Cpu_Status *s)
              *q = '\0';
              freq = atoi(pos);
              freq *= 1000;
-             s->frequencies = eina_list_append(s->frequencies, (void *)freq);
+             s->frequencies = eina_list_append(s->frequencies, (void *)(long)freq);
 
              pos = q + 1;
              pos = strchr(pos, ' ');
@@ -847,7 +856,7 @@ _cpufreq_status_check_current(Cpu_Status *s)
    s->can_set_frequency = 1;
    s->cur_governor = NULL;
 
-#elif defined (__FreeBSD__)
+#elif defined (__FreeBSD__) || defined(__DragonFly__)
    size_t len = sizeof(frequency);
    s->active = 0;
 
@@ -1019,6 +1028,10 @@ _cpufreq_face_update_available(Instance *inst)
         edje_object_message_send(inst->o_cpu, EDJE_MESSAGE_STRING_SET, 2, governor_msg);
         free(governor_msg);
      }
+#if defined(__OpenBSD__)
+   _cpufreq_face_update_current(inst);
+#endif
+
 }
 
 static void
@@ -1140,10 +1153,16 @@ _cpufreq_event_cb_powersave(void *data EINA_UNUSED, int type, void *event)
                _cpufreq_set_governor("conservative");
              break;
           }
+        EINA_FALLTHROUGH;
+        /* no break */
 
       case E_POWERSAVE_MODE_EXTREME:
+      case E_POWERSAVE_MODE_FREEZE:
         if (has_powersave)
           _cpufreq_set_governor("powersave");
+        break;
+
+      default:
         break;
      }
 
@@ -1268,7 +1287,16 @@ typedef struct _Thread_Config Thread_Config;
 struct _Thread_Config
 {
    int interval;
+   E_Powersave_Sleeper *sleeper;
 };
+
+static void
+_cpufreq_cb_frequency_check_done(void *data, Ecore_Thread *th EINA_UNUSED)
+{
+   Thread_Config *thc = data;
+   e_powersave_sleeper_free(thc->sleeper);
+   free(thc);
+}
 
 static void
 _cpufreq_cb_frequency_check_main(void *data, Ecore_Thread *th)
@@ -1285,9 +1313,8 @@ _cpufreq_cb_frequency_check_main(void *data, Ecore_Thread *th)
         else
           _cpufreq_status_free(status);
         if (ecore_thread_check(th)) break;
-        usleep((1000000.0 / 8.0) * (double)thc->interval);
+        e_powersave_sleeper_sleep(thc->sleeper, thc->interval);
      }
-   free(thc);
 }
 
 static void
@@ -1300,19 +1327,33 @@ _cpufreq_cb_frequency_check_notify(void *data EINA_UNUSED,
    Eina_List *l;
    int active;
    static Eina_Bool init_set = EINA_FALSE;
+   Eina_Bool freq_changed = EINA_FALSE;
 
    if (!cpufreq_config)
      {
         _cpufreq_status_free(status);
         return;
      }
-   if (cpufreq_config->status) _cpufreq_status_free(cpufreq_config->status);
    active = cpufreq_config->status->active;
+   if ((cpufreq_config->status) &&
+       (
+#ifdef __OpenBSD__
+        (status->cur_percent       != cpufreq_config->status->cur_percent      ) ||
+#endif
+        (status->cur_frequency     != cpufreq_config->status->cur_frequency    ) ||
+        (status->cur_min_frequency != cpufreq_config->status->cur_min_frequency) ||
+        (status->cur_max_frequency != cpufreq_config->status->cur_max_frequency) ||
+        (status->can_set_frequency != cpufreq_config->status->can_set_frequency)))
+     freq_changed = EINA_TRUE;
+   _cpufreq_status_free(cpufreq_config->status);
    cpufreq_config->status = status;
-   for (l = cpufreq_config->instances; l; l = l->next)
+   if (freq_changed)
      {
-        inst = l->data;
-        _cpufreq_face_update_current(inst);
+        for (l = cpufreq_config->instances; l; l = l->next)
+          {
+             inst = l->data;
+             _cpufreq_face_update_current(inst);
+          }
      }
    if (active != cpufreq_config->status->active)
      {
@@ -1347,10 +1388,13 @@ _cpufreq_poll_interval_update(void)
    if (thc)
      {
         thc->interval = cpufreq_config->poll_interval;
+        thc->sleeper = e_powersave_sleeper_new();
         cpufreq_config->frequency_check_thread =
           ecore_thread_feedback_run(_cpufreq_cb_frequency_check_main,
                                     _cpufreq_cb_frequency_check_notify,
-                                    NULL, NULL, thc, EINA_TRUE);
+                                    _cpufreq_cb_frequency_check_done,
+                                    _cpufreq_cb_frequency_check_done,
+                                    thc, EINA_TRUE);
      }
    e_config_save_queue();
 }
@@ -1413,7 +1457,7 @@ e_modapi_init(E_Module *m)
    if (stat(buf, &st) < 0)
      {
         e_util_dialog_show(_("Cpufreq Error"),
-                           _("The freqset binary in the cpufreq module<br>"
+                           _("The freqset binary in the cpufreq module<ps/>"
                              "directory cannot be found (stat failed)"));
      }
    else if ((st.st_uid != 0) ||
@@ -1421,13 +1465,13 @@ e_modapi_init(E_Module *m)
             ((st.st_mode & (S_IXOTH)) != (S_IXOTH)))
      {
         e_util_dialog_show(_("Cpufreq Permissions Error"),
-                           _("The freqset binary in the cpufreq module<br>"
-                             "is not owned by root or does not have the<br>"
-                             "setuid bit set. Please ensure this is the<br>"
-                             "case. For example:<br>"
-                             "<br>"
-                             "sudo chown root %s<br>"
-                             "sudo chmod u+s,a+x %s<br>"),
+                           _("The freqset binary in the cpufreq module<ps/>"
+                             "is not owned by root or does not have the<ps/>"
+                             "setuid bit set. Please ensure this is the<ps/>"
+                             "case. For example:<ps/>"
+                             "<ps/>"
+                             "sudo chown root %s<ps/>"
+                             "sudo chmod u+s,a+x %s<ps/>"),
                            buf, buf);
      }
    cpufreq_config->status = _cpufreq_status_new();
@@ -1451,7 +1495,6 @@ e_modapi_init(E_Module *m)
    cpufreq_config->module = m;
 
    e_gadcon_provider_register(&_gadcon_class);
-   
    snprintf(buf, sizeof(buf), "%s/e-module-cpufreq.edj", e_module_dir_get(m));
    e_configure_registry_category_add("advanced", 80, _("Advanced"), NULL,
                                      "preferences-advanced");

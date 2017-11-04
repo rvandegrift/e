@@ -159,7 +159,6 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
    e_config->xsettings.match_e17_icon_theme = cfdata->match_e17_icon_theme;
    e_config_save_queue();
 
-#ifdef EFL_VERSION_1_18
    if (cfdata->match_e17_icon_theme &&
        strcmp(e_config->icon_theme, elm_config_icon_theme_get()))
      {
@@ -167,7 +166,6 @@ _basic_apply(E_Config_Dialog *cfd, E_Config_Dialog_Data *cfdata)
         elm_config_all_flush();
         elm_config_save();
      }
-#endif
    e_util_env_set("E_ICON_THEME", e_config->icon_theme);
 
    ev = E_NEW(E_Event_Config_Icon_Theme, 1);
@@ -336,14 +334,8 @@ _icon_new(Evas *evas, const char *theme, const char *icon, unsigned int size)
 
    if (!(path = efreet_icon_path_find(theme, icon, size))) return NULL;
    o = e_icon_add(evas);
-   if (e_icon_file_set(o, path))
-     e_icon_fill_inside_set(o, 1);
-   else
-     {
-        evas_object_del(o);
-        o = NULL;
-     }
-
+   e_icon_file_set(o, path);
+   e_icon_fill_inside_set(o, EINA_TRUE);
    return o;
 }
 
@@ -359,8 +351,8 @@ _populate_icon_preview(E_Config_Dialog_Data *cfdata)
 
         if (!(path = efreet_icon_path_find(t, _icon_previews[i], PREVIEW_SIZE)))
           continue;
-        if (e_icon_file_set(cfdata->gui.icon_preview[i], path))
-          e_icon_fill_inside_set(cfdata->gui.icon_preview[i], EINA_TRUE);
+        e_icon_file_set(cfdata->gui.icon_preview[i], path);
+        e_icon_fill_inside_set(cfdata->gui.icon_preview[i], EINA_TRUE);
      }
 }
 

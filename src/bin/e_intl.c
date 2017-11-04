@@ -347,17 +347,18 @@ e_intl_input_method_set(const char *imc_path)
                     {
                        // if you see valgrind complain about memory
                        // definitely lost here... it's wrong.
-                       _e_intl_input_method_exec = ecore_exe_run(imc->e_im_exec, NULL);
+                       _e_intl_input_method_exec = e_util_exe_safe_run
+                         (imc->e_im_exec, NULL);
                        ecore_exe_tag_set(_e_intl_input_method_exec, "E/im_exec");
 
                        if ((!_e_intl_input_method_exec) ||
                            (!ecore_exe_pid_get(_e_intl_input_method_exec)))
                          e_util_dialog_show(_("Input Method Error"),
-                                            _("Error starting the input method executable<br><br>"
-                                              "please make sure that your input<br>"
-                                              "method configuration is correct and<br>"
-                                              "that your configuration's<br>"
-                                              "executable is in your PATH<br>"));
+                                            _("Error starting the input method executable<ps/><ps/>"
+                                              "please make sure that your input<ps/>"
+                                              "method configuration is correct and<ps/>"
+                                              "that your configuration's<ps/>"
+                                              "executable is in your PATH<ps/>"));
                     }
                   e_intl_input_method_config_free(imc);
                }
@@ -619,10 +620,10 @@ e_intl_locale_parts_get(const char *locale)
 {
    /* Parse Results */
    E_Locale_Parts *locale_parts;
-   char language[4];
+   char language[4] = {0};
    char territory[4] = {0};
-   char codeset[32];
-   char modifier[32];
+   char codeset[32] = {0};
+   char modifier[32] = {0};
 
    /* Parse State */
    int state = 0;   /* start out looking for the language */
@@ -713,17 +714,25 @@ e_intl_locale_parts_get(const char *locale)
       case 0:
         language[tmp_idx] = 0;
         tmp_idx = 0;
+        EINA_FALLTHROUGH;
+        /* no break */
 
       case 1:
         territory[tmp_idx] = 0;
         tmp_idx = 0;
+        EINA_FALLTHROUGH;
+        /* no break */
 
       case 2:
         codeset[tmp_idx] = 0;
         tmp_idx = 0;
+        EINA_FALLTHROUGH;
+        /* no break */
 
       case 3:
         modifier[tmp_idx] = 0;
+        EINA_FALLTHROUGH;
+        /* no break */
 
       default:
         break;

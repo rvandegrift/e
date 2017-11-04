@@ -53,6 +53,7 @@ typedef enum _E_Layer
 
 extern E_API int E_EVENT_COMPOSITOR_DISABLE;
 extern E_API int E_EVENT_COMPOSITOR_ENABLE;
+extern E_API int E_EVENT_COMPOSITOR_XWAYLAND_INIT;
 
 typedef void (*E_Comp_Cb)(void);
 
@@ -74,7 +75,20 @@ typedef struct E_Comp_Screen_Iface
    Eina_Bool (*key_down)(Ecore_Event_Key *ev);
    /* is key event eaten */
    Eina_Bool (*key_up)(Ecore_Event_Key *ev);
+   Eina_Bool relative_motion : 1;
+   Eina_Bool backlight_enabled : 1;
 } E_Comp_Screen_Iface;
+
+/* struct to hold canvas objects so that abi doesn't break
+ * when new objects are added
+ */
+typedef struct E_Comp_Canvas
+{
+   Evas_Object *resize_object; //object to monitor for comp canvas resizes
+   Evas_Object *fps_bg;
+   Evas_Object *fps_fg;
+   Evas_Object *gadget_site; //desktop gadget site
+} E_Comp_Canvas;
 
 struct _E_Comp
 {
@@ -85,9 +99,9 @@ struct _E_Comp
    Ecore_Window  root; //x11 root window
    Ecore_Evas     *ee; //canvas
    Ecore_Window  ee_win; //canvas window
+   E_Comp_Canvas *canvas;
    Evas_Object    *elm; //elm win base
    Evas           *evas; //canvas
-   Evas_Object    *bg_blank_object; //black blocker rect to cover background artifacts
    Eina_List      *zones; //list of E_Zones
    E_Pointer      *pointer;
    Eina_List *clients; //list of all E_Clients
@@ -100,7 +114,6 @@ struct _E_Comp
 
    E_Pixmap_Type comp_type; //for determining X/Wayland primary type
 
-   Eina_Stringshare *name;
    struct {
       Ecore_Window win; //x11 layer stacking window
       Evas_Object *obj; //layer stacking object
@@ -129,9 +142,6 @@ struct _E_Comp
    Ecore_Animator *render_animator; //animator for fixed time rendering
    Ecore_Job      *shape_job; //job to update x11 input shapes
    Ecore_Job      *update_job; //job to trigger render updates
-   Evas_Object    *fps_bg;
-   Evas_Object    *fps_fg;
-   Ecore_Job      *screen_job;
    Ecore_Timer    *nocomp_delay_timer; //delay before activating nocomp in x11
    Ecore_Timer    *nocomp_override_timer; //delay before overriding nocomp in x11
    int             animating; //number of animating comp objects
@@ -145,7 +155,6 @@ struct _E_Comp
    Ecore_Window  cm_selection; //FIXME: move to comp_x ?
    E_Client       *nocomp_ec; //window that triggered nocomp mode
 
-   int depth;
    unsigned int    input_key_grabs; //number of active compositor key grabs
    unsigned int    input_mouse_grabs; //number of active compositor mouse grabs
 
@@ -223,9 +232,10 @@ EINTERN Evas_Object *e_comp_style_selector_create(Evas *evas, const char **sourc
 E_API E_Config_Dialog *e_int_config_comp(Evas_Object *parent, const char *params);
 E_API E_Config_Dialog *e_int_config_comp_match(Evas_Object *parent, const char *params);
 
-
 E_API Eina_Bool e_comp_util_kbd_grabbed(void);
 E_API Eina_Bool e_comp_util_mouse_grabbed(void);
+
+E_API void e_comp_clients_rescale(void);
 
 static inline Eina_Bool
 e_comp_util_client_is_fullscreen(const E_Client *ec)

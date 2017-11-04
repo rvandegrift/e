@@ -34,6 +34,11 @@ struct _E_Pointer
    Evas_Object *o_hot;
    Evas_Object *buffer_o_ptr;
    Evas_Object *buffer_o_hot;
+   struct
+   {
+      E_Client *ec;
+      int x, y;
+   } client;
 
    Ecore_Window win;
 
@@ -67,6 +72,7 @@ E_API E_Pointer *e_pointer_canvas_new(Ecore_Evas *ee, Eina_Bool filled);
 
 E_API void e_pointers_size_set(int size);
 E_API void e_pointer_hide(E_Pointer *ptr);
+E_API void e_pointer_show(E_Pointer *ptr);
 E_API void e_pointer_type_push(E_Pointer *ptr, void *obj, const char *type);
 E_API void e_pointer_type_pop(E_Pointer *ptr, void *obj, const char *type);
 E_API void e_pointer_mode_push(void *obj, E_Pointer_Mode mode);
