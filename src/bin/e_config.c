@@ -1,11 +1,5 @@
 #include "e.h"
 
-#if ((E_PROFILE >= LOWRES_PDA) && (E_PROFILE <= HIRES_PDA))
-#define DEF_MENUCLICK             1.25
-#else
-#define DEF_MENUCLICK             0.25
-#endif
-
 E_API E_Config *e_config = NULL;
 E_API E_Config_Bindings *e_bindings = NULL;
 
@@ -385,6 +379,10 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, prop.desktop_file, STR);
    E_CONFIG_VAL(D, T, prop.offer_resistance, UCHAR);
    E_CONFIG_VAL(D, T, prop.opacity, UCHAR);
+   E_CONFIG_VAL(D, T, prop.volume, INT);
+   E_CONFIG_VAL(D, T, prop.volume_min, INT);
+   E_CONFIG_VAL(D, T, prop.volume_max, INT);
+   E_CONFIG_VAL(D, T, prop.mute, UCHAR);
    E_CONFIG_VAL(D, T, uuid, STR);
    E_CONFIG_VAL(D, T, pid, INT);
 
@@ -466,7 +464,6 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, config_type, UINT); /**/
    E_CONFIG_VAL(D, T, show_splash, INT); /**/
    E_CONFIG_VAL(D, T, desktop_default_background, STR); /**/
-   E_CONFIG_VAL(D, T, desktop_default_name, STR); /**/
    E_CONFIG_LIST(D, T, desktop_backgrounds, _e_config_desktop_bg_edd); /**/
    E_CONFIG_LIST(D, T, desktop_names, _e_config_desktop_name_edd); /**/
    E_CONFIG_VAL(D, T, menus_scroll_speed, DOUBLE); /**/
@@ -620,9 +617,12 @@ _e_config_edd_init(Eina_Bool old)
    E_CONFIG_VAL(D, T, screensaver_expose, INT);
    E_CONFIG_VAL(D, T, screensaver_ask_presentation, UCHAR);
    E_CONFIG_VAL(D, T, screensaver_ask_presentation_timeout, DOUBLE);
+   E_CONFIG_VAL(D, T, screensaver_desklock_timeout, INT);
 
    E_CONFIG_VAL(D, T, screensaver_wake_on_notify, INT);
    E_CONFIG_VAL(D, T, screensaver_wake_on_urgent, INT);
+
+   E_CONFIG_VAL(D, T, suspend_connected_standby, UCHAR);
 
    E_CONFIG_VAL(D, T, screensaver_suspend, UCHAR);
    E_CONFIG_VAL(D, T, screensaver_suspend_on_ac, UCHAR);
@@ -874,6 +874,7 @@ e_config_init(void)
         if (!getenv("E_CONF_PROFILE"))
           e_util_env_set("E_CONF_PROFILE", _e_config_profile);
      }
+   e_util_env_set("ELM_PROFILE", _e_config_profile);
 
    _e_config_bindings_mouse_edd = E_CONFIG_DD_NEW("E_Config_Binding_Mouse",
                                                   E_Config_Binding_Mouse);
@@ -1016,15 +1017,15 @@ e_config_load(void)
              _e_config_free(e_config);
              e_config = NULL;
              reload = 1;
-             ecore_timer_add(1.0, _e_config_cb_timer,
-                             _("Settings data needed upgrading. Your old settings have<br>"
-                               "been wiped and a new set of defaults initialized. This<br>"
-                               "will happen regularly during development, so don't report a<br>"
-                               "bug. This simply means Enlightenment needs new settings<br>"
-                               "data by default for usable functionality that your old<br>"
-                               "settings simply lack. This new set of defaults will fix<br>"
-                               "that by adding it in. You can re-configure things now to your<br>"
-                               "liking. Sorry for the hiccup in your settings.<br>"));
+             ecore_timer_loop_add(1.0, _e_config_cb_timer,
+                             _("Settings data needed upgrading. Your old settings have<ps/>"
+                               "been wiped and a new set of defaults initialized. This<ps/>"
+                               "will happen regularly during development, so don't report a<ps/>"
+                               "bug. This simply means Enlightenment needs new settings<ps/>"
+                               "data by default for usable functionality that your old<ps/>"
+                               "settings simply lack. This new set of defaults will fix<ps/>"
+                               "that by adding it in. You can re-configure things now to your<ps/>"
+                               "liking. Sorry for the hiccup in your settings.<ps/>"));
           }
         /* config is too new? odd! suspect corruption? */
         else if (e_config->config_version > E_CONFIG_FILE_VERSION)
@@ -1033,13 +1034,13 @@ e_config_load(void)
              _e_config_free(e_config);
              e_config = NULL;
              reload = 1;
-             ecore_timer_add(1.0, _e_config_cb_timer,
-                             _("Your settings are NEWER than Enlightenment. This is very<br>"
-                               "strange. This should not happen unless you downgraded<br>"
-                               "Enlightenment or copied the settings from a place where<br>"
-                               "a newer version of Enlightenment was running. This is bad and<br>"
-                               "as a precaution your settings have been now restored to<br>"
-                               "defaults. Sorry for the inconvenience.<br>"));
+             ecore_timer_loop_add(1.0, _e_config_cb_timer,
+                             _("Your settings are NEWER than Enlightenment. This is very<ps/>"
+                               "strange. This should not happen unless you downgraded<ps/>"
+                               "Enlightenment or copied the settings from a place where<ps/>"
+                               "a newer version of Enlightenment was running. This is bad and<ps/>"
+                               "as a precaution your settings have been now restored to<ps/>"
+                               "defaults. Sorry for the inconvenience.<ps/>"));
           }
         if (reload)
           {
@@ -1149,10 +1150,10 @@ e_config_load(void)
         e_bindings = e_config_domain_system_load("e_bindings", _e_config_binding_edd);
         e_config_profile_set(prof);
         eina_stringshare_del(prof);
-        ecore_timer_add(1.0, _e_config_cb_timer,
-                        _("Your bindings settings version does not match the current settings version.<br>"
-                          "As a result, all bindings have been reloaded from defaults.<br>"
-                          "Sorry for the inconvenience.<br>"));
+        ecore_timer_loop_add(1.0, _e_config_cb_timer,
+                        _("Your bindings settings version does not match the current settings version.<ps/>"
+                          "As a result, all bindings have been reloaded from defaults.<ps/>"
+                          "Sorry for the inconvenience.<ps/>"));
      }
 
    if (e_config->config_version < E_CONFIG_FILE_VERSION)
@@ -1427,6 +1428,7 @@ e_config_load(void)
                        module = E_NEW(E_Config_Module, 1);
                        module->name = eina_stringshare_add("wireless");
                        module->enabled = 1;
+                       module->delayed = 1;
                        e_config->modules = eina_list_append(e_config->modules, module);
                     }
                   else if (eina_streq(em->name, "clock"))
@@ -1434,6 +1436,7 @@ e_config_load(void)
                        module = E_NEW(E_Config_Module, 1);
                        module->name = eina_stringshare_add("time");
                        module->enabled = 1;
+                       module->delayed = 1;
                        e_config->modules = eina_list_append(e_config->modules, module);
                     }
                }
@@ -1447,7 +1450,63 @@ e_config_load(void)
                e_config->window_maximize_transition = E_EFX_EFFECT_SPEED_SINUSOIDAL;
                e_config->window_maximize_time = 0.15;
             }
+          CONFIG_VERSION_CHECK(22)
+            {
+               Eina_List *l;
+               E_Config_Module *em, *module;
+               Eina_Bool ibar_en = EINA_FALSE, luncher_en = EINA_FALSE;
+
+               CONFIG_VERSION_UPDATE_INFO(22);
+
+               EINA_LIST_FOREACH(e_config->modules, l, em)
+                 {
+                    if (!em->enabled) continue;
+                    if (eina_streq(em->name, "ibar"))
+                    ibar_en = EINA_TRUE;
+                    else if (eina_streq(em->name, "luncher"))
+                    luncher_en = EINA_TRUE;
+                 }
+               if (ibar_en && !luncher_en)
+                 {
+                    module = E_NEW(E_Config_Module, 1);
+                    module->name = eina_stringshare_add("luncher");
+                    module->enabled = 1;
+                    module->delayed = 1;
+                    e_config->modules = eina_list_append(e_config->modules, module);
+                 }
+            }
+          CONFIG_VERSION_CHECK(23)
+            {
+               Eina_List *l;
+               E_Config_Module *em, *module;
+               Eina_Bool sysinfo_en = EINA_FALSE;
+
+               CONFIG_VERSION_UPDATE_INFO(23);
+
+               EINA_LIST_FOREACH(e_config->modules, l, em)
+                 {
+                    if (!em->enabled) continue;
+                    if (eina_streq(em->name, "sysinfo"))
+                      sysinfo_en = EINA_TRUE;
+                 }
+               if (!sysinfo_en)
+                 {
+                    module = E_NEW(E_Config_Module, 1);
+                    module->name = eina_stringshare_add("sysinfo");
+                    module->enabled = 1;
+                    module->delayed = 1;
+                    e_config->modules = eina_list_append(e_config->modules, module);
+                 }
+            }
+          CONFIG_VERSION_CHECK(24)
+            {
+               CONFIG_VERSION_UPDATE_INFO(24);
+
+               if (!elm_config_profile_exists(_e_config_profile))
+                 elm_config_profile_save(_e_config_profile);
+            }
      }
+   elm_config_profile_set(_e_config_profile);
    if (!e_config->remember_internal_fm_windows)
      e_config->remember_internal_fm_windows = !!(e_config->remember_internal_windows & E_REMEMBER_INTERNAL_FM_WINS);
 
@@ -1571,7 +1630,7 @@ e_config_load(void)
 
    E_CONFIG_LIMIT(e_config->backlight.timer, 1, 3600);
 
-   E_CONFIG_LIMIT(e_config->screensaver_timeout, 30, 5400);
+   E_CONFIG_LIMIT(e_config->screensaver_timeout, 6, 5400);
    E_CONFIG_LIMIT(e_config->screensaver_interval, 0, 5400);
    E_CONFIG_LIMIT(e_config->screensaver_blanking, 0, 2);
    E_CONFIG_LIMIT(e_config->screensaver_expose, 0, 2);
@@ -1882,14 +1941,14 @@ _e_config_mv_error(const char *from, const char *to)
    e_dialog_title_set(dia, _("Enlightenment Settings Write Problems"));
    e_dialog_icon_set(dia, "dialog-error", 64);
    snprintf(buf, sizeof(buf),
-            _("Enlightenment has had an error while moving config files<br>"
-              "from:<br>"
-              "%s<br>"
-              "<br>"
-              "to:<br>"
-              "%s<br>"
-              "<br>"
-              "The rest of the write has been aborted for safety.<br>"),
+            _("Enlightenment has had an error while moving config files<ps/>"
+              "from:<ps/>"
+              "%s<ps/>"
+              "<ps/>"
+              "to:<ps/>"
+              "%s<ps/>"
+              "<ps/>"
+              "The rest of the write has been aborted for safety.<ps/>"),
             from, to);
    e_dialog_text_set(dia, buf);
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
@@ -1906,7 +1965,11 @@ e_config_profile_save(void)
 {
    Eet_File *ef;
    char buf[4096], buf2[4096];
+   const char *s;
    int ok = 0;
+
+   if ((s = getenv("E_CONF_PROFILE_NOSAVE")) && atoi(s))
+     return 1;
 
    /* FIXME: check for other sessions fo E running */
    e_user_dir_concat_static(buf, "config/profile.cfg");
@@ -2087,7 +2150,7 @@ e_config_binding_edge_match(E_Config_Binding_Edge *eb_in)
             (eb->modifiers == eb_in->modifiers) &&
             (eb->any_mod == eb_in->any_mod) &&
             (eb->edge == eb_in->edge) &&
-            (eb->delay == eb_in->delay) &&
+            EINA_FLT_EQ(eb->delay, eb_in->delay) &&
             (eb->drag_only == eb_in->drag_only) &&
             (((eb->action) && (eb_in->action) && (!strcmp(eb->action, eb_in->action))) ||
              ((!eb->action) && (!eb_in->action))) &&
@@ -2254,11 +2317,8 @@ _e_config_save_cb(void *data EINA_UNUSED)
    elm_config_save();
    e_config_domain_save("e", _e_config_edd, e_config);
    e_config_domain_save("e_bindings", _e_config_binding_edd, e_bindings);
-   if (E_EFL_VERSION_MINIMUM(1, 17, 99))
-     {
-        e_gadget_save();
-        e_bryce_save();
-     }
+   e_gadget_save();
+   e_bryce_save();
    _e_config_save_defer = NULL;
 }
 
@@ -2351,6 +2411,7 @@ _e_config_free(E_Config *ecf)
         if (rem->role) eina_stringshare_del(rem->role);
         if (rem->prop.border) eina_stringshare_del(rem->prop.border);
         if (rem->prop.command) eina_stringshare_del(rem->prop.command);
+        eina_stringshare_del(rem->uuid);
         E_FREE(rem);
      }
    EINA_LIST_FREE(ecf->menu_applications, ema)
@@ -2366,7 +2427,6 @@ _e_config_free(E_Config *ecf)
         E_FREE(cc);
      }
    if (ecf->desktop_default_background) eina_stringshare_del(ecf->desktop_default_background);
-   if (ecf->desktop_default_name) eina_stringshare_del(ecf->desktop_default_name);
    if (ecf->language) eina_stringshare_del(ecf->language);
    eina_stringshare_del(ecf->desklock_language);
    eina_stringshare_del(ecf->xkb.selected_layout);
@@ -2442,11 +2502,11 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
         break;
 
       case EET_ERROR_NOT_WRITABLE:
-        erstr = _("The file is not writable. Perhaps the disk is read-only<br>or you lost permissions to your files.");
+        erstr = _("The file is not writable. Perhaps the disk is read-only<ps/>or you lost permissions to your files.");
         break;
 
       case EET_ERROR_OUT_OF_MEMORY:
-        erstr = _("Memory ran out while preparing the write.<br>Please free up memory.");
+        erstr = _("Memory ran out while preparing the write.<ps/>Please free up memory.");
         break;
 
       case EET_ERROR_WRITE_ERROR:
@@ -2454,11 +2514,11 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
         break;
 
       case EET_ERROR_WRITE_ERROR_FILE_TOO_BIG:
-        erstr = _("The settings file is too large.<br>It should be very small (a few hundred KB at most).");
+        erstr = _("The settings file is too large.<ps/>It should be very small (a few hundred KB at most).");
         break;
 
       case EET_ERROR_WRITE_ERROR_IO_ERROR:
-        erstr = _("You have I/O errors on the disk.<br>Maybe it needs replacing?");
+        erstr = _("You have I/O errors on the disk.<ps/>Maybe it needs replacing?");
         break;
 
       case EET_ERROR_WRITE_ERROR_OUT_OF_SPACE:
@@ -2527,14 +2587,14 @@ _e_config_eet_close_handle(Eet_File *ef, char *file)
                   e_dialog_title_set(dia, _("Enlightenment Settings Write Problems"));
                   e_dialog_icon_set(dia, "dialog-error", 64);
                   snprintf(buf, sizeof(buf),
-                           _("Enlightenment has had an error while writing<br>"
-                             "its config file.<br>"
-                             "%s<br>"
-                             "<br>"
-                             "The file where the error occurred was:<br>"
-                             "%s<br>"
-                             "<br>"
-                             "This file has been deleted to avoid corrupt data.<br>"),
+                           _("Enlightenment has had an error while writing<ps/>"
+                             "its config file.<ps/>"
+                             "%s<ps/>"
+                             "<ps/>"
+                             "The file where the error occurred was:<ps/>"
+                             "%s<ps/>"
+                             "<ps/>"
+                             "This file has been deleted to avoid corrupt data.<ps/>"),
                            erstr, file);
                   e_dialog_text_set(dia, buf);
                   e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);

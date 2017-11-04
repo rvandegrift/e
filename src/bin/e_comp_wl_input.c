@@ -3,22 +3,20 @@
 #include "e.h"
 #include <sys/mman.h>
 #ifdef HAVE_WL_DRM
-# ifdef HAVE_DRM2
-#  include <Ecore_Drm2.h>
-# else
-#  include <Ecore_Drm.h>
-# endif
+#include <Ecore_Drm2.h>
 #endif
 
 E_API int E_EVENT_TEXT_INPUT_PANEL_VISIBILITY_CHANGE = -1;
 static xkb_keycode_t (*_xkb_keymap_key_by_name)(void *, const char *);
 static void _e_comp_wl_input_context_keymap_set(struct xkb_keymap *keymap, struct xkb_context *context);
 
+static Eina_Hash *input_gen_modifiers;
 
 //the following two fields are just set by e_comp_wl_input_keymap_set if it is called before e_comp_wl is valid.
 //when then later init is called those two fields are used in the keymap of the e_comp_wl struct
 static struct xkb_context *cached_context;
 static struct xkb_keymap *cached_keymap;
+static xkb_layout_index_t choosen_group;
 
 static void
 _e_comp_wl_input_update_seat_caps(void)
@@ -74,11 +72,30 @@ _e_comp_wl_input_pointer_cb_cursor_set(struct wl_client *client, struct wl_resou
      }
    if (!surface_resource)
      {
-        ecore_evas_cursor_unset(e_comp->ee);
-        evas_object_hide(e_comp->pointer->o_ptr);
+        if (e_comp_object_frame_exists(ec->frame) &&
+            ec->mouse.in && (!ec->comp_data->ssd_mouse_in))
+          e_pointer_object_set(e_comp->pointer, NULL, 0, 0);
+        else
+          {
+             ecore_evas_cursor_unset(e_comp->ee);
+             evas_object_hide(e_comp->pointer->o_ptr);
+          }
         return;
      }
    ec = wl_resource_get_user_data(surface_resource);
+   /* I think this only happens when we've deleted the resource from
+    * the client del callback - so the client is gone and shouldn't be
+    * setting a cursor, but the surface still exists so stale requests
+    * are being processed... let's BAIL.
+    */
+   if (!ec) return;
+   if (ec->comp_data->pending.input)
+     eina_tiler_clear(ec->comp_data->pending.input);
+   else
+     {
+        ec->comp_data->pending.input = eina_tiler_new(65535, 65535);
+        eina_tiler_tile_size_set(ec->comp_data->pending.input, 1, 1);
+     }
    if (!ec->re_manage)
      {
         ec->comp_data->cursor = ec->re_manage = 1;
@@ -117,7 +134,6 @@ static const struct wl_touch_interface _e_touch_interface =
    _e_comp_wl_input_cb_resource_destroy
 };
 
-
 static void
 _e_comp_wl_input_cb_pointer_unbind(struct wl_resource *resource)
 {
@@ -143,6 +159,7 @@ _e_comp_wl_input_cb_pointer_get(struct wl_client *client, struct wl_resource *re
 
    e_comp_wl->ptr.resources =
      eina_list_append(e_comp_wl->ptr.resources, res);
+   wl_resource_set_user_data(res, resource);
    wl_resource_set_implementation(res, &_e_pointer_interface,
                                   e_comp->wl_comp_data,
                                  _e_comp_wl_input_cb_pointer_unbind);
@@ -208,6 +225,7 @@ _e_comp_wl_input_cb_keyboard_get(struct wl_client *client, struct wl_resource *r
         wl_client_post_no_memory(client);
         return;
      }
+   wl_resource_set_user_data(res, resource);
 
    e_comp_wl->kbd.resources =
      eina_list_append(e_comp_wl->kbd.resources, res);
@@ -358,21 +376,9 @@ _e_comp_wl_input_keymap_fd_get(off_t size)
 }
 
 static void
-_e_comp_wl_input_keymap_update(struct xkb_keymap *keymap)
+_e_comp_wl_input_state_update(void)
 {
-   char *tmp;
    xkb_mod_mask_t latched = 0, locked = 0;
-   struct wl_resource *res;
-   Eina_List *l;
-
-   /* unreference any existing keymap */
-   if (e_comp_wl->xkb.keymap)
-     xkb_map_unref(e_comp_wl->xkb.keymap);
-
-   /* unmap any existing keyboard area */
-   if (e_comp_wl->xkb.area)
-     munmap(e_comp_wl->xkb.area, e_comp_wl->xkb.size);
-   if (e_comp_wl->xkb.fd >= 0) close(e_comp_wl->xkb.fd);
 
    /* unreference any existing keyboard state */
    if (e_comp_wl->xkb.state)
@@ -387,25 +393,35 @@ _e_comp_wl_input_keymap_update(struct xkb_keymap *keymap)
      }
 
    /* create a new xkb state */
-   e_comp_wl->xkb.state = xkb_state_new(keymap);
+   e_comp_wl->xkb.state = xkb_state_new(e_comp_wl->xkb.keymap);
 
    xkb_state_update_mask(e_comp_wl->xkb.state, 0,
-                         latched, locked, 0, 0, 0);
+                         latched, locked, e_comp_wl->kbd.choosen_group,
+                         0, 0);
+}
+
+static void
+_e_comp_wl_input_keymap_update(struct xkb_keymap *keymap)
+{
+   char *tmp;
+   struct wl_resource *res;
+   Eina_List *l;
+
+   /* unreference any existing keymap */
+   if (e_comp_wl->xkb.keymap)
+     xkb_map_unref(e_comp_wl->xkb.keymap);
+
+   /* unmap any existing keyboard area */
+   if (e_comp_wl->xkb.area)
+     munmap(e_comp_wl->xkb.area, e_comp_wl->xkb.size);
+   if (e_comp_wl->xkb.fd >= 0) close(e_comp_wl->xkb.fd);
+
 
    /* increment keymap reference */
    e_comp_wl->xkb.keymap = keymap;
 
-   /* fetch updated modifiers */
-   e_comp_wl->kbd.mod_shift =
-     xkb_map_mod_get_index(keymap, XKB_MOD_NAME_SHIFT);
-   e_comp_wl->kbd.mod_caps =
-     xkb_map_mod_get_index(keymap, XKB_MOD_NAME_CAPS);
-   e_comp_wl->kbd.mod_ctrl =
-     xkb_map_mod_get_index(keymap, XKB_MOD_NAME_CTRL);
-   e_comp_wl->kbd.mod_alt =
-     xkb_map_mod_get_index(keymap, XKB_MOD_NAME_ALT);
-   e_comp_wl->kbd.mod_super =
-     xkb_map_mod_get_index(keymap, XKB_MOD_NAME_LOGO);
+   /* update the state */
+   _e_comp_wl_input_state_update();
 
    if (!(tmp = xkb_map_get_as_string(keymap)))
      {
@@ -475,6 +491,13 @@ e_comp_wl_input_init(void)
     else
       e_comp_wl_input_keymap_set(NULL, NULL, NULL, NULL, NULL);
 
+    if (choosen_group)
+      e_comp_wl_input_keymap_index_set(choosen_group);
+    else
+      e_comp_wl_input_keymap_index_set(0);
+
+   e_comp_wl_input_keyboard_modifiers_update();
+
    return EINA_TRUE;
 }
 
@@ -482,6 +505,8 @@ EINTERN void
 e_comp_wl_input_shutdown(void)
 {
    struct wl_resource *res;
+
+   E_FREE_FUNC(input_gen_modifiers, eina_hash_free);
 
    /* destroy pointer resources */
    EINA_LIST_FREE(e_comp_wl->ptr.resources, res)
@@ -651,32 +676,43 @@ _e_comp_wl_input_context_keymap_set(struct xkb_keymap *keymap, struct xkb_contex
         cached_keymap = keymap;
      }
 
+   if (!e_comp->ee) return;
 //set the values to the drm devices
 #ifdef HAVE_WL_DRM
-# ifdef HAVE_DRM2
-   if (e_config->xkb.use_cache)
+   if (strstr(ecore_evas_engine_name_get(e_comp->ee), "drm"))
      {
         Ecore_Drm2_Device *dev;
 
         dev = ecore_evas_data_get(e_comp->ee, "device");
         if (dev)
-          {
-#ifndef EFL_VERSION_1_20
-             if (!E_EFL_VERSION_MINIMUM(1, 19, 99))
-               {
-                  ecore_drm2_device_keyboard_cached_context_set(dev, context);
-                  ecore_drm2_device_keyboard_cached_keymap_set(dev, keymap);
-               }
-#endif
-          }
+          ecore_drm2_device_keyboard_info_set(dev, context, keymap,
+            e_comp_wl ? e_comp_wl->kbd.choosen_group : choosen_group);
      }
-# else
-   if (e_config->xkb.use_cache)
-     ecore_drm_device_keyboard_cached_context_set(context);
-   if (e_config->xkb.use_cache)
-     ecore_drm_device_keyboard_cached_keymap_set(keymap);
-# endif
 #endif
+}
+
+E_API void
+e_comp_wl_input_keymap_index_set(xkb_layout_index_t index)
+{
+#ifdef HAVE_WL_DRM
+   if (e_comp && e_comp->ee && strstr(ecore_evas_engine_name_get(e_comp->ee), "drm"))
+     {
+        Ecore_Drm2_Device *dev;
+
+        dev = ecore_evas_data_get(e_comp->ee, "device");
+        if (dev)
+          ecore_drm2_device_keyboard_group_set(dev, index);
+     }
+#endif
+   if (e_comp_wl)
+     {
+        e_comp_wl->kbd.choosen_group = index;
+        _e_comp_wl_input_state_update();
+        e_comp_wl_input_keyboard_modifiers_update();
+
+     }
+   else
+     choosen_group = index;
 }
 
 E_API void
@@ -759,9 +795,6 @@ _event_generate(const char *key, const char *keyname, int mods, Eina_Bool up)
    Ecore_Event_Key *ev;
    int keycode;
 
-   /* "key" here is the platform-specific key name;
-    * /usr/share/X11/xkb/keycodes/evdev is probably what your system is using
-    */
    keycode = _xkb_keymap_key_by_name(e_comp_wl->xkb.keymap, keyname ?: key);
    if (keycode == -1)
      {
@@ -803,15 +836,140 @@ _event_generate_mods(int mods, Eina_Bool up)
 E_API void
 e_comp_wl_input_keyboard_event_generate(const char *key, int mods, Eina_Bool up)
 {
+   const char *keyname = NULL;
+   /* assumes qwerty layout */
+   /* /usr/share/X11/xkb/keycodes/evdev */
+   static const char *keycodes[] =
+   {
+      ['`'] = "TLDE",
+      ['1'] = "AE01",
+      ['2'] = "AE02",
+      ['3'] = "AE03",
+      ['4'] = "AE04",
+      ['5'] = "AE05",
+      ['6'] = "AE06",
+      ['7'] = "AE07",
+      ['8'] = "AE08",
+      ['9'] = "AE09",
+      ['0'] = "AE10",
+      ['-'] = "AE11",
+      ['='] = "AE12",
+      //''] = "BKSP",
+      ['\t'] = "TAB",
+      ['q'] = "AD01",
+      ['w'] = "AD02",
+      ['e'] = "AD03",
+      ['r'] = "AD04",
+      ['t'] = "AD05",
+      ['y'] = "AD06",
+      ['u'] = "AD07",
+      ['i'] = "AD08",
+      ['o'] = "AD09",
+      ['p'] = "AD10",
+      ['['] = "AD11",
+      [']'] = "AD12",
+      ['\\'] = "BKSL",
+      ['\r'] = "RTRN",
+      //''] = "CAPS",
+      ['a'] = "AC01",
+      ['s'] = "AC02",
+      ['d'] = "AC03",
+      ['f'] = "AC04",
+      ['g'] = "AC05",
+      ['h'] = "AC06",
+      ['j'] = "AC07",
+      ['k'] = "AC08",
+      ['l'] = "AC09",
+      [';'] = "AC10",
+      ['\''] = "AC11",
+      //''] = "LFSH",
+      ['z'] = "AB01",
+      ['x'] = "AB02",
+      ['c'] = "AB03",
+      ['v'] = "AB04",
+      ['b'] = "AB05",
+      ['n'] = "AB06",
+      ['m'] = "AB07",
+      [','] = "AB08",
+      ['.'] = "AB09",
+      ['/'] = "AB10",
+      //''] = "RTSH",
+      [' '] = "SPCE",
+   };
+
    if (!_xkb_keymap_key_by_name)
      {
         ERR("xkbcommon >= 0.6.0 required for keyboard event generation!");
         return;
      }
+   EINA_SAFETY_ON_NULL_RETURN(key);
+   EINA_SAFETY_ON_TRUE_RETURN(!key[0]);
+   if (!input_gen_modifiers)
+     {
+//<RTSH> = 62;
+//<LALT> = 64;
+//<LCTL> = 37;
+//<RCTL> = 105;
+//<RALT> = 108;
+//<LWIN> = 133;
+//<RWIN> = 134;
+//<COMP> = 135;
+//alias <MENU> = <COMP>;
+//<ESC> = 9;
+        static const char *modcodes[] =
+        {
+           "Shift_L",
+           "LFSH",
+
+           "Control_L",
+           "LCTL",
+
+           "Super_L",
+           "LWIN",
+
+           "Alt_L",
+           "LALT",
+
+           "Escape",
+           "ESC",
+
+           "Alt_R",
+           "RALT",
+
+           "Super_R",
+           "RWIN",
+
+           "Menu",
+           "MENU",
+
+           "Control_R",
+           "RCTRL",
+
+           "Mode_switch",
+           "ALGR",
+
+           "Return",
+           "RTRN",
+
+           "Caps_Lock",
+           "CAPS",
+        };
+        unsigned int i;
+
+        input_gen_modifiers = eina_hash_string_superfast_new(NULL);
+        for (i = 0; i < EINA_C_ARRAY_LENGTH(modcodes); i += 2)
+          eina_hash_add(input_gen_modifiers, modcodes[i], modcodes[i + 1]);
+     }
 
    if (!up)
      _event_generate_mods(mods, up);
-   _event_generate(key, NULL, mods, up);
+   keyname = eina_hash_find(input_gen_modifiers, key);
+   if ((!keyname) && (!key[1]))
+     {
+        if (key[0] < (int)EINA_C_ARRAY_LENGTH(keycodes))
+          keyname = keycodes[(unsigned char)key[0]];
+     }
+   _event_generate(key, keyname, mods, up);
    if (up)
      _event_generate_mods(mods, up);
 }

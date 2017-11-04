@@ -129,7 +129,7 @@ _e_pointer_active_handle(E_Pointer *ptr)
 {
    _e_pointer_active(ptr);
    if (ptr->idle_tmr)
-     ecore_timer_reset(ptr->idle_tmr);
+     ecore_timer_loop_reset(ptr->idle_tmr);
    else
      {
         E_FREE_FUNC(ptr->idle_poll, ecore_poller_del);
@@ -366,7 +366,7 @@ _e_pointer_cb_free(E_Pointer *ptr)
 static void
 _e_pointer_x11_setup(E_Pointer *ptr, const char *cursor)
 {
-   if (ptr->e_cursor)
+   if (ptr->e_cursor && (e_comp->comp_type != E_PIXMAP_TYPE_WL))
      {
         /* create a pointer canvas if we need to */
         if ((!ptr->buffer_evas) && ptr->win) _e_pointer_canvas_add(ptr);
@@ -532,7 +532,7 @@ e_pointer_canvas_new(Ecore_Evas *ee, Eina_Bool filled)
    ptr->color = EINA_TRUE;
    ptr->canvas = EINA_TRUE;
    ptr->w = ptr->h = e_config->cursor_size;
-   ptr->e_cursor = e_config->use_e_cursor;
+   ptr->e_cursor = 1;
 
    ptr->ee = ee;
    ptr->evas = ecore_evas_get(ee);
@@ -589,6 +589,14 @@ e_pointer_hide(E_Pointer *ptr)
 }
 
 E_API void 
+e_pointer_show(E_Pointer *ptr)
+{
+   if ((!ptr->buffer_evas) && ptr->win) _e_pointer_canvas_add(ptr);
+   if (ptr->canvas)
+     evas_object_show(ptr->o_ptr);
+}
+
+E_API void
 e_pointer_type_push(E_Pointer *ptr, void *obj, const char *type)
 {
    E_Pointer_Stack *stack;
@@ -785,7 +793,7 @@ e_pointer_object_set(E_Pointer *ptr, Evas_Object *obj, int x, int y)
              evas_object_hide(ec->frame);
           }
      }
-
+   ec = NULL;
    if (obj)
      {
         ec = e_comp_object_client_get(obj);
@@ -799,16 +807,16 @@ e_pointer_object_set(E_Pointer *ptr, Evas_Object *obj, int x, int y)
         ecore_evas_cursor_unset(ptr->ee);
         ecore_evas_object_cursor_set(ptr->ee, ptr->o_ptr, E_LAYER_MAX - 1, ptr->hot.x, ptr->hot.y);
      }
+   ptr->client.ec = ec;
+   ptr->client.x = x;
+   ptr->client.y = y;
 }
 
 E_API void
 e_pointer_window_add(E_Pointer *ptr, Ecore_Window win)
 {
-   char buf[1024];
-
    ptr->win = win;
-   _e_pointer_theme_buf(ptr, buf);
-   _e_pointer_x11_setup(ptr, buf);
+   _e_pointer_x11_setup(ptr, "default");
 }
 
 EINTERN void

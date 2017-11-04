@@ -264,13 +264,13 @@ _e_imc_setup_cb(void *data, void *data2 EINA_UNUSED)
 
              cmd = imc->e_im_setup_exec;
 
-             exe = ecore_exe_run(cmd, NULL);
+             exe = e_util_exe_safe_run(cmd, NULL);
 
              if (!exe)
                {
                   e_util_dialog_show(_("Run Error"),
-                                     _("Enlightenment was unable to fork a child process:<br>"
-                                       "<br>%s<br>"),
+                                     _("Enlightenment was unable to fork a child process:<ps/>"
+                                       "<ps/>%s<ps/>"),
                                      cmd);
                }
           }
@@ -347,6 +347,11 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
                     {
                        Efreet_Desktop *desktop;
 
+                       if (!ecore_file_exists(imc->e_im_setup_exec))
+                         {
+                            e_intl_input_method_config_free(imc);
+                            goto out;
+                         }
                        desktop = efreet_util_desktop_exec_find(imc->e_im_setup_exec);
                        if (desktop)
                          {
@@ -367,6 +372,7 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
                   eina_hash_add(cfdata->imc_basic_map, imc_path, imc);
                }
           }
+out:
         free(imc_path);
         imc_basic_list = eina_list_remove_list(imc_basic_list, imc_basic_list);
      }
@@ -382,7 +388,6 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    evas_event_thaw(evas_object_evas_get(ob));
 
    e_widget_frametable_object_append(of, ob, 0, 1, 1, 1, 1, 1, 1, 1);
-   e_widget_framelist_content_align_set(of, 0.0, 0.0);
    e_widget_list_object_append(o, of, 1, 1, 0.5);
    return o;
 }
@@ -513,13 +518,13 @@ _e_imc_adv_setup_cb(void *data, void *data2 EINA_UNUSED)
 
         cmd = cfdata->imc.e_im_setup_exec;
 
-        exe = ecore_exe_run(cmd, NULL);
+        exe = e_util_exe_safe_run(cmd, NULL);
 
         if (!exe)
           {
              e_util_dialog_show(_("Run Error"),
-                                _("Enlightenment was unable to fork a child process:<br>"
-                                  "<br>%s<br>"), cmd);
+                                _("Enlightenment was unable to fork a child process:<ps/>"
+                                  "<ps/>%s<ps/>"), cmd);
           }
      }
 }

@@ -361,9 +361,9 @@ _e_fwin_dnd_change_cb(E_Fwin *fwin, Evas_Object *obj EINA_UNUSED, void *event_in
 {
    drag_fwin = fwin;
    if (fwin->spring_timer)
-     ecore_timer_reset(fwin->spring_timer);
+     ecore_timer_loop_reset(fwin->spring_timer);
    else
-     fwin->spring_timer = ecore_timer_add(fileman_config->view.spring_delay, (Ecore_Task_Cb)_e_fwin_spring_cb, fwin);
+     fwin->spring_timer = ecore_timer_loop_add(fileman_config->view.spring_delay, (Ecore_Task_Cb)_e_fwin_spring_cb, fwin);
 }
 
 static void
@@ -393,7 +393,7 @@ _e_fwin_dnd_leave_cb(E_Fwin *fwin, Evas_Object *obj EINA_UNUSED, void *event_inf
    if (fwin->spring_parent && (!fwin->spring_child))
      {
         if (!fwin->spring_close_timer)
-          fwin->spring_close_timer = ecore_timer_add(0.01, (Ecore_Task_Cb)_e_fwin_dnd_close_cb, fwin);
+          fwin->spring_close_timer = ecore_timer_loop_add(0.01, (Ecore_Task_Cb)_e_fwin_dnd_close_cb, fwin);
      }
    drag_fwin = NULL;
 }
@@ -436,7 +436,7 @@ e_fwin_zone_new(E_Zone *zone, void *p)
 
    /* Add Event Handler for zone move/resize & del */
    fwin->zone_handler =
-     ecore_event_handler_add(E_EVENT_ZONE_MOVE_RESIZE,
+     ecore_event_handler_add(E_EVENT_ZONE_USEFUL_GEOMETRY_CHANGED,
                              _e_fwin_zone_move_resize, fwin);
    fwin->zone_del_handler =
      ecore_event_handler_add(E_EVENT_ZONE_DEL,
@@ -826,15 +826,19 @@ _e_fwin_icon_hints(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *even
 
    popup_icon = e_fm2_icon_file_get(fwin->cur_page->fm_obj, fwin->over_file);
    if (!popup_icon) return;
-   zone = fwin->zone ?: e_comp_object_util_zone_get(fwin->win);
    e_fm2_icon_geometry_get(popup_icon->ic, &x, &y, &w, &h);
    if (fwin->zone)
      {
+        zone = fwin->zone;
         evas_object_geometry_get(popup_icon->fm, &fx, &fy, NULL, NULL);
         fx -= zone->x, fy -= zone->y;
      }
    else
-     evas_object_geometry_get(fwin->win, &fx, &fy, NULL, NULL);
+     {
+        E_Client *ec = e_win_client_get(fwin->win);
+        fx = ec->x, fy = ec->y;
+        zone = ec->zone;
+     }
    edje = evas_object_smart_parent_get(obj);
    /* failing to unswallow here causes edje to fail its min size calculations */
    edje_object_part_unswallow(edje, obj);
@@ -915,7 +919,8 @@ _e_fwin_icon_popup(void *data)
    e_widget_filepreview_path_set(o, buf, popup_icon->mime);
    e_widget_list_object_append(list, o, 1, 0, 0.5);
    edje_object_part_swallow(bg, "e.swallow.content", list);
-   
+
+   _e_fwin_icon_hints(fwin, NULL, list, NULL);
    evas_object_event_callback_add(list, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _e_fwin_icon_hints, fwin);
 
    fwin->popup = e_comp_object_util_add(bg, E_COMP_OBJECT_TYPE_POPUP);
@@ -963,7 +968,7 @@ _e_fwin_icon_mouse_in(void *data, Evas_Object *obj EINA_UNUSED, void *event_info
    if (fwin->popup_timer) ecore_timer_del(fwin->popup_timer);
    fwin->popup_timer = NULL;
    if (!fileman_config->tooltip.enable) return;
-   fwin->popup_timer = ecore_timer_add(fileman_config->tooltip.delay, _e_fwin_icon_popup, fwin);
+   fwin->popup_timer = ecore_timer_loop_add(fileman_config->tooltip.delay, _e_fwin_icon_popup, fwin);
    if (fwin->over_file) eina_stringshare_del(fwin->over_file);
    fwin->over_file = NULL;
    if (ici->file) fwin->over_file = eina_stringshare_add(ici->file);
@@ -3133,7 +3138,7 @@ static void
 _e_fwin_op_registry_free_data(void *data)
 {
    Ecore_Timer *t;
-   t = ecore_timer_add(5.0, _e_fwin_op_registry_free_data_delayed, data);
+   t = ecore_timer_loop_add(5.0, _e_fwin_op_registry_free_data_delayed, data);
    evas_object_data_set(data, "_e_fwin_op_registry_thingy", t);
    evas_object_event_callback_add(data, EVAS_CALLBACK_FREE, _e_fwin_op_registry_free_check, data);
 }

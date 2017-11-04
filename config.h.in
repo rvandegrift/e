@@ -66,9 +66,6 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* enable ecore-drm2 support */
-#undef HAVE_DRM2
-
 /* enable udev support */
 #undef HAVE_EEZE
 
@@ -156,13 +153,11 @@
 /* enable wayland support */
 #undef HAVE_WAYLAND
 
-/* enable wayland client EGL support */
-#undef HAVE_WAYLAND_EGL
-
 /* enable wayland-only version of enlightenment */
 #undef HAVE_WAYLAND_ONLY
 
-/* Package WL_DRM ( ecore-drm >= $efl_version ) found. */
+/* Package WL_DRM ( ecore-drm2 >= $efl_ecore_drm2_version elput >=
+   $efl_version ecore >= $efl_version eina >= $efl_version ) found. */
 #undef HAVE_WL_DRM
 
 /* Package WL_X11 ( ecore-x >= ${efl_version} ) found. */
@@ -324,9 +319,6 @@
 /* Use module pager-plain */
 #undef USE_MODULE_PAGER_PLAIN
 
-/* Use module policy-mobile */
-#undef USE_MODULE_POLICY_MOBILE
-
 /* Use module quickaccess */
 #undef USE_MODULE_QUICKACCESS
 
@@ -338,6 +330,9 @@
 
 /* Use module syscon */
 #undef USE_MODULE_SYSCON
+
+/* Use module sysinfo */
+#undef USE_MODULE_SYSINFO
 
 /* Use module systray */
 #undef USE_MODULE_SYSTRAY
@@ -365,6 +360,9 @@
 
 /* Use module wizard */
 #undef USE_MODULE_WIZARD
+
+/* Use module wl-buffer */
+#undef USE_MODULE_WL_BUFFER
 
 /* Use module wl-desktop-shell */
 #undef USE_MODULE_WL_DESKTOP_SHELL

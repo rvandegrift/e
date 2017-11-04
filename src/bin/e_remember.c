@@ -16,7 +16,7 @@ struct _E_Remember_List
 /* local subsystem functions */
 static void        _e_remember_free(E_Remember *rem);
 static void        _e_remember_update(E_Client *ec, E_Remember *rem);
-static E_Remember *_e_remember_find(E_Client *ec, int check_usable);
+static E_Remember *_e_remember_find(E_Client *ec, int check_usable, Eina_Bool sr);
 static void        _e_remember_cb_hook_pre_post_fetch(void *data, E_Client *ec);
 static void        _e_remember_cb_hook_eval_post_new_client(void *data, E_Client *ec);
 static void        _e_remember_init_edd(void);
@@ -46,12 +46,12 @@ e_remember_init(E_Startup_Mode mode)
           {
              if ((rem->apply & E_REMEMBER_APPLY_RUN) && (rem->prop.command))
                {
-                  if (!ecore_exe_run(rem->prop.command, NULL))
+                  if (!e_util_exe_safe_run(rem->prop.command, NULL))
                     {
                        e_util_dialog_show(_("Run Error"),
-                                          _("Enlightenment was unable to fork a child process:<br>"
-                                            "<br>"
-                                            "%s<br>"),
+                                          _("Enlightenment was unable to fork a child process:<ps/>"
+                                            "<ps/>"
+                                            "%s<ps/>"),
                                           rem->prop.command);
                     }
                }
@@ -68,6 +68,11 @@ e_remember_init(E_Startup_Mode mode)
                          _e_remember_cb_hook_pre_post_fetch, NULL);
    if (h) hooks = eina_list_append(hooks, h);
    h = e_client_hook_add(E_CLIENT_HOOK_EVAL_POST_NEW_CLIENT,
+                         _e_remember_cb_hook_eval_post_new_client, NULL);
+   if (h) hooks = eina_list_append(hooks, h);
+   h = e_client_hook_add(E_CLIENT_HOOK_UNIGNORE,
+                         _e_remember_cb_hook_pre_post_fetch, NULL);
+   h = e_client_hook_add(E_CLIENT_HOOK_UNIGNORE,
                          _e_remember_cb_hook_eval_post_new_client, NULL);
    if (h) hooks = eina_list_append(hooks, h);
 
@@ -133,7 +138,8 @@ e_remember_internal_save(void)
                       E_REMEMBER_APPLY_SKIP_PAGER |
                       E_REMEMBER_APPLY_SKIP_TASKBAR |
                       E_REMEMBER_APPLY_OFFER_RESISTANCE |
-                      E_REMEMBER_APPLY_OPACITY);
+                      E_REMEMBER_APPLY_OPACITY |
+                      E_REMEMBER_APPLY_VOLUME);
         _e_remember_update(ec, rem);
 
         remembers->list = eina_list_append(remembers->list, rem);
@@ -259,14 +265,16 @@ e_remember_unuse(E_Remember *rem)
 E_API void
 e_remember_del(E_Remember *rem)
 {
-   const Eina_List *l;
    E_Client *ec;
 
-   EINA_LIST_FOREACH(e_comp->clients, l, ec)
+   E_CLIENT_FOREACH(ec)
      {
-        if (ec->remember != rem) continue;
+        if ((ec->remember != rem) && (ec->sr_remember != rem)) continue;
 
-        ec->remember = NULL;
+        if (ec->remember == rem)
+          ec->remember = NULL;
+        else
+          ec->sr_remember = NULL;
         e_remember_unuse(rem);
      }
 
@@ -299,7 +307,7 @@ e_remember_apply(E_Remember *rem, E_Client *ec)
 
    if (!rem)
      return;
-
+   rem->applying = 1;
    if (rem->apply & E_REMEMBER_APPLY_ZONE)
      {
         E_Zone *zone;
@@ -552,7 +560,24 @@ e_remember_apply(E_Remember *rem, E_Client *ec)
      ec->want_focus = 1;
    if (rem->apply & E_REMEMBER_APPLY_OPACITY)
      ec->netwm.opacity = rem->prop.opacity;
+   if (rem->apply & E_REMEMBER_APPLY_VOLUME)
+     {
+        if (!ec->volume_control_enabled)
+          {
+             ec->volume_control_enabled = EINA_TRUE;
+             ec->volume = rem->prop.volume;
+             ec->volume_min = rem->prop.volume_min;
+             ec->volume_max = rem->prop.volume_max;
+             ec->mute = rem->prop.mute;
+          }
+        else
+          {
+             e_client_volume_set(ec, rem->prop.volume);
+             e_client_volume_mute_set(ec, rem->prop.mute);
+          }
+     }
 
+   rem->applying = 0;
    if (temporary)
      _e_remember_free(rem);
 }
@@ -562,7 +587,7 @@ e_remember_find_usable(E_Client *ec)
 {
    E_Remember *rem;
 
-   rem = _e_remember_find(ec, 1);
+   rem = _e_remember_find(ec, 1, 0);
    return rem;
 }
 
@@ -571,8 +596,14 @@ e_remember_find(E_Client *ec)
 {
    E_Remember *rem;
 
-   rem = _e_remember_find(ec, 0);
+   rem = _e_remember_find(ec, 0, 0);
    return rem;
+}
+
+E_API E_Remember *
+e_remember_sr_find(E_Client *ec)
+{
+   return _e_remember_find(ec, 1, 1);
 }
 
 E_API void
@@ -665,15 +696,9 @@ e_remember_default_match_set(E_Remember *rem, E_Client *ec)
 E_API void
 e_remember_update(E_Client *ec)
 {
-   if (ec->new_client) return;
-   if (!ec->remember) return;
-   if (ec->remember->keep_settings) return;
-   _e_remember_update(ec, ec->remember);
-   if (ec->remember->apply & E_REMEMBER_APPLY_UUID)
-     {
-        E_Remember *rem = e_remember_find_usable(ec);
-        if (rem) _e_remember_update(ec, rem);
-     }
+   if (((!ec->remember) || ec->remember->keep_settings) && (!ec->sr_remember)) return;
+   if (ec->remember) _e_remember_update(ec, ec->remember);
+   if (ec->sr_remember) _e_remember_update(ec, ec->sr_remember);
    e_config_save_queue();
 }
 
@@ -689,6 +714,7 @@ _e_remember_event_free(void *d EINA_UNUSED, void *event)
 static void
 _e_remember_update(E_Client *ec, E_Remember *rem)
 {
+   if (rem->applying) return;
    if (rem->apply & E_REMEMBER_APPLY_POS ||
        rem->apply & E_REMEMBER_APPLY_SIZE)
      {
@@ -787,6 +813,14 @@ _e_remember_update(E_Client *ec, E_Remember *rem)
         rem->pid = ec->netwm.pid;
         rem->apply_first_only = 1;
      }
+   if (rem->apply & E_REMEMBER_APPLY_VOLUME)
+     {
+        rem->prop.volume = ec->volume;
+        rem->prop.volume_min = ec->volume_min;
+        rem->prop.volume_max = ec->volume_max;
+        rem->prop.mute = ec->mute;
+     }
+
    rem->no_reopen = ec->internal_no_reopen;
    {
       E_Event_Remember_Update *ev;
@@ -802,7 +836,7 @@ _e_remember_update(E_Client *ec, E_Remember *rem)
 
 /* local subsystem functions */
 static E_Remember *
-_e_remember_find(E_Client *ec, int check_usable)
+_e_remember_find(E_Client *ec, int check_usable, Eina_Bool sr)
 {
    Eina_List *l = NULL;
    E_Remember *rem;
@@ -867,18 +901,16 @@ _e_remember_find(E_Client *ec, int check_usable)
         if ((check_usable) && (!e_remember_usable_get(rem)))
           continue;
 
-        if (ec->uuid)
+        if (sr)
           {
-             if ((!ec->remember) || (!(ec->remember->apply & E_REMEMBER_APPLY_UUID)))
+             if (!eina_streq(rem->uuid, ec->uuid)) continue;
+             if (rem->uuid)
                {
-                  if (!eina_streq(rem->uuid, ec->uuid)) continue;
-                  if (rem->uuid)
-                    {
-                       if (rem->pid != ec->netwm.pid) continue;
-                       return rem;
-                    }
+                  if (rem->pid != ec->netwm.pid) continue;
+                  return rem;
                }
           }
+        else if (rem->apply & E_REMEMBER_APPLY_UUID) continue;
 
         if (ec->netwm.name) title = ec->netwm.name;
         else title = ec->icccm.title;
@@ -960,8 +992,8 @@ _e_remember_cb_hook_eval_post_new_client(void *data EINA_UNUSED, E_Client *ec)
         rem->apply = E_REMEMBER_APPLY_POS | E_REMEMBER_APPLY_SIZE | E_REMEMBER_APPLY_BORDER;
 
         e_remember_use(rem);
-        e_remember_update(ec);
         ec->remember = rem;
+        e_remember_update(ec);
      }
 }
 

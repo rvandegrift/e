@@ -103,6 +103,8 @@ static Eina_Bool auth_popup;
 #define ERR(...) EINA_LOG_DOM_ERR(_wireless_gadget_log_dom, __VA_ARGS__)
 static int _wireless_gadget_log_dom = -1;
 
+static void _wireless_gadget_refresh(Instance *inst);
+
 static void
 _wifi_icon_signal(Evas_Object *icon, int state, int strength)
 {
@@ -348,6 +350,7 @@ _wireless_edit_del(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj
         array_clear(wireless_edit[i]->proxy_servers);
         E_FREE(wireless_edit[i]);
      }
+   wireless_popup.popup = NULL;
    wireless_edit_popup = NULL;
 }
 
@@ -586,6 +589,103 @@ _wireless_gadget_edit_dnstime(void)
    evas_object_hide(elm_table_child_get(tb, 0, 6));
 }
 
+static void
+_wireless_gadget_edit_services_type(Evas_Object *obj, Wireless_Service_Type type)
+{
+   Eina_Bool state = elm_check_state_get(obj);
+
+   if (state)
+     wireless_config->disabled_types |= (1 << type);
+   else
+     wireless_config->disabled_types &= ~(1 << type);
+   e_config_save_queue();
+   E_LIST_FOREACH(instances, _wireless_gadget_refresh);
+}
+
+static void
+_wireless_gadget_edit_services_wifi(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   _wireless_gadget_edit_services_type(obj, WIRELESS_SERVICE_TYPE_WIFI);
+}
+
+static void
+_wireless_gadget_edit_services_bluetooth(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   _wireless_gadget_edit_services_type(obj, WIRELESS_SERVICE_TYPE_BLUETOOTH);
+}
+
+static void
+_wireless_gadget_edit_services_cellular(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   _wireless_gadget_edit_services_type(obj, WIRELESS_SERVICE_TYPE_CELLULAR);
+}
+
+static void
+_wireless_gadget_edit_services(void)
+{
+   Evas_Object *tb, *bx, *ck, *fr, *r;
+   int row = 0;
+
+   wireless_popup.content = tb = elm_table_add(wireless_popup.popup);
+   elm_table_homogeneous_set(tb, 1);
+   E_FILL(tb);
+   E_EXPAND(tb);
+   evas_object_show(tb);
+   elm_box_pack_end(wireless_popup.box, tb);
+
+   fr = elm_frame_add(tb);
+   E_EXPAND(fr);
+   E_FILL(fr);
+   evas_object_show(fr);
+   elm_object_text_set(fr, _("Hide Service Types"));
+   elm_table_pack(tb, fr, 0, row++, 2, 1);
+
+   bx = elm_box_add(fr);
+   E_EXPAND(bx);
+   E_FILL(bx);
+   evas_object_show(bx);
+   elm_object_content_set(fr, bx);
+
+   ck = elm_check_add(tb);
+   E_EXPAND(ck);
+   E_FILL(ck);
+   elm_object_text_set(ck, _("Hide Wifi"));
+   elm_check_state_set(ck, (wireless_config->disabled_types &
+     (1 << WIRELESS_SERVICE_TYPE_WIFI)) == (1 << WIRELESS_SERVICE_TYPE_WIFI));
+   evas_object_smart_callback_add(ck, "changed", _wireless_gadget_edit_services_wifi, NULL);
+   if ((!wireless_current[WIRELESS_SERVICE_TYPE_WIFI]) || (!wireless_current[WIRELESS_SERVICE_TYPE_WIFI]->wn) ||
+       (wireless_current[WIRELESS_SERVICE_TYPE_WIFI]->wn->state != WIRELESS_NETWORK_STATE_ONLINE))
+     evas_object_show(ck);
+   elm_box_pack_end(bx, ck);
+
+   ck = elm_check_add(tb);
+   E_EXPAND(ck);
+   E_FILL(ck);
+   elm_object_text_set(ck, _("Hide Bluetooth"));
+   elm_check_state_set(ck, (wireless_config->disabled_types &
+     (1 << WIRELESS_SERVICE_TYPE_BLUETOOTH)) == (1 << WIRELESS_SERVICE_TYPE_BLUETOOTH));
+   evas_object_smart_callback_add(ck, "changed", _wireless_gadget_edit_services_bluetooth, NULL);
+   if ((!wireless_current[WIRELESS_SERVICE_TYPE_BLUETOOTH]) || (!wireless_current[WIRELESS_SERVICE_TYPE_BLUETOOTH]->wn) ||
+       (wireless_current[WIRELESS_SERVICE_TYPE_BLUETOOTH]->wn->state != WIRELESS_NETWORK_STATE_ONLINE))
+     evas_object_show(ck);
+   elm_box_pack_end(bx, ck);
+
+   ck = elm_check_add(tb);
+   E_EXPAND(ck);
+   E_FILL(ck);
+   elm_object_text_set(ck, _("Hide Cellular"));
+   elm_check_state_set(ck, (wireless_config->disabled_types &
+     (1 << WIRELESS_SERVICE_TYPE_CELLULAR)) == (1 << WIRELESS_SERVICE_TYPE_CELLULAR));
+   evas_object_smart_callback_add(ck, "changed", _wireless_gadget_edit_services_cellular, NULL);
+   if ((!wireless_current[WIRELESS_SERVICE_TYPE_CELLULAR]) || (!wireless_current[WIRELESS_SERVICE_TYPE_CELLULAR]->wn) ||
+       (wireless_current[WIRELESS_SERVICE_TYPE_CELLULAR]->wn->state != WIRELESS_NETWORK_STATE_ONLINE))
+     evas_object_show(ck);
+   elm_box_pack_end(bx, ck);
+
+   r = evas_object_rectangle_add(e_comp->evas);
+   elm_table_pack(tb, r, 0, row++, 2, 1);
+}
+
 static Evas_Object *
 _wireless_gadget_edit_basic(void)
 {
@@ -693,6 +793,13 @@ _wireless_gadget_edit_select_dnstime(void *data EINA_UNUSED, Evas_Object *obj EI
 }
 
 static void
+_wireless_gadget_edit_select_services(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   _wireless_gadget_edit_select_pre();
+   _wireless_gadget_edit_services();
+}
+
+static void
 _wireless_gadget_edit(int type)
 {
    Evas_Object *popup, *entry, *box1, *box, *list, *lbl, *bt;
@@ -797,6 +904,7 @@ _wireless_gadget_edit(int type)
    elm_list_item_selected_set(it, 1);
    elm_list_item_append(list, _("Proxy"), NULL, NULL, _wireless_gadget_edit_select_proxy, NULL);
    elm_list_item_append(list, _("DNS/Time"), NULL, NULL, _wireless_gadget_edit_select_dnstime, NULL);
+   elm_list_item_append(list, _("Services"), NULL, NULL, _wireless_gadget_edit_select_services, NULL);
    elm_list_go(list);
    evas_object_show(list);
 
@@ -880,11 +988,17 @@ _wireless_popup_list_populate(void)
 }
 
 static void
+_wireless_popup_dismissed(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   evas_object_del(obj);
+}
+
+static void
 _wireless_gadget_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    Evas_Event_Mouse_Down *ev = event_info;
    Instance *inst = data;
-   Evas_Object *ctx, *box, *list, *toggle;
+   Evas_Object *ctx, *tb, *list, *toggle;
    int type;
    E_Zone *zone;
    const char *names[] =
@@ -902,33 +1016,38 @@ _wireless_gadget_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, v
      if (obj == inst->icon[type])
        break;
    if (ev->button == 2) connman_technology_enabled_set(type, !wireless_type_enabled[type]);
-   if (ev->button == 3) _wireless_gadget_edit(type);
+   if (ev->button == 3)
+     {
+        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+        _wireless_gadget_edit(type);
+     }
    if (ev->button != 1) return;
    if (wireless_popup.popup)
      {
-        evas_object_hide(wireless_popup.popup);
-        evas_object_del(wireless_popup.popup);
-        if (wireless_popup.type == type)
-          return;
+        elm_ctxpopup_dismiss(wireless_popup.popup);
+        wireless_popup.popup = NULL;
+        return;
      }
    inst->popup = 1;
    wireless_popup.type = type;
    wireless_popup.items = eina_hash_pointer_new(NULL);
+
    ctx = elm_ctxpopup_add(e_comp->elm);
+   evas_object_smart_callback_add(ctx, "dismissed", _wireless_popup_dismissed, NULL);
    elm_object_style_set(ctx, "noblock");
 
-   box = elm_box_add(ctx);
-   E_EXPAND(box);
-   E_FILL(box);
+   tb = elm_table_add(ctx);
+   E_EXPAND(tb);
+   E_FILL(tb);
 
    wireless_popup.content = list = elm_list_add(ctx);
-   elm_list_mode_set(list, ELM_LIST_LIMIT);
+   elm_list_mode_set(list, ELM_LIST_EXPAND);
    E_EXPAND(list);
    E_FILL(list);
    _wireless_popup_list_populate();
    elm_list_go(list);
    evas_object_show(list);
-   elm_box_pack_end(box, list);
+   elm_table_pack(tb, list, 0, 0, 2, 1);
    toggle = elm_check_add(ctx);
    evas_object_show(toggle);
    elm_object_style_set(toggle, "toggle");
@@ -937,15 +1056,23 @@ _wireless_gadget_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, v
    elm_object_part_text_set(toggle, "off", _("Off"));
    elm_check_state_set(toggle, wireless_type_enabled[type]);
    evas_object_smart_callback_add(toggle, "changed", _wireless_popup_toggle, inst);
-   elm_box_pack_end(box, toggle);
-   elm_object_content_set(ctx, box);
-   wireless_popup.popup = e_comp_object_util_add(ctx, E_COMP_OBJECT_TYPE_NONE);
-   evas_object_layer_set(wireless_popup.popup, E_LAYER_POPUP);
-   e_comp_object_util_autoclose(wireless_popup.popup, NULL, e_comp_object_util_autoclose_on_escape, NULL);
+   elm_table_pack(tb, toggle, 0, 1, 2, 1);
+   elm_object_content_set(ctx, tb);
+   wireless_popup.popup = ctx;
 
-   zone = e_zone_current_get();
-   evas_object_resize(wireless_popup.popup, zone->w / 5, zone->h / 3);
-   evas_object_size_hint_min_set(box, zone->w / 5, zone->h / 3);
+   {
+      Evas_Object *r = evas_object_rectangle_add(e_comp->evas);
+      e_comp_object_util_del_list_append(list, r);
+      elm_table_pack(tb, r, 2, 0, 1, 1);
+      zone = e_zone_current_get();
+      evas_object_size_hint_min_set(r, 1, zone->h / 3);
+
+      r = evas_object_rectangle_add(e_comp->evas);
+      e_comp_object_util_del_list_append(list, r);
+      elm_table_pack(tb, r, 0, 2, 2, 1);
+      evas_object_size_hint_min_set(r, zone->w / 5, 1);
+   }
+
    e_gadget_util_ctxpopup_place(inst->box, ctx, inst->icon[type]);
    evas_object_show(wireless_popup.popup);
    evas_object_event_callback_add(wireless_popup.popup, EVAS_CALLBACK_DEL, _wireless_popup_del, inst);
@@ -1101,14 +1228,18 @@ _wireless_gadget_refresh(Instance *inst)
              avail++;
           }
      }
-   for (type = WIRELESS_SERVICE_TYPE_WIFI; type < WIRELESS_SERVICE_TYPE_LAST; type++)
+   if (!avail)
      {
-        if (!inst->icon[type]) continue;
-        if (wireless_type_enabled[type] && (!wireless_network_count[type])) continue;
-        
-        elm_box_pack_end(inst->box, inst->icon[type]);
-        evas_object_show(inst->icon[type]);
-        avail++;
+        for (type = WIRELESS_SERVICE_TYPE_WIFI; type < WIRELESS_SERVICE_TYPE_LAST; type++)
+          {
+             if (!inst->icon[type]) continue;
+             if ((wireless_config->disabled_types & (1U << type)) == (1U << type)) continue;
+             if (wireless_type_enabled[type] && (!wireless_network_count[type])) continue;
+
+             elm_box_pack_end(inst->box, inst->icon[type]);
+             evas_object_show(inst->icon[type]);
+             avail++;
+          }
      }
    if (!avail)
      {
@@ -1466,9 +1597,9 @@ wireless_authenticate_external(Wireless_Network *wn, const char *url)
           evas_object_del(wireless_popup.popup);
        }
    if (wn->type == WIRELESS_SERVICE_TYPE_ETHERNET)
-     snprintf(buf, sizeof(buf), _("Ethernet connection wants to open a url:<br>%s"), url);
+     snprintf(buf, sizeof(buf), _("Ethernet connection wants to open a url:<ps/>%s"), url);
    else
-     snprintf(buf, sizeof(buf), _("Network '%s' wants to open a url:<br>%s"), wn->name, url);
+     snprintf(buf, sizeof(buf), _("Network '%s' wants to open a url:<ps/>%s"), wn->name, url);
    EINA_LIST_FOREACH(instances, l, inst)
      {
         if (!inst->icon[wn->type]) continue;

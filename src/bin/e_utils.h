@@ -50,6 +50,7 @@ E_API E_Config_Binding_Key *e_util_binding_match(const Eina_List *bindlist, Ecor
 E_API Eina_Bool e_util_fullscreen_current_any(void);
 E_API Eina_Bool e_util_fullscreen_any(void);
 E_API const char *e_util_time_str_get(long int seconds);
+E_API void e_util_size_debug(Evas_Object *obj);
 E_API void e_util_size_debug_set(Evas_Object *obj, Eina_Bool enable);
 E_API Efreet_Desktop *e_util_terminal_desktop_get(void);
 E_API void e_util_gadcon_orient_icon_set(E_Gadcon_Orient orient, Evas_Object *obj);
@@ -67,18 +68,7 @@ E_API void e_util_memclear(void *s, size_t n);
 
 E_API Ecore_Exe *e_util_open(const char *exe, void *data);
 
-static inline void
-e_util_pointer_center(const E_Client *ec)
-{
-   int x = 0, y = 0;
-
-   if (ec->zone)
-     x = ec->zone->x, y = ec->zone->y;
-   if ((e_config->focus_policy != E_FOCUS_CLICK) && (!e_config->disable_all_pointer_warps))
-     ecore_evas_pointer_warp(e_comp->ee,
-                             x + ec->x + (ec->w / 2),
-                             y + ec->y + (ec->h / 2));
-}
+E_API Ecore_Exe *e_util_exe_safe_run(const char *cmd, void *data);
 
 static inline Eina_Bool
 isedje(const Evas_Object *obj)

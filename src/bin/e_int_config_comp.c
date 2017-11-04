@@ -150,8 +150,8 @@ _advanced_features_changed(E_Comp_Config *conf)
    conf->enable_advanced_features = !conf->enable_advanced_features;
    if (conf->enable_advanced_features)
      e_util_dialog_internal(_("WARNING"),
-                            _("This option WILL break your desktop if you don't know what you're doing.<br>"
-                              "Do not file bugs about anything that occurs with this option enabled.<br>"
+                            _("This option WILL break your desktop if you don't know what you're doing.<ps/>"
+                              "Do not file bugs about anything that occurs with this option enabled.<ps/>"
                               "You have been warned."));
 }
 
@@ -426,7 +426,7 @@ _advanced_apply_data(E_Config_Dialog *cfd  EINA_UNUSED,
        (cfdata->fps_show != conf->fps_show) ||
        (cfdata->fps_corner != conf->fps_corner) ||
        (cfdata->fps_average_range != conf->fps_average_range) ||
-       (cfdata->first_draw_delay != conf->first_draw_delay) ||
+       (!EINA_DBL_EQ(cfdata->first_draw_delay, conf->first_draw_delay)) ||
        (conf->match.disable_popups != cfdata->match.disable_popups) ||
        (conf->match.disable_borders != cfdata->match.disable_borders) ||
        (conf->match.disable_overrides != cfdata->match.disable_overrides) ||
@@ -618,7 +618,7 @@ _basic_apply_data(E_Config_Dialog *cfd  EINA_UNUSED,
        (cfdata->fps_show != conf->fps_show) ||
        (cfdata->fps_corner != conf->fps_corner) ||
        (cfdata->fps_average_range != conf->fps_average_range) ||
-       (cfdata->first_draw_delay != conf->first_draw_delay)
+       (!EINA_DBL_EQ(cfdata->first_draw_delay, conf->first_draw_delay))
        )
      {
         if (cfdata->match.toggle_changed)

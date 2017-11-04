@@ -133,6 +133,27 @@ _e_pixmap_image_clear_x(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_U
 
 #ifdef HAVE_WAYLAND
 static void
+_e_pixmap_wl_resource_release(E_Comp_Wl_Buffer *buffer)
+{
+   buffer->busy--;
+   if (buffer->busy) return;
+
+   if (buffer->pool)
+     {
+        wl_shm_pool_unref(buffer->pool);
+        buffer->pool = NULL;
+     }
+
+   if (buffer->destroyed)
+     {
+        free(buffer);
+        return;
+     }
+
+   wl_buffer_send_release(buffer->resource);
+}
+
+static void
 _e_pixmap_wayland_buffer_release(E_Pixmap *cp, E_Comp_Wl_Buffer *buffer)
 {
    if (!buffer) return;
@@ -148,12 +169,7 @@ _e_pixmap_wayland_buffer_release(E_Pixmap *cp, E_Comp_Wl_Buffer *buffer)
         return;
      }
 
-   buffer->busy--;
-   if (buffer->busy) return;
-
-   wl_resource_queue_event(buffer->resource, WL_BUFFER_RELEASE);
-   wl_shm_pool_unref(buffer->pool);
-   buffer->pool = NULL;
+   _e_pixmap_wl_resource_release(buffer);
 }
 
 static void
@@ -343,7 +359,7 @@ e_pixmap_new(E_Pixmap_Type type, ...)
         else
           {
              pixmaps[type] = eina_hash_int64_new((Eina_Free_Cb)_e_pixmap_free);
-             wayland_time_base = ecore_time_get();
+             wayland_time_base = ecore_loop_time_get();
           }
         cp = _e_pixmap_new(type);
         cp->win = id;
@@ -649,10 +665,8 @@ e_pixmap_resource_set(E_Pixmap *cp, void *resource)
    if (cp->buffer == resource) return;
 
    if (cp->buffer)
-     {
-        cp->buffer->busy--;
-        if (!cp->buffer->busy) wl_resource_queue_event(cp->buffer->resource, WL_BUFFER_RELEASE);
-     }
+     _e_pixmap_wl_resource_release(cp->buffer);
+
    if (cp->buffer_destroy_listener.notify)
      {
         wl_list_remove(&cp->buffer_destroy_listener.link);
@@ -695,6 +709,31 @@ e_pixmap_is_pixels(E_Pixmap *cp)
      }
 }
 
+#ifdef HAVE_WAYLAND
+static void
+_e_pixmap_scanout_handler(void *data, Evas_Native_Surface_Status status)
+{
+   E_Comp_Wl_Buffer *buffer;
+
+   buffer = data;
+   switch (status)
+     {
+      case EVAS_NATIVE_SURFACE_STATUS_SCANOUT_ON:
+        buffer->busy++;
+        break;
+      case EVAS_NATIVE_SURFACE_STATUS_SCANOUT_OFF:
+        _e_pixmap_wl_resource_release(buffer);
+        break;
+      case EVAS_NATIVE_SURFACE_STATUS_PLANE_ASSIGN:
+        buffer->busy++;
+        break;
+      case EVAS_NATIVE_SURFACE_STATUS_PLANE_RELEASE:
+        _e_pixmap_wl_resource_release(buffer);
+        break;
+     }
+}
+#endif
+
 E_API Eina_Bool
 e_pixmap_native_surface_init(E_Pixmap *cp, Evas_Native_Surface *ns)
 {
@@ -734,6 +773,11 @@ e_pixmap_native_surface_init(E_Pixmap *cp, Evas_Native_Surface *ns)
 
              ns->data.wl_dmabuf.attr = &cp->buffer->dmabuf_buffer->attributes;
              ns->data.wl_dmabuf.resource = cp->buffer->resource;
+             if (getenv("E_USE_HARDWARE_PLANES"))
+               {
+                  ns->data.wl_dmabuf.scanout.handler = _e_pixmap_scanout_handler;
+                  ns->data.wl_dmabuf.scanout.data = cp->buffer;
+               }
              ret = EINA_TRUE;
           }
         else if (!cp->buffer->shm_buffer)
@@ -790,13 +834,12 @@ e_pixmap_image_clear(E_Pixmap *cp, Eina_Bool cache)
         break;
       case E_PIXMAP_TYPE_WL:
 #ifdef HAVE_WAYLAND
+        _e_pixmap_wl_buffers_free(cp);
         if (cache)
           {
              E_Comp_Wl_Client_Data *cd;
              struct wl_resource *cb;
              Eina_List *free_list;
-
-             if (!e_comp->rendering) _e_pixmap_wl_buffers_free(cp);
 
              if ((!cp->client) || (!cp->client->comp_data)) return;
              cd = (E_Comp_Wl_Client_Data *)cp->client->comp_data;
@@ -808,13 +851,11 @@ e_pixmap_image_clear(E_Pixmap *cp, Eina_Bool cache)
              cd->frames = NULL;
              EINA_LIST_FREE(free_list, cb)
                {
-                  double t = ecore_time_get() - wayland_time_base;
+                  double t = ecore_loop_time_get() - wayland_time_base;
                   wl_callback_send_done(cb, t * 1000);
                   wl_resource_destroy(cb);
                }
           }
-        else
-          _e_pixmap_wl_buffers_free(cp);
 #endif
         break;
       default:
@@ -855,6 +896,11 @@ e_pixmap_image_refresh(E_Pixmap *cp)
            if (cp->held_buffer == cp->buffer) return EINA_TRUE;
 
            if (cp->held_buffer) _e_pixmap_wayland_image_clear(cp);
+
+           /* This catches the case where a client (*cough* xwayland)
+            * deletes a buffer we haven't released
+            */
+           if (!cp->buffer) return EINA_FALSE;
 
            if (!cp->buffer->shm_buffer) return EINA_TRUE;
 
@@ -1080,15 +1126,9 @@ e_pixmap_dmabuf_test(struct linux_dmabuf_buffer *dmabuf)
    evas_object_image_native_surface_set(test, &ns);
    ret = evas_object_image_load_error_get(test) == EVAS_LOAD_ERROR_NONE;
    evas_object_del(test);
-   if (!ns.data.wl_dmabuf.attr) return EINA_FALSE;
 
    if (e_comp->gl || !ret)
       return ret;
-
-   /* TODO: Software rendering for multi-plane formats */
-   if (dmabuf->attributes.n_planes != 1) return EINA_FALSE;
-   if (dmabuf->attributes.format != DRM_FORMAT_ARGB8888 &&
-       dmabuf->attributes.format != DRM_FORMAT_XRGB8888) return EINA_FALSE;
 
    /* This is only legit for ARGB8888 */
    size = dmabuf->attributes.height * dmabuf->attributes.stride[0];
@@ -1098,4 +1138,21 @@ e_pixmap_dmabuf_test(struct linux_dmabuf_buffer *dmabuf)
 
    return EINA_TRUE;
 }
+
+E_API Eina_Bool
+e_pixmap_dmabuf_formats_query(int **formats EINA_UNUSED, int *num_formats)
+{
+   *num_formats = 0;
+
+   return EINA_TRUE;
+}
+
+E_API Eina_Bool
+e_pixmap_dmabuf_modifiers_query(int format EINA_UNUSED, uint64_t **modifiers EINA_UNUSED, int *num_modifiers)
+{
+   *num_modifiers = 0;
+
+   return EINA_TRUE;
+}
+
 #endif

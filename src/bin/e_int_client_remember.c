@@ -12,6 +12,7 @@ static Evas_Object *_advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E
 #define MODE_NOTHING        0
 #define MODE_GEOMETRY       E_REMEMBER_APPLY_POS | E_REMEMBER_APPLY_SIZE
 #define MODE_LOCKS          E_REMEMBER_APPLY_LOCKS
+#define MODE_VOLUME         E_REMEMBER_APPLY_VOLUME
 #define MODE_GEOMETRY_LOCKS E_REMEMBER_APPLY_POS | E_REMEMBER_APPLY_SIZE | E_REMEMBER_APPLY_LOCKS
 #define MODE_ALL            E_REMEMBER_APPLY_POS | E_REMEMBER_APPLY_SIZE | E_REMEMBER_APPLY_LAYER | \
   E_REMEMBER_APPLY_LOCKS | E_REMEMBER_APPLY_BORDER | E_REMEMBER_APPLY_STICKY |                      \
@@ -23,7 +24,6 @@ struct _E_Config_Dialog_Data
 {
    E_Client *client;
    E_Remember *rem;
-   E_Remember *backup_rem;
    /*- BASIC -*/
    int       mode;
    int       warned;
@@ -63,6 +63,7 @@ struct _E_Config_Dialog_Data
       int keep_settings;
       int offer_resistance;
       int apply_opacity;
+      int apply_volume;
    } remember;
 
    int applied;
@@ -141,9 +142,6 @@ _fill_data(E_Config_Dialog_Data *cfdata)
      rem = ec->remember;
    else
      rem = cfdata->rem;
-
-   if (ec && rem && (rem->apply & E_REMEMBER_APPLY_UUID))
-     cfdata->backup_rem = rem = e_remember_find_usable(ec);
 
    if (rem)
      {
@@ -283,6 +281,8 @@ _fill_data(E_Config_Dialog_Data *cfdata)
           cfdata->remember.offer_resistance = 1;
         if (rem->apply & E_REMEMBER_APPLY_OPACITY)
           cfdata->remember.apply_opacity = 1;
+        if (rem->apply & E_REMEMBER_APPLY_VOLUME)
+          cfdata->remember.apply_volume = 1;
      }
 
    if (!rem) cfdata->mode = MODE_NOTHING;
@@ -320,11 +320,10 @@ _free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 
    if (cfdata->client)
      {
-        E_Remember *rem = cfdata->backup_rem ?: cfdata->client->remember;
-        if (!cfdata->applied && rem)
+        if (!cfdata->applied && cfdata->client->remember)
           {
-             e_remember_unuse(rem);
-             e_remember_del(rem);
+             e_remember_unuse(cfdata->client->remember);
+             e_remember_del(cfdata->client->remember);
              e_config_save_queue();
           }
 
@@ -342,18 +341,18 @@ _warning_dialog_show(void)
    e_dialog_title_set(dia, _("Window properties are not a unique match"));
    e_dialog_text_set
      (dia,
-     _("You are trying to ask Enlightenment to remember to apply<br>"
-       "properties (such as size, location, border style etc.) to<br>"
-       "a window that <hilight>does not have unique properties</hilight>.<br>"
-       "<br>"
-       "This means it shares Name/Class, Transience, Role etc. properties<br>"
-       "with more than 1 other window on the screen and remembering<br>"
-       "properties for this window will apply to all other windows<br>"
-       "that match these properties.<br>"
-       "<br>"
-       "This is just a warning in case you did not intend this to happen.<br>"
-       "If you did, simply press <hilight>Apply</hilight> or <hilight>OK</hilight> buttons<br>"
-       "and your settings will be accepted. Press <hilight>Cancel</hilight> if you<br>"
+     _("You are trying to ask Enlightenment to remember to apply<ps/>"
+       "properties (such as size, location, border style etc.) to<ps/>"
+       "a window that <hilight>does not have unique properties</hilight>.<ps/>"
+       "<ps/>"
+       "This means it shares Name/Class, Transience, Role etc. properties<ps/>"
+       "with more than 1 other window on the screen and remembering<ps/>"
+       "properties for this window will apply to all other windows<ps/>"
+       "that match these properties.<ps/>"
+       "<ps/>"
+       "This is just a warning in case you did not intend this to happen.<ps/>"
+       "If you did, simply press <hilight>Apply</hilight> or <hilight>OK</hilight> buttons<ps/>"
+       "and your settings will be accepted. Press <hilight>Cancel</hilight> if you<ps/>"
        "are not sure and nothing will be affected.")
      );
    e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
@@ -420,27 +419,27 @@ _basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata
    E_Client *ec = cfdata->client;
    E_Remember *rem = ec->remember;
 
-   if (rem && (rem->apply & E_REMEMBER_APPLY_UUID))
-     rem = cfdata->backup_rem;
-
    if (cfdata->mode == MODE_NOTHING)
      {
         if (rem)
           {
              e_remember_unuse(rem);
              e_remember_del(rem);
-             e_config_save_queue();
           }
+        e_config_save_queue();
         return 1;
      }
 
    if (!rem)
      {
         rem = e_remember_new();
-        if (!rem) return 0;
-        cfdata->applied = 0;
-        if (ec->remember && (ec->remember->apply & E_REMEMBER_APPLY_UUID))
-          cfdata->backup_rem = rem;
+        if (rem)
+          {
+             ec->remember = rem;
+             cfdata->applied = 0;
+          }
+        else
+          return 0;
      }
 
    e_remember_default_match_set(rem, cfdata->client);
@@ -455,8 +454,7 @@ _basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata
    rem->apply = cfdata->mode;
    rem->apply_first_only = 0;
 
-   if (ec->remember == rem)
-     e_remember_use(rem);
+   e_remember_use(rem);
    e_remember_update(ec);
    cfdata->applied = 1;
    e_config_save_queue();
@@ -469,7 +467,7 @@ _advanced_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfd
    E_Client *ec = cfdata->client;
    E_Remember *rem;
 
-   if (ec) rem = cfdata->backup_rem ?: ec->remember;
+   if (ec) rem = ec->remember;
    else rem = cfdata->rem;
 
    if (!rem)
@@ -546,10 +544,10 @@ _advanced_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfd
         e_dialog_title_set(dia, _("No match properties set"));
         e_dialog_text_set
           (dia,
-          _("You are trying to ask Enlightenment to remember to apply<br>"
-            "properties (such as size, location, border style etc.) to<br>"
-            "a window <hilight>without specifying how to remember it</hilight>.<br>"
-            "<br>"
+          _("You are trying to ask Enlightenment to remember to apply<ps/>"
+            "properties (such as size, location, border style etc.) to<ps/>"
+            "a window <hilight>without specifying how to remember it</hilight>.<ps/>"
+            "<ps/>"
             "You must specify at least 1 way of remembering this window.")
           );
         e_dialog_button_add(dia, _("OK"), NULL, NULL, NULL);
@@ -616,6 +614,8 @@ _advanced_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfd
      rem->apply |= E_REMEMBER_APPLY_OFFER_RESISTANCE;
    if (cfdata->remember.apply_opacity)
      rem->apply |= E_REMEMBER_APPLY_OPACITY;
+   if (cfdata->remember.apply_volume)
+     rem->apply |= E_REMEMBER_APPLY_VOLUME;
 
    if (ec && (!rem->apply && !rem->prop.desktop_file))
      {
@@ -630,9 +630,8 @@ _advanced_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfd
      {
         _check_matches(rem, 1);
         rem->keep_settings = 0;
-        if ((!ec->remember) || (!(ec->remember->apply & E_REMEMBER_APPLY_UUID)))
-          ec->remember = rem;
-        e_remember_update(ec);
+        cfdata->client->remember = rem;
+        e_remember_update(cfdata->client);
         cfdata->applied = 1;
      }
    rem->keep_settings = cfdata->remember.keep_settings;
@@ -660,6 +659,8 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    ob = e_widget_radio_add(evas, _("Locks"), MODE_LOCKS, rg);
    e_widget_list_object_append(o, ob, 1, 1, 0.5);
    ob = e_widget_radio_add(evas, _("Size, Position and Locks"), MODE_GEOMETRY_LOCKS, rg);
+   e_widget_list_object_append(o, ob, 1, 1, 0.5);
+   ob = e_widget_radio_add(evas, _("Volume"), MODE_VOLUME, rg);
    e_widget_list_object_append(o, ob, 1, 1, 0.5);
    ob = e_widget_radio_add(evas, _("All"), MODE_ALL, rg);
    e_widget_list_object_append(o, ob, 1, 1, 0.5);
@@ -797,9 +798,12 @@ _advanced_create_widgets(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data 
    oc = e_widget_check_add(evas, _("Application file or name (.desktop)"),
                            &(cfdata->remember.apply_desktop_file));
    e_widget_table_object_append(of, oc, 0, 8, 1, 1, 1, 0, 1, 0);
+   oc = e_widget_check_add(evas, _("Volume"),
+                           &(cfdata->remember.apply_volume));
+   e_widget_table_object_append(of, oc, 0, 9, 1, 1, 1, 0, 1, 0);
    ob = e_widget_entry_add(cfd->dia->win, &cfdata->desktop, NULL, NULL, NULL);
    e_widget_check_widget_disable_on_unchecked_add(oc, ob);
-   e_widget_table_object_append(of, ob, 0, 9, 2, 1, 1, 0, 1, 0);
+   e_widget_table_object_append(of, ob, 0, 10, 2, 1, 1, 0, 1, 0);
    e_widget_toolbook_page_append(o, NULL, _("Properties"), of, 1, 1, 1, 1, 0.5, 0.0);
 
    of = e_widget_table_add(e_win_evas_win_get(evas), 0);

@@ -94,6 +94,7 @@ struct _E_Zone
    Eina_Bool useful_geometry_changed : 1;
    Eina_Bool useful_geometry_dirty : 1;
    Eina_Bool      stowed : 1;
+   Eina_Bool desk_flip_sync : 1;
 };
 
 struct _E_Event_Zone_Generic
@@ -172,6 +173,7 @@ E_API E_Zone *e_zone_for_id_get(const char *id);
 
 extern E_API int E_EVENT_ZONE_DESK_COUNT_SET;
 extern E_API int E_EVENT_ZONE_MOVE_RESIZE;
+extern E_API int E_EVENT_ZONE_USEFUL_GEOMETRY_CHANGED;
 extern E_API int E_EVENT_ZONE_ADD;
 extern E_API int E_EVENT_ZONE_DEL;
 extern E_API int E_EVENT_POINTER_WARP;

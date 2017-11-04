@@ -329,6 +329,8 @@ setup_lock(void)
           {
            case EEXIST:
              exs->disp++;
+             EINA_FALLTHROUGH;
+             /* no break */
            case EAGAIN:
              continue;
            case 0:
@@ -373,11 +375,7 @@ xwl_init(void *d EINA_UNUSED)
      return EINA_FALSE;
 
 #ifdef HAVE_PULSE
- #ifdef EFL_VERSION_1_19
    efl_del(efl_add(ECORE_AUDIO_OUT_PULSE_CLASS, NULL));
- #else
-   eo_del(eo_add(ECORE_AUDIO_OUT_PULSE_CLASS, NULL));
- #endif
 #endif
 
    /* record wayland display */
@@ -415,6 +413,7 @@ xwl_init(void *d EINA_UNUSED)
    snprintf(disp, sizeof(disp), ":%d", exs->disp);
    DBG("XWayland Listening on display: %s", disp);
    setenv("DISPLAY", disp, 1);
+   ecore_event_add(E_EVENT_COMPOSITOR_XWAYLAND_INIT, NULL, NULL, NULL);
 
    /* setup ecore_fd handlers for abstract and unix socket fds */
    exs->abs_hdlr = 
@@ -452,6 +451,8 @@ xwl_shutdown(void)
    if (exs->sig_hdlr) ecore_event_handler_del(exs->sig_hdlr);
 
    free(exs);
+   if (e_comp_util_has_x()) e_comp_x_shutdown();
+   ecore_x_shutdown();
    e_util_env_set("DISPLAY", NULL);
 }
 

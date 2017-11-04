@@ -166,7 +166,7 @@ static void
 _e_xsettings_retry(Settings_Manager *sm)
 {
    if (sm->timer_retry) return;
-   sm->timer_retry = ecore_timer_add
+   sm->timer_retry = ecore_timer_loop_add
      (RETRY_TIMEOUT, _e_xsettings_activate_retry, sm);
 }
 
@@ -525,13 +525,14 @@ _e_xsettings_font_set(void)
              Eina_Strbuf *buf;
              Eina_List *l;
              int size = efd->size;
-             char size_buf[8];
+             char size_buf[12];
              const char *p;
 
              /* TODO better way to convert evas font sizes? */
-             if (size < 0) size /= -10;
-             if (size < 5) size = 5;
-             if (size > 25) size = 25;
+             if (!size) size = 12;
+             else if (size < 0) size /= -10;
+             else if (size < 5) size = 5;
+             else if (size > 25) size = 25;
              snprintf(size_buf, sizeof(size_buf), "%d", size);
 
              buf = eina_strbuf_new();

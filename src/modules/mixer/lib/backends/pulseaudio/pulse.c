@@ -308,6 +308,7 @@ _sink_input_cb(pa_context *c EINA_UNUSED, const pa_sink_input_info *info,
    Sink_Input *input;
    Eina_List *l;
    Sink *s;
+   const char *t;
    EINA_SAFETY_ON_NULL_RETURN(ctx);
 
    if (eol < 0)
@@ -333,9 +334,17 @@ _sink_input_cb(pa_context *c EINA_UNUSED, const pa_sink_input_info *info,
    Eina_Strbuf *input_name;
 
    input_name = eina_strbuf_new();
-   eina_strbuf_append(input_name, pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME));
-   eina_strbuf_append(input_name, ":");
-   eina_strbuf_append(input_name, info->name);
+   const char *application = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
+   if (application)
+     {
+        eina_strbuf_append(input_name, application);
+        eina_strbuf_append(input_name, ":");
+        eina_strbuf_append(input_name, info->name);
+     }
+   else if (info->name)
+     {
+        eina_strbuf_append(input_name, info->name);
+     }
    input->base.name = eina_stringshare_add(eina_strbuf_string_get(input_name));
    eina_strbuf_free(input_name);
    input->base.volume = _pa_cvolume_convert(&info->volume);
@@ -347,6 +356,11 @@ _sink_input_cb(pa_context *c EINA_UNUSED, const pa_sink_input_info *info,
      }
    input->icon = eina_stringshare_add(_icon_from_properties(info->proplist));
    ctx->inputs = eina_list_append(ctx->inputs, input);
+
+   if ((t = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_PROCESS_ID)))
+     {
+        input->base.pid = atoi(t);
+     }
 
    if (ctx->cb)
      ctx->cb((void *)ctx->userdata, EMIX_SINK_INPUT_ADDED_EVENT,
@@ -361,6 +375,7 @@ _sink_input_changed_cb(pa_context *c EINA_UNUSED,
    Sink_Input *input = NULL, *i;
    Sink *s = NULL;
    Eina_List *l;
+   const char *t;
 
    EINA_SAFETY_ON_NULL_RETURN(ctx);
    if (eol < 0)
@@ -400,6 +415,10 @@ _sink_input_changed_cb(pa_context *c EINA_UNUSED,
      {
         if (s->idx == (int)info->sink)
           input->base.sink = (Emix_Sink *)s;
+     }
+   if ((t = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_PROCESS_ID)))
+     {
+        input->base.pid = atoi(t);
      }
 
    if (ctx->cb)
@@ -705,66 +724,68 @@ _pulse_pa_state_cb(pa_context *context, void *data)
          break;
 
       case PA_CONTEXT_READY:
-         {
-            ctx->connect = NULL;
-            ctx->connected = EINA_TRUE;
-            pa_context_set_subscribe_callback(context, _subscribe_cb, ctx);
-            if (!(o = pa_context_subscribe(context, (pa_subscription_mask_t)
-                                           (PA_SUBSCRIPTION_MASK_SINK|
-                                            PA_SUBSCRIPTION_MASK_SOURCE|
-                                            PA_SUBSCRIPTION_MASK_SINK_INPUT|
-                                            PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT|
-                                            PA_SUBSCRIPTION_MASK_CLIENT|
-                                            PA_SUBSCRIPTION_MASK_SERVER|
-                                            PA_SUBSCRIPTION_MASK_CARD),
-                                           NULL, NULL)))
-              {
-                 ERR("pa_context_subscribe() failed");
-                 return;
-              }
-            pa_operation_unref(o);
+        ctx->connect = NULL;
+        ctx->connected = EINA_TRUE;
+        pa_context_set_subscribe_callback(context, _subscribe_cb, ctx);
+        if (!(o = pa_context_subscribe(context, (pa_subscription_mask_t)
+                                       (PA_SUBSCRIPTION_MASK_SINK|
+                                        PA_SUBSCRIPTION_MASK_SOURCE|
+                                        PA_SUBSCRIPTION_MASK_SINK_INPUT|
+                                        PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT|
+                                        PA_SUBSCRIPTION_MASK_CLIENT|
+                                        PA_SUBSCRIPTION_MASK_SERVER|
+                                        PA_SUBSCRIPTION_MASK_CARD),
+                                       NULL, NULL)))
+          {
+             ERR("pa_context_subscribe() failed");
+             return;
+          }
+        pa_operation_unref(o);
 
-            if (!(o = pa_context_get_sink_info_list(context, _sink_cb, ctx)))
-              {
-                 ERR("pa_context_get_sink_info_list() failed");
-                 return;
-              }
-            pa_operation_unref(o);
+        if (!(o = pa_context_get_sink_info_list(context, _sink_cb, ctx)))
+          {
+             ERR("pa_context_get_sink_info_list() failed");
+             return;
+          }
+        pa_operation_unref(o);
 
-            if (!(o = pa_context_get_sink_input_info_list(context,
-                                                          _sink_input_cb,
-                                                          ctx)))
-              {
-                 ERR("pa_context_get_sink_input_info_list() failed");
-                 return;
-              }
-            pa_operation_unref(o);
-
-            if (!(o = pa_context_get_source_info_list(context, _source_cb,
+        if (!(o = pa_context_get_sink_input_info_list(context,
+                                                      _sink_input_cb,
                                                       ctx)))
-              {
-                 ERR("pa_context_get_source_info_list() failed");
-                 return;
-              }
-            pa_operation_unref(o);
+          {
+             ERR("pa_context_get_sink_input_info_list() failed");
+             return;
+          }
+        pa_operation_unref(o);
 
-            if (!(o = pa_context_get_server_info(context, _server_info_cb,
-                                                 ctx)))
-              {
-                 ERR("pa_context_get_server_info() failed");
-                 return;
-              }
-            pa_operation_unref(o);
-            break;
-         }
+        if (!(o = pa_context_get_source_info_list(context, _source_cb,
+                                                  ctx)))
+          {
+             ERR("pa_context_get_source_info_list() failed");
+             return;
+          }
+        pa_operation_unref(o);
+
+        if (!(o = pa_context_get_server_info(context, _server_info_cb,
+                                             ctx)))
+          {
+             ERR("pa_context_get_server_info() failed");
+             return;
+          }
+        pa_operation_unref(o);
+        break;
 
       case PA_CONTEXT_FAILED:
          WRN("PA_CONTEXT_FAILED");
          if (!ctx->connect)
-           ctx->connect = ecore_timer_add(1.0, _pulse_connect, data);
+           ctx->connect = ecore_timer_loop_add(1, _pulse_connect, data);
          goto err;
+
       case PA_CONTEXT_TERMINATED:
          ERR("PA_CONTEXT_TERMINATE:");
+         EINA_FALLTHROUGH;
+        /* no break */
+
       default:
          if (ctx->connect)
            {
@@ -828,11 +849,18 @@ _pulse_connect(void *data)
    return ECORE_CALLBACK_DONE;
 }
 
+static Eina_Bool pulse_started;
+
 static void
 _shutdown(void)
 {
    if (!ctx)
       return;
+   if (pulse_started)
+     {
+        ecore_exe_run("pulseaudio -k", NULL);
+        pulse_started = EINA_FALSE;
+     }
 
    if (ctx->connect)
      {
@@ -863,14 +891,11 @@ _init(Emix_Event_Cb cb, const void *data)
    ctx->api = functable;
    ctx->api.userdata = ctx;
 
-   /* The reason of compares with EINA_TRUE is because ECORE_CALLBACK_RENEW
-      is EINA_TRUE. The function _pulse_connect returns ECORE_CALLBACK_RENEW
-      when could not connect to pulse.
-   */
-   if (_pulse_connect(ctx) == EINA_TRUE)
+   if (_pulse_connect(ctx) == EINA_TRUE) // true == failed and try again
      {
-        _shutdown();
-        return EINA_FALSE;
+        if (!pulse_started)
+          ecore_exe_run("pulseaudio --start", NULL);
+        pulse_started = 1;
      }
 
    ctx->cb = cb;

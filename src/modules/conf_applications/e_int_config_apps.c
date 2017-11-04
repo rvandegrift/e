@@ -84,7 +84,7 @@ e_int_config_apps_ibar(Evas_Object *parent EINA_UNUSED, const char *params EINA_
 
    e_user_dir_concat_static(buff, "applications/bar/default/.order");
    data = E_NEW(E_Config_Data, 1);
-   data->title = eina_stringshare_add(_("IBar Applications"));
+   data->title = eina_stringshare_add(_("Launcher Applications"));
    data->dialog = eina_stringshare_add("applications/ibar_applications");
    data->icon = eina_stringshare_add("preferences-applications-ibar");
    data->filename = eina_stringshare_add(buff);
@@ -98,7 +98,7 @@ e_int_config_apps_ibar_other(Evas_Object *parent EINA_UNUSED, const char *path)
 
    if (!path) return NULL;
    data = E_NEW(E_Config_Data, 1);
-   data->title = eina_stringshare_add(_("IBar Applications"));
+   data->title = eina_stringshare_add(_("Launcher Applications"));
    data->dialog = eina_stringshare_add("internal/ibar_other");
    data->icon = eina_stringshare_add("preferences-applications-ibar");
    data->filename = eina_stringshare_add(path);
@@ -217,9 +217,9 @@ static Eina_Bool
 _cache_update()
 {
    if (cache_timer)
-     ecore_timer_reset(cache_timer);
+     ecore_timer_loop_reset(cache_timer);
    else
-     cache_timer = ecore_timer_add(1.0, _cache_update_timer, NULL);
+     cache_timer = ecore_timer_loop_add(1.0, _cache_update_timer, NULL);
    return ECORE_CALLBACK_RENEW;
 }
 
@@ -363,7 +363,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_toolbook_page_show(otb, 0);
 
    if (cfdata->fill_delay) ecore_timer_del(cfdata->fill_delay);
-   cfdata->fill_delay = ecore_timer_add(0.2, _cb_fill_delay, cfdata);
+   cfdata->fill_delay = ecore_timer_loop_add(0.2, _cb_fill_delay, cfdata);
 
    elm_win_center(cfd->dia->win, 1, 1);
    return otb;
@@ -601,50 +601,56 @@ _fill_apps_list(E_Config_App_List *apps)
 static void
 _fill_xdg_list(E_Config_App_List *apps)
 {
-   Eina_List *files;
+   Eina_List *files, *dirs;
    Efreet_Desktop *desk = NULL;
-   const char *path = "/etc/xdg/autostart";
+   const char *path;
    char *file, *ext;
-   char buf[4096];
+   char buf[PATH_MAX], pbuf[PATH_MAX];
 
-   files = ecore_file_ls(path);
-   EINA_LIST_FREE(files, file)
+   dirs = eina_list_merge(eina_list_clone(efreet_config_dirs_get()), eina_list_clone(efreet_data_dirs_get()));
+   dirs = eina_list_append(dirs, efreet_data_home_get());
+   EINA_LIST_FREE(dirs, path)
      {
-        Eina_List *ll;
-
-        if ((file[0] == '.') || !(ext = strrchr(file, '.')) || (strcmp(ext, ".desktop")))
+        snprintf(pbuf, sizeof(pbuf), "%s/autostart", path);
+        files = ecore_file_ls(pbuf);
+        EINA_LIST_FREE(files, file)
           {
-             free(file);
-             continue;
-          }
-        snprintf(buf, sizeof(buf), "%s/%s", path, file);
-        free(file);
+             Eina_List *ll;
 
-        desk = efreet_desktop_new(buf);
-        if (!desk)
-          continue;
-
-        ll = eina_list_search_unsorted_list(apps->desks, _cb_desks_sort, desk);
-        if (ll)
-          {
-             Efreet_Desktop *old;
-
-             old = eina_list_data_get(ll);
-             /*
-              * This fixes when we have several .desktop with the same name,
-              * and the only difference is that some of them are for specific
-              * desktops.
-              */
-             if ((old->only_show_in) && (!desk->only_show_in))
+             if ((file[0] == '.') || !(ext = strrchr(file, '.')) || (strcmp(ext, ".desktop")))
                {
-                  efreet_desktop_free(old);
-                  eina_list_data_set(ll, desk);
+                  free(file);
+                  continue;
+               }
+             snprintf(buf, sizeof(buf), "%s/%s", pbuf, file);
+             free(file);
+
+             desk = efreet_desktop_new(buf);
+             if (!desk)
+               continue;
+
+             ll = eina_list_search_unsorted_list(apps->desks, _cb_desks_sort, desk);
+             if (ll)
+               {
+                  Efreet_Desktop *old;
+
+                  old = eina_list_data_get(ll);
+                  /*
+                   * This fixes when we have several .desktop with the same name,
+                   * and the only difference is that some of them are for specific
+                   * desktops.
+                   */
+                  if ((old->only_show_in) && (!desk->only_show_in))
+                    {
+                       efreet_desktop_free(old);
+                       eina_list_data_set(ll, desk);
+                    }
+                  else
+                    efreet_desktop_free(desk);
                }
              else
-               efreet_desktop_free(desk);
+               apps->desks = eina_list_append(apps->desks, desk);
           }
-        else
-          apps->desks = eina_list_append(apps->desks, desk);
      }
 
    apps->desks = eina_list_sort(apps->desks, -1, _cb_desks_sort);

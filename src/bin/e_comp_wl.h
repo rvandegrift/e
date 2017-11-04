@@ -1,7 +1,13 @@
 #ifdef E_TYPEDEFS
-#  ifndef HAVE_WAYLAND_ONLY
-#   include "e_comp_x.h"
-#  endif
+typedef struct _E_Comp_Wl_Aux_Hint  E_Comp_Wl_Aux_Hint;
+typedef struct _E_Comp_Wl_Buffer E_Comp_Wl_Buffer;
+typedef struct _E_Comp_Wl_Subsurf_Data E_Comp_Wl_Subsurf_Data;
+typedef struct _E_Comp_Wl_Surface_State E_Comp_Wl_Surface_State;
+typedef struct _E_Comp_Wl_Client_Data E_Comp_Wl_Client_Data;
+typedef struct _E_Comp_Wl_Output E_Comp_Wl_Output;
+typedef struct E_Shell_Data E_Shell_Data;
+typedef struct Tizen_Extensions Tizen_Extensions;
+typedef void (*E_Comp_Wl_Grab_End_Cb)(E_Client*);
 #else
 # ifndef E_COMP_WL_H
 #  define E_COMP_WL_H
@@ -42,13 +48,15 @@
       (type *)(void *)( (char *)__mptr - offsetof(type,member) ); \
    })
 
-typedef struct _E_Comp_Wl_Buffer E_Comp_Wl_Buffer;
-typedef struct _E_Comp_Wl_Subsurf_Data E_Comp_Wl_Subsurf_Data;
-typedef struct _E_Comp_Wl_Surface_State E_Comp_Wl_Surface_State;
-typedef struct _E_Comp_Wl_Client_Data E_Comp_Wl_Client_Data;
-typedef struct _E_Comp_Wl_Data E_Comp_Wl_Data;
-typedef struct _E_Comp_Wl_Output E_Comp_Wl_Output;
-typedef struct E_Shell_Data E_Shell_Data;
+struct _E_Comp_Wl_Aux_Hint
+{
+   int           id;
+   const char   *hint;
+   const char   *val;
+   int32_t       fd;
+   Eina_Bool     changed;
+   Eina_Bool     deleted;
+};
 
 struct _E_Comp_Wl_Buffer
 {
@@ -62,6 +70,7 @@ struct _E_Comp_Wl_Buffer
    E_Pixmap *discarding_pixmap;
    int32_t w, h;
    uint32_t busy;
+   Eina_Bool destroyed;
 };
 
 struct _E_Comp_Wl_Surface_State
@@ -96,19 +105,42 @@ struct _E_Comp_Wl_Subsurf_Data
 typedef struct E_Comp_Wl_Extension_Data
 {
    struct
-   {
-      struct wl_global *global;
-      struct wl_client *client;
-      void (*read_pixels)(E_Comp_Wl_Output *output, void *pixels);
-   } screenshooter;
-    struct
-    {
-       struct wl_global *global;
-    } session_recovery;
+     {
+        struct wl_global *global;
+     } session_recovery;
+   struct
+     {
+        struct wl_global *global;
+     } www;
+   /* begin xdg-foreign */
+   struct
+     {
+        struct wl_global *global;
+        Eina_Hash *surfaces;
+     } zxdg_exporter_v1;
+   struct
+     {
+        struct wl_global *global;
+     } zxdg_importer_v1;
+   /* end xdg-foreign */
+   struct
+     {
+        struct wl_global *global;
+        Eina_List *resources;
+     } zwp_relative_pointer_manager_v1;
+   struct
+     {
+        struct wl_global *global;
+        Eina_Hash *constraints;
+     } zwp_pointer_constraints_v1;
    struct
    {
-       struct wl_global *global;
-   } www;
+     struct wl_global *global;
+   } action_route;
+   struct
+     {
+        struct wl_global *global;
+     } efl_aux_hints;
 } E_Comp_Wl_Extension_Data;
 
 struct _E_Comp_Wl_Data
@@ -119,6 +151,7 @@ struct _E_Comp_Wl_Data
      {
         struct wl_display *disp;
         Ecore_Wl2_Display *client_disp;
+        E_Client *client_ec;
         struct wl_registry *registry; // only used for nested wl compositors
         /* struct wl_event_loop *loop; */
         Eina_Inlist *globals;  // only used for nested wl compositors
@@ -159,11 +192,9 @@ struct _E_Comp_Wl_Data
         Eina_List *resources;
         Eina_List *focused;
         Eina_Bool enabled : 1;
-        xkb_mod_index_t mod_shift, mod_caps;
-        xkb_mod_index_t mod_ctrl, mod_alt;
-        xkb_mod_index_t mod_super;
         xkb_mod_mask_t mod_depressed, mod_latched, mod_locked;
         xkb_layout_index_t mod_group;
+        xkb_layout_index_t choosen_group;
         struct wl_array keys;
         struct wl_resource *focus;
         int mod_changed;
@@ -172,9 +203,9 @@ struct _E_Comp_Wl_Data
    struct
      {
         Eina_List *resources;
-        wl_fixed_t x, y;
-        wl_fixed_t grab_x, grab_y;
+        Evas_Coord x, y;
         uint32_t button;
+        uint32_t serial[2]; //down/up
         uint32_t button_mask;
         E_Client *ec;
         Eina_Bool enabled : 1;
@@ -286,6 +317,8 @@ struct _E_Comp_Wl_Client_Data
         E_Shell_Data *data;
         struct
         {
+           Evas_Coord_Size min_size;
+           Evas_Coord_Size max_size;
            Eina_Bool fullscreen : 1;
            Eina_Bool unfullscreen : 1;
            Eina_Bool maximize : 1;
@@ -302,11 +335,20 @@ struct _E_Comp_Wl_Client_Data
    E_Comp_Wl_Surface_State pending;
 
    Eina_List *frames;
+   Eina_List *constraints;
 
    struct
      {
         int32_t x, y;
      } popup;
+
+   Tizen_Extensions *tizen;
+   struct
+     {
+        Eina_Bool  changed : 1;
+        Eina_List *hints;
+        Eina_Bool  use_msg : 1;
+     } aux_hint;
 
    int32_t on_outputs; /* Bitfield of the outputs this client is present on */
 
@@ -317,17 +359,21 @@ struct _E_Comp_Wl_Client_Data
    E_Comp_X_Client_Data *xwayland_data;
 #endif
 
-   Eina_Bool keep_buffer : 1;
+   int early_frame;
+
    Eina_Bool mapped : 1;
-   Eina_Bool change_icon : 1;
    Eina_Bool evas_init : 1;
-   Eina_Bool set_win_type : 1;
-   Eina_Bool frame_update : 1;
    Eina_Bool cursor : 1;
    Eina_Bool moved : 1;
    Eina_Bool maximizing : 1;
    Eina_Bool in_commit : 1;
    Eina_Bool is_xdg_surface : 1;
+   Eina_Bool grab : 1;
+   Eina_Bool buffer_commit : 1;
+   Eina_Bool need_xdg6_configure : 1;
+   Eina_Bool maximize_anims_disabled : 1;
+   Eina_Bool ssd_mouse_in : 1;
+   Eina_Bool need_center : 1;
 };
 
 struct _E_Comp_Wl_Output
@@ -362,11 +408,31 @@ E_API double e_comp_wl_idle_time_get(void);
 E_API Eina_Bool e_comp_wl_output_init(const char *id, const char *make, const char *model, int x, int y, int w, int h, int pw, int ph, unsigned int refresh, unsigned int subpixel, unsigned int transform, unsigned int num);
 E_API void e_comp_wl_output_remove(const char *id);
 
-EINTERN Eina_Bool e_comp_wl_key_down(Ecore_Event_Key *ev);
-EINTERN Eina_Bool e_comp_wl_key_up(Ecore_Event_Key *ev);
+EINTERN Eina_Bool e_comp_wl_key_down(Ecore_Event_Key *ev, E_Client *ec);
+EINTERN Eina_Bool e_comp_wl_key_up(Ecore_Event_Key *ev, E_Client *ec);
 E_API Eina_Bool e_comp_wl_evas_handle_mouse_button(E_Client *ec, uint32_t timestamp, uint32_t button_id, uint32_t state);
 
 E_API extern int E_EVENT_WAYLAND_GLOBAL_ADD;
+
+E_API void e_comp_wl_grab_client_add(E_Client *ec, E_Comp_Wl_Grab_End_Cb cb);
+E_API void e_comp_wl_grab_client_del(E_Client *ec, Eina_Bool dismiss);
+E_API Eina_Bool e_comp_wl_client_is_grabbed(const E_Client *ec);
+E_API Eina_Bool e_comp_wl_grab_client_mouse_move(const Ecore_Event_Mouse_Move *ev);
+E_API Eina_Bool e_comp_wl_grab_client_mouse_button(const Ecore_Event_Mouse_Button *ev);
+
+E_API void e_comp_wl_extension_relative_motion_event(uint64_t time_usec, double dx, double dy, double dx_unaccel, double dy_unaccel);
+E_API void e_comp_wl_extension_pointer_constraints_commit(E_Client *ec);
+E_API Eina_Bool e_comp_wl_extension_pointer_constraints_update(E_Client *ec, int x, int y);
+E_API void e_comp_wl_extension_pointer_unconstrain(E_Client *ec);
+E_API void e_comp_wl_extension_action_route_pid_allowed_set(uint32_t pid, Eina_Bool allow);
+E_API const void *e_comp_wl_extension_action_route_interface_get(int *version);
+
+
+E_API void
+e_policy_wl_aux_message_send(E_Client *ec,
+                             const char *key,
+                             const char *val,
+                             Eina_List *options);
 
 # ifndef HAVE_WAYLAND_ONLY
 EINTERN void e_comp_wl_xwayland_client_queue(E_Client *ec);

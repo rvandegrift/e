@@ -824,8 +824,8 @@ e_fm2_init(void)
    efreet_mime_init();
 
    /* XXX: move this to a central/global place? */
-   _e_fm2_mime_flush = ecore_timer_add(60.0, _e_fm2_mime_flush_cb, NULL);
-   _e_fm2_mime_clear = ecore_timer_add(600.0, _e_fm2_mime_clear_cb, NULL);
+   _e_fm2_mime_flush = ecore_timer_loop_add(60.0, _e_fm2_mime_flush_cb, NULL);
+   _e_fm2_mime_clear = ecore_timer_loop_add(600.0, _e_fm2_mime_clear_cb, NULL);
 
    _e_fm2_icon_desktop_str = eina_stringshare_add("DESKTOP");
    _e_fm2_icon_thumb_str = eina_stringshare_add("THUMB");
@@ -2868,7 +2868,7 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
                         if (!sd->scan_timer)
                           {
                              sd->scan_timer =
-                               ecore_timer_add(0.5,
+                               ecore_timer_loop_add(0.5,
                                                _e_fm2_cb_scan_timer,
                                                sd->obj);
                              sd->busy_count++;
@@ -2883,7 +2883,7 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
                                    * dramatically improve load times
                                    */
                                   ecore_timer_interval_set(sd->scan_timer, 1.5);
-                                  ecore_timer_reset(sd->scan_timer);
+                                  ecore_timer_loop_reset(sd->scan_timer);
                                }
                           }
                         if (path[0] != 0)
@@ -2919,7 +2919,7 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
                              if (sd->scan_timer)
                                {
                                   ecore_timer_interval_set(sd->scan_timer, 0.0001);
-                                  ecore_timer_reset(sd->scan_timer);
+                                  ecore_timer_loop_reset(sd->scan_timer);
                                }
                              else
                                {
@@ -2940,7 +2940,7 @@ e_fm2_client_data(Ecore_Ipc_Event_Client_Data *e)
                      {
                         ecore_timer_del(sd->scan_timer);
                         sd->scan_timer =
-                          ecore_timer_add(0.0001,
+                          ecore_timer_loop_add(0.0001,
                                           _e_fm2_cb_scan_timer,
                                           sd->obj);
                      }
@@ -5945,6 +5945,8 @@ _e_fm2_typebuf_match(Evas_Object *obj, int next)
                   x++;
                   break;
                }
+             EINA_FALLTHROUGH;
+             /* no break */
 
            case 1:
              _e_fm2_icon_desel_any(obj);
@@ -5960,8 +5962,8 @@ _e_fm2_typebuf_match(Evas_Object *obj, int next)
      } while (0)
      ;
 
-   if (sd->typebuf.timer) ecore_timer_reset(sd->typebuf.timer);
-   else sd->typebuf.timer = ecore_timer_add(3.5, _e_fm_typebuf_timer_cb, sd);
+   if (sd->typebuf.timer) ecore_timer_loop_reset(sd->typebuf.timer);
+   else sd->typebuf.timer = ecore_timer_loop_add(3.5, _e_fm_typebuf_timer_cb, sd);
    return ic_match;
 }
 
@@ -7023,8 +7025,8 @@ _e_fm2_cb_dnd_selection_notify(void *data, const char *type, void *event)
                                                                    (Ecore_Cb)_e_fm2_cb_dnd_selection_notify_post_mount_fail, (Ecore_Cb)_e_fm2_cb_dnd_selection_notify_post_umount,
                                                                    NULL, vol);
 
-                       if (sd->drop_icon->mount_timer) ecore_timer_reset(sd->drop_icon->mount_timer);
-                       else sd->drop_icon->mount_timer = ecore_timer_add(15., (Ecore_Task_Cb)_e_fm2_cb_dnd_selection_notify_post_mount_timer, sd->drop_icon);
+                       if (sd->drop_icon->mount_timer) ecore_timer_loop_reset(sd->drop_icon->mount_timer);
+                       else sd->drop_icon->mount_timer = ecore_timer_loop_add(15., (Ecore_Task_Cb)_e_fm2_cb_dnd_selection_notify_post_mount_timer, sd->drop_icon);
 #ifndef HAVE_WAYLAND_ONLY
                        if ((e_drop_handler_action_get() == ECORE_X_ATOM_XDND_ACTION_ASK) ||
                            ((sd->config->view.link_drop) || (!sd->drop_icon)))
@@ -7481,8 +7483,8 @@ _e_fm2_cb_drag_finished(E_Drag *drag, int dropped EINA_UNUSED)
                                  ic->drag.dnd = EINA_FALSE;
                                  if (ic->sd->dnd_scroller) ecore_animator_del(ic->sd->dnd_scroller);
                                  ic->sd->dnd_scroller = NULL;
-                                 if (ic->drag.dnd_end_timer) ecore_timer_reset(ic->drag.dnd_end_timer);
-                                 else ic->drag.dnd_end_timer = ecore_timer_add(0.2, (Ecore_Task_Cb)_e_fm2_cb_drag_finished_show, ic);
+                                 if (ic->drag.dnd_end_timer) ecore_timer_loop_reset(ic->drag.dnd_end_timer);
+                                 else ic->drag.dnd_end_timer = ecore_timer_loop_add(0.2, (Ecore_Task_Cb)_e_fm2_cb_drag_finished_show, ic);
                                  /* NOTE:
                                   * do not touch ic after this callback; it's possible that it may have been deleted
                                   */
@@ -8439,7 +8441,7 @@ _e_fm2_cb_scan_timer(void *data)
         return ECORE_CALLBACK_CANCEL;
      }
    if (sd->busy_count > 0)
-     sd->scan_timer = ecore_timer_add(0.2, _e_fm2_cb_scan_timer, sd->obj);
+     sd->scan_timer = ecore_timer_loop_add(0.2, _e_fm2_cb_scan_timer, sd->obj);
    else
      {
         if (!sd->sort_idler)
@@ -10676,7 +10678,7 @@ _e_fm_overwrite_dialog(int pid, const char *str)
    e_dialog_title_set(dialog, _("Warning"));
    e_dialog_icon_set(dialog, "dialog-warning", 64);
    snprintf(text, sizeof(text),
-            _("File already exists, overwrite?<br><hilight>%s</hilight>"), str);
+            _("File already exists, overwrite?<ps/><hilight>%s</hilight>"), str);
 
    e_dialog_text_set(dialog, text);
    elm_win_center(dialog->win, 1, 1);
@@ -10842,7 +10844,7 @@ _e_fm_error_dialog(int pid, const char *str)
    e_dialog_button_focus_num(dialog, 0);
    e_dialog_title_set(dialog, _("Error"));
    snprintf(text, sizeof(text),
-            _("An error occurred while performing an operation.<br>"
+            _("An error occurred while performing an operation.<ps/>"
               "%s"),
             str);
 
@@ -10948,7 +10950,7 @@ _e_fm_device_error_dialog(const char *title, const char *msg, const char *pstr)
    n = pstr;
    pstr += strlen(pstr) + 1;
    m = pstr;
-   snprintf(text, sizeof(text), "%s<br>%s<br>%s<br>%s<br>%s", msg, u, d, n, m);
+   snprintf(text, sizeof(text), "%s<ps/>%s<ps/>%s<ps/>%s<ps/>%s", msg, u, d, n, m);
    e_dialog_text_set(dialog, text);
 
    elm_win_center(dialog->win, 1, 1);
@@ -11031,13 +11033,13 @@ _e_fm2_file_delete(Evas_Object *obj)
      }
    if ((!sel) || (n == 1))
      snprintf(text, sizeof(text),
-              _("Are you sure you want to delete<br>"
+              _("Are you sure you want to delete<ps/>"
                 "<hilight>%s</hilight>?"),
               ic->info.file);
    else if (n == folder_count)
      snprintf(text, sizeof(text),
-              _("Are you sure you want to delete<br>"
-                "<hilight>all</hilight> the %d files in<br>"
+              _("Are you sure you want to delete<ps/>"
+                "<hilight>all</hilight> the %d files in<ps/>"
                 "<hilight>%s</hilight>?"),
               n, ic->sd->realpath);
    else
@@ -11046,11 +11048,11 @@ _e_fm2_file_delete(Evas_Object *obj)
          * is nonetheless needed for languages who have multiple plurals
          * depending on the number of files. */
         snprintf(text, sizeof(text),
-                 P_("Are you sure you want to delete<br>"
-                    "the %d selected file in<br>"
+                 P_("Are you sure you want to delete<ps/>"
+                    "the %d selected file in<ps/>"
                     "<hilight>%s</hilight>?",
-                    "Are you sure you want to delete<br>"
-                    "the %d selected files in<br>"
+                    "Are you sure you want to delete<ps/>"
+                    "the %d selected files in<ps/>"
                     "<hilight>%s</hilight>?", n),
                  n, ic->sd->realpath);
      }
@@ -11240,7 +11242,7 @@ _e_fm2_live_process_begin(Evas_Object *obj)
    if ((sd->live.idler) || (sd->live.timer) ||
        (sd->listing) || (sd->scan_timer)) return;
    sd->live.idler = ecore_idler_add(_e_fm2_cb_live_idler, obj);
-   sd->live.timer = ecore_timer_add(0.2, _e_fm2_cb_live_timer, obj);
+   sd->live.timer = ecore_timer_loop_add(0.2, _e_fm2_cb_live_timer, obj);
    sd->tmp.last_insert = NULL;
 }
 
@@ -11416,7 +11418,7 @@ _e_fm2_cb_live_timer(void *data)
    sd->live.deletions = EINA_FALSE;
    sd->live.timer = NULL;
    if ((!sd->queue) && (!sd->live.idler)) return ECORE_CALLBACK_CANCEL;
-   sd->live.timer = ecore_timer_add(0.2, _e_fm2_cb_live_timer, data);
+   sd->live.timer = ecore_timer_loop_add(0.2, _e_fm2_cb_live_timer, data);
    return ECORE_CALLBACK_CANCEL;
 }
 
@@ -11519,9 +11521,9 @@ _update_volume_icon(E_Volume *v, E_Fm2_Icon *ic)
    if (e)
      {
         if (ic->info.removable_full)
-          edje_object_signal_emit(e, "e,state,removable,full", "e");
+          e_icon_edje_emit(ic->obj_icon, "e,state,removable,full", "e");
         else
-          edje_object_signal_emit(e, "e,state,removable,empty", "e");
+          e_icon_edje_emit(ic->obj_icon, "e,state,removable,empty", "e");
      }
 
    if (v)

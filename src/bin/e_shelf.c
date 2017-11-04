@@ -489,7 +489,7 @@ e_shelf_toggle(E_Shelf *es, int show)
           {
              _e_shelf_cb_instant_hide_timer(es);
              es->hide_timer =
-               ecore_timer_add(es->cfg->hide_timeout,
+               ecore_timer_loop_add(es->cfg->hide_timeout,
                                _e_shelf_cb_hide_urgent_timer, es);
           }
         else
@@ -517,7 +517,7 @@ e_shelf_toggle(E_Shelf *es, int show)
              es->hidden = 1;
              if (!es->instant_timer)
                es->instant_timer =
-                 ecore_timer_add(es->instant_delay,
+                 ecore_timer_loop_add(es->instant_delay,
                                  _e_shelf_cb_instant_hide_timer, es);
           }
         else
@@ -530,7 +530,7 @@ e_shelf_toggle(E_Shelf *es, int show)
              es->hidden = 1;
              if (es->hide_timer) ecore_timer_del(es->hide_timer);
              es->hide_timer =
-               ecore_timer_add(es->cfg->hide_timeout,
+               ecore_timer_loop_add(es->cfg->hide_timeout,
                                _e_shelf_cb_hide_animator_timer, es);
           }
      }
@@ -899,8 +899,8 @@ e_shelf_position_calc(E_Shelf *es)
              break;
           }
         if (err)
-          e_util_dialog_show(_("Shelf Autohide Error"), _("Shelf autohiding will not work properly<br>"
-                                                          "with the current configuration; set your shelf to<br>"
+          e_util_dialog_show(_("Shelf Autohide Error"), _("Shelf autohiding will not work properly<ps/>"
+                                                          "with the current configuration; set your shelf to<ps/>"
                                                           "\"Below Everything\" or disable autohiding."));
         break;
      } while (0);
@@ -1054,8 +1054,8 @@ e_shelf_config_new(E_Zone *zone, E_Config_Shelf *cf_es)
    es = e_shelf_zone_new(zone, cf_es->name, cf_es->style, cf_es->layer, cf_es->id);
    if (!es) return NULL;
 
-   if (!cf_es->hide_timeout) cf_es->hide_timeout = 1.0;
-   if (!cf_es->hide_duration) cf_es->hide_duration = 1.0;
+   if (!EINA_DBL_NONZERO(cf_es->hide_timeout)) cf_es->hide_timeout = 1.0;
+   if (!EINA_DBL_NONZERO(cf_es->hide_duration)) cf_es->hide_duration = 1.0;
    es->cfg = cf_es;
    es->fit_along = cf_es->fit_along;
    es->fit_size = cf_es->fit_size;
@@ -1725,8 +1725,8 @@ _e_shelf_cb_menu_delete(void *data, E_Menu *m EINA_UNUSED, E_Menu_Item *mi EINA_
    e_object_ref(E_OBJECT(es));
    e_confirm_dialog_show(_("Are you sure you want to delete this shelf?"),
                          "enlightenment",
-                         _("You requested to delete this shelf.<br>"
-                           "<br>"
+                         _("You requested to delete this shelf.<ps/>"
+                           "<ps/>"
                            "Are you sure you want to delete it?"),
                          _("Delete"), _("Keep"),
                          _e_shelf_cb_confirm_dialog_yes, NULL, data, NULL,
@@ -1924,9 +1924,9 @@ _e_shelf_cb_mouse_in(void *data, int type, void *event)
         if (inside)
           {
              if (es->autohide_timer)
-               ecore_timer_reset(es->autohide_timer);
+               ecore_timer_loop_reset(es->autohide_timer);
              else
-               es->autohide_timer = ecore_timer_add(0.5, (Ecore_Task_Cb)_e_shelf_cb_mouse_move_autohide_fuck_systray, es);
+               es->autohide_timer = ecore_timer_loop_add(0.5, (Ecore_Task_Cb)_e_shelf_cb_mouse_move_autohide_fuck_systray, es);
           }
         if (inside)
           {
@@ -2143,7 +2143,7 @@ end:
      {
         es->hidden = 1;
         if (!es->hide_timer)
-          es->hide_timer = ecore_timer_add(es->cfg->hide_timeout, _e_shelf_cb_hide_animator_timer, es);
+          es->hide_timer = ecore_timer_loop_add(es->cfg->hide_timeout, _e_shelf_cb_hide_animator_timer, es);
      }
    if (es->hidden && (!es->hide_timer))
      edje_object_signal_emit(es->o_base, "e,state,hidden", "e");

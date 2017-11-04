@@ -78,14 +78,14 @@ _new_version(const char *ver)
    e_dialog_icon_set(dialog, "dialog-warning", 64);
 
    snprintf(text, sizeof(text),
-            _("Your enlightenment version is<br>"
-              "not the current latest release.<br>"
-              "The latest version is:<br>"
-              "<br>"
-              "%s<br>"
-              "<br>"
-              "Please visit www.enlightenment.org<br>"
-              "or update your system packages<br>"
+            _("Your enlightenment version is<ps/>"
+              "not the current latest release.<ps/>"
+              "The latest version is:<ps/>"
+              "<ps/>"
+              "%s<ps/>"
+              "<ps/>"
+              "Please visit www.enlightenment.org<ps/>"
+              "or update your system packages<ps/>"
               "to get a new version."), ver);
    e_dialog_text_set(dialog, text);
    elm_win_center(dialog->win, 1, 1);
@@ -235,7 +235,7 @@ _update_timeout_cb(void *data)
         later++;
         t *= (later * later);
      }
-   update_timer = ecore_timer_add(t, _update_timeout_cb, data);
+   update_timer = ecore_timer_loop_add(t, _update_timeout_cb, data);
    return EINA_FALSE;
 }
 

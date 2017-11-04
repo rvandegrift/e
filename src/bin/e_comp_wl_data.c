@@ -27,12 +27,10 @@
 #define E_COMP_WL
 #include "e.h"
 
-#if __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
+#if defined(__clang__)
+# pragma clang diagnostic ignored "-Wunused-parameter"
 #elif (__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+# pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
 #define ALL_ACTIONS (WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY | \
@@ -489,14 +487,23 @@ _e_comp_wl_data_device_selection_set(void *data EINA_UNUSED, E_Comp_Wl_Data_Sour
 
    sel_source = (E_Comp_Wl_Data_Source *)e_comp_wl->selection.data_source;
    if (sel_source && (e_comp_wl->selection.serial - serial < UINT32_MAX / 2))
-     return;
+     {
+        if (!serial)
+          {
+             /* drm canvas will always have serial 0 */
+             pid_t pid;
+             wl_client_get_credentials(wl_resource_get_client(source->resource), &pid, NULL, NULL);
+             if (pid != getpid()) return;
+          }
+        else return;
+     }
 
    if (sel_source)
      {
-        if (sel_source->cancelled)
-          sel_source->cancelled(sel_source);
         if (!e_comp_wl->clipboard.xwl_owner)
           wl_list_remove(&e_comp_wl->selection.data_source_listener.link);
+        if (sel_source->cancelled)
+          sel_source->cancelled(sel_source);
         e_comp_wl->selection.data_source = NULL;
      }
 
@@ -646,6 +653,13 @@ _e_comp_wl_data_device_cb_drag_start(struct wl_client *client, struct wl_resourc
              e_client_focus_stack_set(eina_list_remove(e_client_focus_stack_get(), ec));
              EC_CHANGED(ec);
              e_comp_wl->drag_client = ec;
+          }
+        if (ec->comp_data->pending.input)
+          eina_tiler_clear(ec->comp_data->pending.input);
+        else
+          {
+             ec->comp_data->pending.input = eina_tiler_new(65535, 65535);
+             eina_tiler_tile_size_set(ec->comp_data->pending.input, 1, 1);
           }
      }
 
@@ -1016,8 +1030,8 @@ e_comp_wl_data_device_send_enter(E_Client *ec)
         return;
      }
 #endif
-   x = wl_fixed_to_int(e_comp_wl->ptr.x) - e_comp_wl->selection.target->client.x;
-   y = wl_fixed_to_int(e_comp_wl->ptr.y) - e_comp_wl->selection.target->client.y;
+   x = e_comp_wl->ptr.x - e_comp_wl->selection.target->client.x;
+   y = e_comp_wl->ptr.y - e_comp_wl->selection.target->client.y;
    serial = wl_display_next_serial(e_comp_wl->wl.disp);
    wl_data_device_send_enter(data_device_res, serial, ec->comp_data->surface,
                              wl_fixed_from_int(x), wl_fixed_from_int(y),
@@ -1269,6 +1283,10 @@ e_comp_wl_clipboard_source_unref(E_Comp_Wl_Clipboard_Source *source)
      }
 
    _mime_types_free(&source->data_source);
+   if (source == e_comp_wl->clipboard.source)
+     e_comp_wl->clipboard.source = NULL;
+   if (&source->data_source == e_comp_wl->selection.data_source)
+     e_comp_wl->selection.data_source = NULL;
 
    wl_signal_emit(&source->data_source.destroy_signal, &source->data_source);
    wl_array_release(&source->contents);

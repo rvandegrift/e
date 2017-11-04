@@ -177,7 +177,7 @@ _evry_focus_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, v
    if (win->delay_hide_action)
      ecore_timer_del(win->delay_hide_action);
 
-   win->delay_hide_action = ecore_timer_add(0.0, _evry_focus_out_timer, win);
+   win->delay_hide_action = ecore_timer_loop_add(0.0, _evry_focus_out_timer, win);
 }
 
 static void
@@ -301,7 +301,7 @@ evry_show(E_Zone *zone, E_Zone_Edge edge, const char *params, Eina_Bool popup)
 
    win->func.hide = &_evry_hide_func;
 
-   win->delay_hide_action = ecore_timer_add(0.2, _evry_delay_hide_timer, win);
+   win->delay_hide_action = ecore_timer_loop_add(0.2, _evry_delay_hide_timer, win);
 
    return win;
 }
@@ -606,7 +606,7 @@ _evry_selector_update_actions(Evry_Selector *sel)
      ecore_timer_del(sel->action_timer);
 
    _evry_selector_item_clear(sel);
-   sel->action_timer = ecore_timer_add(0.2, _evry_timer_cb_actions_get, sel);
+   sel->action_timer = ecore_timer_loop_add(0.2, _evry_timer_cb_actions_get, sel);
 }
 
 void
@@ -1115,7 +1115,7 @@ _evry_selector_new(Evry_Window *win, int type)
    Plugin_Config *pc;
    Eina_List *l, *pcs = NULL;
    Evry_Selector *sel = E_NEW(Evry_Selector, 1);
-   Evas_Object *o = NULL;
+   const Evas_Object *o = NULL;
 
    sel->aggregator = evry_aggregator_new(type);
 
@@ -1135,13 +1135,14 @@ _evry_selector_new(Evry_Window *win, int type)
         sel->edje_part = "object_selector";
      }
 
-   if ((o = edje_object_part_swallow_get(win->o_main, sel->edje_part)))
+   if ((o = edje_object_part_object_get(win->o_main, sel->edje_part)))
      {
-        evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
+        sel->event_object = o;
+        evas_object_event_callback_add((Evas_Object*) o, EVAS_CALLBACK_MOUSE_DOWN,
                                        _evry_selector_cb_down, sel);
-        evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_UP,
+        evas_object_event_callback_add((Evas_Object*) o, EVAS_CALLBACK_MOUSE_UP,
                                        _evry_selector_cb_up, sel);
-        evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_WHEEL,
+        evas_object_event_callback_add((Evas_Object*) o, EVAS_CALLBACK_MOUSE_WHEEL,
                                        _evry_selector_cb_wheel, sel);
      }
 
@@ -1162,15 +1163,14 @@ static void
 _evry_selector_free(Evry_Selector *sel)
 {
    Evry_Window *win = sel->win;
-   Evas_Object *o;
 
-   if ((o = edje_object_part_swallow_get(win->o_main, sel->edje_part)))
+   if (sel->event_object)
      {
-        evas_object_event_callback_del_full(o, EVAS_CALLBACK_MOUSE_DOWN,
+        evas_object_event_callback_del_full((Evas_Object*)sel->event_object, EVAS_CALLBACK_MOUSE_DOWN,
                                        _evry_selector_cb_down, sel);
-        evas_object_event_callback_del_full(o, EVAS_CALLBACK_MOUSE_UP,
+        evas_object_event_callback_del_full((Evas_Object*)sel->event_object, EVAS_CALLBACK_MOUSE_UP,
                                        _evry_selector_cb_up, sel);
-        evas_object_event_callback_del_full(o, EVAS_CALLBACK_MOUSE_WHEEL,
+        evas_object_event_callback_del_full((Evas_Object*)sel->event_object, EVAS_CALLBACK_MOUSE_WHEEL,
                                        _evry_selector_cb_wheel, sel);
      }
 
@@ -2314,7 +2314,7 @@ _evry_update(Evry_Selector *sel, int fetch)
           ecore_timer_del(sel->update_timer);
 
         sel->update_timer =
-          ecore_timer_add(MATCH_LAG, _evry_cb_update_timer, sel);
+          ecore_timer_loop_add(MATCH_LAG, _evry_cb_update_timer, sel);
 
         edje_object_signal_emit(win->o_main, "list:e,signal,update", "e");
      }
@@ -2668,7 +2668,7 @@ _evry_view_hide(Evry_Window *win, Evry_View *v, int slide)
         edje_object_signal_emit(v->o_list, "e,action,hide,list", "e");
 
         /* FIXME get signal from theme when anim finished */
-        v->state->clear_timer = ecore_timer_add(1.5, _clear_timer, win);
+        v->state->clear_timer = ecore_timer_loop_add(1.5, _clear_timer, win);
 
         if (v->o_bar)
           {

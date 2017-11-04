@@ -33,14 +33,21 @@ struct _Frame_Extents
 
 struct _E_Comp_X_Data
 {
-   Ecore_X_Window lock_win;
    Ecore_X_Window lock_grab_break_wnd;
-   Ecore_Event_Handler *lock_key_handler;
 
    Eina_List *retry_clients;
    Ecore_Timer *retry_timer;
    Eina_Bool restack : 1;
 };
+
+typedef struct Pending_Configure
+{
+   Evas_Point point;
+   Ecore_X_Window win;
+   Ecore_Timer *timer;
+} Pending_Configure;
+
+static Eina_Hash *pending_configures;
 
 static unsigned int focus_time = 0;
 static unsigned int focus_canvas_time = 0;
@@ -70,7 +77,11 @@ static int screen_size_index = -1;
 static Ecore_X_Atom backlight_atom = 0;
 extern double e_bl_val;
 
+static Ecore_Timer *mouse_in_fix_check_timer = NULL;
+
 static Eina_Hash *dead_wins;
+
+static Ecore_Window _e_comp_x_suspend_grabbed; // window grabber for suspending pointer
 
 static void _e_comp_x_hook_client_pre_frame_assign(void *d EINA_UNUSED, E_Client *ec);
 
@@ -526,6 +537,8 @@ _e_comp_x_client_new_helper(E_Client *ec)
              /* loop to check for window profile list atom */
              else if (atoms[i] == ECORE_X_ATOM_E_WINDOW_PROFILE_SUPPORTED)
                ec->e.fetch.profile = 1;
+             else if (atoms[i] == ECORE_X_ATOM_E_STACK_TYPE)
+               ec->e.fetch.stack = 1;
              else if (atoms[i] == ATM_GTK_FRAME_EXTENTS)
                ec->comp_data->fetch_gtk_frame_extents = 1;
           }
@@ -571,11 +584,11 @@ _e_comp_x_add_fail_job(void *d EINA_UNUSED)
 {
    e_util_dialog_internal
      (_("Compositor Warning"),
-      _("Your display driver does not support OpenGL, GLSL<br>"
-        "shaders or no OpenGL engines were compiled or installed<br>"
-        "for Evas or Ecore-Evas. Falling back to software engine.<br>"
-        "<br>"
-        "You will need an OpenGL 2.0 (or OpenGL ES 2.0) capable<br>"
+      _("Your display driver does not support OpenGL, GLSL<ps/>"
+        "shaders or no OpenGL engines were compiled or installed<ps/>"
+        "for Evas or Ecore-Evas. Falling back to software engine.<ps/>"
+        "<ps/>"
+        "You will need an OpenGL 2.0 (or OpenGL ES 2.0) capable<ps/>"
         "GPU to use OpenGL with compositing."));
 }
 
@@ -1490,9 +1503,9 @@ _e_comp_x_show(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Windo
         if (!ec)
           {
              if (c->x_comp_data->retry_timer)
-               ecore_timer_reset(c->x_comp_data->retry_timer);
+               ecore_timer_loop_reset(c->x_comp_data->retry_timer);
              else
-               c->x_comp_data->retry_timer = ecore_timer_add(0.02, _e_comp_x_show_retry, c);
+               c->x_comp_data->retry_timer = ecore_timer_loop_add(0.02, _e_comp_x_show_retry, c);
              c->x_comp_data->retry_clients = eina_list_append(c->x_comp_data->retry_clients, (uintptr_t*)(unsigned long)ev->win);
              return ECORE_CALLBACK_RENEW;
           }
@@ -1648,6 +1661,15 @@ _e_comp_x_configure(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_
 }
 
 static Eina_Bool
+_e_comp_x_configure_request_timer(void *d)
+{
+   Pending_Configure *pc = d;
+   eina_hash_list_remove(pending_configures, &pc->win, pc);
+   free(pc);
+   return EINA_FALSE;
+}
+
+static Eina_Bool
 _e_comp_x_configure_request(void *data  EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Window_Configure_Request *ev)
 {
    E_Client *ec;
@@ -1671,12 +1693,22 @@ _e_comp_x_configure_request(void *data  EINA_UNUSED, int type EINA_UNUSED, Ecore
      }
    if (!ec)
      {
+        if ((ev->value_mask & ECORE_X_WINDOW_CONFIGURE_MASK_X) ||
+            (ev->value_mask & ECORE_X_WINDOW_CONFIGURE_MASK_Y))
+          {
+             Pending_Configure *pc = E_NEW(Pending_Configure, 1);
+             pc->point.x = ev->x;
+             pc->point.y = ev->y;
+             pc->timer = ecore_timer_loop_add(5.0, _e_comp_x_configure_request_timer, pc);
+             pc->win = ev->win;
+             eina_hash_list_append(pending_configures, &ev->win, pc);
+          }
         ecore_x_window_configure(ev->win, ev->value_mask,
                                  ev->x, ev->y, ev->w, ev->h, ev->border,
                                  ev->abovewin, ev->detail);
         return ECORE_CALLBACK_PASS_ON;
      }
-
+   
    x = ox = ec->client.x;
    y = oy = ec->client.y;
    w = ow = ec->client.w;
@@ -2138,8 +2170,16 @@ _e_comp_x_message(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Cl
                {
                   if (e_util_strcmp(p, ec->desk->window_profile))
                     {
+                       E_Desk *old_desk = ec->desk;
                        E_Desk *desk = e_comp_desk_window_profile_get(p);
-                       if (desk) e_client_desk_set(ec, desk);
+                       Eina_Bool was_focused = e_client_stack_focused_get(ec);
+
+                       if ((desk) && (desk != old_desk))
+                         {
+                            e_client_desk_set(ec, desk);
+                            if (was_focused)
+                              e_desk_last_focused_focus(old_desk);
+                         }
                     }
                }
              free(p);
@@ -2213,14 +2253,19 @@ _e_comp_x_message(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Cl
              char *p = ecore_x_atom_name_get(ev->data.l[1]);
              if (!e_util_strcmp(ec->e.state.profile.wait, p))
                {
+                  E_Desk *old_desk = ec->desk;
+                  E_Desk *desk = ec->e.state.profile.wait_desk;
+                  Eina_Bool was_focused = e_client_stack_focused_get(ec);
+
                   eina_stringshare_replace(&ec->e.state.profile.wait, NULL);
                   ec->e.state.profile.wait_for_done = 0;
-                  E_Desk *desk = ec->e.state.profile.wait_desk;
-                  if ((desk) && (desk != ec->desk))
+                  if ((desk) && (desk != old_desk))
                     {
                        eina_stringshare_replace(&ec->e.state.profile.name,
                                                 desk->window_profile);
                        e_client_desk_set(ec, desk);
+                       if (was_focused)
+                         e_desk_last_focused_focus(old_desk);
                     }
                   e_client_desk_window_profile_wait_desk_set(ec, NULL);
                }
@@ -2328,12 +2373,20 @@ _e_comp_x_state_request(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Ev
 {
    int i;
    E_Client *ec;
+   int max;
 
    ec = _e_comp_x_client_find_by_window(ev->win);
    if (!ec) return ECORE_CALLBACK_RENEW;
 
-   for (i = 0; i < 2; i++)
-     e_hints_window_state_update(ec, ev->state[i], ev->action);
+   max = (1 << ev->state[0]) | (1 << ev->state[1]);
+   if ((max & (1 << ECORE_X_WINDOW_STATE_MAXIMIZED_VERT)) &&
+       (max & (1 << ECORE_X_WINDOW_STATE_MAXIMIZED_HORZ)))
+     e_hints_window_state_update(ec, INT_MAX, ev->action);
+   else
+     {
+        for (i = 0; i < 2; i++)
+          e_hints_window_state_update(ec, ev->state[i], ev->action);
+     }
 
    return ECORE_CALLBACK_RENEW;
 }
@@ -2376,33 +2429,70 @@ _e_comp_x_mouse_in_job(void *d EINA_UNUSED)
 }
 
 static Eina_Bool
+_e_comp_x_mouse_in_fix_check_timer_cb(void *data EINA_UNUSED)
+{
+   E_Client *ec = NULL, *cec;
+   int x, y;
+
+   mouse_in_fix_check_timer = NULL;
+   if (e_grabinput_key_win_get() || e_grabinput_mouse_win_get())
+     return EINA_FALSE;
+   ecore_evas_pointer_xy_get(e_comp->ee, &x, &y);
+   E_CLIENT_REVERSE_FOREACH(cec)
+     {
+        /* If a border was specified which should be excluded from the list
+         * (because it will be closed shortly for example), skip */
+        if ((!e_client_util_desk_visible(cec, e_desk_current_get(e_zone_current_get())))) continue;
+        if (!evas_object_visible_get(cec->frame)) continue;
+        if (!E_INSIDE(x, y, cec->x, cec->y, cec->w, cec->h))
+          continue;
+        /* If the layer is higher, the position of the window is higher
+         * (always on top vs always below) */
+        if (!ec || (cec->layer > ec->layer))
+          ec = cec;
+     }
+   if (ec)
+     {
+        mouse_client = ec;
+        if (mouse_in_job) ecore_job_del(mouse_in_job);
+        mouse_in_job = ecore_job_add(_e_comp_x_mouse_in_job, NULL);
+     }
+   return EINA_FALSE;
+}
+
+static Eina_Bool
 _e_comp_x_mouse_in(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Mouse_In *ev)
 {
    E_Client *ec;
 
    if (e_comp->comp_type != E_PIXMAP_TYPE_X) return ECORE_CALLBACK_RENEW;
    ec = _e_comp_x_client_find_by_window(ev->win);
-   if (!ec) return ECORE_CALLBACK_RENEW;
+   if (!ec) goto done;
    if (ev->mode == ECORE_X_EVENT_MODE_NORMAL)
      {
         if (ev->detail == ECORE_X_EVENT_DETAIL_INFERIOR)
           {
-             if (ev->win != e_client_util_pwin_get(ec)) return ECORE_CALLBACK_RENEW;
-             if (ev->event_win != e_client_util_win_get(ec)) return ECORE_CALLBACK_RENEW;
+             if (ev->win != e_client_util_pwin_get(ec)) goto done;
+             if (ev->event_win != e_client_util_win_get(ec)) goto done;
           }
         if (ev->detail == ECORE_X_EVENT_DETAIL_VIRTUAL)
           {
-             if (ev->win != e_client_util_win_get(ec)) return ECORE_CALLBACK_RENEW;
-             if (ev->event_win != e_client_util_pwin_get(ec)) return ECORE_CALLBACK_RENEW;
+             if (ev->win != e_client_util_win_get(ec)) goto done;
+             if (ev->event_win != e_client_util_pwin_get(ec)) goto done;
           }
-        if (!evas_object_visible_get(ec->frame)) return ECORE_CALLBACK_RENEW;
+        if (!evas_object_visible_get(ec->frame)) goto done;
      }
-   if (_e_comp_x_client_data_get(ec)->deleted) return ECORE_CALLBACK_RENEW;
+   if (_e_comp_x_client_data_get(ec)->deleted) goto done;
    mouse_client = ec;
-   if (!mouse_in_job)
-     mouse_in_job = ecore_job_add(_e_comp_x_mouse_in_job, NULL);
+   if (mouse_in_job) ecore_job_del(mouse_in_job);
+   mouse_in_job = ecore_job_add(_e_comp_x_mouse_in_job, NULL);
    mouse_in_coords.x = ev->root.x;
    mouse_in_coords.y = ev->root.y;
+done:
+   E_FREE_FUNC(mouse_in_fix_check_timer, ecore_timer_del);
+   if ((!e_grabinput_mouse_win_get()) && (!e_grabinput_key_win_get()))
+     mouse_in_fix_check_timer =
+       ecore_timer_add(0.1, _e_comp_x_mouse_in_fix_check_timer_cb, NULL);
    return ECORE_CALLBACK_RENEW;
 }
 
@@ -2798,45 +2888,43 @@ _e_comp_x_move_resize_request(void *data EINA_UNUSED, int type EINA_UNUSED, Ecor
    e_object_ref(E_OBJECT(ec->cur_mouse_action));
    ec->cur_mouse_action->func.go(E_OBJECT(ec), NULL);
 
+   if (ev->direction != E_POINTER_RESIZE_NONE)
+     {
+        e_pointer_mode_pop(ec, ec->resize_mode);
+        ec->resize_mode = ev->direction;
+        e_pointer_mode_push(ec, ec->resize_mode);
+     }
    switch (ev->direction)
      {
       case E_POINTER_RESIZE_TL:
-        ec->resize_mode = E_POINTER_RESIZE_TL;
         GRAV_SET(ec, ECORE_X_GRAVITY_SE);
         break;
 
       case E_POINTER_RESIZE_T:
-        ec->resize_mode = E_POINTER_RESIZE_T;
         GRAV_SET(ec, ECORE_X_GRAVITY_S);
         break;
 
       case E_POINTER_RESIZE_TR:
-        ec->resize_mode = E_POINTER_RESIZE_TR;
         GRAV_SET(ec, ECORE_X_GRAVITY_SW);
         break;
 
       case E_POINTER_RESIZE_R:
-        ec->resize_mode = E_POINTER_RESIZE_R;
         GRAV_SET(ec, ECORE_X_GRAVITY_W);
         break;
 
       case E_POINTER_RESIZE_BR:
-        ec->resize_mode = E_POINTER_RESIZE_BR;
         GRAV_SET(ec, ECORE_X_GRAVITY_NW);
         break;
 
       case E_POINTER_RESIZE_B:
-        ec->resize_mode = E_POINTER_RESIZE_B;
         GRAV_SET(ec, ECORE_X_GRAVITY_N);
         break;
 
       case E_POINTER_RESIZE_BL:
-        ec->resize_mode = E_POINTER_RESIZE_BL;
         GRAV_SET(ec, ECORE_X_GRAVITY_NE);
         break;
 
       case E_POINTER_RESIZE_L:
-        ec->resize_mode = E_POINTER_RESIZE_L;
         GRAV_SET(ec, ECORE_X_GRAVITY_E);
         break;
 
@@ -2886,9 +2974,9 @@ static void
 _e_comp_x_focus_timer(void)
 {
    if (focus_timer)
-     ecore_timer_reset(focus_timer);
+     ecore_timer_loop_reset(focus_timer);
    else /* focus has changed twice in .002 seconds; .01 seconds should be more than enough delay */
-     focus_timer = ecore_timer_add(0.01, _e_comp_x_focus_timer_cb, NULL);
+     focus_timer = ecore_timer_loop_add(0.01, _e_comp_x_focus_timer_cb, NULL);
 }
 
 static Eina_Bool
@@ -3433,6 +3521,12 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
         ec->e.fetch.state = 0;
         rem_change = 1;
      }
+   if (ec->e.fetch.stack)
+     {
+        cd->stack = ecore_x_e_stack_type_get(win);
+        ec->e.state.stack = !!cd->stack;
+        ec->e.fetch.stack = 0;
+     }
    if (ec->e.fetch.profile)
      {
         const char **list = NULL;
@@ -3776,9 +3870,18 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
                        ec->placed = 1;
                     }
                }
-          }
-        else
-          {
+             if (ec->placed && (!e_client_util_resizing_get(ec)) && (!ec->override))
+               {
+                  if (ec->fullscreen || ec->maximized)
+                    e_client_rescale(ec);
+                  else
+                    {
+                       int rw = ec->w, rh = ec->h;
+
+                       e_client_resize_limit(ec, &rw, &rh);
+                       evas_object_resize(ec->frame, rw, rh);
+                    }
+               }
           }
         if (ec->icccm.min_w > 32767) ec->icccm.min_w = 32767;
         if (ec->icccm.min_h > 32767) ec->icccm.min_h = 32767;
@@ -3853,33 +3956,19 @@ _e_comp_x_hook_client_fetch(void *d EINA_UNUSED, E_Client *ec)
         ec->icccm.transient_for = ecore_x_icccm_transient_for_get(win);
         if (ec->icccm.transient_for)
           ec_parent = _e_comp_x_client_find_by_window(ec->icccm.transient_for);
-        /* If we already have a parent, remove it */
-        if (ec->parent)
-          {
-             if (ec_parent != ec->parent)
-               {
-                  ec->parent->transients = eina_list_remove(ec->parent->transients, ec);
-                  if (ec->parent->modal == ec) ec->parent->modal = NULL;
-                  ec->parent = NULL;
-               }
-             else
-               ec_parent = NULL;
-          }
-        if ((ec_parent) && (ec_parent != ec) &&
-            (eina_list_data_find(ec->transients, ec_parent) != ec_parent))
-          {
-             ec_parent->transients = eina_list_append(ec_parent->transients, ec);
-             ec->parent = ec_parent;
-          }
-        if (ec->parent && (!e_client_util_ignored_get(ec)))
-          {
-             evas_object_layer_set(ec->frame, ec->parent->layer);
-             if (ec->netwm.state.modal)
-               _e_comp_x_client_modal_setup(ec);
 
-             if (e_config->focus_setting == E_FOCUS_NEW_DIALOG ||
-                 (ec->parent->focused && (e_config->focus_setting == E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED)))
-               ec->take_focus = 1;
+        e_client_parent_set(ec, ec_parent);
+        if (ec->parent && (!e_client_util_ignored_get(ec)) && ec->netwm.state.modal)
+          _e_comp_x_client_modal_setup(ec);
+        if ((ec_parent) && (cd->stack != ECORE_X_STACK_NONE))
+          {
+             E_Client *ec2;
+
+             // find last one
+             for (ec2 = ec_parent; ec2->stack.next; ec2 = ec2->stack.next);
+             ec->stack.prev = ec2;
+             ec->stack.next = NULL;
+             ec->stack.prev->stack.next = ec;
           }
         ec->icccm.fetch.transient_for = 0;
         rem_change = 1;
@@ -4591,6 +4680,8 @@ static void
 _e_comp_x_hook_client_new(void *d EINA_UNUSED, E_Client *ec)
 {
    Ecore_X_Window win;
+   Eina_List *pending;
+   Pending_Configure *pc;
 
    E_COMP_X_PIXMAP_CHECK;
    win = e_pixmap_window_get(ec->pixmap);
@@ -4605,16 +4696,59 @@ _e_comp_x_hook_client_new(void *d EINA_UNUSED, E_Client *ec)
    ec->changes.shape_input = 1;
 
    ec->netwm.type = E_WINDOW_TYPE_UNKNOWN;
-   ec->icccm.state =ec->icccm.initial_state = ECORE_X_WINDOW_STATE_HINT_NONE;
+   ec->icccm.state = ec->icccm.initial_state = ECORE_X_WINDOW_STATE_HINT_NONE;
 
    if (!_e_comp_x_client_new_helper(ec)) return;
    ec->ignored |= e_comp->comp_type == E_PIXMAP_TYPE_WL;
+   pending = eina_hash_set(pending_configures, &win, NULL);
+   if (pending)
+     {
+        Eina_Bool request_pos = EINA_FALSE;
+
+        /* UGLY: round trip, but necessary to work around bad clients
+         * positioning windows anyway AND libreoffice trying to hack
+         * getting its windows across multiple screens this way
+         * which isnt really right either... */
+        ecore_x_icccm_size_pos_hints_get(win,
+                                         &request_pos,
+                                         &ec->icccm.gravity,
+                                         &ec->icccm.min_w,
+                                         &ec->icccm.min_h,
+                                         &ec->icccm.max_w,
+                                         &ec->icccm.max_h,
+                                         &ec->icccm.base_w,
+                                         &ec->icccm.base_h,
+                                         &ec->icccm.step_w,
+                                         &ec->icccm.step_h,
+                                         &ec->icccm.min_aspect,
+                                         &ec->icccm.max_aspect);
+        if (request_pos)
+          {
+             Eina_List *l;
+             E_Zone *zone;
+             pc = eina_list_last_data_get(pending);
+             EINA_LIST_FOREACH(e_comp->zones, l, zone)
+               {
+                  if (E_INTERSECTS(pc->point.x, pc->point.y, ec->w, ec->h,
+                                   zone->x, zone->y, zone->w, zone->h))
+                    {
+                       e_client_zone_set(ec, zone);
+                       break;
+                    }
+               }
+          }
+     }
+   EINA_LIST_FREE(pending, pc)
+     {
+        ecore_timer_del(pc->timer);
+        free(pc);
+     }
 
    ec->comp_data->first_damage = ec->internal;
 
    eina_hash_add(clients_win_hash, &win, ec);
    if (!ec->input_only)
-     ec->comp_data->first_draw_delay = ecore_timer_add(e_comp_config_get()->first_draw_delay, _e_comp_x_first_draw_delay_cb, ec);
+     ec->comp_data->first_draw_delay = ecore_timer_loop_add(e_comp_config_get()->first_draw_delay, _e_comp_x_first_draw_delay_cb, ec);
 }
 
 static void
@@ -4938,6 +5072,116 @@ _e_comp_x_cb_ping(void *data EINA_UNUSED, int ev_type EINA_UNUSED, Ecore_X_Event
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static void
+_e_comp_pointer_grab(void)
+{
+   fprintf(stderr, "E_COMP_X: 06 create grab win and grab pointer\n");
+   if (_e_comp_x_suspend_grabbed) ecore_x_window_free(_e_comp_x_suspend_grabbed);
+   _e_comp_x_suspend_grabbed = ecore_x_window_input_new(e_comp->root, 0, 0, 1, 1);
+   ecore_x_window_show(_e_comp_x_suspend_grabbed);
+   if (!e_grabinput_get(_e_comp_x_suspend_grabbed, 0, 0))
+     {
+        fprintf(stderr, "E_COMP_X: 07 grab failed\n");
+        ecore_x_window_free(_e_comp_x_suspend_grabbed);
+        _e_comp_x_suspend_grabbed = 0;
+     }
+}
+
+static void
+_e_comp_pointer_ungrab(void)
+{
+   if (!_e_comp_x_suspend_grabbed) return;
+   fprintf(stderr, "E_COMP_X: 6 really ungrab input and free window\n");
+   e_grabinput_release(_e_comp_x_suspend_grabbed, 0);
+   ecore_x_window_free(_e_comp_x_suspend_grabbed);
+   _e_comp_x_suspend_grabbed = 0;
+}
+
+static void
+_e_comp_cb_pointer_suspend_resume_done(void *data, Evas_Object *obj, const char *emission, const char *source)
+{
+   fprintf(stderr, "E_COMP_X: 5 cursor suspend/resume done\n");
+   edje_object_signal_callback_del(obj, emission, source,
+                                   _e_comp_cb_pointer_suspend_resume_done);
+   if (!data) _e_comp_pointer_ungrab();
+}
+
+EINTERN Eina_Bool
+_e_comp_x_screensaver_on()
+{
+   const char *s;
+   fprintf(stderr, "E_COMP_X: 01 screensaver on\n");
+   if ((!e_comp->pointer) || (!e_comp->pointer->o_ptr)) return ECORE_CALLBACK_RENEW;
+   s = edje_object_data_get(e_comp->pointer->o_ptr, "can_suspend");
+
+   if ((s) && (atoi(s) == 1))
+     {
+        if (!e_desklock_state_get())
+          {
+             fprintf(stderr, "E_COMP_X: 02 ungrab then grab pointer\n");
+             _e_comp_pointer_ungrab();
+             _e_comp_pointer_grab();
+             fprintf(stderr, "E_COMP_X: 03 no desklock but abort pointer suspend\n");
+             if (!_e_comp_x_suspend_grabbed) return ECORE_CALLBACK_RENEW;
+          }
+        fprintf(stderr, "E_COMP_X: 04 emit suspend signals to pointer\n");
+        edje_object_signal_callback_del(e_comp->pointer->o_ptr,
+                                        "e,state,mouse,suspend,done", "e",
+                                        _e_comp_cb_pointer_suspend_resume_done);
+        edje_object_signal_callback_del(e_comp->pointer->o_ptr,
+                                        "e,state,mouse,resume,done", "e",
+                                        _e_comp_cb_pointer_suspend_resume_done);
+        edje_object_signal_callback_add(e_comp->pointer->o_ptr,
+                                        "e,state,mouse,suspend,done",
+                                        "e",
+                                        _e_comp_cb_pointer_suspend_resume_done,
+                                        e_comp);
+        edje_object_signal_emit(e_comp->pointer->o_ptr,
+                                "e,state,mouse,suspend", "e");
+     }
+   return ECORE_CALLBACK_RENEW;
+}
+
+EINTERN Eina_Bool
+_e_comp_x_screensaver_off()
+{
+   const char *s;
+
+   fprintf(stderr, "E_COMP_X: 1 screensaver off\n");
+   _e_comp_pointer_ungrab();
+   if ((!e_comp->pointer) || (!e_comp->pointer->o_ptr)) return ECORE_CALLBACK_RENEW;
+   s = edje_object_data_get(e_comp->pointer->o_ptr, "can_suspend");
+
+   if ((s) && (atoi(s) == 1))
+     {
+        if (!e_desklock_state_get())
+          {
+             fprintf(stderr, "E_COMP_X: 2 re-grab pointer because desklock not on\n");
+             _e_comp_pointer_grab();
+             if (!_e_comp_x_suspend_grabbed)
+               {
+                  fprintf(stderr, "E_COMP_X: 3 no desklock but abort pointer unsuspend\n");
+                  return ECORE_CALLBACK_RENEW;
+               }
+          }
+        fprintf(stderr, "E_COMP_X: 4 emit resume signals to pointer\n");
+        edje_object_signal_callback_del(e_comp->pointer->o_ptr,
+                                        "e,state,mouse,suspend,done", "e",
+                                        _e_comp_cb_pointer_suspend_resume_done);
+        edje_object_signal_callback_del(e_comp->pointer->o_ptr,
+                                        "e,state,mouse,resume,done", "e",
+                                        _e_comp_cb_pointer_suspend_resume_done);
+        edje_object_signal_callback_add(e_comp->pointer->o_ptr,
+                                        "e,state,mouse,resume,done",
+                                        "e",
+                                        _e_comp_cb_pointer_suspend_resume_done,
+                                        NULL);
+        edje_object_signal_emit(e_comp->pointer->o_ptr,
+                                "e,state,mouse,resume", "e");
+     }
+   return ECORE_CALLBACK_RENEW;
+}
+
 static Ecore_Timer *screensaver_eval_timer = NULL;
 static Eina_Bool saver_on = EINA_FALSE;
 
@@ -4952,17 +5196,18 @@ _e_comp_x_screensaver_eval_cb(void *d EINA_UNUSED)
 static Eina_Bool
 _e_comp_x_screensaver_notify_cb(void *data EINA_UNUSED, int type EINA_UNUSED, Ecore_X_Event_Screensaver_Notify *ev)
 {
+   if (e_screensaver_ignore_get()) return ECORE_CALLBACK_PASS_ON;
    if ((ev->on) && (!saver_on))
      {
         saver_on = EINA_TRUE;
         E_FREE_FUNC(screensaver_eval_timer, ecore_timer_del);
-        screensaver_eval_timer = ecore_timer_add(0.3, _e_comp_x_screensaver_eval_cb, NULL);
+        screensaver_eval_timer = ecore_timer_loop_add(0.3, _e_comp_x_screensaver_eval_cb, NULL);
      }
    else if ((!ev->on) && (saver_on))
      {
         saver_on = EINA_FALSE;
         E_FREE_FUNC(screensaver_eval_timer, ecore_timer_del);
-        screensaver_eval_timer = ecore_timer_add(0.3, _e_comp_x_screensaver_eval_cb, NULL);
+        screensaver_eval_timer = ecore_timer_loop_add(0.3, _e_comp_x_screensaver_eval_cb, NULL);
      }
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -5163,6 +5408,8 @@ _e_comp_x_del(E_Comp *c)
    E_FREE_FUNC(focus_job, ecore_job_del);
    E_FREE_FUNC(unfocus_job, ecore_job_del);
    free(c->x_comp_data);
+   c->x_comp_data = e_comp_x = NULL;
+   c->root = 0;
 }
 
 static void
@@ -5341,38 +5588,21 @@ _e_comp_x_bindings_ungrab_cb(void)
      }
 }
 
-static Eina_Bool
-_e_comp_x_desklock_key_down(void *d EINA_UNUSED, int t EINA_UNUSED, Ecore_Event_Key *ev)
-{
-   return (ev->window == e_comp_x->lock_win);
-}
-
 static void
 _e_comp_x_desklock_hide(void)
 {
-   if (e_comp_x->lock_win)
-     {
-        e_grabinput_release(e_comp_x->lock_win, e_comp_x->lock_win);
-        ecore_x_window_free(e_comp_x->lock_win);
-        e_comp_x->lock_win = 0;
-     }
+   e_comp_ungrab_input(1, 1);
 
    if (e_comp_x->lock_grab_break_wnd)
      ecore_x_window_show(e_comp_x->lock_grab_break_wnd);
    e_comp_x->lock_grab_break_wnd = 0;
-   E_FREE_FUNC(e_comp_x->lock_key_handler, ecore_event_handler_del);
    e_comp_override_del();
 }
 
 static Eina_Bool
 _e_comp_x_desklock_show(void)
 {
-   Ecore_X_Window win;
-
-   win = e_comp_x->lock_win =
-     ecore_x_window_input_new(e_comp->root, 0, 0, 1, 1);
-   ecore_x_window_show(win);
-   if (!e_grabinput_get(win, 0, win))
+   if (!e_comp_grab_input(1, 1))
      {
         Ecore_X_Window *windows;
         int wnum, i;
@@ -5388,7 +5618,7 @@ _e_comp_x_desklock_show(void)
              if (att.visible)
                {
                   ecore_x_window_hide(windows[i]);
-                  if (e_grabinput_get(win, 0, win))
+                  if (e_comp_grab_input(1, 1))
                     {
                        e_comp_x->lock_grab_break_wnd = windows[i];
                        free(windows);
@@ -5401,16 +5631,13 @@ _e_comp_x_desklock_show(void)
      }
 works:
    e_comp_override_add();
-   e_comp_ignore_win_add(E_PIXMAP_TYPE_X, e_comp_x->lock_win);
-   e_comp_x->lock_key_handler =
-     ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, (Ecore_Event_Handler_Cb)_e_comp_x_desklock_key_down, e_comp);
 
    return EINA_TRUE;
 fail:
    /* everything failed - can't lock */
    e_util_dialog_show(_("Lock Failed"),
-                      _("Locking the desktop failed because some application<br>"
-                        "has grabbed either the keyboard or the mouse or both<br>"
+                      _("Locking the desktop failed because some application<ps/>"
+                        "has grabbed either the keyboard or the mouse or both<ps/>"
                         "and their grab is unable to be broken."));
    return EINA_FALSE;
 }
@@ -5430,7 +5657,6 @@ _e_comp_x_setup(Ecore_X_Window root, int w, int h)
      }
    if (!ecore_x_window_manage(root)) return EINA_FALSE;
 
-   E_OBJECT_DEL_SET(e_comp, _e_comp_x_del);
    e_comp_x = e_comp->x_comp_data = E_NEW(E_Comp_X_Data, 1);
    ecore_x_e_window_profile_supported_set(root, EINA_TRUE);
    e_comp->cm_selection = ecore_x_window_input_new(root, 0, 0, 1, 1);
@@ -5458,16 +5684,14 @@ _e_comp_x_setup(Ecore_X_Window root, int w, int h)
      {
         /*
                   e_util_dialog_internal
-                  (_("Compositor Error"), _("Your screen is not in 24/32bit display mode.<br>"
-                  "This is required to be your default depth<br>"
+                  (_("Compositor Error"), _("Your screen is not in 24/32bit display mode.<ps/>"
+                  "This is required to be your default depth<ps/>"
                   "setting for the compositor to work properly."));
                   ecore_x_composite_render_window_disable(e_comp->win);
                   free(e_comp);
                   return NULL;
          */
      }
-   e_comp->depth = att.depth;
-
    e_alert_composite_win(root, e_comp->win);
 
    if (!e_comp->ee)
@@ -5536,7 +5760,7 @@ _e_comp_x_setup(Ecore_X_Window root, int w, int h)
      e_pointer_window_add(e_comp->pointer, e_comp->root);
    _e_comp_x_manage_windows();
 
-   return !!e_comp->bg_blank_object;
+   return !!e_comp->canvas->resize_object;
 }
 
 static Eina_Bool
@@ -5605,6 +5829,7 @@ e_comp_x_init(void)
    damages_hash = eina_hash_int32_new(NULL);
    alarm_hash = eina_hash_int32_new(NULL);
    dead_wins = eina_hash_int32_new(NULL);
+   pending_configures = eina_hash_int32_new(NULL);
    frame_extents = eina_hash_string_superfast_new(free);
 
    h = eina_list_append(h, e_client_hook_add(E_CLIENT_HOOK_DESK_SET, _e_comp_x_hook_client_desk_set, NULL));
@@ -5708,6 +5933,8 @@ e_comp_x_init(void)
    if (e_comp->comp_type != E_PIXMAP_TYPE_WL)
      {
         ecore_x_screensaver_event_listen_set(1);
+        E_LIST_HANDLER_APPEND(handlers, E_EVENT_SCREENSAVER_ON, _e_comp_x_screensaver_on, NULL);
+        E_LIST_HANDLER_APPEND(handlers, E_EVENT_SCREENSAVER_OFF, _e_comp_x_screensaver_off, NULL);
         E_LIST_HANDLER_APPEND(handlers, ECORE_X_EVENT_SCREENSAVER_NOTIFY, _e_comp_x_screensaver_notify_cb, NULL);
         ecore_x_screensaver_custom_blanking_enable();
 
@@ -5735,11 +5962,14 @@ e_comp_x_init(void)
 E_API void
 e_comp_x_shutdown(void)
 {
+   _e_comp_x_del(e_comp);
    E_FREE_LIST(handlers, ecore_event_handler_del);
    E_FREE_FUNC(clients_win_hash, eina_hash_free);
    E_FREE_FUNC(damages_hash, eina_hash_free);
    E_FREE_FUNC(alarm_hash, eina_hash_free);
+   E_FREE_FUNC(pending_configures, eina_hash_free);
    E_FREE_FUNC(frame_extents, eina_hash_free);
+   E_FREE_FUNC(mouse_in_fix_check_timer, ecore_timer_del);
    e_xsettings_shutdown();
    if (e_comp->comp_type == E_PIXMAP_TYPE_X)
      ecore_x_screensaver_custom_blanking_disable();
@@ -5825,6 +6055,7 @@ e_comp_x_xwayland_client_setup(E_Client *ec, E_Client *wc)
    e_hints_window_visible_set(wc);
    _e_comp_x_client_stack(wc);
    wc->placed = placed;
+   if (!placed) wc->changes.pos = 0;
 }
 #endif
 

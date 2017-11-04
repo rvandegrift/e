@@ -111,6 +111,7 @@ E_API Eina_Bool starting = EINA_TRUE;
 E_API Eina_Bool stopping = EINA_FALSE;
 E_API Eina_Bool restart = EINA_FALSE;
 E_API Eina_Bool e_nopause = EINA_FALSE;
+E_API Eina_Bool after_restart = EINA_FALSE;
 EINTERN const char *e_first_frame = NULL;
 EINTERN double e_first_frame_start_time = -1;
 
@@ -187,9 +188,11 @@ _xdg_data_dirs_augment(void)
         if (!dir) dir = "/tmp";
         else
           {
+             char buf2[4096];
+
              e_util_env_set("XDG_RUNTIME_DIR", dir);
-             snprintf(buf, sizeof(buf), "%s/.e-deleteme", dir);
-             ecore_file_mkdir(buf);
+             snprintf(buf2, sizeof(buf2), "%s/.e-deleteme", dir);
+             ecore_file_mkdir(buf2);
           }
      }
 
@@ -213,8 +216,8 @@ main(int argc, char **argv)
 {
    Eina_Bool nostartup = EINA_FALSE;
    Eina_Bool safe_mode = EINA_FALSE;
-   Eina_Bool after_restart = EINA_FALSE;
    Eina_Bool waslocked = EINA_FALSE;
+   Eina_Stringshare *strshare;
    double t = 0.0, tstart = 0.0;
    char *s = NULL, buff[32];
    struct sigaction action;
@@ -325,6 +328,15 @@ main(int argc, char **argv)
    e_util_env_set("E_RESTART_OK", NULL);
    e_util_env_set("PANTS", "ON");
    e_util_env_set("DESKTOP", "Enlightenment");
+
+   strshare = eina_stringshare_printf("%s/enlightenment_askpass",
+                                      e_prefix_bin_get());
+   if (strshare)
+     {
+        e_util_env_set("SUDO_ASKPASS", strshare);
+        e_util_env_set("SSH_ASKPASS", strshare);
+        eina_stringshare_del(strshare);
+     }
    TS("Environment Variables Done");
 
    TS("Parse Arguments");
@@ -807,7 +819,10 @@ main(int argc, char **argv)
    _e_main_shutdown_push(e_desklock_shutdown);
 
    if (waslocked || (locked && ((!after_restart) || (!getenv("E_DESKLOCK_UNLOCKED")))))
-     e_desklock_show(EINA_TRUE);
+     {
+        e_desklock_show(EINA_TRUE);
+        e_screensaver_update();
+     }
 
    if (e_config->show_splash)
      e_init_status_set(_("Setup Paths"));
@@ -895,16 +910,12 @@ main(int argc, char **argv)
    TS("E_Remember Init Done");
    _e_main_shutdown_push(e_remember_shutdown);
 
-   if (E_EFL_VERSION_MINIMUM(1, 17, 99))
-     {
-        if (e_config->show_splash)
-          e_init_status_set(_("Setup Gadgets"));
-        TS("E_Gadget Init");
-        e_gadget_init();
-        TS("E_Gadget Init Done");
-        _e_main_shutdown_push((void*)e_gadget_shutdown);
-     }
-
+   if (e_config->show_splash)
+     e_init_status_set(_("Setup Gadgets"));
+   TS("E_Gadget Init");
+   e_gadget_init();
+   TS("E_Gadget Init Done");
+   _e_main_shutdown_push((void*)e_gadget_shutdown);
 
    if (e_config->show_splash)
      e_init_status_set(_("Setup Gadcon"));
@@ -1032,7 +1043,7 @@ main(int argc, char **argv)
    TS("Run Startup Apps Done");
 
    if (e_config->show_splash && (!after_restart))
-     ecore_timer_add(2.0, _e_main_cb_startup_fake_end, NULL);
+     ecore_timer_loop_add(2.0, _e_main_cb_startup_fake_end, NULL);
 
    TS("E_Comp Thaw");
    e_comp_all_thaw();
@@ -1549,26 +1560,35 @@ _e_main_test_formats(void)
    for (i = 0; i < EINA_C_ARRAY_LENGTH(types); i++)
      {
         char b[128], *t = types[i];
+        const char *key = NULL;
 
         snprintf(b, sizeof(b), "data/images/test.%s", types[i]);
         e_prefix_data_concat_static(buff, b);
-        evas_object_image_file_set(im, buff, NULL);
-        if (i == t_edj) t = "eet";
+        if (i == t_edj)
+          {
+             t = "eet";
+             key = "images/0";
+          }
+        evas_object_image_file_set(im, buff, key);
         switch (evas_object_image_load_error_get(im))
           {
-           default:
-             e_error_message_show(_("Enlightenment found Evas can't load '%s' files. "
-                                    "Check Evas has '%s' loader support.\n"), t, t);
-             if (i) _e_main_shutdown(-1);
-             break;
            case EVAS_LOAD_ERROR_CORRUPT_FILE:
            case EVAS_LOAD_ERROR_DOES_NOT_EXIST:
            case EVAS_LOAD_ERROR_PERMISSION_DENIED:
              e_error_message_show(_("Enlightenment cannot access test image for '%s' filetype. "
                                     "Check your install for setup issues.\n"), t);
+             EINA_FALLTHROUGH;
+             // fallthrough anyway as normally these files should work
+
            case EVAS_LOAD_ERROR_NONE:
              snprintf(b, sizeof(b), ".%s", types[i]);
              efreet_icon_extension_add(b);
+             break;
+
+           default:
+             e_error_message_show(_("Enlightenment found Evas can't load '%s' files. "
+                                    "Check Evas has '%s' loader support.\n"), t, t);
+             if (i) _e_main_shutdown(-1);
              break;
           }
      }
@@ -1596,6 +1616,8 @@ _e_main_screens_init(void)
    if (!e_client_init()) return 0;
    TS("E_Screensaver Init");
    if (!e_screensaver_init()) return 0;
+   TS("\tscreens: client volume");
+   if (!e_client_volume_init()) return 0;
    TS("\tscreens: win");
    if (!e_win_init()) return 0;
    TS("Compositor Init");
@@ -1630,6 +1652,7 @@ _e_main_screens_shutdown(void)
    e_menu_shutdown();
    e_shelf_shutdown();
    e_comp_shutdown();
+   e_client_volume_shutdown();
    e_screensaver_shutdown();
    e_client_shutdown();
    e_exehist_shutdown();
@@ -1730,32 +1753,32 @@ _e_main_modules_load(Eina_Bool safe_mode)
              e_object_del(E_OBJECT(m));
 
              e_error_message_show
-               (_("Enlightenment crashed early on start and has<br>"
-                  "been restarted. There was an error loading the<br>"
-                  "module named: %s. This module has been disabled<br>"
+               (_("Enlightenment crashed early on start and has<ps/>"
+                  "been restarted. There was an error loading the<ps/>"
+                  "module named: %s. This module has been disabled<ps/>"
                   "and will not be loaded."), crashmodule);
              e_util_dialog_show
                (_("Enlightenment crashed early on start and has been restarted"),
-               _("Enlightenment crashed early on start and has been restarted.<br>"
-                 "There was an error loading the module named: %s<br><br>"
+               _("Enlightenment crashed early on start and has been restarted.<ps/>"
+                 "There was an error loading the module named: %s<ps/><ps/>"
                  "This module has been disabled and will not be loaded."), crashmodule);
              e_module_all_load();
           }
         else
           {
              e_error_message_show
-               (_("Enlightenment crashed early on start and has<br>"
-                  "been restarted. All modules have been disabled<br>"
-                  "and will not be loaded to help remove any problem<br>"
-                  "modules from your configuration. The module<br>"
-                  "configuration dialog should let you select your<br>"
+               (_("Enlightenment crashed early on start and has<ps/>"
+                  "been restarted. All modules have been disabled<ps/>"
+                  "and will not be loaded to help remove any problem<ps/>"
+                  "modules from your configuration. The module<ps/>"
+                  "configuration dialog should let you select your<ps/>"
                   "modules again.\n"));
              e_util_dialog_show
                (_("Enlightenment crashed early on start and has been restarted"),
-               _("Enlightenment crashed early on start and has been restarted.<br>"
-                 "All modules have been disabled and will not be loaded to help<br>"
-                 "remove any problem modules from your configuration.<br><br>"
-                 "The module configuration dialog should let you select your<br>"
+               _("Enlightenment crashed early on start and has been restarted.<ps/>"
+                 "All modules have been disabled and will not be loaded to help<ps/>"
+                 "remove any problem modules from your configuration.<ps/><ps/>"
+                 "The module configuration dialog should let you select your<ps/>"
                  "modules again."));
           }
         mod_init_end = ecore_event_handler_add(E_EVENT_MODULE_INIT_END, _e_main_modules_load_after, NULL);

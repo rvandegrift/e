@@ -26,6 +26,7 @@ struct _E_Widget_Data
    Evas_Object  *o_preview_time_entry;
    Evas_Object  *o_preview_preview;
    Evas_Object  *o_preview_scrollframe;
+   Evas_Object  *o_preview_artwork;
 
    Evas_Coord    preview_w, preview_h;
    int           w, h;
@@ -55,6 +56,7 @@ struct _E_Widget_Data
    Eina_Bool     clamp_video : 1;
    Eina_Bool     delete_me : 1;
    Eina_Bool     preview_text_file_next : 1;
+   Eina_Bool     vid_sized : 1;
 };
 
 static void  _e_wid_fprev_preview_update(void *data, Evas_Object *obj, void *event_info);
@@ -219,10 +221,41 @@ _e_wid_fprev_clear_widgets(E_Widget_Data *wd)
    CLRWID(o_preview_time_entry);
    CLRWID(o_preview_preview);
    CLRWID(o_preview_scrollframe);
+   CLRWID(o_preview_artwork);
    wd->is_dir = wd->is_txt = wd->is_font = wd->prev_is_fm = wd->prev_is_video = EINA_FALSE;
    wd->vid_pct = 0;
 
    if (wd->preview_text_file_thread) eio_file_cancel(wd->preview_text_file_thread);
+}
+
+static void
+_fprev_video_size(E_Widget_Data *wd, Evas_Object *obj)
+{
+   double ratio;
+   int iw, ih;
+   Evas_Coord w, h, mw, mh, ow, oh;
+
+   if (wd->vid_sized) return;
+   evas_object_geometry_get(wd->o_preview_properties_table, NULL, NULL, &w, &h);
+   if (w < 10) return;
+   evas_object_geometry_get(wd->o_preview_preview, NULL, NULL, &ow, &oh);
+   wd->vid_sized = 1;
+   w -= 4;
+   emotion_object_size_get(obj, &iw, &ih);
+   ratio = emotion_object_ratio_get(obj);
+   if (ratio > 0.0) iw = (ih * ratio) + 0.5;
+   if (iw < 1) iw = 1;
+   if (ih < 1) ih = 1;
+
+   h = (w * ih) / iw;
+   e_widget_size_min_set(wd->o_preview_preview, w, h);
+   e_widget_table_object_repack(wd->o_preview_properties_table,
+                                wd->o_preview_preview, 0, 0, 2, 2, 1, 1, 1, 1);
+   e_widget_list_object_repack(wd->o_preview_list,
+                               wd->o_preview_properties_table,
+                               1, 1, 0.5);
+   e_widget_size_min_get(wd->o_preview_list, &mw, &mh);
+   e_widget_size_min_set(wd->obj, mw, mh);
 }
 
 static void
@@ -232,46 +265,17 @@ _e_wid_fprev_preview_video_position(E_Widget_Data *wd, Evas_Object *obj, void *e
 
    if (!wd->o_preview_time) return;
    tot = emotion_object_play_length_get(obj);
-   if (!tot) return;
+   if (!EINA_DBL_NONZERO(tot)) return;
    wd->vid_pct = t = (emotion_object_position_get(obj) * 100.0) / emotion_object_play_length_get(obj);
    e_widget_slider_value_double_set(wd->o_preview_time, t);
+   _fprev_video_size(wd, obj);
 }
 
 static void
 _e_wid_fprev_preview_video_opened(E_Widget_Data *wd, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
-   double ratio;
-   int iw, ih;
-   Evas_Coord w, h, mw, mh, ow, oh;
-
-   evas_object_geometry_get(wd->o_preview_preview, NULL, NULL, &ow, &oh);
-   evas_object_geometry_get(wd->o_preview_properties_table, NULL, NULL, &w, &h);
-
    e_widget_entry_text_set(wd->o_preview_extra_entry, e_util_time_str_get(emotion_object_play_length_get(obj)));
-
-   if (w < 10) return;
-   w -= 4;
-   emotion_object_size_get(obj, &iw, &ih);
-   ratio = emotion_object_ratio_get(obj);
-   if (ratio > 0.0) iw = (ih * ratio) + 0.5;
-   if (iw < 1) iw = 1;
-   if (ih < 1) ih = 1;
-
-   h = (w * ih) / iw;
-   e_widget_preview_vsize_set(wd->o_preview_preview, w, h);
-   if (h > oh)
-     {
-        w = (w * oh) / h;
-        h = oh;
-     }
-   e_widget_size_min_set(wd->o_preview_preview, w, h);
-   e_widget_table_object_repack(wd->o_preview_properties_table,
-                                wd->o_preview_preview, 0, 0, 2, 2, 0, 0, 1, 1);
-   e_widget_list_object_repack(wd->o_preview_list,
-                               wd->o_preview_properties_table,
-                               1, 1, 0.5);
-   e_widget_size_min_get(wd->o_preview_list, &mw, &mh);
-   e_widget_size_min_set(wd->obj, mw, mh);
+   _fprev_video_size(wd, obj);
 }
 
 static void
@@ -280,6 +284,7 @@ _e_wid_fprev_preview_video_resize(E_Widget_Data *wd, Evas_Object *obj, void *eve
    int w, h;
    char buf[128];
 
+   _fprev_video_size(wd, obj);
    emotion_object_size_get(obj, &w, &h);
 
    snprintf(buf, sizeof(buf), "%dx%d", w, h);
@@ -306,7 +311,10 @@ static void
 _e_wid_fprev_preview_video_widgets(E_Widget_Data *wd)
 {
    Evas *evas = evas_object_evas_get(wd->obj);
-   Evas_Object *o, *em, *win;
+   Evas_Object *table, *o, *em, *win;
+   const char *mime, *path;
+   char *ext;
+   Eina_Bool audio_artwork;
    int mw, mh, y = 3;
 
    win = e_win_evas_win_get(evas);
@@ -322,7 +330,14 @@ _e_wid_fprev_preview_video_widgets(E_Widget_Data *wd)
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
                                           wd->labob,                              \
                                           0, y, 1, 1, 0, 1, 0, 0, 1.0, 0.0);      \
-       o = e_widget_entry_add(win, &(wd->preview_extra_text), NULL, NULL, NULL); \
+       o = evas_object_rectangle_add(evas);                                       \
+       evas_object_size_hint_min_set(o, entw * e_scale, 1);                       \
+       evas_object_color_set(o, 0, 0, 0, 0);                                      \
+       evas_object_pass_events_set(o, EINA_TRUE);                                 \
+       e_widget_table_object_align_append(wd->o_preview_properties_table,         \
+                                          o,                                      \
+                                          1, y, 1, 1, 1, 1, 1, 0, 0.0, 0.0);      \
+       o = e_widget_entry_add(win, &(wd->preview_extra_text), NULL, NULL, NULL);  \
        e_widget_entry_readonly_set(o, 1);                                         \
        wd->entob = o;                                                             \
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
@@ -331,18 +346,55 @@ _e_wid_fprev_preview_video_widgets(E_Widget_Data *wd)
        y++;                                                                       \
     } while (0)
 
-   o = e_widget_table_add(e_win_evas_win_get(evas), 0);
+   table = o = e_widget_table_add(e_win_evas_win_get(evas), 0);
    e_widget_size_min_set(o, wd->w, wd->h);
    e_widget_table_object_append(wd->o_preview_properties_table,
                                 o, 0, 0, 2, 2, 1, 1, 1, 1);
 
-   wd->o_preview_preview = e_widget_preview_add(evas, 4, 4);
-   em = o = emotion_object_add(e_widget_preview_evas_get(wd->o_preview_preview));
-   emotion_object_init(o, "gstreamer1");
+   ext = strrchr(wd->path, '.');
+   if ((ext) &&
+       ((!strcasecmp(ext, ".mp3")) ||
+        (!strcasecmp(ext, ".m4a")) ||
+        (!strcasecmp(ext, ".ogg")) ||
+        (!strcasecmp(ext, ".aac")) ||
+        (!strcasecmp(ext, ".flac"))
+      )) audio_artwork = EINA_TRUE;
+   else
+     audio_artwork = EINA_FALSE;
+
+   em = o = emotion_object_add(evas);
    emotion_object_file_set(o, wd->path);
    emotion_object_play_set(o, EINA_TRUE);
-   evas_object_size_hint_aspect_set(o, EVAS_ASPECT_CONTROL_BOTH, wd->w, wd->h);
-   e_widget_preview_extern_object_set(wd->o_preview_preview, o);
+   emotion_object_init(o, "gstreamer1");
+
+   mime = efreet_mime_type_get(wd->path);
+   if (mime)
+     {
+        path = efreet_mime_type_icon_get(mime, e_config->icon_theme, 128);
+        if (path && !audio_artwork)
+          {
+             wd->o_preview_artwork = elm_icon_add(o);
+             elm_image_file_set(wd->o_preview_artwork, path, NULL);
+          }
+        else
+          {
+             wd->o_preview_artwork = emotion_file_meta_artwork_get(o, wd->path, EMOTION_ARTWORK_PREVIEW_IMAGE);
+             if (!wd->o_preview_artwork)
+               wd->o_preview_artwork = emotion_file_meta_artwork_get(o, wd->path, EMOTION_ARTWORK_IMAGE);
+          }
+     }
+
+   if (wd->o_preview_artwork)
+     {
+        if (mime && !strncmp(mime, "audio/",6))
+          e_widget_size_min_set(table, 192, 190);
+        evas_object_image_filled_set(wd->o_preview_artwork, EINA_TRUE);
+        e_widget_table_object_append(wd->o_preview_properties_table,
+                                     wd->o_preview_artwork, 0, 0, 2, 2, 1, 1, 1, 1);
+        evas_object_show(wd->o_preview_artwork);
+     }
+
+   wd->o_preview_preview = e_widget_image_add_from_object(evas, o, 4, 4);
    e_widget_table_object_append(wd->o_preview_properties_table,
                                 wd->o_preview_preview, 0, 0, 2, 2, 1, 1, 1, 1);
 
@@ -381,7 +433,7 @@ _e_wid_fprev_preview_video_widgets(E_Widget_Data *wd)
    evas_object_show(wd->o_preview_time);
    evas_object_show(wd->o_preview_time_entry);
    evas_object_show(wd->o_preview_properties_table);
-   wd->prev_is_video = EINA_TRUE;
+   wd->prev_is_video =  EINA_TRUE;
 #undef WIDROW
 }
 
@@ -405,9 +457,14 @@ _e_wid_fprev_preview_fs_widgets(E_Widget_Data *wd, Eina_Bool mount_point)
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
                                           wd->labob,                              \
                                           0, y, 1, 1, 0, 1, 0, 0, 1.0, 0.0);      \
-       o = e_widget_entry_add(win, &(wd->preview_extra_text), NULL, NULL, NULL); \
-       evas_object_size_hint_min_get(o, &mw, &mh); \
-       e_widget_size_min_set(o, 100, mh); \
+       o = evas_object_rectangle_add(evas);                                       \
+       evas_object_size_hint_min_set(o, entw * e_scale, 1);                       \
+       evas_object_color_set(o, 0, 0, 0, 0);                                      \
+       evas_object_pass_events_set(o, EINA_TRUE);                                 \
+       e_widget_table_object_align_append(wd->o_preview_properties_table,         \
+                                          o,                                      \
+                                          1, y, 1, 1, 1, 1, 1, 0, 0.0, 0.0);      \
+       o = e_widget_entry_add(win, &(wd->preview_extra_text), NULL, NULL, NULL);  \
        e_widget_entry_readonly_set(o, 1);                                         \
        wd->entob = o;                                                             \
        e_widget_table_object_align_append(wd->o_preview_properties_table,         \
@@ -875,7 +932,8 @@ _e_wid_fprev_preview_reset(E_Widget_Data *wd)
    Evas_Object *o;
 
    evas_object_del(wd->o_preview_scrollframe);
-   wd->o_preview_scrollframe = wd->o_preview_preview = NULL;
+   if (wd->o_preview_artwork) evas_object_del(wd->o_preview_artwork);
+   wd->o_preview_scrollframe = wd->o_preview_preview = wd->o_preview_artwork = NULL;
    if (wd->preview_text_file_thread) eio_file_cancel(wd->preview_text_file_thread);
    wd->preview_text_file_thread = NULL;
    if (wd->is_dir || wd->is_txt || wd->is_font) return;
@@ -1077,28 +1135,28 @@ _e_wid_fprev_preview_font(E_Widget_Data *wd)
                       "<font=%s>"
                       
                       "<font_size=28>"
-                      "28 - ABC abc 0123 @!?#$*{}<br>"
-                      "The quick brown fox jumps.<br>"
+                      "28 - ABC abc 0123 @!?#$*{}<ps/>"
+                      "The quick brown fox jumps.<ps/>"
 
                       "<font_size=20>"
-                      "20 - ABC abc 0123 @!?#$*{}<br>"
-                      "The quick brown fox jumps.<br>"
+                      "20 - ABC abc 0123 @!?#$*{}<ps/>"
+                      "The quick brown fox jumps.<ps/>"
                       
                       "<font_size=16>"
-                      "16 - ABC abc 0123 @!?#$*{}<br>"
-                      "The quick brown fox jumps.<br>"
+                      "16 - ABC abc 0123 @!?#$*{}<ps/>"
+                      "The quick brown fox jumps.<ps/>"
                       
                       "<font_size=12>"
-                      "12 - ABC abc 0123 @!?#$*{}<br>"
-                      "The quick brown fox jumps.<br>"
+                      "12 - ABC abc 0123 @!?#$*{}<ps/>"
+                      "The quick brown fox jumps.<ps/>"
                       
                       "<font_size=10>"
-                      "10 - ABC abc 0123 @!?#$*{}<br>"
-                      "The quick brown fox jumps.<br>"
+                      "10 - ABC abc 0123 @!?#$*{}<ps/>"
+                      "The quick brown fox jumps.<ps/>"
                       
                       "<font_size=8>"
-                      "8 - ABC abc 0123 @!?#$*{}<br>"
-                      "The quick brown fox jumps.<br>"
+                      "8 - ABC abc 0123 @!?#$*{}<ps/>"
+                      "The quick brown fox jumps.<ps/>"
                       , escaped
                      );
              edje_object_part_text_set(o, "e.textblock.message", buf);

@@ -22,6 +22,7 @@ static void _e_zone_obstacle_free(E_Zone_Obstacle *obs);
 
 E_API int E_EVENT_ZONE_DESK_COUNT_SET = 0;
 E_API int E_EVENT_POINTER_WARP = 0;
+E_API int E_EVENT_ZONE_USEFUL_GEOMETRY_CHANGED = 0;
 E_API int E_EVENT_ZONE_MOVE_RESIZE = 0;
 E_API int E_EVENT_ZONE_ADD = 0;
 E_API int E_EVENT_ZONE_DEL = 0;
@@ -44,6 +45,7 @@ e_zone_init(void)
    E_EVENT_ZONE_DESK_COUNT_SET = ecore_event_type_new();
    E_EVENT_POINTER_WARP = ecore_event_type_new();
    E_EVENT_ZONE_MOVE_RESIZE = ecore_event_type_new();
+   E_EVENT_ZONE_USEFUL_GEOMETRY_CHANGED = ecore_event_type_new();
    E_EVENT_ZONE_ADD = ecore_event_type_new();
    E_EVENT_ZONE_DEL = ecore_event_type_new();
    E_EVENT_ZONE_EDGE_IN = ecore_event_type_new();
@@ -79,6 +81,7 @@ _e_zone_cb_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *eve
    E_Zone *zone = data;
 
    if (!ev->timestamp) return;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    edge = _e_zone_detect_edge(zone, obj);
    if (edge == E_ZONE_EDGE_NONE) return;
 
@@ -91,7 +94,8 @@ _e_zone_cb_mouse_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *eve
    zev->drag = !!evas_pointer_button_down_mask_get(e_comp->evas);
 
    ecore_event_add(E_EVENT_ZONE_EDGE_IN, zev, NULL, NULL);
-   e_bindings_edge_in_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
+   if (e_bindings_edge_in_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev))
+     ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
 }
 
 static void
@@ -103,6 +107,7 @@ _e_zone_cb_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *ev
    E_Zone *zone = data;
 
    if (!ev->timestamp) return;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    edge = _e_zone_detect_edge(zone, obj);
    if (edge == E_ZONE_EDGE_NONE) return;
 
@@ -115,7 +120,8 @@ _e_zone_cb_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *ev
    zev->drag = !!evas_pointer_button_down_mask_get(e_comp->evas);
 
    ecore_event_add(E_EVENT_ZONE_EDGE_OUT, zev, NULL, NULL);
-   e_bindings_edge_out_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
+   if (e_bindings_edge_out_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev))
+     ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
 }
 
 static void
@@ -127,6 +133,7 @@ _e_zone_cb_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *e
    E_Zone *zone = data;
 
    if (!ev->timestamp) return;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    edge = _e_zone_detect_edge(zone, obj);
    if (edge == E_ZONE_EDGE_NONE) return;
 
@@ -138,7 +145,8 @@ _e_zone_cb_mouse_down(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *e
    zev->button = ev->button;
    zev->modifiers = e_bindings_evas_modifiers_convert(ev->modifiers);
    ecore_event_add(E_EVENT_ZONE_EDGE_OUT, zev, NULL, NULL);
-   e_bindings_edge_down_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
+   if (e_bindings_edge_down_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev))
+     ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
 }
 
 static void
@@ -150,6 +158,7 @@ _e_zone_cb_mouse_up(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *eve
    E_Zone *zone = data;
 
    if (!ev->timestamp) return;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    edge = _e_zone_detect_edge(zone, obj);
    if (edge == E_ZONE_EDGE_NONE) return;
 
@@ -161,7 +170,8 @@ _e_zone_cb_mouse_up(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *eve
    zev->button = ev->button;
    zev->modifiers = e_bindings_evas_modifiers_convert(ev->modifiers);
    ecore_event_add(E_EVENT_ZONE_EDGE_OUT, zev, NULL, NULL);
-   e_bindings_edge_up_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev);
+   if (e_bindings_edge_up_event_handle(E_BINDING_CONTEXT_ZONE, E_OBJECT(zone), zev))
+     ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
 }
 
 static void
@@ -172,6 +182,7 @@ _e_zone_cb_mouse_move(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *e
    E_Zone_Edge edge;
    E_Zone *zone = data;
 
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    edge = _e_zone_detect_edge(zone, obj);
    if (edge == E_ZONE_EDGE_NONE) return;
 
@@ -274,7 +285,7 @@ e_zone_name_set(E_Zone *zone,
 }
 
 static void
-e_zone_reconfigure_clients(E_Zone *zone, int dx, int dy, int dw, int dh)
+e_zone_reconfigure_clients(E_Zone *zone, int dx, int dy)
 {
    E_Client *ec;
 
@@ -284,12 +295,6 @@ e_zone_reconfigure_clients(E_Zone *zone, int dx, int dy, int dw, int dh)
 
         if ((dx != 0) || (dy != 0))
           evas_object_move(ec->frame, ec->x + dx, ec->y + dy);
-        // we shrank the zone - adjust windows more
-        if ((dw < 0) || (dh < 0))
-          {
-             e_client_res_change_geometry_save(ec);
-             e_client_res_change_geometry_restore(ec);
-          }
      }
 }
 
@@ -298,29 +303,9 @@ e_zone_move(E_Zone *zone,
             int x,
             int y)
 {
-   E_Event_Zone_Move_Resize *ev;
-   int dx, dy;
-
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
-
-   if ((x == zone->x) && (y == zone->y)) return;
-   dx = x - zone->x;
-   dy = y - zone->y;
-   zone->x = x;
-   zone->y = y;
-   evas_object_move(zone->bg_object, x, y);
-   evas_object_move(zone->bg_event_object, x, y);
-   evas_object_move(zone->bg_clip_object, x, y);
-
-   ev = E_NEW(E_Event_Zone_Move_Resize, 1);
-   ev->zone = zone;
-   e_object_ref(E_OBJECT(ev->zone));
-   ecore_event_add(E_EVENT_ZONE_MOVE_RESIZE, ev, _e_zone_event_generic_free, NULL);
-
-   _e_zone_edge_move_resize(zone);
-   e_zone_bg_reconfigure(zone);
-   e_zone_reconfigure_clients(zone, dx, dy, 0, 0);
+   e_zone_move_resize(zone, x, y, zone->w, zone->h);
 }
 
 E_API void
@@ -328,31 +313,9 @@ e_zone_resize(E_Zone *zone,
               int w,
               int h)
 {
-   E_Event_Zone_Move_Resize *ev;
-   int dw, dh;
-
    E_OBJECT_CHECK(zone);
    E_OBJECT_TYPE_CHECK(zone, E_ZONE_TYPE);
-
-   if ((w == zone->w) && (h == zone->h)) return;
-
-   dw = w - zone->w;
-   dh = h - zone->h;
-   zone->w = w;
-   zone->h = h;
-   evas_object_resize(zone->bg_object, w, h);
-   evas_object_resize(zone->bg_event_object, w, h);
-   evas_object_resize(zone->bg_clip_object, w, h);
-
-   ev = E_NEW(E_Event_Zone_Move_Resize, 1);
-   ev->zone = zone;
-   e_object_ref(E_OBJECT(ev->zone));
-   ecore_event_add(E_EVENT_ZONE_MOVE_RESIZE, ev,
-                   _e_zone_event_generic_free, NULL);
-
-   _e_zone_edge_move_resize(zone);
-   e_zone_bg_reconfigure(zone);
-   e_zone_reconfigure_clients(zone, 0, 0, dw, dh);
+   e_zone_move_resize(zone, zone->x, zone->y, w, h);
 }
 
 E_API Eina_Bool
@@ -363,7 +326,7 @@ e_zone_move_resize(E_Zone *zone,
                    int h)
 {
    E_Event_Zone_Move_Resize *ev;
-   int dx, dy, dw, dh;
+   int dx, dy;
 
    E_OBJECT_CHECK_RETURN(zone, EINA_FALSE);
    E_OBJECT_TYPE_CHECK_RETURN(zone, E_ZONE_TYPE, EINA_FALSE);
@@ -373,8 +336,6 @@ e_zone_move_resize(E_Zone *zone,
 
    dx = x - zone->x;
    dy = y - zone->y;
-   dw = w - zone->w;
-   dh = h - zone->h;
    zone->x = x;
    zone->y = y;
    zone->w = w;
@@ -395,7 +356,8 @@ e_zone_move_resize(E_Zone *zone,
 
    _e_zone_edge_move_resize(zone);
    e_zone_bg_reconfigure(zone);
-   e_zone_reconfigure_clients(zone, dx, dy, dw, dh);
+   e_zone_reconfigure_clients(zone, dx, dy);
+   e_zone_useful_geometry_dirty(zone);
    return EINA_TRUE;
 }
 
@@ -632,7 +594,7 @@ noflip:
         zone->flip.ev = zev;
         zone->flip.bind = binding;
         zone->flip.switching = edge;
-        binding->timer = ecore_timer_add(((double)binding->delay), _e_zone_cb_edge_timer, zone);
+        binding->timer = ecore_timer_loop_add(((double)binding->delay), _e_zone_cb_edge_timer, zone);
      }
 }
 
@@ -1322,6 +1284,8 @@ e_zone_desk_useful_geometry_get(const E_Zone *zone, const E_Desk *desk, int *x, 
    E_OBJECT_CHECK(desk);
    E_OBJECT_TYPE_CHECK(desk, E_DESK_TYPE);
 
+   if (desk->zone != zone) CRI("zone/desk mismatch!");
+
    _e_zone_useful_geometry_calc(zone, desk->x, desk->y, x, y, w, h);
 }
 
@@ -1341,12 +1305,14 @@ e_zone_useful_geometry_dirty(E_Zone *zone)
    /* ignore if pending event already exists */
    if (zone->useful_geometry_dirty) return;
 
+   zone->useful_geometry_dirty = 1;
+   if (!e_zone_useful_geometry_get(zone, NULL, NULL, NULL, NULL)) return;
    ev = E_NEW(E_Event_Zone_Move_Resize, 1);
    ev->zone = zone;
    e_object_ref(E_OBJECT(ev->zone));
-   ecore_event_add(E_EVENT_ZONE_MOVE_RESIZE, ev, _e_zone_event_generic_free, NULL);
+   ecore_event_add(E_EVENT_ZONE_USEFUL_GEOMETRY_CHANGED, ev, _e_zone_event_generic_free, NULL);
 
-   zone->useful_geometry_dirty = 1;
+   e_comp_clients_rescale();
 }
 
 E_API E_Zone_Obstacle *
@@ -1521,10 +1487,11 @@ _e_zone_cb_bg_mouse_down(void *data,
                          Evas_Object *obj EINA_UNUSED,
                          void *event_info)
 {
-   E_Zone *zone;
+   E_Zone *zone = data;
+   Evas_Event_Mouse_Down *ev = event_info;
 
-   zone = data;
    if (e_comp_util_mouse_grabbed()) return;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
 
    if (!zone->cur_mouse_action)
      {
@@ -1548,9 +1515,10 @@ _e_zone_cb_bg_mouse_up(void *data,
                        Evas_Object *obj EINA_UNUSED,
                        void *event_info)
 {
-   E_Zone *zone;
+   E_Zone *zone = data;
+   Evas_Event_Mouse_Up *ev = event_info;
 
-   zone = data;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    if (zone->cur_mouse_action)
      {
         E_Binding_Event_Mouse_Button event;

@@ -279,11 +279,8 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
    e_widget_disabled_set(cfdata->lock_cmd_entry,
      (cfdata->desklock_auth_method != E_DESKLOCK_AUTH_METHOD_EXTERNAL));
 
-   if (E_EFL_VERSION_MINIMUM(1, 17, 99))
-     {
-        e_widget_list_object_append(ol, of, 1, 1, 0.5);
-        ow = e_widget_button_add(evas, _("Configure Lockscreen Gadgets"), "configure", _cb_lockscreen_gadgets, NULL, NULL);
-     }
+   e_widget_list_object_append(ol, of, 1, 1, 0.5);
+   ow = e_widget_button_add(evas, _("Configure Lockscreen Gadgets"), "configure", _cb_lockscreen_gadgets, NULL, NULL);
 
    e_widget_list_object_append(ol, ow, 1, 1, 0.5);
    e_widget_toolbook_page_append(otb, NULL, _("Locking"), ol,
@@ -316,11 +313,7 @@ _basic_create(E_Config_Dialog *cfd, Evas *evas, E_Config_Dialog_Data *cfdata)
           }
         e_xkb_flag_file_get(buf, sizeof(buf), name);
         icon = e_icon_add(evas);
-        if (!e_icon_file_set(icon, buf))
-          {
-             evas_object_del(icon);
-             icon = NULL;
-          }
+        e_icon_file_set(icon, buf);
         if (cl->variant)
           snprintf(buf, sizeof(buf), "%s (%s, %s)", cl->name, cl->model, cl->variant);
         else
@@ -573,11 +566,10 @@ _basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfd
    if (e_config->desklock_autolock_screensaver != cfdata->screensaver_lock)
      return 1;
 
-   if (e_config->desklock_post_screensaver_time !=
-       cfdata->post_screensaver_time)
+   if (!EINA_DBL_EQ(e_config->desklock_post_screensaver_time, cfdata->post_screensaver_time))
      return 1;
 
-   if (e_config->desklock_autolock_idle_timeout != cfdata->idle_time * 60)
+   if (!EINA_DBL_EQ(e_config->desklock_autolock_idle_timeout, cfdata->idle_time * 60))
      return 1;
 
    if (cfdata->bg_method_prev != (int)cfdata->bg_method) return 1;
@@ -611,7 +603,7 @@ _basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfd
      return 1;
 
    return (e_config->desklock_ask_presentation != cfdata->ask_presentation) ||
-          (e_config->desklock_ask_presentation_timeout != cfdata->ask_presentation_timeout);
+          (!EINA_DBL_EQ(e_config->desklock_ask_presentation_timeout, cfdata->ask_presentation_timeout));
 }
 
 static void

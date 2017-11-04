@@ -337,9 +337,9 @@ ACT_FN_GO(window_kill, EINA_UNUSED)
      }
 
    snprintf(dialog_text, sizeof(dialog_text),
-            _("You are about to kill %s.<br><br>"
-              "Please keep in mind that all data from this window<br>"
-              "which has not yet been saved will be lost!<br><br>"
+            _("You are about to kill %s.<ps/><ps/>"
+              "Please keep in mind that all data from this window<ps/>"
+              "which has not yet been saved will be lost!<ps/><ps/>"
               "Are you sure you want to kill this window?"),
             ec->icccm.name);
 
@@ -851,7 +851,8 @@ ACT_FN_GO(window_move_by, )
              ec = (E_Client *)(void *)obj;
              evas_object_move(ec->frame, ec->x + dx, ec->y + dy);
 
-             e_util_pointer_center(ec);
+             if (!e_client_focus_policy_click(ec))
+               e_client_pointer_warp_to_center_now(ec);
           }
      }
 }
@@ -899,7 +900,8 @@ ACT_FN_GO(window_move_to, )
           {
              evas_object_move(ec->frame, x, y);
 
-             e_util_pointer_center(ec);
+             if (!e_client_focus_policy_click(ec))
+               e_client_pointer_warp_to_center_now(ec);
           }
      }
 }
@@ -962,7 +964,8 @@ ACT_FN_GO(window_move_to_center, EINA_UNUSED)
    ec = (E_Client *)(void *)obj;
    e_comp_object_util_center(ec->frame);
 
-   e_util_pointer_center(ec);
+   if (!e_client_focus_policy_click(ec))
+     e_client_pointer_warp_to_center_now(ec);
 }
 
 /***************************************************************************/
@@ -987,7 +990,8 @@ ACT_FN_GO(window_resize_by, )
              e_client_resize_limit(ec, &dw, &dh);
              evas_object_resize(ec->frame, dw, dh);
 
-             e_util_pointer_center(ec);
+             if (!e_client_focus_policy_click(ec))
+               e_client_pointer_warp_to_center_now(ec);
           }
      }
 }
@@ -1091,7 +1095,8 @@ ACT_FN_GO(window_push, )
         if ((x != ec->x) || (y != ec->y))
           {
              evas_object_move(ec->frame, x, y);
-             e_util_pointer_center(ec);
+             if (!e_client_focus_policy_click(ec))
+               e_client_pointer_warp_to_center_now(ec);
           }
      }
 }
@@ -1135,7 +1140,10 @@ window_jump_to(const char *params)
 
         evas_object_raise(ec->frame);
         if (ec->zone != current_zone)
-          e_util_pointer_center(ec);
+          {
+             if (!e_client_focus_policy_click(ec))
+               e_client_pointer_warp_to_center_now(ec);
+          }               
         evas_object_focus_set(ec->frame, 1);
         return 1;
      }
@@ -1283,16 +1291,16 @@ ACT_FN_GO(window_zone_move_by, )
      move = 0;
    zone = e_comp_zone_number_get(move);
    if (!zone) return;
+   if (ec->zone == zone) return;
    max = ec->maximized;
    fs = ec->fullscreen_policy;
    fullscreen = ec->fullscreen;
    if (ec->maximized) e_client_unmaximize(ec, E_MAXIMIZE_BOTH);
    if (fullscreen) e_client_unfullscreen(ec);
    e_client_zone_set(ec, zone);
-//   e_client_desk_set(ec, e_desk_current_get(zone));
    if (max) e_client_maximize(ec, max);
    if (fullscreen) e_client_fullscreen(ec, fs);
-   evas_object_focus_set(ec->frame, 1);
+   e_client_focus_set_with_pointer(ec);
 }
 
 /***************************************************************************/
@@ -1313,9 +1321,16 @@ ACT_FN_GO(window_desk_move_to, )
    if (sscanf(params, "%d %d", &x, &y) == 2)
      {
         E_Desk *desk;
+        E_Desk *old_desk = ec->desk;
+        Eina_Bool was_focused = e_client_stack_focused_get(ec);
 
         desk = e_desk_at_xy_get(ec->zone, x, y);
-        if (desk) e_client_desk_set(ec, desk);
+        if ((desk) && (desk != old_desk))
+          {
+             e_client_desk_set(ec, desk);
+             if (was_focused)
+               e_desk_last_focused_focus(old_desk);
+          }
      }
 }
 
@@ -1402,6 +1417,7 @@ ACT_FN_GO_EDGE(desk_flip_in_direction, )
    int x, y, offset = 25;
 
    if (!ev) return;  // with flip on _e_zone_cb_edge_timer we don't have ev!!!
+   if (e_client_action_get() && e_client_util_resizing_get(e_client_action_get())) return;
    zone = _e_actions_zone_get(obj);
    if (!zone) return;
    wev = E_NEW(E_Event_Pointer_Warp, 1);
@@ -1544,12 +1560,17 @@ ACT_FN_GO(desk_linear_flip_to, )
 }
 
 #define DESK_ACTION_ALL(zone, act) \
-   E_Zone *zone; \
-   const Eina_List *lz; \
-   \
-   EINA_LIST_FOREACH(e_comp->zones, lz, zone) { \
-      act; \
-   }
+   do { \
+     E_Zone *zone; \
+     const Eina_List *lz; \
+     \
+     EINA_LIST_FOREACH(e_comp->zones, lz, zone) { \
+        { \
+           zone->desk_flip_sync = 1; \
+           act; \
+        } \
+     } \
+   } while (0)
 
 /***************************************************************************/
 ACT_FN_GO(desk_linear_flip_to_screen, )
@@ -1819,7 +1840,7 @@ ACT_FN_GO(menu_show, )
                   ecore_evas_pointer_xy_get(e_comp->ee, &x, &y);
                   e_menu_post_deactivate_callback_set(m, _e_actions_cb_menu_end, NULL);
                   e_menu_activate_mouse(m, zone, x, y, 1, 1,
-                                        E_MENU_POP_DIRECTION_DOWN, 0);
+                                        E_MENU_POP_DIRECTION_AUTO, 0);
                }
           }
      }
@@ -1844,7 +1865,7 @@ ACT_FN_GO_MOUSE(menu_show, )
    y = ev->canvas.y;
    e_menu_post_deactivate_callback_set(m, _e_actions_cb_menu_end, NULL);
    e_menu_activate_mouse(m, zone, x, y, 1, 1,
-                         E_MENU_POP_DIRECTION_DOWN, ev->timestamp);
+                         E_MENU_POP_DIRECTION_AUTO, ev->timestamp);
    return EINA_TRUE;
 }
 
@@ -1877,23 +1898,57 @@ ACT_FN_GO_KEY(menu_show, , EINA_UNUSED)
      }
 }
 
+ACT_FN_GO(menu_show_object,)
+{
+   E_Zone *zone;
+
+   /* menu is active - abort */
+   if (e_comp_util_kbd_grabbed() || e_comp_util_mouse_grabbed()) return;
+   zone = _e_actions_zone_get(obj);
+   if (zone)
+     {
+        if (params)
+          {
+             E_Menu *m = NULL;
+
+             m = _e_actions_menu_find(params);
+             if (m)
+               {
+                  int x, y, w, h;
+                  Eina_List *l, *ll;
+                  Evas_Object *o;
+
+                  ecore_evas_pointer_xy_get(e_comp->ee, &x, &y);
+                  l = evas_objects_at_xy_get(e_comp->evas, x, y, 0, 0);
+                  EINA_LIST_REVERSE_FOREACH(l, ll, o)
+                    {
+                       if (evas_object_repeat_events_get(o) && ll->prev) continue;
+                       evas_object_geometry_get(o, &x, &y, &w, &h);
+                       m->zone = e_comp_object_util_zone_get(o);
+                       e_menu_post_deactivate_callback_set(m, _e_actions_cb_menu_end, NULL);
+                       e_menu_activate_mouse(m, zone, x, y, w, h,
+                                             E_MENU_POP_DIRECTION_AUTO, 0);
+                       break;
+                    }
+                  eina_list_free(l);
+               }
+          }
+     }
+}
+
 /***************************************************************************/
 ACT_FN_GO(exec, )
 {
    E_Zone *zone;
    static double lock;
+   double test;
 
    /* prevent exec actions from occurring too frequently */
-   if (lock)
+   test = ecore_loop_time_get();
+   if (test - lock < 0.05)
      {
-        double test;
-
-        test = ecore_loop_time_get();
-        if (test - lock < 0.05)
-          {
-             lock = test;
-             return;
-          }
+        lock = test;
+        return;
      }
    lock = ecore_loop_time_get();
    zone = _e_actions_zone_get(obj);
@@ -1933,10 +1988,10 @@ ACT_FN_GO(app, )
                        if (!dia) return;
 
                        snprintf(dialog_text, sizeof(dialog_text),
-                                "%s<br><br>"
-                                "Check syntax. You should not put a whitespace right after colon in action params.<br>"
-                                "syntax: [file:file.desktop|name:App Name|generic:Generic Name|exe:exename]<br><br>"
-                                "exe:terminology (O)<br>"
+                                "%s<ps/><ps/>"
+                                "Check syntax. You should not put a whitespace right after colon in action params.<ps/>"
+                                "syntax: [file:file.desktop|name:App Name|generic:Generic Name|exe:exename]<ps/><ps/>"
+                                "exe:terminology (O)<ps/>"
                                 "exe: terminology (X)", params);
 
                        e_dialog_title_set(dia, _("Action Params Syntax Error"));
@@ -2358,10 +2413,24 @@ _have_lid_and_external_screens_on(void)
    return EINA_FALSE;
 }
 
+static Eina_Bool
+_should_suspend_if_plugged_in(void)
+{
+   if ((e_config->screensaver_suspend_on_ac) ||
+       (e_powersave_mode_get() > E_POWERSAVE_MODE_LOW))
+     return EINA_TRUE;
+   return EINA_FALSE;
+}
+
 ACT_FN_GO(suspend_smart, EINA_UNUSED)
 {
    if (!_have_lid_and_external_screens_on())
-     e_sys_action_do(E_SYS_SUSPEND, NULL);
+     {
+        if (_should_suspend_if_plugged_in())
+          e_sys_action_do(E_SYS_SUSPEND, NULL);
+        else
+          e_powersave_defer_suspend();
+     }
 }
 
 /***************************************************************************/
@@ -2429,7 +2498,12 @@ ACT_FN_GO(hibernate, )
 ACT_FN_GO(hibernate_smart, EINA_UNUSED)
 {
    if (!_have_lid_and_external_screens_on())
-     e_sys_action_do(E_SYS_HIBERNATE, NULL);
+     {
+        if (_should_suspend_if_plugged_in())
+          e_sys_action_do(E_SYS_HIBERNATE, NULL);
+        else
+          e_powersave_defer_hibernate();
+     }
 }
 
 /***************************************************************************/
@@ -2690,7 +2764,7 @@ _delayed_action_list_parse(Delayed_Action *da, const char *params)
         eina_strlcpy(a2, a2start, a2stop - a2start + 1);
         _delayed_action_list_parse_action(a2, &delay, &da->delayed.action, &da->delayed.params);
      }
-   da->timer = ecore_timer_add(delay, _delayed_action_cb_timer, da);
+   da->timer = ecore_timer_loop_add(delay, _delayed_action_cb_timer, da);
 }
 
 static void
@@ -2950,6 +3024,193 @@ ACT_FN_GO(screen_redo, EINA_UNUSED)
    e_randr2_screeninfo_update();
    e_randr2_config_apply();
 #endif
+}
+
+/***************************************************************************/
+static Eina_Bool
+_skip_win(E_Client *ec, E_Zone *zone, E_Desk *desk)
+{
+   if ((!ec->icccm.accepts_focus) && (!ec->icccm.take_focus)) return EINA_TRUE;
+   if (ec->netwm.state.skip_taskbar) return EINA_TRUE;
+   if (ec->user_skip_winlist) return EINA_TRUE;
+   if (ec->iconic) return EINA_TRUE;
+   if (ec->zone != zone) return EINA_TRUE;
+   if (!((ec->sticky) || (ec->desk == desk))) return EINA_TRUE;
+   return EINA_FALSE;
+}
+
+static int
+_point_line_dist(int x, int y, int lx1, int ly1, int lx2, int ly2)
+{
+   int xx, yy, dx, dy;
+   int a = x - lx1;
+   int b = y - ly1;
+   int c = lx2 - lx1;
+   int d = ly2 - ly1;
+   int dot = (a * c) + (b * d);
+   int len_sq = (c * c) + (d * d);
+   double dist, param = -1.0;
+
+   // if line is 0 length
+   if (len_sq) param = (double)dot / len_sq;
+
+   if (param < 0)
+     {
+        xx = lx1;
+        yy = ly1;
+     }
+   else if (param > 1)
+     {
+        xx = lx2;
+        yy = ly2;
+     }
+   else
+     {
+        xx = lx1 + lround(param * c);
+        yy = ly1 + lround(param * d);
+     }
+
+   dx = x - xx;
+   dy = y - yy;
+   dist = sqrt((dx * dx) + (dy * dy));
+   return lround(dist);
+}
+
+ACT_FN_GO(window_focus, EINA_UNUSED)
+{
+   E_Zone *zone = e_zone_current_get();
+   E_Desk *desk = e_desk_current_get(zone);
+   E_Client *ec, *ec_orig,
+     *ec_prev = NULL, *ec_last = NULL, *ec_first = NULL, *ec_next = NULL;
+   Eina_List *l;
+   int distance = INT_MAX, cx, cy, dir = -1, found = 0;
+
+   if (!params) return;
+   ec_orig = e_client_focused_get();
+   if (!ec_orig)
+     {
+        // XXX: just pick any window to focus
+        EINA_LIST_FOREACH(e_client_focus_stack_get(), l, ec)
+          {
+             if (_skip_win(ec, zone, desk)) continue;
+             e_client_focus_set_with_pointer(ec);
+             return;
+          }
+        return;
+     }
+
+   if      (!strcmp(params, "next"))  dir = -1;
+   else if (!strcmp(params, "prev"))  dir = -2;
+   else if (!strcmp(params, "up"))    dir =  0;
+   else if (!strcmp(params, "down"))  dir =  1;
+   else if (!strcmp(params, "left"))  dir =  2;
+   else if (!strcmp(params, "right")) dir =  3;
+   else
+     {
+        e_util_dialog_show(_("Error: window_focus action"),
+                           _("Invalid parameter: %s"), params);
+        return;
+     }
+   if (dir < 0)
+     {
+        EINA_LIST_FOREACH(e_client_focus_stack_get(), l, ec)
+          {
+             if (_skip_win(ec, zone, desk)) continue;
+
+             if (ec == ec_orig)              found = 1;
+             else if (!found)                ec_prev = ec;
+             else if ((found) && (!ec_next)) ec_next = ec;
+
+             if (!ec_first)                  ec_first = ec;
+             ec_last = ec;
+          }
+        if (dir == -1) /* next */
+          {
+             if (ec_next) e_client_focus_set_with_pointer(ec_next);
+             else if (ec_first) e_client_focus_set_with_pointer(ec_first);
+          }
+        else if (dir == -2)
+          {
+             if (ec_prev) e_client_focus_set_with_pointer(ec_prev);
+             else if (ec_last) e_client_focus_set_with_pointer(ec_last);
+          }
+        return;
+     }
+
+   cx = ec_orig->x + (ec_orig->w / 2);
+   cy = ec_orig->y + (ec_orig->h / 2);
+
+   EINA_LIST_FOREACH(e_client_focus_stack_get(), l, ec)
+     {
+        int a = 0, d = 0;
+
+        if (ec == ec_orig) continue;
+        if (_skip_win(ec, zone, desk)) continue;
+
+        switch (dir)
+          {
+           case 0: /* up */
+             d = _point_line_dist(cx, cy,
+                                  ec->x,         ec->y + ec->h,
+                                  ec->x + ec->w, ec->y + ec->h);
+             if (d >= distance) continue;
+             d = _point_line_dist(cx, cy,
+                                  ec->x,         ec->y + (ec->h / 2),
+                                  ec->x + ec->w, ec->y + (ec->h / 2));
+             if (d >= distance) continue;
+             if (cy <= (ec->y + (ec->h / 2))) continue;
+             a = abs(cx - (ec->x + (ec->w / 2)));
+             d += (a * a) / d;
+             if (d >= distance) continue;
+             break;
+           case 1: /* down */
+             d = _point_line_dist(cx, cy,
+                                  ec->x,         ec->y,
+                                  ec->x + ec->w, ec->y);
+             if (d >= distance) continue;
+             d = _point_line_dist(cx, cy,
+                                  ec->x,         ec->y + (ec->h / 2),
+                                  ec->x + ec->w, ec->y + (ec->h / 2));
+             if (d >= distance) continue;
+             if (cy >= (ec->y + (ec->h / 2))) continue;
+             a = abs(cx - (ec->x + (ec->w / 2)));
+             d += (a * a) / d;
+             if (d >= distance) continue;
+             break;
+           case 2: /* left */
+             d = _point_line_dist(cx, cy,
+                                  ec->x + ec->w, ec->y,
+                                  ec->x + ec->w, ec->y + ec->h);
+             if (d >= distance) continue;
+             d = _point_line_dist(cx, cy,
+                                  ec->x + (ec->w / 2), ec->y,
+                                  ec->x + (ec->w / 2), ec->y + ec->h);
+             if (d >= distance) continue;
+             if (cx <= (ec->x + (ec->w / 2))) continue;
+             a = abs(cy - (ec->y + (ec->h / 2)));
+             d += (a * a) / d;
+             if (d >= distance) continue;
+             break;
+           case 3: /* right */
+             d = _point_line_dist(cx, cy,
+                                  ec->x, ec->y,
+                                  ec->x, ec->y + ec->h);
+             if (d >= distance) continue;
+             d = _point_line_dist(cx, cy,
+                                  ec->x + (ec->w / 2), ec->y,
+                                  ec->x + (ec->w / 2), ec->y + ec->h);
+             if (d >= distance) continue;
+             if (cx >= (ec->x + (ec->w / 2))) continue;
+             a = abs(cy - (ec->y + (ec->h / 2)));
+             d += (a * a) / d;
+             if (d >= distance) continue;
+             break;
+          }
+        ec_next = ec;
+        distance = d;
+     }
+
+   if (ec_next) e_client_focus_set_with_pointer(ec_next);
 }
 
 /* local subsystem globals */
@@ -3401,6 +3662,27 @@ e_actions_init(void)
    e_action_predef_name_set(N_("Window : Moving"), N_("To Previous Screen"),
                             "window_zone_move_by", "-1", NULL, 0);
 
+   /* Move window focus somewhere */
+   ACT_GO(window_focus);
+   e_action_predef_name_set(N_("Window : Focus"),
+                            N_("Focus next window"),
+                            "window_focus", "next", NULL, 0);
+   e_action_predef_name_set(N_("Window : Focus"),
+                            N_("Focus previous window"),
+                            "window_focus", "prev", NULL, 0);
+   e_action_predef_name_set(N_("Window : Focus"),
+                            N_("Focus window above"),
+                            "window_focus", "up", NULL, 0);
+   e_action_predef_name_set(N_("Window : Focus"),
+                            N_("Focus window below"),
+                            "window_focus", "down", NULL, 0);
+   e_action_predef_name_set(N_("Window : Focus"),
+                            N_("Focus window left"),
+                            "window_focus", "left", NULL, 0);
+   e_action_predef_name_set(N_("Window : Focus"),
+                            N_("Focus window right"),
+                            "window_focus", "right", NULL, 0);
+
    /* menu_show */
    ACT_GO(menu_show);
    e_action_predef_name_set(N_("Menu"), N_("Show Main Menu"),
@@ -3415,6 +3697,9 @@ e_actions_init(void)
                             "syntax: MenuName, example: MyMenu", 1);
    ACT_GO_MOUSE(menu_show);
    ACT_GO_KEY(menu_show);
+
+   /* internal: for showing a menu from an object */
+   ACT_GO(menu_show_object);
 
    /* exec */
    ACT_GO(exec);

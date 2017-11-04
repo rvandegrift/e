@@ -72,7 +72,12 @@
      - called on a gadget object when the "gadget_menu" action has been triggered
      - event_info is an E_Menu object
      - if a configure callback has been passed with e_gadget_configure_cb_set(),
-     a "Settings" item will be automatically added with this callback
+       a "Settings" item will be automatically added with this callback
+   "gadget_reparent"
+     - called on a gadget object when the gadget has been reparented
+     - parent object is event_info
+     - indicates that the gadget should watch this new object for EVAS_CALLBACK_RESIZE
+     - event_info will be NULL in the case that the reparenting removes the parent
  -------------------------------
  -------------------------------
  * called externally by gadget on gadget object:
@@ -82,37 +87,16 @@
      - event_info is the Evas_Object of the popup
  */
 
-typedef enum
-{
-   E_GADGET_SITE_GRAVITY_NONE = 0,
-   E_GADGET_SITE_GRAVITY_LEFT,
-   E_GADGET_SITE_GRAVITY_RIGHT,
-   E_GADGET_SITE_GRAVITY_TOP,
-   E_GADGET_SITE_GRAVITY_BOTTOM,
-   E_GADGET_SITE_GRAVITY_CENTER,
-} E_Gadget_Site_Gravity;
-
-typedef enum
-{
-   E_GADGET_SITE_ORIENT_NONE = 0,
-   E_GADGET_SITE_ORIENT_HORIZONTAL,
-   E_GADGET_SITE_ORIENT_VERTICAL,
-} E_Gadget_Site_Orient;
-
-typedef enum
-{
-   E_GADGET_SITE_ANCHOR_NONE = 0,
-   E_GADGET_SITE_ANCHOR_LEFT = (1 << 0),
-   E_GADGET_SITE_ANCHOR_RIGHT = (1 << 1),
-   E_GADGET_SITE_ANCHOR_TOP = (1 << 2),
-   E_GADGET_SITE_ANCHOR_BOTTOM = (1 << 3),
-} E_Gadget_Site_Anchor;
+#include "e_gadget_types.h"
 
 typedef Evas_Object *(*E_Gadget_Create_Cb)(Evas_Object *parent, int *id, E_Gadget_Site_Orient orient);
+typedef Evas_Object *(*E_Gadget_External_Create_Cb)(Evas_Object *parent, const char *type, int *id, E_Gadget_Site_Orient orient);
 typedef Evas_Object *(*E_Gadget_Configure_Cb)(Evas_Object *gadget);
 typedef void (*E_Gadget_Wizard_End_Cb)(void *data, int id);
-typedef void (*E_Gadget_Wizard_Cb)(E_Gadget_Wizard_End_Cb cb, void *data);
+typedef Evas_Object *(*E_Gadget_Wizard_Cb)(E_Gadget_Wizard_End_Cb cb, void *data, Evas_Object *site);
+typedef Evas_Object *(*E_Gadget_External_Wizard_Cb)(E_Gadget_Wizard_End_Cb cb, void *data, const char *type, Evas_Object *site);
 typedef void (*E_Gadget_Style_Cb)(Evas_Object *owner, Eina_Stringshare *name, Evas_Object *g);
+typedef char *(*E_Gadget_External_Name_Cb)(const char *type);
 
 EINTERN void e_gadget_init(void);
 EINTERN void e_gadget_shutdown(void);
@@ -127,7 +111,9 @@ E_API E_Gadget_Site_Orient e_gadget_site_orient_get(Evas_Object *obj);
 E_API E_Gadget_Site_Gravity e_gadget_site_gravity_get(Evas_Object *obj);
 E_API void e_gadget_site_gravity_set(Evas_Object *obj, E_Gadget_Site_Gravity gravity);
 E_API void e_gadget_site_gadget_add(Evas_Object *obj, const char *type, Eina_Bool demo);
+E_API void e_gadget_site_gadget_external_add(Evas_Object *obj, const char *domain, const char *type, Eina_Bool demo);
 E_API Eina_List *e_gadget_site_gadgets_list(Evas_Object *obj);
+E_API Eina_Bool e_gadget_site_is_desklock(Evas_Object *obj);
 
 E_API void e_gadget_configure_cb_set(Evas_Object *g, E_Gadget_Configure_Cb cb);
 E_API void e_gadget_configure(Evas_Object *g);
@@ -136,7 +122,21 @@ E_API Eina_Stringshare *e_gadget_type_get(Evas_Object *g);
 
 E_API void e_gadget_type_add(const char *type, E_Gadget_Create_Cb callback, E_Gadget_Wizard_Cb wizard);
 E_API void e_gadget_type_del(const char *type);
+E_API void e_gadget_external_type_add(const char *domain, const char *type, E_Gadget_External_Create_Cb callback, E_Gadget_External_Wizard_Cb wizard);
+E_API void e_gadget_external_type_del(const char *domain, const char *type);
+E_API void e_gadget_external_type_name_cb_set(const char *domain, const char *type, E_Gadget_External_Name_Cb name);
 E_API Eina_Iterator *e_gadget_type_iterator_get(void);
+/* delete a gadget and its config */
+E_API void e_gadget_del(Evas_Object *g);
+/* drop region initially matches gadget size, resizes to match returned object's size
+ * handler is removed when returned object is deleted
+ */
+E_API Evas_Object *e_gadget_drop_handler_add(Evas_Object *g, void *data,
+                                        void (*enter_cb)(void *data, const char *type, void *event),
+                                        void (*move_cb)(void *data, const char *type, void *event),
+                                        void (*leave_cb)(void *data, const char *type, void *event),
+                                        void (*drop_cb)(void *data, const char *type, void *event),
+                                        const char **types, unsigned int num_types);
 
 E_API Evas_Object *e_gadget_util_layout_style_init(Evas_Object *g, Evas_Object *style);
 E_API void e_gadget_util_ctxpopup_place(Evas_Object *g, Evas_Object *ctx, Evas_Object *pos_obj);
@@ -145,5 +145,6 @@ E_API void e_gadget_util_allow_deny_ctxpopup(Evas_Object *g, const char *text, E
 E_API Evas_Object *e_gadget_editor_add(Evas_Object *parent, Evas_Object *site);
 E_API Evas_Object *e_gadget_site_edit(Evas_Object *site);
 E_API void e_gadget_site_desklock_edit(void);
+E_API void e_gadget_site_desktop_edit(Evas_Object *site);
 #endif
 #endif

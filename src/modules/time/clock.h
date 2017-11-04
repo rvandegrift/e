@@ -34,6 +34,7 @@ struct _Config
 struct _Config_Item
 {
   int id;
+  Instance *inst;
   struct {
       int start, len; // 0->6 0 == sun, 6 == sat, number of days
    } weekend;
@@ -82,11 +83,10 @@ EINTERN void time_zoneinfo_scan(Evas_Object *obj);
 
 EINTERN Evas_Object *digital_clock_create(Evas_Object *parent, int *id, E_Gadget_Site_Orient orient);
 EINTERN Evas_Object *analog_clock_create(Evas_Object *parent, int *id, E_Gadget_Site_Orient orient);
-EINTERN void digital_clock_wizard(E_Gadget_Wizard_End_Cb cb, void *data);
-EINTERN void analog_clock_wizard(E_Gadget_Wizard_End_Cb cb, void *data);
 EINTERN void clock_popup_new(Instance *inst);
 EINTERN void time_config_update(Config_Item *ci);
 EINTERN void clock_timer_set(Eina_Bool set);
+EINTERN void clock_date_update(void);
 
 extern Config *time_config;
 extern Eina_List *clock_instances;

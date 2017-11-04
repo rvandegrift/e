@@ -1,6 +1,6 @@
 #ifdef E_TYPEDEFS
 
-#define E_MODULE_API_VERSION 21
+#define E_MODULE_API_VERSION 25
 
 typedef struct _E_Module     E_Module;
 typedef struct _E_Module_Api E_Module_Api;
@@ -31,6 +31,7 @@ struct _E_Module
    E_Module_Api        *api;
 
    Eina_Stringshare    *name;
+   Eina_Stringshare    *file;
    Eina_Stringshare    *dir;
    void                *handle;
 

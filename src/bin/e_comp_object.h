@@ -41,6 +41,7 @@ E_API Evas_Object *e_comp_object_client_add(E_Client *ec);
 E_API Evas_Object *e_comp_object_util_mirror_add(Evas_Object *obj);
 E_API void e_comp_object_util_type_set(Evas_Object *obj, E_Comp_Object_Type type);
 E_API Evas_Object *e_comp_object_util_add(Evas_Object *obj, E_Comp_Object_Type type);
+E_API Evas_Object *e_comp_object_util_get(Evas_Object *obj);
 E_API void e_comp_object_frame_xy_adjust(Evas_Object *obj, int x, int y, int *ax, int *ay);
 E_API void e_comp_object_frame_xy_unadjust(Evas_Object *obj, int x, int y, int *ax, int *ay);
 E_API void e_comp_object_frame_wh_adjust(Evas_Object *obj, int w, int h, int *aw, int *ah);
@@ -69,7 +70,8 @@ E_API void e_comp_object_signal_emit(Evas_Object *obj, const char *sig, const ch
 E_API void e_comp_object_signal_callback_add(Evas_Object *obj, const char *sig, const char *src, Edje_Signal_Cb cb, const void *data);
 E_API void e_comp_object_signal_callback_del(Evas_Object *obj, const char *sig, const char *src, Edje_Signal_Cb cb);
 E_API void e_comp_object_signal_callback_del_full(Evas_Object *obj, const char *sig, const char *src, Edje_Signal_Cb cb, const void *data);
-E_API void e_comp_object_input_area_set(Evas_Object *obj, int x, int y, int w, int h);
+E_API void e_comp_object_input_area_set(Evas_Object *obj, const Eina_Tiler *area);
+E_API Eina_Bool e_comp_object_coords_inside_input_area(Evas_Object *obj, int x, int y);
 E_API void e_comp_object_damage(Evas_Object *obj, int x, int y, int w, int h);
 E_API Eina_Bool e_comp_object_damage_exists(Evas_Object *obj);
 E_API void e_comp_object_render_update_add(Evas_Object *obj);
@@ -91,6 +93,7 @@ E_API Eina_Bool e_comp_object_effect_start(Evas_Object *obj, Edje_Signal_Cb end_
 E_API Eina_Bool e_comp_object_effect_stop(Evas_Object *obj, Edje_Signal_Cb end_cb);
 E_API E_Comp_Object_Mover *e_comp_object_effect_mover_add(int pri, const char *sig, E_Comp_Object_Mover_Cb provider, const void *data);
 E_API void e_comp_object_effect_mover_del(E_Comp_Object_Mover *prov);
+E_API void e_comp_object_frame_volume_update(Evas_Object *obj);
 
 #endif
 #endif

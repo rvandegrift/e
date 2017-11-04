@@ -83,9 +83,9 @@ _basic_check_changed(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfd
 	    (cfdata->use_e_cursor == e_config->use_e_cursor) &&
 	    (cfdata->cursor_size == e_config->cursor_size) &&
 	    (cfdata->mouse_hand == e_config->mouse_hand) &&
-	    (cfdata->numerator == e_config->mouse_accel_numerator) &&
-	    (cfdata->denominator == e_config->mouse_accel_denominator) &&
-	    (cfdata->threshold == e_config->mouse_accel_threshold));
+	    EINA_DBL_EQ(cfdata->numerator, e_config->mouse_accel_numerator) &&
+	    EINA_DBL_EQ(cfdata->denominator, e_config->mouse_accel_denominator) &&
+	    EINA_DBL_EQ(cfdata->threshold, e_config->mouse_accel_threshold));
 }
 
 static void
@@ -98,6 +98,7 @@ _free_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 static int
 _basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata)
 {
+   Eina_Bool redo = e_config->use_e_cursor != cfdata->use_e_cursor;
    e_config->use_e_cursor = cfdata->use_e_cursor;
    e_config->show_cursor = cfdata->show_cursor;
    e_config->idle_cursor = cfdata->idle_cursor;
@@ -113,7 +114,15 @@ _basic_apply_data(E_Config_Dialog *cfd EINA_UNUSED, E_Config_Dialog_Data *cfdata
    if ((e_comp->comp_type == E_PIXMAP_TYPE_X) && (!e_config->show_cursor))
      e_pointer_hide(e_comp->pointer);
    else
-     e_pointers_size_set(e_config->cursor_size);
+     {
+        if (redo && (e_comp->comp_type == E_PIXMAP_TYPE_X))
+          {
+             E_FREE_FUNC(e_comp->pointer, e_object_del);
+             e_comp->pointer = e_pointer_window_new(e_comp->root, 1);
+          }
+        else
+          e_pointers_size_set(e_config->cursor_size);
+     }
 
    e_mouse_update();
 
@@ -140,10 +149,11 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    /* Cursor */
    ol = e_widget_list_add(evas, 0, 0);
 
-   oc = e_widget_check_add(evas, _("Show Cursor"), &(cfdata->show_cursor));
-   e_widget_list_object_append(ol, oc, 1, 0, 0.5);
-
    of = e_widget_framelist_add(evas, _("Settings"), 0);
+
+   oc = e_widget_check_add(evas, _("Show Cursor"), &(cfdata->show_cursor));
+   e_widget_framelist_object_append(of, oc);
+
    rg = e_widget_radio_group_new(&cfdata->use_e_cursor);
 
    ob = e_widget_label_add(evas, _("Size"));
@@ -155,21 +165,22 @@ _basic_create_widgets(E_Config_Dialog *cfd EINA_UNUSED, Evas *evas, E_Config_Dia
    e_widget_framelist_object_append(of, ob);
    e_widget_check_widget_disable_on_unchecked_add(oc, ob);
 
-   ob = e_widget_label_add(evas, _("E Theme"));
-   e_widget_framelist_object_append(of, ob);
-   e_widget_check_widget_disable_on_unchecked_add(oc, ob);
+   e_widget_list_object_append(ol, of, 1, 0, 0.5);
+   of = e_widget_framelist_add(evas, _("E Theme"), 0);
 
-   ob = e_widget_radio_add(evas, _("Application"), 0, rg);
-   e_widget_on_change_hook_set(ob, _use_e_cursor_cb_change, cfdata);
-   e_widget_framelist_object_append(of, ob);
-   e_widget_check_widget_disable_on_unchecked_add(oc, ob);
-   if (!e_comp_util_has_x()) e_widget_disabled_set(ob, 1);
+   if (e_comp->comp_type == E_PIXMAP_TYPE_X)
+     {
+        ob = e_widget_radio_add(evas, _("Application"), 0, rg);
+        e_widget_on_change_hook_set(ob, _use_e_cursor_cb_change, cfdata);
+        e_widget_framelist_object_append(of, ob);
+        e_widget_check_widget_disable_on_unchecked_add(oc, ob);
 
-   ob = e_widget_radio_add(evas, _("Enlightenment"), 1, rg);
-   e_widget_on_change_hook_set(ob, _use_e_cursor_cb_change, cfdata);
-   e_widget_framelist_object_append(of, ob);
-   e_widget_check_widget_disable_on_unchecked_add(oc, ob);
-   e_widget_on_disable_hook_set(ob, _use_e_cursor_cb_change, cfdata);
+        ob = e_widget_radio_add(evas, _("Enlightenment"), 1, rg);
+        e_widget_on_change_hook_set(ob, _use_e_cursor_cb_change, cfdata);
+        e_widget_framelist_object_append(of, ob);
+        e_widget_check_widget_disable_on_unchecked_add(oc, ob);
+        e_widget_on_disable_hook_set(ob, _use_e_cursor_cb_change, cfdata);
+     }
 
    ob = e_widget_check_add(evas, _("Idle effects"),
                            &(cfdata->idle_cursor));

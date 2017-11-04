@@ -30,6 +30,8 @@ static Ecore_Timer *_e_screensaver_timer;
 static Eina_Bool _e_screensaver_inhibited = EINA_FALSE;
 #endif
 
+static Eina_Bool _screensaver_ignore = EINA_FALSE;
+
 E_API int E_EVENT_SCREENSAVER_ON = -1;
 E_API int E_EVENT_SCREENSAVER_OFF = -1;
 E_API int E_EVENT_SCREENSAVER_OFF_PRE = -1;
@@ -50,7 +52,13 @@ e_screensaver_timeout_get(Eina_Bool use_idle)
    int timeout = 0, count = (1 + _e_screensaver_ask_presentation_count);
 
    if ((e_config->screensaver_enable) && (!e_config->mode.presentation))
-     timeout = e_config->screensaver_timeout * count;
+     {
+        if ((e_desklock_state_get()) &&
+            (e_config->screensaver_desklock_timeout > 0))
+          timeout = e_config->screensaver_desklock_timeout;
+        else
+          timeout = e_config->screensaver_timeout * count;
+     }
 
    if ((use_idle) && (!e_config->mode.presentation))
      {
@@ -66,6 +74,24 @@ e_screensaver_timeout_get(Eina_Bool use_idle)
           }
      }
    return timeout;
+}
+
+E_API void
+e_screensaver_ignore(void)
+{
+   _screensaver_ignore = EINA_TRUE;
+}
+
+E_API void
+e_screensaver_unignore(void)
+{
+   _screensaver_ignore = EINA_FALSE;
+}
+
+E_API Eina_Bool
+e_screensaver_ignore_get(void)
+{
+   return _screensaver_ignore;
 }
 
 E_API void
@@ -120,7 +146,7 @@ e_screensaver_update(void)
      {
         E_FREE_FUNC(_e_screensaver_timer, ecore_timer_del);
         if (timeout)
-          _e_screensaver_timer = ecore_timer_add(timeout, _e_screensaver_idle_timeout_cb, (void*)1);
+          _e_screensaver_timer = ecore_timer_loop_add(timeout, _e_screensaver_idle_timeout_cb, (void*)1);
      }
 #endif
 }
@@ -197,7 +223,7 @@ _e_screensaver_ask_presentation_mode(void)
    e_dialog_title_set(dia, _("Activate Presentation Mode?"));
    e_dialog_icon_set(dia, "dialog-ask", 64);
    e_dialog_text_set(dia,
-                     _("You disabled the screensaver too fast.<br><br>"
+                     _("You disabled the screensaver too fast.<ps/><ps/>"
                        "Would you like to enable <b>presentation</b> mode and "
                        "temporarily disable screen saver, lock and power saving?"));
 
@@ -244,7 +270,7 @@ _e_screensaver_handler_powersave_cb(void *data EINA_UNUSED, int type EINA_UNUSED
         if (_e_screensaver_suspend_timer)
           ecore_timer_del(_e_screensaver_suspend_timer);
         _e_screensaver_suspend_timer =
-          ecore_timer_add(e_config->screensaver_suspend_delay,
+          ecore_timer_loop_add(e_config->screensaver_suspend_delay,
                           _e_screensaver_suspend_cb, NULL);
      }
    return ECORE_CALLBACK_PASS_ON;
@@ -263,7 +289,7 @@ _e_screensaver_handler_screensaver_on_cb(void *data EINA_UNUSED, int type EINA_U
      }
    if (e_config->screensaver_suspend)
      _e_screensaver_suspend_timer =
-       ecore_timer_add(e_config->screensaver_suspend_delay,
+       ecore_timer_loop_add(e_config->screensaver_suspend_delay,
                        _e_screensaver_suspend_cb, NULL);
    last_start = ecore_loop_time_get();
    _e_screensaver_ask_presentation_count = 0;
@@ -294,7 +320,7 @@ _e_screensaver_handler_screensaver_off_cb(void *data EINA_UNUSED, int type EINA_
      _e_screensaver_ask_presentation_count = 0;
 #ifdef HAVE_WAYLAND
    if (_e_screensaver_timeout && (e_comp->comp_type == E_PIXMAP_TYPE_WL))
-     _e_screensaver_timer = ecore_timer_add(_e_screensaver_timeout, _e_screensaver_idle_timeout_cb, (void*)1);
+     _e_screensaver_timer = ecore_timer_loop_add(_e_screensaver_timeout, _e_screensaver_idle_timeout_cb, (void*)1);
 #endif
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -504,19 +530,25 @@ e_screensaver_eval(Eina_Bool saver_on)
 
              if (t < 1.0) t = 1.0;
              E_FREE_FUNC(screensaver_idle_timer, ecore_timer_del);
-             if (e_config->screensaver_enable)
-               screensaver_idle_timer = ecore_timer_add
-                   (t, _e_screensaver_idle_timer_cb, NULL);
-             if (e_backlight_mode_get(NULL) != E_BACKLIGHT_MODE_DIM)
+             if (!_screensaver_ignore)
                {
-                  e_backlight_mode_set(NULL, E_BACKLIGHT_MODE_DIM);
-                  screensaver_dimmed = EINA_TRUE;
+                  if (e_config->screensaver_enable)
+                    screensaver_idle_timer = ecore_timer_loop_add
+                      (t, _e_screensaver_idle_timer_cb, NULL);
+                  if (e_backlight_mode_get(NULL) != E_BACKLIGHT_MODE_DIM)
+                    {
+                       e_backlight_mode_set(NULL, E_BACKLIGHT_MODE_DIM);
+                       screensaver_dimmed = EINA_TRUE;
+                    }
                }
           }
         else
           {
-             if (!e_screensaver_on_get())
-               ecore_event_add(E_EVENT_SCREENSAVER_ON, NULL, NULL, NULL);
+             if (!_screensaver_ignore)
+               {
+                  if (!e_screensaver_on_get())
+                    ecore_event_add(E_EVENT_SCREENSAVER_ON, NULL, NULL, NULL);
+               }
           }
         return;
      }
@@ -536,8 +568,14 @@ e_screensaver_eval(Eina_Bool saver_on)
           e_backlight_mode_set(NULL, E_BACKLIGHT_MODE_NORMAL);
         screensaver_dimmed = EINA_FALSE;
      }
-   if (e_screensaver_on_get())
-     ecore_event_add(E_EVENT_SCREENSAVER_OFF, NULL, NULL, NULL);
+   if (!_screensaver_ignore)
+     {
+        if (e_screensaver_on_get())
+          {
+             e_screensaver_update();
+             ecore_event_add(E_EVENT_SCREENSAVER_OFF, NULL, NULL, NULL);
+          }
+     }
 }
 
 E_API void
@@ -549,10 +587,10 @@ e_screensaver_notidle(void)
    if (e_screensaver_on_get())
      {
         ecore_event_add(E_EVENT_SCREENSAVER_OFF_PRE, NULL, NULL, NULL);
-        _e_screensaver_timer = ecore_timer_add(0.2, _e_screensaver_idle_timeout_cb, NULL);
+        _e_screensaver_timer = ecore_timer_loop_add(0.2, _e_screensaver_idle_timeout_cb, NULL);
      }
    else if (_e_screensaver_timeout)
-     _e_screensaver_timer = ecore_timer_add(_e_screensaver_timeout, _e_screensaver_idle_timeout_cb, (void*)1);
+     _e_screensaver_timer = ecore_timer_loop_add(_e_screensaver_timeout, _e_screensaver_idle_timeout_cb, (void*)1);
 #endif
 }
 

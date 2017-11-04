@@ -8,7 +8,6 @@ MOD_CPPFLAGS = -I. \
 -I$(top_srcdir)/src/modules \
 @e_cflags@ \
 @WAYLAND_CFLAGS@ \
-@WAYLAND_EGL_CFLAGS@ \
 -DE_BINDIR=\"$(bindir)\"
 
 MOD_LIBS = @e_libs@ @dlopen_libs@
@@ -95,6 +94,8 @@ include src/modules/Makefile_teamwork.mk
 
 include src/modules/Makefile_lokker.mk
 
+include src/modules/Makefile_luncher.mk
+
 include src/modules/Makefile_shot.mk
 
 include src/modules/Makefile_backlight.mk
@@ -111,6 +112,8 @@ include src/modules/Makefile_packagekit.mk
 
 include src/modules/Makefile_wl_drm.mk
 
+include src/modules/Makefile_wl_buffer.mk
+
 include src/modules/Makefile_wl_wl.mk
 
 include src/modules/Makefile_wl_desktop_shell.mk
@@ -125,9 +128,12 @@ include src/modules/Makefile_wl_text_input.mk
 
 include src/modules/Makefile_wl_weekeyboard.mk
 
-include src/modules/Makefile_policy_mobile.mk
-
 include src/modules/Makefile_geolocation.mk
 
+include src/modules/Makefile_sysinfo.mk
+
 include src/modules/Makefile_wireless.mk
+
 include src/modules/Makefile_time.mk
+
+include src/modules/Makefile_vkbd.mk

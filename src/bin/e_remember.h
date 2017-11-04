@@ -36,6 +36,7 @@ typedef struct _E_Remember E_Remember;
 #define E_REMEMBER_APPLY_OFFER_RESISTANCE (1 << 16)
 #define E_REMEMBER_APPLY_OPACITY          (1 << 17)
 #define E_REMEMBER_APPLY_UUID             (1 << 18)
+#define E_REMEMBER_APPLY_VOLUME           (1 << 19)
 
 #define E_REMEMBER_INTERNAL_DIALOGS       (1 << 0)
 #define E_REMEMBER_INTERNAL_FM_WINS       (1 << 1)
@@ -109,9 +110,15 @@ struct _E_Remember
       const char   *command;
       const char   *desktop_file;
       unsigned char opacity;
+
+      int           volume;
+      int           volume_min;
+      int           volume_max;
+      unsigned char mute;
    } prop;
    Eina_Stringshare *uuid;
    int pid;
+   Eina_Bool applying : 1;
 };
 
 EINTERN int      e_remember_init(E_Startup_Mode mode);
@@ -123,6 +130,7 @@ E_API void        e_remember_unuse(E_Remember *rem);
 E_API void        e_remember_del(E_Remember *rem);
 E_API E_Remember *e_remember_find(E_Client *ec);
 E_API E_Remember *e_remember_find_usable(E_Client *ec);
+E_API E_Remember *e_remember_sr_find(E_Client *ec);
 E_API void        e_remember_match_update(E_Remember *rem);
 E_API void        e_remember_update(E_Client *ec);
 E_API int         e_remember_default_match_set(E_Remember *rem, E_Client *ec);
