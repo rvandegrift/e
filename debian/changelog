@@ -15,6 +15,7 @@ e17 (0.22.0-0) UNRELEASED; urgency=medium
   * d/p/05_fix_enlightenment_remote_bashism.diff: fix bashism (Closes: #690719)
   * Add maintscript to handle renaming enlightenment-applications.menu ->
     e-applications.menu (Closes: #704185)
+  * Recommend terminology | x-terminal-emulator (Closes: #848490)
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:15:41 -0700
 

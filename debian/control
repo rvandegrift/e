@@ -17,7 +17,8 @@ Package: enlightenment
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, enlightenment-data (= ${source:Version}),
  libevas1-engines-x, libedje-bin, default-dbus-session-bus | dbus-session-bus
-Recommends: pm-utils
+Recommends: pm-utils,
+	    terminology | x-terminal-emulator
 Provides: x-window-manager
 Description: X11 window manager based on EFL
  Enlightenment is an advanced window manager for X11. Unique
