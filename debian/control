@@ -5,6 +5,7 @@ Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
 	   Jan Lübbe <jluebbe@debian.org>
 Build-Depends: debhelper (>= 10),
+	       libbluetooth-dev,
 	       libecore-bin (>= 1.20.5),
 	       libeet-bin,
 	       libefl-all-dev (>= 1.20.5),
