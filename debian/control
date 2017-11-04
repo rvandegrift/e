@@ -6,6 +6,7 @@ Uploaders: Albin Tonnerre <lutin@debian.org>,
 	   Jan Lübbe <jluebbe@debian.org>
 Build-Depends: connman-dev,
 	       debhelper (>= 10),
+	       libasound2-dev,
 	       libbluetooth-dev,
 	       libecore-bin (>= 1.20.5),
 	       libeet-bin,
