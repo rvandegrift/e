@@ -18,6 +18,7 @@ e17 (0.22.0-0) UNRELEASED; urgency=medium
   * Recommend terminology | x-terminal-emulator (Closes: #848490)
   * Enable connman module support (Closes: #593366)
   * Re-enable ALSA mixer support, it can now co-exist with pulse
+  * Enable elocation support for geolocation
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:15:41 -0700
 
