@@ -3,10 +3,16 @@ Section: x11
 Priority: optional
 Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
- Jan Lübbe <jluebbe@debian.org>
-Build-Depends: debhelper (>= 9), dh-autoreconf, libxext-dev, libeet-bin,
- libpam0g-dev, libxcb-shape0-dev, libxcb-keysyms1-dev, systemd,
- libefl-all-dev (>= 1.20.5), libecore-bin (>= 1.20.5)
+	   Jan Lübbe <jluebbe@debian.org>
+Build-Depends: debhelper (>= 10),
+	       libecore-bin (>= 1.20.5),
+	       libeet-bin,
+	       libefl-all-dev (>= 1.20.5),
+	       libpam0g-dev,
+	       libxcb-keysyms1-dev,
+	       libxcb-shape0-dev,
+	       libxext-dev,
+	       systemd
 Build-Depends-Indep: doxygen
 Standards-Version: 3.9.8
 Vcs-Git: https://anonscm.debian.org/git/pkg-e/apps/e.git
@@ -15,8 +21,11 @@ Homepage: https://www.enlightenment.org
 
 Package: enlightenment
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, enlightenment-data (= ${source:Version}),
- libevas1-engines-x, libedje-bin, default-dbus-session-bus | dbus-session-bus
+Depends: ${misc:Depends}, ${shlibs:Depends},
+	 default-dbus-session-bus | dbus-session-bus,
+	 enlightenment-data (= ${source:Version}),
+	 libedje-bin,
+	 libevas1-engines-x
 Recommends: pm-utils,
 	    terminology | x-terminal-emulator
 Provides: x-window-manager
@@ -46,7 +55,7 @@ Package: enlightenment-dev
 Architecture: any
 Section: devel
 Depends: ${misc:Depends}, enlightenment (= ${binary:Version}),
- libefl-all-dev (>= 1.20.5)
+	 libefl-all-dev (>= 1.20.5)
 Description: Enlightenment headers, static libraries and documentation
  Enlightenment is an advanced window manager for X11. Unique
  features include: a fully animated background, nice drop shadows
