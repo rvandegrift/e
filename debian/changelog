@@ -1,15 +1,16 @@
-e17 (0.21.9-1) UNRELEASED; urgency=medium
+e17 (0.22.0-0) UNRELEASED; urgency=medium
 
   * Team upload.
-  * New upstream release
+  * New upstream release (Closes: #775369, #855436, #728423)
 
   [ Ross Vandegrift ]
   * Update gbp.conf for debian experimental branch
   * Update README.source for tarball-based workflow
   * Put enlightenment systemd unit in examples (Closes: #854698)
   * d/p/10_type_restore_LDFLAGS.diff: drop, applied upstream
-  * Enlightenment now requires EFL >= 1.20.4.
   * debian/watch: fix handling of rc versions
+  * debian/control: Enlightenment now requires EFL >= 1.20.5, so the
+    libelementary-dev Build-Dep can be dropped.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:15:41 -0700
 
