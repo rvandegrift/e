@@ -9,6 +9,7 @@ e17 (0.21.9-1) UNRELEASED; urgency=medium
   * Put enlightenment systemd unit in examples (Closes: #854698)
   * d/p/10_type_restore_LDFLAGS.diff: drop, applied upstream
   * Enlightenment now requires EFL >= 1.20.4.
+  * debian/watch: fix handling of rc versions
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:15:41 -0700
 
