@@ -16,6 +16,7 @@ e17 (0.22.0-0) UNRELEASED; urgency=medium
   * Add maintscript to handle renaming enlightenment-applications.menu ->
     e-applications.menu (Closes: #704185)
   * Recommend terminology | x-terminal-emulator (Closes: #848490)
+  * Enable connman module support (Closes: #593366)
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:15:41 -0700
 

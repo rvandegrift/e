@@ -14,7 +14,6 @@ MULTIARCH := $(shell dpkg-architecture -qDEB_TARGET_MULTIARCH)
 override_dh_auto_configure:
 	dh_auto_configure --verbose -- \
 	--disable-rpath \
-	--disable-connman \
 	--disable-silent-rules \
 	--disable-geolocation
 
