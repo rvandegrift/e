@@ -1,4 +1,4 @@
-e17 (0.22.0-0) UNRELEASED; urgency=medium
+e17 (0.22.0-1) experimental; urgency=medium
 
   * Team upload.
   * New upstream release (Closes: #775369, #855436, #728423)
@@ -20,7 +20,7 @@ e17 (0.22.0-0) UNRELEASED; urgency=medium
   * Re-enable ALSA mixer support, it can now co-exist with pulse
   * Enable elocation support for geolocation
 
- -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:15:41 -0700
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 05 Nov 2017 09:30:13 -0800
 
 e17 (0.21.5-1) experimental; urgency=medium
 
