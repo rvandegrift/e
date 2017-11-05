@@ -1,5 +1,6 @@
 etc/enlightenment/sysactions.conf
 usr/bin/enlightenment
+usr/bin/enlightenment_askpass
 usr/bin/enlightenment_filemanager
 usr/bin/enlightenment_imc
 usr/bin/enlightenment_open
@@ -18,3 +19,4 @@ usr/lib/*/enlightenment/modules/wizard/*/page*.so
 usr/lib/*/enlightenment/utils/enlightenment_*
 usr/share/applications/enlightenment_filemanager.desktop
 usr/share/applications/emixer.desktop
+usr/share/applications/enlightenment_askpass.desktop
