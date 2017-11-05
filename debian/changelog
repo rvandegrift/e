@@ -19,8 +19,9 @@ e17 (0.22.0-1) experimental; urgency=medium
   * Enable connman module support (Closes: #593366)
   * Re-enable ALSA mixer support, it can now co-exist with pulse
   * Enable elocation support for geolocation
+  * Switch to debhelper 10
 
- -- Ross Vandegrift <ross@kallisti.us>  Sun, 05 Nov 2017 09:30:13 -0800
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 05 Nov 2017 10:10:52 -0800
 
 e17 (0.21.5-1) experimental; urgency=medium
 
