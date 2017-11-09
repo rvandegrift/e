@@ -1,3 +1,10 @@
+e17 (0.22.0-2) UNRELEASED; urgency=medium
+
+  * Team upload.
+  * Fix debhelper 10 (previous version was missing a commit)
+
+ -- Ross Vandegrift <ross@stgulik>  Wed, 08 Nov 2017 18:45:01 -0800
+
 e17 (0.22.0-1) experimental; urgency=medium
 
   * Team upload.
