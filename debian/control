@@ -15,6 +15,7 @@ Build-Depends: connman-dev,
 	       libxcb-keysyms1-dev,
 	       libxcb-shape0-dev,
 	       libxext-dev,
+	       meson,
 	       systemd
 Build-Depends-Indep: doxygen
 Standards-Version: 3.9.8

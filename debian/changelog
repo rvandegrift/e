@@ -2,9 +2,11 @@ e17 (0.22.0-2) UNRELEASED; urgency=medium
 
   * Team upload.
   * Fix debhelper 10 (previous version was missing a commit)
-  * d/rules: simplify lintian-overrides path generation
+  * d/rules:
+    + simplify lintian-overrides path generation
+    + switch from autotools+make -> meson+ninja for build
 
- -- Ross Vandegrift <ross@stgulik>  Wed, 08 Nov 2017 18:45:01 -0800
+ -- Ross Vandegrift <ross@kallisti.us>  Wed, 08 Nov 2017 18:45:01 -0800
 
 e17 (0.22.0-1) experimental; urgency=medium
 

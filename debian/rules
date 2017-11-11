@@ -2,16 +2,14 @@
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_LDFLAGS_MAINT_APPEND := -Wl,--as-needed
-RELEASE=$(shell grep '^release=' configure | cut -d'=' -f2-)
+RELEASE=$(shell grep '^release' meson.build | cut -d'=' -f2- | xargs echo)
 ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(RELEASE)
 
 %:
-	dh $@
+	dh $@ --without autoreconf --buildsystem=meson
 
 override_dh_auto_configure:
-	dh_auto_configure --verbose -- \
-	--disable-rpath \
-	--disable-silent-rules
+	dh_auto_configure --verbose
 
 override_dh_lintian:
 	sed -e "s/MULTIARCH/$(DEB_TARGET_MULTIARCH)/" \
