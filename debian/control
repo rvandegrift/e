@@ -22,6 +22,7 @@ Standards-Version: 4.1.1
 Vcs-Git: https://anonscm.debian.org/git/pkg-e/apps/e.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-e/apps/e.git/
 Homepage: https://www.enlightenment.org
+Rules-Requires-Root: no
 
 Package: enlightenment
 Architecture: any
