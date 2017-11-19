@@ -1,0 +1,2 @@
+# wayland is not currently enabled during build
+usr/share/wayland-sessions/enlightenment.desktop
