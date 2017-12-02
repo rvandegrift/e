@@ -1,6 +1,7 @@
 e17 (0.22.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
+  * d/control: Add myself to uploaders
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 02 Dec 2017 13:55:21 -0800
 

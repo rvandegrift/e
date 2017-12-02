@@ -3,7 +3,8 @@ Section: x11
 Priority: optional
 Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>,
-	   Jan Lübbe <jluebbe@debian.org>
+	   Jan Lübbe <jluebbe@debian.org>,
+	   Ross Vandegrift <ross@kallisti.us>
 Build-Depends: connman-dev,
 	       debhelper (>= 10),
 	       libasound2-dev,
