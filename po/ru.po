@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Enlightenment 0.17\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2014-09-02 19:30+0400\n"
 "Last-Translator: Игорь Мурзов <e-mail@date.by>\n"
 "Language-Team: ru <enlightenment-intl@lists.sourceforge.net>\n"
@@ -888,12 +888,12 @@ msgstr "Предыдущая раскладка"
 msgid "Set As Background"
 msgstr "Установить как фон"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 #, fuzzy
 msgid "Client Error!"
 msgstr "Ошибка Списка переключения окон"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -988,11 +988,11 @@ msgstr ""
 "поддержкой OpenGL 2.0 (или OpenGL ES 2.0)<br>для использования OpenGL в "
 "композитном менеджере."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Не удалось заблокировать"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -1001,12 +1001,12 @@ msgstr ""
 "Блокировка рабочего стола не удалась, т.к. мышка и/или<br>клавиатура "
 "удерживаются каким-то приложением,<br>и это удерживание не удалось прервать."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "На этом экране уже запущен другой<br>композитный менеджер."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -1015,11 +1015,11 @@ msgstr ""
 "Ваш X-сервер не поддерживает перекрытие<br>окном композитного менеджера. Без "
 "этого<br>композитный менеджер не может работать."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment не может инициализировать Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1029,7 +1029,7 @@ msgstr ""
 "без поддержки XComposite.<br>Заметьте, что для поддержки композитного "
 "режима<br>вам также понадобится поддержка XRender и XFixes<br>в X11 и Ecore."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -1037,7 +1037,7 @@ msgstr ""
 "Ваш X-сервер не поддерживает расширение XDamage<br>или Ecore был собран без "
 "поддержки XDamage."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment не может настроить систему XSettings.\n"
 

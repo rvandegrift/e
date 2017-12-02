@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DR17\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2012-12-21 20:27+0100\n"
 "Last-Translator: \n"
 "Language-Team: Czech <kde-i18n-doc@kde.org>\n"
@@ -887,12 +887,12 @@ msgstr "Předchozí rozložení klávesnice"
 msgid "Set As Background"
 msgstr "Použít jako pozadí"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 #, fuzzy
 msgid "Client Error!"
 msgstr "Chyba seznamu oken"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -986,11 +986,11 @@ msgstr ""
 "zkompilované nebo instalované pro<br>Evas nebo Ecore-Evas. Přecházím zpět na "
 "softwarový engine."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Uzamčení selhalo"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -1000,12 +1000,12 @@ msgstr ""
 "klávesnici nebo myši, popř. obojím,<br>a tento vyhrazený přístup se "
 "nepodařilo zrušit."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "Jiný kompozitor už běží na vašem serveru."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -1014,11 +1014,11 @@ msgstr ""
 "Váš server nepodporuje překrývací okno<br>kompozitoru. Je ale potřeba pro "
 "běh<br>kompozitoru."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenmentu se nepodařilo inicializovat Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 #, fuzzy
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
@@ -1029,7 +1029,7 @@ msgstr ""
 "podpory.<br>Berte na vědomí, že pro podporu kompozitoru<br>také potřebujete "
 "podporu XRender a XFixes v X11 a Ecore."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 #, fuzzy
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
@@ -1037,7 +1037,7 @@ msgid ""
 msgstr ""
 "Váš server nepodporuje XDamage<br>nebo Ecore byl zkompilván bez této podpory"
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenmentu se nepodařilo nastavit XSettings.\n"
 

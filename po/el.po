@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: el\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2013-11-20 22:41+0200\n"
 "Last-Translator: George Koutsikos <ragecryx@yahoo.gr>\n"
 "Language-Team: Ελληνικά, Σύγχρονα <opensuse-translation-el@opensuse.org>\n"
@@ -891,12 +891,12 @@ msgstr "Προηγούμενη διάταξη πληκτρολογίου"
 msgid "Set As Background"
 msgstr "Ορισμός Ως Ταπετσαρία"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 #, fuzzy
 msgid "Client Error!"
 msgstr "Σφάλμα Winlist"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -989,11 +989,11 @@ msgstr ""
 "εγκαταστάθηκαν μηχανές OpenGL για το<br>Evas ή Ecore-Evas. Επιστροφή στην "
 "μηχανή λογισμικού."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Το κλείδωμα απέτυχε"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -1003,12 +1003,12 @@ msgstr ""
 "εφαρμογή<br>δέσμευσε είτε το πληκτρολόγιο είτε το ποντίκι ή και τα "
 "δύο<br>και η δέσμευση είναι αδύνατονα κυρωθεί."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "Εκτελείται ήδη άλλος στοιχειοθέτης<br>στην οθόνη σας."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -1017,11 +1017,11 @@ msgstr ""
 "Η οθόνη σας δεν υποστηρίζει επικάλυψη παραθύρου<br>του στοιχειοθέτη. Αυτό "
 "χρειάζεται γι' αυτή την<br>λειτουργία."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Αδυναμία αρχικοποίησης Ecore_X από το Enlightenment!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 #, fuzzy
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
@@ -1033,7 +1033,7 @@ msgstr ""
 "υποστήριξη εφέ composite θα χρειαστείτε επίσης<br>υποστήριξη για XRender και "
 "XFixes στον X11 και Ecore."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -1041,7 +1041,7 @@ msgstr ""
 "Η οθόνη σας δεν υποστηρίζει την επέκταση XDamage ή το Ecore έχει φτιαχτεί "
 "χωρίς υποστήριξη για το XDamage."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Αδυναμία αρχικοποίησης συστήματος XSettings από το Enlightenment.\n"
 

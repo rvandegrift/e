@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eo\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2014-08-08 12:10+0000\n"
 "Last-Translator: Eliovir <Unknown>\n"
 "Language-Team: Esperanto <kde-i18n-doc@kde.org>\n"
@@ -895,12 +895,12 @@ msgstr "Antaŭa klavara aranĝo"
 msgid "Set As Background"
 msgstr "Difini kiel fono"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 #, fuzzy
 msgid "Client Error!"
 msgstr "Eraro de fenestrolistoj"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -993,11 +993,11 @@ msgstr ""
 "kompilita aŭ instalita por<br>Evas aŭ Ecore-Evas. Fiaskante reen al "
 "programaro motoro."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Ŝloso fiaskis"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -1006,12 +1006,12 @@ msgstr ""
 "Ŝloso de labortablo fiaskis ĉar kelka aplikaĵo ekkaptis<br>la klavaron, la "
 "muson aŭ ambaŭ<br>kaj ĝia ekkapto ne rompeblas."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "Alia kunmetilo jam funkcias en via vidiga servilo."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -1020,11 +1020,11 @@ msgstr ""
 "Vi vidiga servilo ne eltenas kovran fenestron<br>de kunmetilo. Tio bezonatas "
 "por ĝia funkciado."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Ecore_X ne pravalorizeblas de Enlightenment!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1034,13 +1034,13 @@ msgstr ""
 "XComposite. Notu ke por kunmetada elteno vi bezonas ankaŭ XRender-eltenon "
 "kaj XFixes-eltenon en X11 kaj Ecore."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
 msgstr ""
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment ne povas pravalorizi la sistemon XSettings.\n"
 

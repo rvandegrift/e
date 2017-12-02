@@ -7,6 +7,8 @@ _cb_sync_done(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_Wl2_Event_Sync_Done *ev;
    int w = 0, h = 0;
+   Eina_Iterator *it;
+   Ecore_Wl2_Input *input;
 
    ev = event;
    if (ev->display != e_comp_wl->wl.client_disp)
@@ -16,6 +18,13 @@ _cb_sync_done(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
    if ((w < 1) || (h < 1)) return ECORE_CALLBACK_PASS_ON;
 
    e_comp_canvas_resize(w * 2 / 3, h * 2 / 3);
+   e_comp_wl_output_init(NULL, NULL, NULL,
+               0, 0, w * 2 / 3, h * 2 / 3,
+               0, 0, 0, 0, 0, 0);
+   it = ecore_wl2_display_inputs_get(ecore_wl2_window_display_get(ecore_evas_wayland2_window_get(e_comp->ee)));
+   EINA_ITERATOR_FOREACH(it, input)
+     ecore_wl2_input_pointer_set(input, NULL, 0, 0);
+   eina_iterator_free(it);
 
    if (!ecore_wl2_display_dmabuf_get(e_comp_wl->wl.client_disp))
      e_comp_wl->dmabuf_disable = EINA_TRUE;
