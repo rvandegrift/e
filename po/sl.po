@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment 0.21.2\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2016-09-21 16:47+0200\n"
 "Last-Translator: Renato Rener <renato.rener@gmail.com>\n"
 "Language-Team: \n"
@@ -882,11 +882,11 @@ msgstr "Prejšnji razpored tipkovnice"
 msgid "Set As Background"
 msgstr "Nastavi kot ozadje"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Client Error!"
 msgstr "Napaka klienta!"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr "Nekaj je hotelo nastaviti obrobo, ko je ne bi smelo! Poročajte o tem!"
 
@@ -979,11 +979,11 @@ msgstr ""
 "pogon.<br><br>Potrebovali boste OpenGL 2.0 (ali OpenGL ES 2.0) GPU,"
 "<br>sposoben uporabiti OpenGL za kompozitiranje."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Zaklepanje spodletelo"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -992,11 +992,11 @@ msgstr ""
 "Zaklepanje namizja ni uspelo, ker je nek program<br>prevzel tipkovnico "
 "oziroma miško ali oboje<br>in se njegov prevzem ne more prekiniti."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 msgid "Another compositor is already running on your display server."
 msgstr "Na serverju za ekran že teče drugi kompozitor."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
 "This is needed for Enlightenment to function."
@@ -1004,11 +1004,11 @@ msgstr ""
 "Vaš server za ekran ne podpira prekrivnega okna v kompozitnem načinu.\n"
 "To je potrebno, da bi Enlightenment deloval."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment ne more zagnati Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1018,7 +1018,7 @@ msgstr ""
 "podporo zanj. Za podporo kompozitorju boste potrebovali tudi podporo XRender "
 "in XFixes za X11 in Ecore."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -1026,7 +1026,7 @@ msgstr ""
 "Vaš server za ekran ne podpira XDamage ali pa je bil Ecore zgrajen brez "
 "podpore za  XDamage."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment ne more zagnati XSettings sistema.\n"
 

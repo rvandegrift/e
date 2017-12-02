@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Enlightenment 0.17\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2015-06-30 07:13+0000\n"
 "Last-Translator: JoanColl <Unknown>\n"
 "Language-Team: Català <enlightenment-devel@lists.sourceforge.net>\n"
@@ -887,11 +887,11 @@ msgstr "Disposició de teclat anterior"
 msgid "Set As Background"
 msgstr "Estableix com a fons de pantalla"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Client Error!"
 msgstr "Error de client!"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 "S'ha intentat establir una vora quan no s'hauria. Informeu d'aquest error."
@@ -985,11 +985,11 @@ msgstr ""
 "Evas. Es torna al motor de programari.<br><br>Li serà necessaria una GPU que "
 "permeti OpenGL 2.0<br>(o OpenGL ES 2.0) per utilitzar OpenGL amb composició."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Errada en el bloqueig"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -998,11 +998,11 @@ msgstr ""
 "El bloqueig d'escriptori ha fallat perquè alguna aplicació <br>ha capturat "
 "el teclat o el ratolí (o ambdós) i no es pot fer el bloqueig."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 msgid "Another compositor is already running on your display server."
 msgstr "S'està executant un altre compositor en el servidor de pantalla."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
 "This is needed for Enlightenment to function."
@@ -1010,11 +1010,11 @@ msgstr ""
 "El seu servidor de pantalla no permet la superposició de finestra.\n"
 "Cal que ho permeti per tal de que Enlightenment funcioni."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment no pot inicialitzar Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1025,7 +1025,7 @@ msgstr ""
 "composite també necessiteu<br>compatibilitat amb XRender i XFixes a X11 i "
 "Ecore."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -1033,7 +1033,7 @@ msgstr ""
 "El servidor de pantalla no permet XDamage<br>o Ecore ha estat integrat sense "
 "compatibilitat amb XDamage."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr ""
 "Enlightenment no pot inicialitzar les preferències del sistema XSettings.\n"

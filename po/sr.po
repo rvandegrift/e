@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2015-02-03 10:47+0100\n"
 "Last-Translator: Саша Петровић <salepetronije@gmail.com>\n"
 "Language-Team: српски <xfce4@xfce4.org>\n"
@@ -889,11 +889,11 @@ msgstr "Претходни распоред тастатуре"
 msgid "Set As Background"
 msgstr "Постави као позадину"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Client Error!"
 msgstr "Грешка клијента!"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr "Нешто је покушало да постави оквир где му није место! Пријавите ово!"
 
@@ -987,11 +987,11 @@ msgstr ""
 "нзад на софтверски погон.<br><br>Потребан је ОпенГЛ 2.0 (или ОпенГЛ ЕС 2.0) "
 "ГПУза употребу ОпенГЛ-а са слагањем приказа."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Закључавање није успело"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -1001,12 +1001,12 @@ msgstr ""
 "<br>захватио тастатуру, миша, или обоје,<br>и његово захват не може бити "
 "отклоњен."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "Други управник слагања је већ покренут<br>на вашем служитељу приказа."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -1015,13 +1015,13 @@ msgstr ""
 "Ваш служитељ приказа не подржава<br>слагање заклањање прозора. То је "
 "неопходно<br>да би слагање радило."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr ""
 "Просвећење није успело подесити\n"
 "Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1031,7 +1031,7 @@ msgstr ""
 "подршке Икс слагања. Знајте да вам за подршку слагања такође треба XRender и "
 "XFixes подршка у Икс11 и Екору."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -1039,7 +1039,7 @@ msgstr ""
 "Ваш служитељ приказа не подржава XDamage или је Ecore грађено без XDamage "
 "подршке."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Просвећење није успело да покрене систем поставки Икса.\n"
 

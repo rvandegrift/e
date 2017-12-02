@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment 0.19.99.20491\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2015-10-12 01:01+0900\n"
 "Last-Translator: Thiep Ha <thiepha@gmail.com>\n"
 "Language-Team: \n"
@@ -883,11 +883,11 @@ msgstr "Bố trí bàn phím phía trước"
 msgid "Set As Background"
 msgstr "Đặt Làm Màn Hình Nền"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Client Error!"
 msgstr "Lỗi Phía Máy Khách!"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 "Cái gì đó đã cố gắng thiết lập một viền khi mà nó không nên làm điều đó! Báo "
@@ -983,11 +983,11 @@ msgstr ""
 "có khả năng OpenGL 2.0 (hoặc OpenGL ES 2.0)<br>để sử dụng OpenGL với bộ đa "
 "hợp."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Khóa Bị Thất Bại"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -996,11 +996,11 @@ msgstr ""
 "Khóa chỗ làm việc bị thất bại do ứng dụng nào đó<br>đã nắm lấy bàn phím hoặc "
 "con trỏ hoặc cả hai<br>và việc nắm này không thể bị phá vỡ."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 msgid "Another compositor is already running on your display server."
 msgstr "Một bộ đa hợp khác đang chạy trên server của chỗ làm việc của bạn."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
 "This is needed for Enlightenment to function."
@@ -1008,11 +1008,11 @@ msgstr ""
 "Server chỗ làm việc của bạn không hỗ trợ cửa sổ bao phủ bộ đa hợp.\n"
 "Đây là tính năng thiết yếu để Enlightenment hoạt động."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment không thể khởi tạo Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1022,7 +1022,7 @@ msgstr ""
 "dựng mà không hỗ trợ XComposite. Chú ý rằng để hỗ trợ cho việc đa hợp, bạn "
 "cũng sẽ cần hỗ trợ XRender và XFixes cho X11 và Ecore."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -1030,7 +1030,7 @@ msgstr ""
 "Server chỗ làm việc của bạn không hỗ trợ XDamage hoặc Ecore được xây dựng mà "
 "không hỗ trợ XDamage."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment không thể khởi tạo hệ thống XSettings.\n"
 

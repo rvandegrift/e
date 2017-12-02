@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment 0.22.0-rc\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2017-10-23 17:00+0000\n"
 "Last-Translator: scootergrisen\n"
 "Language-Team: Danish\n"
@@ -870,11 +870,11 @@ msgstr "Forrige tastaturlayout"
 msgid "Set As Background"
 msgstr "Sæt som baggrund"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Client Error!"
 msgstr "Fejl ved klient!"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr "Noget har forsøgt at sætte en kant når det ikke skulle! Rapportér det!"
 
@@ -967,11 +967,11 @@ msgstr ""
 "som formår OpenGL 2.0 (eller OpenGL ES 2.0)<ps/>for at bruge OpenGL med "
 "komposition."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Lås mislykkedes"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
 "the keyboard or the mouse or both<ps/>and their grab is unable to be broken."
@@ -979,11 +979,11 @@ msgstr ""
 "Låsning af skrivebordet mislykkedes, fordi et program<ps/>har grebet enten "
 "tastaturet eller musen eller begge dele<ps/>og grebet kan ikke brydes."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 msgid "Another compositor is already running on your display server."
 msgstr "Der kører allerede en anden kompositør på din display-server."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
 "This is needed for Enlightenment to function."
@@ -991,11 +991,11 @@ msgstr ""
 "Din display-server understøtter ikke kompositørens overlægningsvindue.\n"
 "Det behøves for at Enlightenment kan fungere."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment kan ikke initialisere Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1005,7 +1005,7 @@ msgstr ""
 "bygget uden XComposite-understøttelse. Bemærk at du også behøver XRender- og "
 "XFixes-understøttelse i X11 og Ecore, for at få kompositionsunderstøttelse."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
@@ -1013,7 +1013,7 @@ msgstr ""
 "Din display-server understøtter ikke XDamage eller også blev Ecore bygget "
 "uden XDamage-understøttelse."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment kan ikke initialisere XSettings-systemet.\n"
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: e17\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2012-12-20 16:46-0300\n"
 "Last-Translator: Vinícius dos Santos Oliveira <vini.ipsmaker@gmail.com>\n"
 "Language-Team: Brazilian Portuguese\n"
@@ -887,12 +887,12 @@ msgstr "Disposição anterior"
 msgid "Set As Background"
 msgstr "Definir como imagem de fundo"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 #, fuzzy
 msgid "Client Error!"
 msgstr "Erro do Winlist"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -985,11 +985,11 @@ msgstr ""
 "O controlador gráfico não tem suporte OpenGL ou<br> o OpenGL não foi "
 "compilado ou instalado para<br>o Evas ou Ecore-Evas."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Falha ao bloquear"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -998,12 +998,12 @@ msgstr ""
 "O bloqueio da área de trabalho falhou pois uma aplicação apoderou-se do "
 "teclado, do mouse ou de ambos e essa posse não pode ser quebrada"
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "Já existe um gestor de composição<br>em execução na sua tela."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -1012,11 +1012,11 @@ msgstr ""
 "A sua tela não tem suporte a janelas sobrepostas do compositor<br>Tal "
 "suporte é necessário para a função"
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "O Enlightenment não conseguiu iniciar Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 #, fuzzy
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
@@ -1027,7 +1027,7 @@ msgstr ""
 "sem o suporte a XComposite<br>Para ter suporte à extensão também precisa de "
 "suporte ao<br>XRender e XFixes no X11 e no Ecore"
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 #, fuzzy
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
@@ -1036,7 +1036,7 @@ msgstr ""
 "Sua tela X não tem suporte à extensão XDamage<br>ou o Ecore foi compilado "
 "sem o suporte a XDamage"
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "O Enlightenment não conseguiu iniciar o sistema XSettings.\n"
 

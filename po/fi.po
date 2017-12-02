@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Enlightenment (e17) CVS\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2015-11-14 02:19+0200\n"
 "Last-Translator: Kai Huuhko <kai.huuhko@gmail.com>\n"
 "Language-Team: Finnish <fi@li.org>\n"
@@ -882,12 +882,12 @@ msgstr "Edellinen näppäimistöasettelu"
 msgid "Set As Background"
 msgstr "Aseta taustakuvaksi"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 #, fuzzy
 msgid "Client Error!"
 msgstr "Ikkunalistan virhe"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -981,11 +981,11 @@ msgstr ""
 "näytönohjaimen joka tukee OpenGL 2.0 (tai OpenGL ES 2.0)<br>standardeja "
 "käyttääksesi OpenGL:ää varjostukseen."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "Lukitseminen epäonnistui"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -994,11 +994,11 @@ msgstr ""
 "Työpöydän lukitseminen epäonnistui, koska jokin sovellus<br>on kaapannut "
 "joko näppäimistön, hiiren tai molemmat<br>ja kaappausta on mahdoton rikkoa."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 msgid "Another compositor is already running on your display server."
 msgstr "Toinen koostaja on jo käynnissä näyttöpalvelimellasi."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
 "This is needed for Enlightenment to function."
@@ -1006,11 +1006,11 @@ msgstr ""
 "Näyttöpalvelimesi ei tue koostimen päällysikkunaa. Tämä\n"
 "vaaditaan että Enlightenment toimisi."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "Enlightenment ei voi alustaa Ecore_X:ää!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
 "without XComposite support. Note that for composite support you will also "
@@ -1020,14 +1020,14 @@ msgstr ""
 "ilman XComposite-tukea. Huomaa että koostamiseen tarvitaan myös XRender ja "
 "XFixes tuki X11:ssä ja ECoressa."
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
 "XDamage support."
 msgstr ""
 "Näyttöpalvelimesi ei tue XDamagea tai Ecore käännettiin ilman XDamage-tukea."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "Enlightenment ei voi alustaa XSettings-järjestelmää.\n"
 

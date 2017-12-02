@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment HEAD\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-11-02 09:00-0400\n"
+"POT-Creation-Date: 2017-11-21 08:23+1030\n"
 "PO-Revision-Date: 2012-12-27 22:51+0300\n"
 "Last-Translator: سمير حسين <almusalimalmusalimah@gmail.com>\n"
 "Language-Team: Arabic <almusalimalmusalimah@gmail.com>\n"
@@ -888,12 +888,12 @@ msgstr "مخطط لوحة المفاتيح السابق"
 msgid "Set As Background"
 msgstr "عين كخلفية"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 #, fuzzy
 msgid "Client Error!"
 msgstr "خطأ في لائحة النافذة"
 
-#: src/bin/e_client.c:4838
+#: src/bin/e_client.c:4840
 msgid "Something has attempted to set a border when it shouldn't! Report this!"
 msgstr ""
 
@@ -986,11 +986,11 @@ msgstr ""
 "التعريف الرسومي لا يدعم تقنية OpenGL , أو<br>لم تُبنَ محركات OpenGL أو تنصب "
 "لـ<br>Evas أو Ecore-Evas. لذا سيعاد استخدام المحرك البرمجي."
 
-#: src/bin/e_comp_x.c:5638
+#: src/bin/e_comp_x.c:5632
 msgid "Lock Failed"
 msgstr "فشل القفل"
 
-#: src/bin/e_comp_x.c:5639
+#: src/bin/e_comp_x.c:5633
 #, fuzzy
 msgid ""
 "Locking the desktop failed because some application<ps/>has grabbed either "
@@ -999,12 +999,12 @@ msgstr ""
 "فشل قفل سطح المكتب لأن بعض البرامج<br>مسكت إما لوحة المفاتيح أو الفأرة أو "
 "كليهما<br>ولايمكن كسر مسكتهم."
 
-#: src/bin/e_comp_x.c:5655
+#: src/bin/e_comp_x.c:5649
 #, fuzzy
 msgid "Another compositor is already running on your display server."
 msgstr "هنالك مدير تأثيرات آخر لا زال يعمل<br>على شاشة حاسبك."
 
-#: src/bin/e_comp_x.c:5674
+#: src/bin/e_comp_x.c:5668
 #, fuzzy
 msgid ""
 "Your display server does not support the compositor overlay window.\n"
@@ -1013,11 +1013,11 @@ msgstr ""
 "شاشة حاسبك لا تدعم التأثير<br>overlay window. و الذي يحتاجه مدير "
 "التأثيرات<br>ليعمل."
 
-#: src/bin/e_comp_x.c:5801
+#: src/bin/e_comp_x.c:5795
 msgid "Enlightenment cannot initialize Ecore_X!\n"
 msgstr "لا يستطيع إنلايتنمينت بدء Ecore_X!\n"
 
-#: src/bin/e_comp_x.c:5813
+#: src/bin/e_comp_x.c:5807
 #, fuzzy
 msgid ""
 "Your display server does not support XComposite, or Ecore-X was built "
@@ -1028,7 +1028,7 @@ msgstr ""
 "للملحقة XComposite .<br>تنبه إلى أنه حتى تكون التأثيرات مدعومة ستحتاج "
 "أيضا<br>لدعم كلا من XRender و XFixes support في X11 و Ecore"
 
-#: src/bin/e_comp_x.c:5822
+#: src/bin/e_comp_x.c:5816
 #, fuzzy
 msgid ""
 "Your display server does not support XDamage or Ecore was built without "
@@ -1036,7 +1036,7 @@ msgid ""
 msgstr ""
 "خادم العرض لا يدعم تقنية  XDamage<br>أو أن Ecore قد بُني بدون دعم لـ XDamage ."
 
-#: src/bin/e_comp_x.c:5927
+#: src/bin/e_comp_x.c:5921
 msgid "Enlightenment cannot initialize the XSettings system.\n"
 msgstr "لا يستطيع إنلايتنمينت بدء نظام إعدادات X\n"
 
