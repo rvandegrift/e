@@ -1,3 +1,9 @@
+e17 (0.22.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 02 Dec 2017 13:55:21 -0800
+
 e17 (0.22.0-2) experimental; urgency=low
 
   * Team upload.
