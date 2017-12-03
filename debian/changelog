@@ -2,6 +2,8 @@ e17 (0.22.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
   * d/control: Add myself to uploaders
+  * d/enlightenment.lintian-overrides.in: suppress warnings for image the
+    vkbd image files that upstream locates with the module in /usr/lib.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 02 Dec 2017 13:55:21 -0800
 

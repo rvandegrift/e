@@ -1,3 +1,4 @@
 enlightenment: setuid-binary usr/lib/MULTIARCH/enlightenment/modules/cpufreq/ARCH_PATH/freqset 4755 root/root
 enlightenment: setuid-binary usr/lib/MULTIARCH/enlightenment/utils/enlightenment_sys 4755 root/root
 enlightenment: setuid-binary usr/lib/MULTIARCH/enlightenment/utils/enlightenment_backlight 4755 root/root
+enlightenment: image-file-in-usr-lib usr/lib/MULTIARCH/enlightenment/modules/vkbd/keyboards/*.png
