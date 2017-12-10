@@ -11,6 +11,10 @@ ARCH_PATH=$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU)-$(RELEASE)
 override_dh_auto_configure:
 	dh_auto_configure --verbose
 
+override_dh_auto_build:
+	$(CURDIR)/debian/fake_home.sh \
+		dh_auto_build -O--buildsystem=meson --verbose
+
 override_dh_lintian:
 	sed -e "s/MULTIARCH/$(DEB_TARGET_MULTIARCH)/" \
 		-e "s/ARCH_PATH/$(ARCH_PATH)/" \
